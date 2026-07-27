@@ -1,0 +1,95 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-canvas: var(--canvas);
+  --color-canvas-foreground: var(--canvas-foreground);
+  --color-canvas-border: var(--canvas-border);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: hsl(210 20% 98%);
+  --foreground: hsl(215 25% 12%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(215 25% 12%);
+  --muted: hsl(215 15% 45%);
+  --muted-foreground: hsl(215 15% 45%);
+  --primary: hsl(142 70% 40%);
+  --primary-foreground: hsl(0 0% 100%);
+  --danger: hsl(0 84% 55%);
+  --danger-foreground: hsl(0 0% 100%);
+  --warning: hsl(38 92% 50%);
+  --info: hsl(217 91% 55%);
+  --border: hsl(215 20% 12% / 0.08);
+  --input: hsl(215 20% 12% / 0.08);
+  --ring: hsl(142 70% 40%);
+  --canvas: hsl(220 26% 10%);
+  --canvas-foreground: hsl(210 20% 95%);
+  --canvas-border: hsl(220 15% 22%);
+}
+
+.dark {
+  --background: hsl(220 20% 8%);
+  --foreground: hsl(210 20% 95%);
+  --card: hsl(220 18% 12%);
+  --card-foreground: hsl(210 20% 95%);
+  --muted: hsl(215 15% 55%);
+  --muted-foreground: hsl(215 15% 65%);
+  --primary: hsl(142 70% 45%);
+  --primary-foreground: hsl(0 0% 100%);
+  --danger: hsl(0 84% 60%);
+  --danger-foreground: hsl(0 0% 100%);
+  --warning: hsl(38 92% 55%);
+  --info: hsl(217 91% 60%);
+  --border: hsl(210 20% 95% / 0.1);
+  --input: hsl(210 20% 95% / 0.1);
+  --ring: hsl(142 70% 45%);
+  --canvas: hsl(220 26% 6%);
+  --canvas-foreground: hsl(210 20% 95%);
+  --canvas-border: hsl(220 15% 18%);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@utility animate-fade-up {
+  animation: fadeUp 0.5s var(--ease-out-expo) both;
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
