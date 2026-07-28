@@ -4,6 +4,10 @@ import type { AuditEvent } from "@/core/modules/auditing/domain/audit-event";
 export class InMemoryAuditLog implements AuditLogPort {
   private readonly events: AuditEvent[] = [];
 
+  constructor(seed: AuditEvent[] = []) {
+    this.events.push(...seed);
+  }
+
   async append(event: AuditEvent): Promise<void> {
     this.events.push(event);
   }

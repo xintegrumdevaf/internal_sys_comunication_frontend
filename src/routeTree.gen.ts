@@ -18,6 +18,8 @@ import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SoporteRouteImport } from './routes/soporte'
 import { Route as UtgaRouteImport } from './routes/utga'
+import { Route as WhatsappRouteImport } from './routes/whatsapp'
+import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
 import { Route as ApiWebhooksN8nInboundRouteImport } from './routes/api/webhooks/n8n.inbound'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +67,16 @@ const UtgaRoute = UtgaRouteImport.update({
   path: '/utga',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WhatsappRoute = WhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksWhatsappRoute = ApiWebhooksWhatsappRouteImport.update({
+  id: '/api/webhooks/whatsapp',
+  path: '/api/webhooks/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksN8nInboundRoute = ApiWebhooksN8nInboundRouteImport.update({
   id: '/api/webhooks/n8n/inbound',
   path: '/api/webhooks/n8n/inbound',
@@ -81,6 +93,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
   '/utga': typeof UtgaRoute
+  '/whatsapp': typeof WhatsappRoute
+  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
   '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +107,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
   '/utga': typeof UtgaRoute
+  '/whatsapp': typeof WhatsappRoute
+  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
   '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
 }
 export interface FileRoutesById {
@@ -106,6 +122,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
   '/utga': typeof UtgaRoute
+  '/whatsapp': typeof WhatsappRoute
+  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
   '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +138,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/soporte'
     | '/utga'
+    | '/whatsapp'
+    | '/api/webhooks/whatsapp'
     | '/api/webhooks/n8n/inbound'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +152,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/soporte'
     | '/utga'
+    | '/whatsapp'
+    | '/api/webhooks/whatsapp'
     | '/api/webhooks/n8n/inbound'
   id:
     | '__root__'
@@ -144,6 +166,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/soporte'
     | '/utga'
+    | '/whatsapp'
+    | '/api/webhooks/whatsapp'
     | '/api/webhooks/n8n/inbound'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +181,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SoporteRoute: typeof SoporteRoute
   UtgaRoute: typeof UtgaRoute
+  WhatsappRoute: typeof WhatsappRoute
+  ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
   ApiWebhooksN8nInboundRoute: typeof ApiWebhooksN8nInboundRoute
 }
 
@@ -225,6 +251,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UtgaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/whatsapp': {
+      id: '/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/whatsapp': {
+      id: '/api/webhooks/whatsapp'
+      path: '/api/webhooks/whatsapp'
+      fullPath: '/api/webhooks/whatsapp'
+      preLoaderRoute: typeof ApiWebhooksWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/n8n/inbound': {
       id: '/api/webhooks/n8n/inbound'
       path: '/api/webhooks/n8n/inbound'
@@ -245,6 +285,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SoporteRoute: SoporteRoute,
   UtgaRoute: UtgaRoute,
+  WhatsappRoute: WhatsappRoute,
+  ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
   ApiWebhooksN8nInboundRoute: ApiWebhooksN8nInboundRoute,
 }
 export const routeTree = rootRouteImport

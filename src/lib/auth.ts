@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { SEED_DEPARTMENTS, SEED_USERS } from "@/adapters/persistence/memory/seed";
 import type { User } from "@/core/modules/identity/domain/user";
+import { isGlobalAdmin } from "@/core/modules/identity/domain/user";
 
 /**
  * UI session adapter (driving adapter).
@@ -15,9 +16,27 @@ export type SessionUser = {
   email: string;
   /** Primary department slug for nav landing */
   departmentSlug: string;
+  /** All department slugs the user belongs to */
+  departmentSlugs: string[];
+  /** Platform-wide access (Admin TI) */
+  isAdmin: boolean;
   roleLabel: string;
   area: string;
   landing: string;
+};
+
+/** Path → department slug required (null = any authenticated user). */
+export const PATH_DEPARTMENT: Record<string, string | null> = {
+  "/": "ti",
+  "/soporte": "soporte",
+  "/cartera": "cartera",
+  "/utga": "traslados",
+  "/campanas": "administracion",
+  "/bandeja": null,
+  "/whatsapp": null,
+  "/flujos": null, // solo admin vía canAccessPath
+  "/auditoria": null, // solo admin
+  "/login": null,
 };
 
 function toSessionUser(user: User): SessionUser {
@@ -31,12 +50,18 @@ function toSessionUser(user: User): SessionUser {
         ? `Líder · ${primary.name}`
         : `Agente · ${primary.name}`;
 
+  const departmentSlugs = user.memberships
+    .map((m) => SEED_DEPARTMENTS.find((d) => d.id === m.departmentId)?.slug)
+    .filter((s): s is string => Boolean(s));
+
   return {
     id: user.id,
     name: user.name,
     initials: user.initials,
     email: user.email,
     departmentSlug: primary.slug,
+    departmentSlugs,
+    isAdmin: isGlobalAdmin(user),
     roleLabel,
     area: primary.name,
     landing: primary.landingPath,
@@ -57,24 +82,77 @@ export const DEPARTMENT_NAV = SEED_DEPARTMENTS.filter((d) => d.active).map((d) =
   to: d.landingPath,
 }));
 
+export function canAccessDepartment(session: SessionUser, slug: string): boolean {
+  if (session.isAdmin) return true;
+  return session.departmentSlugs.includes(slug);
+}
+
+export function canAccessPath(session: SessionUser, pathname: string): boolean {
+  if (session.isAdmin) return true;
+
+  if (pathname === "/flujos" || pathname === "/auditoria") {
+    return false;
+  }
+
+  if (pathname === "/bandeja" || pathname === "/whatsapp" || pathname === "/login") {
+    return true;
+  }
+
+  const required = PATH_DEPARTMENT[pathname];
+  if (required === undefined) return false;
+  if (required === null) return true;
+  return canAccessDepartment(session, required);
+}
+
+export function departmentsForSession(session: SessionUser) {
+  if (session.isAdmin) return DEPARTMENT_NAV;
+  return DEPARTMENT_NAV.filter((d) => session.departmentSlugs.includes(d.slug));
+}
+
+export function modulesForSession(session: SessionUser): Array<{
+  label: string;
+  to: string;
+  adminOnly?: boolean;
+}> {
+  const base = [
+    { label: "Bandeja Unificada", to: "/bandeja" as const },
+    { label: "WhatsApp", to: "/whatsapp" as const },
+  ];
+  if (session.isAdmin) {
+    return [
+      ...base,
+      { label: "Flujos n8n", to: "/flujos", adminOnly: true },
+      { label: "Campañas Masivas", to: "/campanas" },
+      { label: "Auditoría & Logs", to: "/auditoria", adminOnly: true },
+    ];
+  }
+  if (canAccessDepartment(session, "administracion")) {
+    return [...base, { label: "Campañas Masivas", to: "/campanas" }];
+  }
+  return base;
+}
+
 const KEY = "netops.session";
 const listeners = new Set<() => void>();
 
-let cachedRaw: string | null = null;
+let cacheEpoch = 0;
+let cachedEpoch = -1;
 let cachedUser: SessionUser | null = null;
 
 function read(): SessionUser | null {
   if (typeof window === "undefined") return null;
-  let raw: string | null = null;
+  if (cachedEpoch === cacheEpoch) return cachedUser;
+  cachedEpoch = cacheEpoch;
   try {
-    raw = window.localStorage.getItem(KEY);
-  } catch {
-    return null;
-  }
-  if (raw === cachedRaw) return cachedUser;
-  cachedRaw = raw;
-  try {
-    cachedUser = raw ? (JSON.parse(raw) as SessionUser) : null;
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) {
+      cachedUser = null;
+      return null;
+    }
+    const parsed = JSON.parse(raw) as Partial<SessionUser> & { id: string };
+    // Rehydrate from seed so memberships stay fresh after schema changes
+    const fromSeed = DEMO_USERS.find((u) => u.id === parsed.id);
+    cachedUser = fromSeed ?? (parsed as SessionUser);
   } catch {
     cachedUser = null;
   }
@@ -82,7 +160,7 @@ function read(): SessionUser | null {
 }
 
 function notify() {
-  cachedRaw = null;
+  cacheEpoch += 1;
   listeners.forEach((l) => l());
 }
 
@@ -99,8 +177,8 @@ export function signOut() {
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cachedRaw = null;
+    if (e.key === KEY || e.key === null) {
+      cacheEpoch += 1;
       cb();
     }
   };

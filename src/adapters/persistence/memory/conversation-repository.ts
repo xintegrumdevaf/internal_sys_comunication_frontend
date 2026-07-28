@@ -11,6 +11,10 @@ import type { ConversationId, DepartmentId } from "@/core/shared/domain/ids";
 export class InMemoryConversationRepository implements ConversationRepository {
   private readonly byId = new Map<string, Conversation>();
 
+  constructor(seed: Conversation[] = []) {
+    for (const c of seed) this.byId.set(c.id, c);
+  }
+
   async save(conversation: Conversation): Promise<Conversation> {
     this.byId.set(conversation.id, conversation);
     return conversation;
@@ -43,6 +47,10 @@ export class InMemoryConversationRepository implements ConversationRepository {
 export class InMemoryMessageRepository implements MessageRepository {
   private readonly items: Message[] = [];
 
+  constructor(seed: Message[] = []) {
+    this.items.push(...seed);
+  }
+
   async save(message: Message): Promise<Message> {
     this.items.push(message);
     return message;
@@ -57,6 +65,10 @@ export class InMemoryMessageRepository implements MessageRepository {
 
 export class InMemoryTransferRepository implements TransferRepository {
   private readonly items: Transfer[] = [];
+
+  constructor(seed: Transfer[] = []) {
+    this.items.push(...seed);
+  }
 
   async save(transfer: Transfer): Promise<Transfer> {
     this.items.push(transfer);

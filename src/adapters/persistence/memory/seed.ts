@@ -103,4 +103,19 @@ export const SEED_USERS: User[] = [
     ],
     active: true,
   },
+  {
+    id: asUserId("u_admin_ops"),
+    name: "Camila Ortiz",
+    initials: "CO",
+    email: "camila.ortiz@netops.co",
+    primaryDepartmentId: asDepartmentId("dept_admin"),
+    memberships: [
+      {
+        userId: asUserId("u_admin_ops"),
+        departmentId: asDepartmentId("dept_admin"),
+        role: "lead",
+      },
+    ],
+    active: true,
+  },
 ];

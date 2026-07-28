@@ -8,15 +8,23 @@ import {
   Inbox,
   GitBranch,
   Megaphone,
-  AlertTriangle,
   Plus,
   ShieldCheck,
   LogOut,
   ChevronDown,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-import { DEMO_USERS, DEPARTMENT_NAV, signIn, signOut, useSession } from "../lib/auth";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  DEMO_USERS,
+  canAccessPath,
+  departmentsForSession,
+  modulesForSession,
+  signIn,
+  signOut,
+  useSession,
+} from "../lib/auth";
 
 type NavItem = { icon: LucideIcon; label: string; to: string };
 
@@ -28,19 +36,13 @@ const departmentIcons: Record<string, LucideIcon> = {
   traslados: HardHat,
 };
 
-/** Nav driven by Core departments (seed) — not hardcoded roles. */
-export const roleNav: NavItem[] = DEPARTMENT_NAV.map((d) => ({
-  icon: departmentIcons[d.slug] ?? Server,
-  label: d.label,
-  to: d.to,
-}));
-
-export const moduleNav: NavItem[] = [
-  { icon: Inbox, label: "Bandeja Unificada", to: "/bandeja" },
-  { icon: GitBranch, label: "Flujos n8n", to: "/flujos" },
-  { icon: Megaphone, label: "Campañas Masivas", to: "/campanas" },
-  { icon: ShieldCheck, label: "Auditoría & Logs", to: "/auditoria" },
-];
+const moduleIcons: Record<string, LucideIcon> = {
+  "/bandeja": Inbox,
+  "/whatsapp": MessageCircle,
+  "/flujos": GitBranch,
+  "/campanas": Megaphone,
+  "/auditoria": ShieldCheck,
+};
 
 export function AppShell({
   title,
@@ -56,10 +58,32 @@ export function AppShell({
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const roleNav = useMemo<NavItem[]>(() => {
+    if (!session) return [];
+    return departmentsForSession(session).map((d) => ({
+      icon: departmentIcons[d.slug] ?? Server,
+      label: d.label,
+      to: d.to,
+    }));
+  }, [session]);
+
+  const moduleNav = useMemo<NavItem[]>(() => {
+    if (!session) return [];
+    return modulesForSession(session).map((m) => ({
+      icon: moduleIcons[m.to] ?? Inbox,
+      label: m.label,
+      to: m.to,
+    }));
+  }, [session]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!session && pathname !== "/login") {
-      navigate({ to: "/login" });
+      void navigate({ to: "/login", replace: true });
+      return;
+    }
+    if (session && !canAccessPath(session, pathname)) {
+      void navigate({ to: session.landing, replace: true });
     }
   }, [session, pathname, navigate]);
 
@@ -71,25 +95,29 @@ export function AppShell({
     );
   }
 
-
+  if (!canAccessPath(session, pathname)) {
+    return (
+      <div className="min-h-screen bg-background grid place-items-center text-muted-foreground text-sm">
+        Sin acceso a esta pantalla… redirigiendo a {session.area}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex">
       <aside className="w-64 border-r border-border flex flex-col bg-card shrink-0">
         <div className="p-6 border-b border-border">
-          <Link to="/" className="block">
+          <Link to={session.landing} className="block">
             <h1 className="font-extrabold tracking-tighter text-xl uppercase">
               NetOps <span className="text-primary">AI</span>
             </h1>
-            <p className="text-[10px] text-muted-foreground mt-1 tracking-wide">
-              WhatsApp Ops · ISP Platform
-            </p>
+            <p className="text-[10px] text-muted-foreground mt-1 tracking-wide">{session.area}</p>
           </Link>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-            Roles Operativos
+            Mi área
           </div>
           {roleNav.map((r) => (
             <NavLink key={r.to} item={r} pathname={pathname} />
@@ -112,10 +140,11 @@ export function AppShell({
               {DEMO_USERS.filter((u) => u.id !== session.id).map((u) => (
                 <button
                   key={u.id}
+                  type="button"
                   onClick={() => {
                     signIn(u);
                     setMenuOpen(false);
-                    navigate({ to: u.landing });
+                    void navigate({ to: u.landing, replace: true });
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 hover:bg-foreground/5 text-left"
                 >
@@ -129,9 +158,11 @@ export function AppShell({
                 </button>
               ))}
               <button
+                type="button"
                 onClick={() => {
+                  setMenuOpen(false);
                   signOut();
-                  navigate({ to: "/login" });
+                  void navigate({ to: "/login", replace: true });
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-danger/10 text-danger border-t border-border text-xs font-bold"
               >
@@ -141,6 +172,7 @@ export function AppShell({
             </div>
           )}
           <button
+            type="button"
             onClick={() => setMenuOpen((v) => !v)}
             className="w-full flex items-center gap-3 p-1.5 rounded-md hover:bg-foreground/5 transition-colors"
           >
@@ -154,7 +186,9 @@ export function AppShell({
                 <span className="text-[10px] text-muted-foreground truncate">{session.roleLabel}</span>
               </div>
             </div>
-            <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`size-3.5 text-muted-foreground transition-transform ${menuOpen ? "rotate-180" : ""}`}
+            />
           </button>
         </div>
       </aside>
@@ -174,15 +208,21 @@ export function AppShell({
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-danger/10 text-danger text-[10px] font-bold uppercase rounded ring-1 ring-danger/20">
-              <AlertTriangle className="size-3" />
-              Desatención: 5m+ (3)
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded ring-1 ring-primary/20">
+              {session.area}
             </div>
-            <div className="h-8 w-px bg-border" />
-            <button className="flex items-center gap-2 px-4 py-2 bg-foreground text-background text-xs font-bold rounded-md hover:bg-foreground/85 transition-colors">
-              <Plus className="size-3.5" />
-              Nueva Campaña
-            </button>
+            {session.isAdmin && (
+              <>
+                <div className="h-8 w-px bg-border" />
+                <button
+                  type="button"
+                  className="flex items-center gap-2 px-4 py-2 bg-foreground text-background text-xs font-bold rounded-md hover:bg-foreground/85 transition-colors"
+                >
+                  <Plus className="size-3.5" />
+                  Nueva Campaña
+                </button>
+              </>
+            )}
           </div>
         </header>
 
@@ -243,10 +283,30 @@ export function StatCard({
   tone?: "default" | "danger" | "success" | "warning";
 }) {
   const toneMap = {
-    default: { wrap: "bg-card border-border", label: "text-muted-foreground", value: "text-foreground", hint: "text-muted-foreground" },
-    success: { wrap: "bg-card border-border", label: "text-muted-foreground", value: "text-foreground", hint: "text-primary" },
-    danger: { wrap: "bg-danger/5 border-danger/20", label: "text-danger", value: "text-danger", hint: "text-danger/70" },
-    warning: { wrap: "bg-warning/5 border-warning/30", label: "text-warning", value: "text-foreground", hint: "text-warning" },
+    default: {
+      wrap: "bg-card border-border",
+      label: "text-muted-foreground",
+      value: "text-foreground",
+      hint: "text-muted-foreground",
+    },
+    success: {
+      wrap: "bg-card border-border",
+      label: "text-muted-foreground",
+      value: "text-foreground",
+      hint: "text-primary",
+    },
+    danger: {
+      wrap: "bg-danger/5 border-danger/20",
+      label: "text-danger",
+      value: "text-danger",
+      hint: "text-danger/70",
+    },
+    warning: {
+      wrap: "bg-warning/5 border-warning/30",
+      label: "text-warning",
+      value: "text-foreground",
+      hint: "text-warning",
+    },
   }[tone];
 
   return (
