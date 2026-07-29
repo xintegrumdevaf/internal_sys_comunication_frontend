@@ -66,18 +66,55 @@ type MetaMessage = {
   video?: { caption?: string };
 };
 
+type MetaWebhookValue = {
+  messaging_product?: string;
+  metadata?: {
+    display_phone_number?: string;
+    phone_number_id?: string;
+  };
+  contacts?: Array<{
+    profile?: { name?: string };
+    wa_id?: string;
+    user_id?: string;
+  }>;
+  messages?: MetaMessage[];
+  [key: string]: unknown;
+};
+
 type MetaWebhookBody = {
   object?: string;
   entry?: Array<{
     changes?: Array<{
-      value?: {
-        metadata?: { phone_number_id?: string };
-        contacts?: Array<{ profile?: { name?: string } }>;
-        messages?: MetaMessage[];
-      };
+      field?: string;
+      value?: MetaWebhookValue;
     }>;
   }>;
 };
+
+/** Shape n8n WhatsApp workflows expect: Meta `value` + `field`. */
+export type MetaChangeForN8n = MetaWebhookValue & { field: string };
+
+/**
+ * Extract inbound message changes as the flat array n8n expects, e.g.
+ * `[{ messaging_product, metadata, contacts, messages, field: "messages" }]`.
+ */
+export function extractMetaChangesForN8n(body: unknown): MetaChangeForN8n[] {
+  const payload = body as MetaWebhookBody;
+  if (payload.object !== "whatsapp_business_account") return [];
+
+  const out: MetaChangeForN8n[] = [];
+  for (const entry of payload.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      const value = change.value;
+      if (!value?.messages?.length) continue;
+      out.push({
+        ...value,
+        field: change.field ?? "messages",
+      });
+    }
+  }
+  return out;
+}
 
 function extractBody(message: MetaMessage): string | null {
   switch (message.type) {

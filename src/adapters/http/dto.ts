@@ -17,6 +17,21 @@ export const inboundMessageSchema = z.object({
 
 export type InboundMessageDto = z.infer<typeof inboundMessageSchema>;
 
+/** n8n → Core automated WhatsApp reply */
+export const n8nReplySchema = z
+  .object({
+    body: z.string().min(1),
+    conversationId: z.string().min(1).optional(),
+    waPhone: z.string().min(5).optional(),
+    intent: z.string().optional(),
+    departmentSlug: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.conversationId || data.waPhone), {
+    message: "conversationId or waPhone is required",
+  });
+
+export type N8nReplyDto = z.infer<typeof n8nReplySchema>;
+
 export type ConversationDto = {
   id: string;
   waPhone: string;

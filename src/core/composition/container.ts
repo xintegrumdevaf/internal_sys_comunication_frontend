@@ -23,6 +23,7 @@ import { ListConversationsUseCase } from "@/core/modules/conversations/applicati
 import { ListInboxForUserUseCase } from "@/core/modules/conversations/application/list-inbox-for-user";
 import { ListMessagesUseCase } from "@/core/modules/conversations/application/list-messages";
 import { ReceiveInboundMessageUseCase } from "@/core/modules/conversations/application/receive-inbound-message";
+import { SendAiOutboundReplyUseCase } from "@/core/modules/conversations/application/send-ai-outbound-reply";
 import { SendOutboundReplyUseCase } from "@/core/modules/conversations/application/send-outbound-reply";
 import { TakeControlUseCase } from "@/core/modules/conversations/application/take-control";
 import { TransferConversationUseCase } from "@/core/modules/conversations/application/transfer-conversation";
@@ -64,6 +65,13 @@ function createContainer() {
         conversations,
         messages,
         users,
+        messenger,
+        audit,
+      ),
+      sendAiOutboundReply: new SendAiOutboundReplyUseCase(
+        conversations,
+        messages,
+        departments,
         messenger,
         audit,
       ),

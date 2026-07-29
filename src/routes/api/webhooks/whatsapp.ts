@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { N8nWebhookClient } from "@/adapters/n8n/client";
 import { WhatsAppCloudClient } from "@/adapters/whatsapp-cloud/client";
 import {
   getWhatsAppCloudConfig,
   isWhatsAppCloudConfigured,
 } from "@/adapters/whatsapp-cloud/config";
 import {
+  extractMetaChangesForN8n,
   inferDepartmentSlugFromText,
   parseInboundWhatsAppWebhook,
   verifyMetaSignature,
@@ -64,6 +66,7 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
         const inbound = parseInboundWhatsAppWebhook(json);
         const container = getContainer();
         const client = new WhatsAppCloudClient();
+        const n8n = new N8nWebhookClient();
         const accepted: string[] = [];
 
         // Meta also POSTs delivery/read statuses under field "messages" without `messages[]`.
@@ -101,6 +104,11 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
           } catch (error) {
             console.error("[whatsapp webhook] failed to ingest", msg.waMessageId, error);
           }
+        }
+
+        // Hub → n8n: forward Meta-shaped changes (not Hub-normalized events)
+        if (accepted.length > 0) {
+          n8n.scheduleForwardInbound(extractMetaChangesForN8n(json));
         }
 
         return Response.json({ ok: true, accepted: accepted.length });
