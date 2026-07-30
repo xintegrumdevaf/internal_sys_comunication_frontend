@@ -1,7 +1,7 @@
 # WhatsApp inbound media — proxy temporal (diseño)
 
 **Fecha:** 2026-07-29  
-**Estado:** aprobado en diálogo; pendiente revisión del archivo  
+**Estado:** implementado (proxy + UI)  
 **Objetivo:** mostrar audio/imagen/video en el chat y dar a n8n una URL usable sin token de Meta.
 
 ## Contexto
