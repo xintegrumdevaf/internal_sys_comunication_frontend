@@ -6,6 +6,7 @@ import {
   isWhatsAppCloudConfigured,
 } from "@/adapters/whatsapp-cloud/config";
 import {
+  enrichMetaChangesWithHubMedia,
   extractMetaChangesForN8n,
   inferDepartmentSlugFromText,
   parseInboundWhatsAppWebhook,
@@ -68,6 +69,7 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
         const client = new WhatsAppCloudClient();
         const n8n = new N8nWebhookClient();
         const accepted: string[] = [];
+        const waToHubMessageId = new Map<string, string>();
 
         // Meta also POSTs delivery/read statuses under field "messages" without `messages[]`.
         if (inbound.length === 0) {
@@ -91,13 +93,20 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
               waMessageId: msg.waMessageId,
               customerName: msg.customerName,
               intent: departmentSlug,
+              type: msg.type,
+              mediaId: msg.mediaId,
+              mimeType: msg.mimeType,
+              caption: msg.caption,
+              filename: msg.filename,
             });
             accepted.push(result.message.id);
+            waToHubMessageId.set(msg.waMessageId, result.message.id);
             console.info(
               "[whatsapp webhook] ingested",
               msg.waPhone,
               "→",
               departmentSlug,
+              msg.type,
               msg.body.slice(0, 80),
             );
             void client.markRead(msg.waMessageId);
@@ -108,7 +117,13 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
 
         // Hub → n8n: forward Meta-shaped changes (not Hub-normalized events)
         if (accepted.length > 0) {
-          n8n.scheduleForwardInbound(extractMetaChangesForN8n(json));
+          const publicBaseUrl = process.env.APP_PUBLIC_URL?.trim();
+          const changes = enrichMetaChangesWithHubMedia(
+            extractMetaChangesForN8n(json),
+            waToHubMessageId,
+            publicBaseUrl,
+          );
+          n8n.scheduleForwardInbound(changes);
         }
 
         return Response.json({ ok: true, accepted: accepted.length });

@@ -9,7 +9,11 @@ import {
   appendPreview,
   openConversation,
 } from "@/core/modules/conversations/domain/conversation";
-import { createInboundMessage } from "@/core/modules/conversations/domain/message";
+import {
+  createInboundMessage,
+  type Message,
+  type MessageType,
+} from "@/core/modules/conversations/domain/message";
 import {
   asAuditEventId,
   asConversationId,
@@ -18,7 +22,6 @@ import {
 } from "@/core/shared/domain/ids";
 import { ValidationError } from "@/core/shared/domain/errors";
 import type { Conversation } from "@/core/modules/conversations/domain/conversation";
-import type { Message } from "@/core/modules/conversations/domain/message";
 
 export type ReceiveInboundMessageInput = {
   waPhone: string;
@@ -29,6 +32,11 @@ export type ReceiveInboundMessageInput = {
   customerName?: string;
   contractId?: string;
   intent?: string;
+  type?: MessageType;
+  mediaId?: string;
+  mimeType?: string;
+  caption?: string;
+  filename?: string;
 };
 
 export type ReceiveInboundMessageResult = {
@@ -106,6 +114,11 @@ export class ReceiveInboundMessageUseCase {
         conversationId: conversation.id,
         body: input.body,
         externalId: input.waMessageId,
+        type: input.type,
+        mediaId: input.mediaId,
+        mimeType: input.mimeType,
+        caption: input.caption,
+        filename: input.filename,
       }),
     );
 

@@ -1,5 +1,6 @@
 import { Bot, User, ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
+import { MessageMediaBody } from "@/components/chat/MessageMediaBody";
 import {
   intentLabel,
   relativeTime,
@@ -186,7 +187,7 @@ export function OperationalInbox({ departmentSlug, userScope = true, subtitle }:
                               : "IA"}
                         </span>
                       </div>
-                      {m.body}
+                      <MessageMediaBody message={m} />
                     </div>
                   </div>
                 );

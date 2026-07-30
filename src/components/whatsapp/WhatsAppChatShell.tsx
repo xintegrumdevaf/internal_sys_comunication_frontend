@@ -18,6 +18,7 @@ import {
   simulateInboundMessageFn,
 } from "@/adapters/http/server-fns";
 import type { ConversationDto, MessageDto } from "@/adapters/http/dto";
+import { MessageMediaBody } from "@/components/chat/MessageMediaBody";
 import { relativeTime } from "@/hooks/use-operational-inbox";
 import { useSession } from "@/lib/auth";
 import { unlinkWhatsApp, type WaLinkedSession } from "@/lib/whatsapp-link";
@@ -338,7 +339,7 @@ export function WhatsAppChatShell({
                             : "bg-[#202c33] text-[#e9edef] rounded-tl-none"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{m.body}</p>
+                        <MessageMediaBody message={m} />
                         <div className="flex items-center justify-end gap-1 mt-1">
                           <span className="text-[10px] text-[#ffffff99]">
                             {formatClock(m.createdAt)}

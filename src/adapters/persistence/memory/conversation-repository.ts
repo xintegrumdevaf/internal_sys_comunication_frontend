@@ -6,7 +6,7 @@ import type {
 import type { Conversation } from "@/core/modules/conversations/domain/conversation";
 import type { Message } from "@/core/modules/conversations/domain/message";
 import type { Transfer } from "@/core/modules/conversations/domain/transfer";
-import type { ConversationId, DepartmentId } from "@/core/shared/domain/ids";
+import type { ConversationId, DepartmentId, MessageId } from "@/core/shared/domain/ids";
 
 export class InMemoryConversationRepository implements ConversationRepository {
   private readonly byId = new Map<string, Conversation>();
@@ -54,6 +54,10 @@ export class InMemoryMessageRepository implements MessageRepository {
   async save(message: Message): Promise<Message> {
     this.items.push(message);
     return message;
+  }
+
+  async findById(id: MessageId): Promise<Message | null> {
+    return this.items.find((m) => m.id === id) ?? null;
   }
 
   async listByConversation(conversationId: ConversationId): Promise<Message[]> {

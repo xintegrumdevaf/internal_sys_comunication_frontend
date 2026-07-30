@@ -1,7 +1,7 @@
 import type { Conversation } from "@/core/modules/conversations/domain/conversation";
 import type { Message } from "@/core/modules/conversations/domain/message";
 import type { Transfer } from "@/core/modules/conversations/domain/transfer";
-import type { ConversationId, DepartmentId } from "@/core/shared/domain/ids";
+import type { ConversationId, DepartmentId, MessageId } from "@/core/shared/domain/ids";
 
 export interface ConversationRepository {
   save(conversation: Conversation): Promise<Conversation>;
@@ -13,6 +13,7 @@ export interface ConversationRepository {
 
 export interface MessageRepository {
   save(message: Message): Promise<Message>;
+  findById(id: MessageId): Promise<Message | null>;
   listByConversation(conversationId: ConversationId): Promise<Message[]>;
 }
 

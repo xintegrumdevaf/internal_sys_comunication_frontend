@@ -37,8 +37,18 @@ export class N8nWebhookClient {
       .filter(Boolean)
       .join(",");
 
+    // webhook-test accepts only ONE request after "Listen for test event".
+    // Extra retries would burn that slot or always 404 after the first miss.
+    const isTestUrl = config.inboundWebhookUrl.includes("/webhook-test/");
+    const maxAttempts = isTestUrl ? 1 : config.maxAttempts;
+
     let lastError: unknown;
-    for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+    console.info(
+      "[n8n] forwarding to",
+      config.inboundWebhookUrl,
+      `maxAttempts=${maxAttempts}`,
+    );
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.postJson(config.inboundWebhookUrl, payload, config.timeoutMs);
         console.info(
@@ -52,10 +62,11 @@ export class N8nWebhookClient {
         console.warn(
           "[n8n] forward failed",
           messageIds || `changes=${payload.length}`,
-          `attempt=${attempt}/${config.maxAttempts}`,
+          `attempt=${attempt}/${maxAttempts}`,
+          `url=${config.inboundWebhookUrl}`,
           error instanceof Error ? error.message : error,
         );
-        if (attempt < config.maxAttempts) {
+        if (attempt < maxAttempts) {
           await sleep(2 ** attempt * 200);
         }
       }

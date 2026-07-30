@@ -69,4 +69,51 @@ export class WhatsAppCloudClient {
       }),
     }).catch(() => undefined);
   }
+
+  /** Resolve a temporary download URL for a Graph media id. */
+  async getMediaUrl(mediaId: string): Promise<{ url: string; mimeType?: string }> {
+    const config = getWhatsAppCloudConfig();
+    if (!config) {
+      throw new Error("WhatsApp Cloud API is not configured");
+    }
+
+    const res = await fetch(`${config.apiBase}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${config.accessToken}` },
+    });
+
+    const raw = (await res.json()) as {
+      url?: string;
+      mime_type?: string;
+      error?: { message?: string };
+    };
+
+    if (!res.ok || !raw.url) {
+      throw new Error(
+        raw.error?.message ?? `WhatsApp media lookup failed (${res.status})`,
+      );
+    }
+
+    return { url: raw.url, mimeType: raw.mime_type };
+  }
+
+  /** Download media bytes from a Meta temporary URL (requires Bearer). */
+  async downloadMedia(url: string): Promise<{ bytes: ArrayBuffer; contentType: string }> {
+    const config = getWhatsAppCloudConfig();
+    if (!config) {
+      throw new Error("WhatsApp Cloud API is not configured");
+    }
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${config.accessToken}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`WhatsApp media download failed (${res.status})`);
+    }
+
+    const bytes = await res.arrayBuffer();
+    const contentType =
+      res.headers.get("content-type") ?? "application/octet-stream";
+    return { bytes, contentType };
+  }
 }

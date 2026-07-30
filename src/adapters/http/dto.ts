@@ -54,6 +54,12 @@ export type MessageDto = {
   author: string;
   body: string;
   createdAt: string;
+  type?: string;
+  mediaId?: string;
+  mimeType?: string;
+  caption?: string;
+  filename?: string;
+  mediaUrl?: string;
 };
 
 export type DepartmentDto = {
@@ -98,6 +104,12 @@ export function toMessageDto(m: Message): MessageDto {
     author: m.author,
     body: m.body,
     createdAt: m.createdAt.toISOString(),
+    type: m.type,
+    mediaId: m.mediaId,
+    mimeType: m.mimeType,
+    caption: m.caption,
+    filename: m.filename,
+    mediaUrl: m.mediaUrl,
   };
 }
 

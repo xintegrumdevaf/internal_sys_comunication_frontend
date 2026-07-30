@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getWhatsAppCloudConfig } from "@/adapters/whatsapp-cloud/config";
+import type { MessageType } from "@/core/modules/conversations/domain/message";
 
 export type ParsedInboundWhatsAppMessage = {
   waPhone: string;
@@ -8,7 +9,11 @@ export type ParsedInboundWhatsAppMessage = {
   customerName?: string;
   phoneNumberId?: string;
   timestamp?: string;
-  type: string;
+  type: MessageType;
+  mediaId?: string;
+  mimeType?: string;
+  caption?: string;
+  filename?: string;
 };
 
 export function verifyMetaWebhookChallenge(input: {
@@ -49,6 +54,14 @@ export function verifyMetaSignature(
   }
 }
 
+type MetaMediaObject = {
+  id?: string;
+  mime_type?: string;
+  caption?: string;
+  filename?: string;
+  voice?: boolean;
+};
+
 type MetaMessage = {
   from?: string;
   id?: string;
@@ -60,10 +73,10 @@ type MetaMessage = {
     button_reply?: { title?: string };
     list_reply?: { title?: string };
   };
-  image?: { caption?: string };
-  document?: { caption?: string; filename?: string };
-  audio?: { id?: string };
-  video?: { caption?: string };
+  image?: MetaMediaObject;
+  document?: MetaMediaObject;
+  audio?: MetaMediaObject;
+  video?: MetaMediaObject;
 };
 
 type MetaWebhookValue = {
@@ -116,32 +129,103 @@ export function extractMetaChangesForN8n(body: unknown): MetaChangeForN8n[] {
   return out;
 }
 
-function extractBody(message: MetaMessage): string | null {
-  switch (message.type) {
+const MEDIA_TYPES = new Set(["image", "audio", "video", "document"]);
+
+function normalizeMessageType(raw?: string): MessageType {
+  switch (raw) {
     case "text":
-      return message.text?.body?.trim() || null;
-    case "button":
-      return message.button?.text?.trim() || null;
-    case "interactive":
-      return (
-        message.interactive?.button_reply?.title?.trim() ||
-        message.interactive?.list_reply?.title?.trim() ||
-        null
-      );
     case "image":
-      return message.image?.caption?.trim() || "[imagen]";
-    case "document":
-      return (
-        message.document?.caption?.trim() ||
-        message.document?.filename?.trim() ||
-        "[documento]"
-      );
     case "audio":
-      return "[audio]";
     case "video":
-      return message.video?.caption?.trim() || "[video]";
+    case "document":
+      return raw;
+    case "button":
+    case "interactive":
+      return "text";
     default:
-      return message.type ? `[${message.type}]` : null;
+      return raw ? "other" : "text";
+  }
+}
+
+function mediaObject(message: MetaMessage): MetaMediaObject | undefined {
+  switch (message.type) {
+    case "image":
+      return message.image;
+    case "audio":
+      return message.audio;
+    case "video":
+      return message.video;
+    case "document":
+      return message.document;
+    default:
+      return undefined;
+  }
+}
+
+function previewLabel(type: MessageType): string {
+  switch (type) {
+    case "image":
+      return "Imagen";
+    case "audio":
+      return "Audio";
+    case "video":
+      return "Video";
+    case "document":
+      return "Documento";
+    default:
+      return "Adjunto";
+  }
+}
+
+type ExtractedContent = {
+  body: string;
+  type: MessageType;
+  mediaId?: string;
+  mimeType?: string;
+  caption?: string;
+  filename?: string;
+};
+
+function extractContent(message: MetaMessage): ExtractedContent | null {
+  const type = normalizeMessageType(message.type);
+
+  switch (message.type) {
+    case "text": {
+      const body = message.text?.body?.trim();
+      return body ? { body, type: "text" } : null;
+    }
+    case "button": {
+      const body = message.button?.text?.trim();
+      return body ? { body, type: "text" } : null;
+    }
+    case "interactive": {
+      const body =
+        message.interactive?.button_reply?.title?.trim() ||
+        message.interactive?.list_reply?.title?.trim();
+      return body ? { body, type: "text" } : null;
+    }
+    case "image":
+    case "audio":
+    case "video":
+    case "document": {
+      const media = mediaObject(message);
+      const caption = media?.caption?.trim() || undefined;
+      const filename = media?.filename?.trim() || undefined;
+      const body =
+        caption || filename || previewLabel(type);
+      return {
+        body,
+        type,
+        mediaId: media?.id,
+        mimeType: media?.mime_type,
+        caption,
+        filename,
+      };
+    }
+    default:
+      return message.type
+        ? { body: previewLabel("other"), type: "other" }
+        : null;
   }
 }
 
@@ -161,23 +245,67 @@ export function parseInboundWhatsAppWebhook(
       const contactName = value.contacts?.[0]?.profile?.name;
       for (const message of value.messages) {
         if (!message.from || !message.id) continue;
-        const text = extractBody(message);
-        if (!text) continue;
+        const content = extractContent(message);
+        if (!content) continue;
 
         out.push({
           waPhone: `+${message.from.replace(/\D/g, "")}`,
-          body: text,
+          body: content.body,
           waMessageId: message.id,
           customerName: contactName,
           phoneNumberId: value.metadata?.phone_number_id,
           timestamp: message.timestamp,
-          type: message.type ?? "text",
+          type: content.type,
+          mediaId: content.mediaId,
+          mimeType: content.mimeType,
+          caption: content.caption,
+          filename: content.filename,
         });
       }
     }
   }
 
   return out;
+}
+
+function messageHasMediaPayload(message: MetaMessage): boolean {
+  if (!message.type || !MEDIA_TYPES.has(message.type)) return false;
+  return Boolean(mediaObject(message)?.id);
+}
+
+/**
+ * Clone Meta changes and attach hub proxy fields on each media message.
+ * `waMessageId → hubMessageId` must come from successful ingest.
+ */
+export function enrichMetaChangesWithHubMedia(
+  changes: MetaChangeForN8n[],
+  waToHubMessageId: Map<string, string>,
+  publicBaseUrl?: string,
+): MetaChangeForN8n[] {
+  const base = publicBaseUrl?.replace(/\/$/, "") ?? "";
+  if (!base) {
+    console.warn(
+      "[whatsapp] APP_PUBLIC_URL not set — hub_media_url will be relative paths",
+    );
+  }
+
+  return changes.map((change) => {
+    if (!change.messages?.length) return change;
+    return {
+      ...change,
+      messages: change.messages.map((message) => {
+        if (!message.id || !messageHasMediaPayload(message)) return message;
+        const hubMessageId = waToHubMessageId.get(message.id);
+        if (!hubMessageId) return message;
+        const path = `/api/media/${hubMessageId}`;
+        return {
+          ...message,
+          hub_message_id: hubMessageId,
+          hub_media_url: base ? `${base}${path}` : path,
+        };
+      }),
+    };
+  });
 }
 
 export function inferDepartmentSlugFromText(
