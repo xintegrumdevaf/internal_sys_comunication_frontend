@@ -109,6 +109,8 @@ export async function getWhatsAppCloudStatusFn() {
     graphVersion: string | null;
     defaultDepartmentSlug: string | null;
     webhookPath: string;
+    appPublicUrl: string | null;
+    publicWebhookUrl: string | null;
     hasAppSecret: boolean;
   }>("/api/whatsapp/status");
 }

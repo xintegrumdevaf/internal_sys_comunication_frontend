@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Copy, Link2, ShieldAlert } from "lucide-react";
 import { getWhatsAppCloudStatusFn } from "@/adapters/http/server-fns";
+import { resolveWhatsAppWebhookUrl } from "@/lib/whatsapp-webhook-url";
 import { toast } from "sonner";
 
 type Status = Awaited<ReturnType<typeof getWhatsAppCloudStatusFn>>;
@@ -12,10 +13,7 @@ export function WhatsAppCloudStatusPanel() {
     void getWhatsAppCloudStatusFn().then(setStatus);
   }, []);
 
-  const webhookUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${status?.webhookPath ?? "/api/webhooks/whatsapp"}`
-      : status?.webhookPath ?? "/api/webhooks/whatsapp";
+  const webhookUrl = resolveWhatsAppWebhookUrl(status);
 
   const copy = async () => {
     try {
