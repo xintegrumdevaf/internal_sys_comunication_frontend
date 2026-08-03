@@ -2,6 +2,8 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import type {
   AuditEventDto,
   ConversationDto,
+  CustomerDto,
+  DashboardDto,
   DepartmentDto,
   MessageDto,
   UserDto,
@@ -49,7 +51,7 @@ export async function getConversationContextFn(arg: DataArg<{ conversationId: st
   return apiGet<{
     conversation: ConversationDto;
     department: DepartmentDto | null;
-    customer: unknown;
+    customer: CustomerDto | null;
     payment: PaymentCase | null;
     workOrder: WorkOrder | null;
     transferTargets: DepartmentDto[];
@@ -93,7 +95,7 @@ export async function getDepartmentBoardFn(
 }
 
 export async function getDashboardFn(arg: DataArg<{ userId: string }>) {
-  return apiGet("/api/dashboard", arg.data);
+  return apiGet<DashboardDto>("/api/dashboard", arg.data);
 }
 
 export async function simulateInboundMessageFn(

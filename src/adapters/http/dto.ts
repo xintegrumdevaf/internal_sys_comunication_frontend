@@ -54,3 +54,30 @@ export type AuditEventDto = {
   metadata?: Record<string, string | number | boolean | null>;
   createdAt: string;
 };
+
+export type CustomerDto = {
+  contractId: string;
+  name: string;
+  plan: string;
+  billingStatus: "al_dia" | "mora" | "revision";
+  sector: string;
+  address: string;
+  lastVisit?: string;
+  onuPowerDbm?: number;
+};
+
+export type DashboardDto = {
+  kpis: {
+    conversations: number;
+    open: number;
+    aiPercent: number;
+    human: number;
+    departments: number;
+    agents: number;
+  };
+  conversations: ConversationDto[];
+  audit: AuditEventDto[];
+  departments: DepartmentDto[];
+  users: UserDto[];
+  byDepartment: Array<DepartmentDto & { count: number }>;
+};
