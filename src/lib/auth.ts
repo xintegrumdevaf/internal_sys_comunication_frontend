@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
-import { SEED_DEPARTMENTS, SEED_USERS } from "@/adapters/persistence/memory/seed";
-import type { User } from "@/core/modules/identity/domain/user";
-import { isGlobalAdmin } from "@/core/modules/identity/domain/user";
+import { SEED_DEPARTMENTS, SEED_USERS } from "@/lib/auth-seed";
+import type { User } from "@/lib/identity";
+import { isGlobalAdmin } from "@/lib/identity";
 
 /**
  * UI session adapter (driving adapter).

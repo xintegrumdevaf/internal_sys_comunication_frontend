@@ -1,0 +1,95 @@
+import type { Department, User } from "@/lib/identity";
+
+export const SEED_DEPARTMENTS: Department[] = [
+  {
+    id: "dept_ti",
+    slug: "ti",
+    name: "TI / Infraestructura",
+    description: "Operación de plataforma e infraestructura",
+    landingPath: "/",
+    active: true,
+  },
+  {
+    id: "dept_soporte",
+    slug: "soporte",
+    name: "Soporte Técnico",
+    description: "Diagnóstico y tickets de servicio",
+    landingPath: "/soporte",
+    active: true,
+  },
+  {
+    id: "dept_cartera",
+    slug: "cartera",
+    name: "Cartera y Cobros",
+    description: "Pagos, mora y validación de comprobantes",
+    landingPath: "/cartera",
+    active: true,
+  },
+  {
+    id: "dept_admin",
+    slug: "administracion",
+    name: "Administración",
+    description: "Gestión administrativa y campañas",
+    landingPath: "/campanas",
+    active: true,
+  },
+  {
+    id: "dept_traslados",
+    slug: "traslados",
+    name: "Traslados / UTGA",
+    description: "Instalaciones, traslados y visitas técnicas",
+    landingPath: "/utga",
+    active: true,
+  },
+];
+
+export const SEED_USERS: User[] = [
+  {
+    id: "u_admin",
+    name: "Javier Díaz",
+    initials: "JD",
+    email: "javier.diaz@netops.co",
+    primaryDepartmentId: "dept_ti",
+    memberships: [
+      { userId: "u_admin", departmentId: "dept_ti", role: "admin" },
+      { userId: "u_admin", departmentId: "dept_admin", role: "admin" },
+    ],
+    active: true,
+  },
+  {
+    id: "u_soporte",
+    name: "Laura Mendoza",
+    initials: "LM",
+    email: "laura.mendoza@netops.co",
+    primaryDepartmentId: "dept_soporte",
+    memberships: [{ userId: "u_soporte", departmentId: "dept_soporte", role: "lead" }],
+    active: true,
+  },
+  {
+    id: "u_cartera",
+    name: "Andrés Peña",
+    initials: "AP",
+    email: "andres.pena@netops.co",
+    primaryDepartmentId: "dept_cartera",
+    memberships: [{ userId: "u_cartera", departmentId: "dept_cartera", role: "agent" }],
+    active: true,
+  },
+  {
+    id: "u_utga",
+    name: "María Restrepo",
+    initials: "MR",
+    email: "maria.restrepo@netops.co",
+    primaryDepartmentId: "dept_traslados",
+    memberships: [{ userId: "u_utga", departmentId: "dept_traslados", role: "lead" }],
+    active: true,
+  },
+  {
+    id: "u_admin_ops",
+    name: "Camila Ortiz",
+    initials: "CO",
+    email: "camila.ortiz@netops.co",
+    primaryDepartmentId: "dept_admin",
+    memberships: [{ userId: "u_admin_ops", departmentId: "dept_admin", role: "lead" }],
+    active: true,
+  },
+];

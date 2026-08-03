@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AppShell, StatCard } from "../components/AppShell";
 import { listAuditEventsFn, listUsersFn } from "@/adapters/http/server-fns";
 import type { AuditEventDto, UserDto } from "@/adapters/http/dto";
-import { SEED_DEPARTMENTS } from "@/adapters/persistence/memory/seed";
+import { SEED_DEPARTMENTS } from "@/lib/auth-seed";
 
 export const Route = createFileRoute("/auditoria")({
   component: AuditoriaPage,
