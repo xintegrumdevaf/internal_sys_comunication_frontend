@@ -5,7 +5,7 @@ import { AppShell, StatCard } from "../components/AppShell";
 import { OperationalInbox } from "../components/OperationalInbox";
 import { useSession } from "../lib/auth";
 import { getDepartmentBoardFn } from "@/adapters/http/server-fns";
-import type { WorkOrder } from "@/adapters/persistence/memory/seed-operations";
+import type { WorkOrder } from "@/lib/ops-types";
 
 export const Route = createFileRoute("/utga")({
   component: UtgaPage,
@@ -55,9 +55,7 @@ function UtgaPage() {
       <section className="grid grid-cols-12 gap-6 animate-fade-up mb-8">
         <div className="col-span-12 bg-card border border-border rounded-xl overflow-hidden">
           <div className="p-4 border-b border-border flex justify-between items-center">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">
-              Órdenes de Trabajo
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">Órdenes de Trabajo</h3>
             <span className="text-[10px] font-mono text-muted-foreground">Vinculadas a chats</span>
           </div>
           <table className="w-full text-xs">

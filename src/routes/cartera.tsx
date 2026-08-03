@@ -5,7 +5,7 @@ import { AppShell, StatCard } from "../components/AppShell";
 import { OperationalInbox } from "../components/OperationalInbox";
 import { useSession } from "../lib/auth";
 import { getDepartmentBoardFn } from "@/adapters/http/server-fns";
-import type { PaymentCase } from "@/adapters/persistence/memory/seed-operations";
+import type { PaymentCase } from "@/lib/ops-types";
 
 export const Route = createFileRoute("/cartera")({
   component: CarteraPage,

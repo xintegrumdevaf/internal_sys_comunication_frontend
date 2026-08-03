@@ -1,9 +1,6 @@
 import { z } from "zod";
 import type { Conversation } from "@/core/modules/conversations/domain/conversation";
 import type { Message } from "@/core/modules/conversations/domain/message";
-import type { Department } from "@/core/modules/departments/domain/department";
-import type { User } from "@/core/modules/identity/domain/user";
-import type { AuditEvent } from "@/core/modules/auditing/domain/audit-event";
 
 export const inboundMessageSchema = z.object({
   waPhone: z.string().min(5),
@@ -113,30 +110,6 @@ export function toMessageDto(m: Message): MessageDto {
   };
 }
 
-export function toDepartmentDto(d: Department): DepartmentDto {
-  return {
-    id: d.id,
-    slug: d.slug,
-    name: d.name,
-    description: d.description,
-    landingPath: d.landingPath,
-  };
-}
-
-export function toUserDto(u: User): UserDto {
-  return {
-    id: u.id,
-    name: u.name,
-    initials: u.initials,
-    email: u.email,
-    primaryDepartmentId: u.primaryDepartmentId,
-    memberships: u.memberships.map((m) => ({
-      departmentId: m.departmentId,
-      role: m.role,
-    })),
-  };
-}
-
 export type AuditEventDto = {
   id: string;
   action: string;
@@ -146,21 +119,3 @@ export type AuditEventDto = {
   metadata?: Record<string, string | number | boolean | null>;
   createdAt: string;
 };
-
-export function toAuditDto(e: AuditEvent): AuditEventDto {
-  const metadata = e.metadata
-    ? (JSON.parse(JSON.stringify(e.metadata)) as Record<
-        string,
-        string | number | boolean | null
-      >)
-    : undefined;
-  return {
-    id: e.id,
-    action: e.action,
-    actorUserId: e.actorUserId,
-    resourceType: e.resourceType,
-    resourceId: e.resourceId,
-    metadata,
-    createdAt: e.createdAt.toISOString(),
-  };
-}
