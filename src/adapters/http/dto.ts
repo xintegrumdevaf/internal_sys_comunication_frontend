@@ -1,34 +1,3 @@
-import { z } from "zod";
-import type { Conversation } from "@/core/modules/conversations/domain/conversation";
-import type { Message } from "@/core/modules/conversations/domain/message";
-
-export const inboundMessageSchema = z.object({
-  waPhone: z.string().min(5),
-  body: z.string().min(1),
-  departmentSlug: z.string().min(1),
-  waMessageId: z.string().optional(),
-  customerName: z.string().optional(),
-  contractId: z.string().optional(),
-  intent: z.string().optional(),
-});
-
-export type InboundMessageDto = z.infer<typeof inboundMessageSchema>;
-
-/** n8n → Core automated WhatsApp reply */
-export const n8nReplySchema = z
-  .object({
-    body: z.string().min(1),
-    conversationId: z.string().min(1).optional(),
-    waPhone: z.string().min(5).optional(),
-    intent: z.string().optional(),
-    departmentSlug: z.string().optional(),
-  })
-  .refine((data) => Boolean(data.conversationId || data.waPhone), {
-    message: "conversationId or waPhone is required",
-  });
-
-export type N8nReplyDto = z.infer<typeof n8nReplySchema>;
-
 export type ConversationDto = {
   id: string;
   waPhone: string;
@@ -75,40 +44,6 @@ export type UserDto = {
   primaryDepartmentId: string;
   memberships: Array<{ departmentId: string; role: string }>;
 };
-
-export function toConversationDto(c: Conversation): ConversationDto {
-  return {
-    id: c.id,
-    waPhone: c.waPhone,
-    customerName: c.customerName,
-    contractId: c.contractId,
-    departmentId: c.departmentId,
-    status: c.status,
-    handlerMode: c.handlerMode,
-    assigneeId: c.assigneeId,
-    intent: c.intent,
-    lastMessagePreview: c.lastMessagePreview,
-    createdAt: c.createdAt.toISOString(),
-    updatedAt: c.updatedAt.toISOString(),
-  };
-}
-
-export function toMessageDto(m: Message): MessageDto {
-  return {
-    id: m.id,
-    conversationId: m.conversationId,
-    direction: m.direction,
-    author: m.author,
-    body: m.body,
-    createdAt: m.createdAt.toISOString(),
-    type: m.type,
-    mediaId: m.mediaId,
-    mimeType: m.mimeType,
-    caption: m.caption,
-    filename: m.filename,
-    mediaUrl: m.mediaUrl,
-  };
-}
 
 export type AuditEventDto = {
   id: string;

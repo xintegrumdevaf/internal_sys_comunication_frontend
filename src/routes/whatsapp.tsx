@@ -31,8 +31,11 @@ function WhatsAppPage() {
       <section className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
         Integración <span className="font-bold text-foreground">oficial Meta WhatsApp Cloud API</span>.
         Los mensajes entrantes llegan a{" "}
-        <code className="font-mono text-foreground">/api/webhooks/whatsapp</code> y se enrutan al
-        Core. Las respuestas del agente se envían por Graph API cuando hay credenciales.
+        <code className="font-mono text-foreground">
+          APP_PUBLIC_URL/api/webhooks/whatsapp
+        </code>{" "}
+        en el backend Express (por ejemplo, mediante ngrok). Las respuestas del agente se envían
+        por Graph API cuando hay credenciales.
       </section>
 
       <div className="space-y-6">

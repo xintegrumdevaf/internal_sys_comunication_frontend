@@ -19,10 +19,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SoporteRouteImport } from './routes/soporte'
 import { Route as UtgaRouteImport } from './routes/utga'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
-import { Route as ApiMediaMessageIdRouteImport } from './routes/api/media.$messageId'
-import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
-import { Route as ApiWebhooksN8nInboundRouteImport } from './routes/api/webhooks/n8n.inbound'
-import { Route as ApiWebhooksN8nReplyRouteImport } from './routes/api/webhooks/n8n.reply'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -74,26 +70,6 @@ const WhatsappRoute = WhatsappRouteImport.update({
   path: '/whatsapp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiMediaMessageIdRoute = ApiMediaMessageIdRouteImport.update({
-  id: '/api/media/$messageId',
-  path: '/api/media/$messageId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWebhooksWhatsappRoute = ApiWebhooksWhatsappRouteImport.update({
-  id: '/api/webhooks/whatsapp',
-  path: '/api/webhooks/whatsapp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWebhooksN8nInboundRoute = ApiWebhooksN8nInboundRouteImport.update({
-  id: '/api/webhooks/n8n/inbound',
-  path: '/api/webhooks/n8n/inbound',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWebhooksN8nReplyRoute = ApiWebhooksN8nReplyRouteImport.update({
-  id: '/api/webhooks/n8n/reply',
-  path: '/api/webhooks/n8n/reply',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -106,10 +82,6 @@ export interface FileRoutesByFullPath {
   '/soporte': typeof SoporteRoute
   '/utga': typeof UtgaRoute
   '/whatsapp': typeof WhatsappRoute
-  '/api/media/$messageId': typeof ApiMediaMessageIdRoute
-  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
-  '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
-  '/api/webhooks/n8n/reply': typeof ApiWebhooksN8nReplyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -122,10 +94,6 @@ export interface FileRoutesByTo {
   '/soporte': typeof SoporteRoute
   '/utga': typeof UtgaRoute
   '/whatsapp': typeof WhatsappRoute
-  '/api/media/$messageId': typeof ApiMediaMessageIdRoute
-  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
-  '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
-  '/api/webhooks/n8n/reply': typeof ApiWebhooksN8nReplyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -139,10 +107,6 @@ export interface FileRoutesById {
   '/soporte': typeof SoporteRoute
   '/utga': typeof UtgaRoute
   '/whatsapp': typeof WhatsappRoute
-  '/api/media/$messageId': typeof ApiMediaMessageIdRoute
-  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
-  '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
-  '/api/webhooks/n8n/reply': typeof ApiWebhooksN8nReplyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,10 +121,6 @@ export interface FileRouteTypes {
     | '/soporte'
     | '/utga'
     | '/whatsapp'
-    | '/api/media/$messageId'
-    | '/api/webhooks/whatsapp'
-    | '/api/webhooks/n8n/inbound'
-    | '/api/webhooks/n8n/reply'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -173,10 +133,6 @@ export interface FileRouteTypes {
     | '/soporte'
     | '/utga'
     | '/whatsapp'
-    | '/api/media/$messageId'
-    | '/api/webhooks/whatsapp'
-    | '/api/webhooks/n8n/inbound'
-    | '/api/webhooks/n8n/reply'
   id:
     | '__root__'
     | '/'
@@ -189,10 +145,6 @@ export interface FileRouteTypes {
     | '/soporte'
     | '/utga'
     | '/whatsapp'
-    | '/api/media/$messageId'
-    | '/api/webhooks/whatsapp'
-    | '/api/webhooks/n8n/inbound'
-    | '/api/webhooks/n8n/reply'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -206,10 +158,6 @@ export interface RootRouteChildren {
   SoporteRoute: typeof SoporteRoute
   UtgaRoute: typeof UtgaRoute
   WhatsappRoute: typeof WhatsappRoute
-  ApiMediaMessageIdRoute: typeof ApiMediaMessageIdRoute
-  ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
-  ApiWebhooksN8nInboundRoute: typeof ApiWebhooksN8nInboundRoute
-  ApiWebhooksN8nReplyRoute: typeof ApiWebhooksN8nReplyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -284,34 +232,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/media/$messageId': {
-      id: '/api/media/$messageId'
-      path: '/api/media/$messageId'
-      fullPath: '/api/media/$messageId'
-      preLoaderRoute: typeof ApiMediaMessageIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/webhooks/whatsapp': {
-      id: '/api/webhooks/whatsapp'
-      path: '/api/webhooks/whatsapp'
-      fullPath: '/api/webhooks/whatsapp'
-      preLoaderRoute: typeof ApiWebhooksWhatsappRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/webhooks/n8n/inbound': {
-      id: '/api/webhooks/n8n/inbound'
-      path: '/api/webhooks/n8n/inbound'
-      fullPath: '/api/webhooks/n8n/inbound'
-      preLoaderRoute: typeof ApiWebhooksN8nInboundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/webhooks/n8n/reply': {
-      id: '/api/webhooks/n8n/reply'
-      path: '/api/webhooks/n8n/reply'
-      fullPath: '/api/webhooks/n8n/reply'
-      preLoaderRoute: typeof ApiWebhooksN8nReplyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -326,10 +246,6 @@ const rootRouteChildren: RootRouteChildren = {
   SoporteRoute: SoporteRoute,
   UtgaRoute: UtgaRoute,
   WhatsappRoute: WhatsappRoute,
-  ApiMediaMessageIdRoute: ApiMediaMessageIdRoute,
-  ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
-  ApiWebhooksN8nInboundRoute: ApiWebhooksN8nInboundRoute,
-  ApiWebhooksN8nReplyRoute: ApiWebhooksN8nReplyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
