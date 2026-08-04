@@ -16,12 +16,26 @@ Hoy el frontend solo tiene chat con el cliente (WhatsApp / bandeja). No hay mens
 3. Hover en la mención → resumen; clic → abrir la conversación en la bandeja.
 4. Botón **Menciones** para el supervisor: acceso rápido a mencionar casos y a reabrir menciones recientes.
 5. **v1 solo mock en frontend** (memoria + `localStorage`) para validar la UX antes del backend.
+6. **Privacidad estricta:** el cliente **nunca** ve el chat interno, las menciones ni el feedback entre agentes.
+
+## Privacidad (requisito duro)
+
+El chat interno y las menciones son **solo entre personal** (agentes / supervisores). Queda prohibido:
+
+- Enviar o reenviar mensajes internos al hilo de WhatsApp / bandeja del cliente.
+- Mezclar `InternalMessage` con `MessageDto` del cliente en la misma UI o en el mismo store.
+- Incluir texto de feedback interno en respuestas al cliente de forma automática.
+- Mostrar chips de mención o el panel **Menciones** en cualquier vista orientada al cliente.
+
+La mención solo **referencia** un caso/cliente para que el staff abra esa conversación; no publica contenido interno en ese hilo.
+
+En mock: el store `netops.internalChat.v1` está aislado del flujo `sendWhatsAppReplyFn` / mensajes de conversación. En backend futuro: APIs internas separadas, sin webhooks ni sync hacia el canal del cliente.
 
 ## Fuera de alcance (v1)
 
 - Salas por departamento.
 - Mencionar agentes con `@nombre` (solo conversación / cliente).
-- Envío de estas menciones al cliente por WhatsApp.
+- Cualquier exposición de chat interno o menciones hacia el cliente (WhatsApp u otro canal).
 - API real de mensajes internos (se documenta como evolución).
 - Persistencia entre navegadores o usuarios reales en servidor.
 
@@ -137,9 +151,9 @@ Unidades con una responsabilidad cada una:
 | `MentionsPanel` | UI del botón Menciones (solo supervisor) |
 | Ruta `chat-interno` | Composición de lista + hilo + panel |
 
-Deep-link bandeja: extender `OperationalInbox` / ruta `/bandeja` para leer `conversationId` de search params y seleccionar al montar.
+Deep-link bandeja: extender `OperationalInbox` / ruta `/bandeja` para leer `conversationId` de search params y seleccionar al montar. Eso solo **abre** el caso para el staff; no inyecta el mensaje interno en el hilo del cliente.
 
-No se modifican payloads de WhatsApp (`body` plano al cliente). Las menciones viven solo en mensajes internos mock.
+Aislamiento: no se llaman APIs de reply/WhatsApp desde el chat interno; no se modifican payloads al cliente. Las menciones viven solo en mensajes internos mock.
 
 ## Errores y bordes
 
@@ -157,6 +171,7 @@ Contrato previsto para reemplazar el store mock sin rehacer UI:
 - `GET /api/internal/mention-targets?q=`
 - `GET /api/internal/mentions/recent`
 - Resumen hover: reutilizar `GET /api/conversations/:id/context`
+- Misma regla de privacidad: endpoints internos no escriben en el timeline del cliente ni disparan WhatsApp.
 
 ## Criterios de aceptación (demo mock)
 
@@ -167,6 +182,7 @@ Contrato previsto para reemplazar el store mock sin rehacer UI:
 - [ ] Supervisor ve botón **Menciones** con recientes y atajo para mencionar.
 - [ ] Agente sin rol lead/admin no ve el botón **Menciones**, pero sí ve chips.
 - [ ] Datos sobreviven recarga de página (`localStorage`).
+- [ ] Tras mencionar y chatear en interno, el hilo del cliente (bandeja/WhatsApp) **no** muestra esos mensajes ni chips.
 
 ## Testing
 
