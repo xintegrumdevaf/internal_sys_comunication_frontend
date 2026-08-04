@@ -46,6 +46,8 @@ type InboxOptions = {
   userScope?: boolean;
   /** Poll interval in ms for live WhatsApp/inbound updates. Default 2500. Set 0 to disable. */
   pollMs?: number;
+  /** Prefiere esta conversación al cargar (deep-link desde menciones internas). */
+  initialConversationId?: string | null;
 };
 
 export function useOperationalInbox(options: InboxOptions = {}) {
@@ -74,8 +76,13 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       setConversations(data);
 
       const prevId = selectedIdRef.current;
+      const preferred = options.initialConversationId;
       const nextId =
-        prevId && data.some((c) => c.id === prevId) ? prevId : (data[0]?.id ?? null);
+        prevId && data.some((c) => c.id === prevId)
+          ? prevId
+          : preferred && data.some((c) => c.id === preferred)
+            ? preferred
+            : (data[0]?.id ?? null);
       setSelectedId(nextId);
 
       if (!nextId) {
@@ -97,7 +104,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     } finally {
       if (!opts?.silent) setLoading(false);
     }
-  }, [session, options.departmentSlug, options.userScope]);
+  }, [session, options.departmentSlug, options.userScope, options.initialConversationId]);
 
   useEffect(() => {
     void reload();

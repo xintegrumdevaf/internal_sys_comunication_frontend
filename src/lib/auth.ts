@@ -34,6 +34,7 @@ export const PATH_DEPARTMENT: Record<string, string | null> = {
   "/campanas": "administracion",
   "/bandeja": null,
   "/whatsapp": null,
+  "/chat-interno": null,
   "/flujos": null, // solo admin vía canAccessPath
   "/auditoria": null, // solo admin
   "/login": null,
@@ -94,7 +95,12 @@ export function canAccessPath(session: SessionUser, pathname: string): boolean {
     return false;
   }
 
-  if (pathname === "/bandeja" || pathname === "/whatsapp" || pathname === "/login") {
+  if (
+    pathname === "/bandeja" ||
+    pathname === "/whatsapp" ||
+    pathname === "/chat-interno" ||
+    pathname === "/login"
+  ) {
     return true;
   }
 
@@ -117,6 +123,7 @@ export function modulesForSession(session: SessionUser): Array<{
   const base = [
     { label: "Bandeja Unificada", to: "/bandeja" as const },
     { label: "WhatsApp", to: "/whatsapp" as const },
+    { label: "Chat interno", to: "/chat-interno" as const },
   ];
   if (session.isAdmin) {
     return [
@@ -130,6 +137,15 @@ export function modulesForSession(session: SessionUser): Array<{
     return [...base, { label: "Campañas Masivas", to: "/campanas" }];
   }
   return base;
+}
+
+/** Supervisor = Admin TI o membership lead/admin en seed. */
+export function isSupervisorSession(session: SessionUser | null | undefined): boolean {
+  if (!session) return false;
+  if (session.isAdmin) return true;
+  const user = SEED_USERS.find((u) => u.id === session.id);
+  if (!user) return false;
+  return user.memberships.some((m) => m.role === "lead" || m.role === "admin");
 }
 
 const KEY = "netops.session";

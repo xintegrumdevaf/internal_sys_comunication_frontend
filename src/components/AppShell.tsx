@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronDown,
   MessageCircle,
+  MessagesSquare,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -39,6 +40,7 @@ const departmentIcons: Record<string, LucideIcon> = {
 const moduleIcons: Record<string, LucideIcon> = {
   "/bandeja": Inbox,
   "/whatsapp": MessageCircle,
+  "/chat-interno": MessagesSquare,
   "/flujos": GitBranch,
   "/campanas": Megaphone,
   "/auditoria": ShieldCheck,

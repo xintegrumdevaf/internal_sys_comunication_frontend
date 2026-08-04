@@ -14,6 +14,7 @@ import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as BandejaRouteImport } from './routes/bandeja'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as CarteraRouteImport } from './routes/cartera'
+import { Route as ChatInternoRouteImport } from './routes/chat-interno'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SoporteRouteImport } from './routes/soporte'
@@ -43,6 +44,11 @@ const CampanasRoute = CampanasRouteImport.update({
 const CarteraRoute = CarteraRouteImport.update({
   id: '/cartera',
   path: '/cartera',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatInternoRoute = ChatInternoRouteImport.update({
+  id: '/chat-interno',
+  path: '/chat-interno',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlujosRoute = FlujosRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
   '/cartera': typeof CarteraRoute
+  '/chat-interno': typeof ChatInternoRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
   '/cartera': typeof CarteraRoute
+  '/chat-interno': typeof ChatInternoRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
   '/cartera': typeof CarteraRoute
+  '/chat-interno': typeof ChatInternoRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/bandeja'
     | '/campanas'
     | '/cartera'
+    | '/chat-interno'
     | '/flujos'
     | '/login'
     | '/soporte'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/bandeja'
     | '/campanas'
     | '/cartera'
+    | '/chat-interno'
     | '/flujos'
     | '/login'
     | '/soporte'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/bandeja'
     | '/campanas'
     | '/cartera'
+    | '/chat-interno'
     | '/flujos'
     | '/login'
     | '/soporte'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   BandejaRoute: typeof BandejaRoute
   CampanasRoute: typeof CampanasRoute
   CarteraRoute: typeof CarteraRoute
+  ChatInternoRoute: typeof ChatInternoRoute
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
   SoporteRoute: typeof SoporteRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/cartera'
       fullPath: '/cartera'
       preLoaderRoute: typeof CarteraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat-interno': {
+      id: '/chat-interno'
+      path: '/chat-interno'
+      fullPath: '/chat-interno'
+      preLoaderRoute: typeof ChatInternoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flujos': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   BandejaRoute: BandejaRoute,
   CampanasRoute: CampanasRoute,
   CarteraRoute: CarteraRoute,
+  ChatInternoRoute: ChatInternoRoute,
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
   SoporteRoute: SoporteRoute,

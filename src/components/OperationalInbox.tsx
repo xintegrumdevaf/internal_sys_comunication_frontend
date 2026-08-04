@@ -11,9 +11,15 @@ type Props = {
   departmentSlug?: string;
   userScope?: boolean;
   subtitle?: string;
+  initialConversationId?: string | null;
 };
 
-export function OperationalInbox({ departmentSlug, userScope = true, subtitle }: Props) {
+export function OperationalInbox({
+  departmentSlug,
+  userScope = true,
+  subtitle,
+  initialConversationId,
+}: Props) {
   const {
     conversations,
     selected,
@@ -25,7 +31,11 @@ export function OperationalInbox({ departmentSlug, userScope = true, subtitle }:
     busy,
     takeControl,
     transfer,
-  } = useOperationalInbox({ departmentSlug, userScope: !departmentSlug && userScope });
+  } = useOperationalInbox({
+    departmentSlug,
+    userScope: !departmentSlug && userScope,
+    initialConversationId,
+  });
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferSlug, setTransferSlug] = useState("");
