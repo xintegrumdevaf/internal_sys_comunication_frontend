@@ -44,14 +44,16 @@ export function OperationalInbox({
   const [transferSlug, setTransferSlug] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
   const [draft, setDraft] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setDraft("");
   }, [selectedId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length, selectedId]);
 
   const handleSend = async () => {
@@ -63,9 +65,9 @@ export function OperationalInbox({
   };
 
   return (
-    <section className="grid grid-cols-12 gap-6 min-h-[680px] animate-fade-up">
-      <div className="col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-border bg-background/60 flex justify-between items-center">
+    <section className="grid grid-cols-12 gap-6 h-[min(780px,calc(100vh-14rem))] min-h-[560px] animate-fade-up">
+      <div className="col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full">
+        <div className="p-4 border-b border-border bg-background/60 flex justify-between items-center shrink-0">
           <h3 className="text-xs font-extrabold uppercase tracking-widest">
             {loading ? "Cargando…" : `${conversations.length} conversaciones`}
           </h3>
@@ -73,7 +75,7 @@ export function OperationalInbox({
             {subtitle ?? "Mock Core · WhatsApp"}
           </span>
         </div>
-        <div className="flex-1 overflow-y-auto divide-y divide-border">
+        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
           {conversations.map((c) => {
             const tag = intentLabel(c.intent);
             const active = c.id === selectedId;
@@ -124,10 +126,10 @@ export function OperationalInbox({
         </div>
       </div>
 
-      <div className="col-span-12 lg:col-span-5 bg-card border border-border rounded-xl flex flex-col overflow-hidden">
+      <div className="col-span-12 lg:col-span-5 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full">
         {selected ? (
           <>
-            <div className="p-4 border-b border-border bg-background/60 flex items-center justify-between gap-2">
+            <div className="p-4 border-b border-border bg-background/60 flex items-center justify-between gap-2 shrink-0">
               <div className="min-w-0">
                 <p className="text-xs font-bold truncate">
                   {selected.customerName ?? selected.waPhone}
@@ -161,7 +163,7 @@ export function OperationalInbox({
             </div>
 
             {transferOpen && (
-              <div className="p-3 border-b border-border bg-background/80 space-y-2">
+              <div className="p-3 border-b border-border bg-background/80 space-y-2 shrink-0">
                 <select
                   value={transferSlug}
                   onChange={(e) => setTransferSlug(e.target.value)}
@@ -193,7 +195,10 @@ export function OperationalInbox({
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-3 bg-background/40">
+            <div
+              ref={messagesScrollRef}
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-background/40"
+            >
               {messages.map((m) => {
                 const fromCustomer = m.author === "customer";
                 return (
@@ -236,9 +241,8 @@ export function OperationalInbox({
               {messages.length === 0 && (
                 <p className="text-xs text-muted-foreground">Sin mensajes en el hilo.</p>
               )}
-              <div ref={bottomRef} />
             </div>
-            <div className="p-3 border-t border-border bg-background/60 flex gap-2">
+            <div className="p-3 border-t border-border bg-background/60 flex gap-2 shrink-0">
               <input
                 value={draft}
                 disabled={busy}
@@ -261,7 +265,9 @@ export function OperationalInbox({
                 Enviar
               </button>
             </div>
-            <InboxInternalNoteComposer conversation={selected} />
+            <div className="shrink-0 max-h-[40%] overflow-y-auto">
+              <InboxInternalNoteComposer conversation={selected} />
+            </div>
           </>
         ) : (
           <div className="flex-1 grid place-items-center text-xs text-muted-foreground">
@@ -270,7 +276,7 @@ export function OperationalInbox({
         )}
       </div>
 
-      <div className="col-span-12 lg:col-span-3 space-y-4">
+      <div className="col-span-12 lg:col-span-3 space-y-4 min-h-0 h-full overflow-y-auto">
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3">
             Contexto Cliente
