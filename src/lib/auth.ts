@@ -122,7 +122,6 @@ export function modulesForSession(session: SessionUser): Array<{
 }> {
   const base = [
     { label: "Bandeja Unificada", to: "/bandeja" as const },
-    { label: "WhatsApp", to: "/whatsapp" as const },
     { label: "Chat interno", to: "/chat-interno" as const },
   ];
   if (session.isAdmin) {

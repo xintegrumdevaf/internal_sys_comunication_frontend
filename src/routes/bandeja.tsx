@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Inbox } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { OperationalInbox } from "../components/OperationalInbox";
+import { WhatsAppCloudStatusPanel } from "../components/whatsapp/WhatsAppCloudStatusPanel";
 import { useSession } from "../lib/auth";
 
 type BandejaSearch = {
@@ -22,17 +23,19 @@ function BandejaPage() {
   const session = useSession();
   const { conversationId } = Route.useSearch();
   return (
-    <AppShell title="Bandeja Unificada · Core Mock" icon={Inbox}>
+    <AppShell title="Bandeja Unificada" icon={Inbox}>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Vista filtrada por membresías de{" "}
+        Canal único de comunicación (WhatsApp Cloud API). Vista de{" "}
         <span className="font-bold text-foreground">{session?.name ?? "…"}</span> (
-        {session?.roleLabel}). Admin TI ve todas las colas; el resto solo su departamento.
-        Prueba <span className="font-bold text-foreground">Tomar Control</span> y{" "}
-        <span className="font-bold text-foreground">Transferir</span>.
+        {session?.roleLabel}). Cada mensaje muestra su hora; la respuesta al cliente sale por
+        Cloud API. Las notas internas del supervisor no las ve el cliente.
+      </div>
+      <div className="mb-4">
+        <WhatsAppCloudStatusPanel />
       </div>
       <OperationalInbox
         userScope
-        subtitle="Inbox por rol · Core hexagonal"
+        subtitle="Bandeja unificada · WhatsApp"
         initialConversationId={conversationId}
       />
     </AppShell>

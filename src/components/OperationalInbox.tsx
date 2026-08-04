@@ -1,9 +1,10 @@
-import { Bot, User, ArrowRightLeft } from "lucide-react";
-import { useState } from "react";
+import { Bot, User, ArrowRightLeft, CheckCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { MessageMediaBody } from "@/components/chat/MessageMediaBody";
 import { InboxInternalNoteComposer } from "@/components/internal-chat/InboxInternalNoteComposer";
 import {
   intentLabel,
+  messageClock,
   relativeTime,
   useOperationalInbox,
 } from "@/hooks/use-operational-inbox";
@@ -32,6 +33,7 @@ export function OperationalInbox({
     busy,
     takeControl,
     transfer,
+    sendReply,
   } = useOperationalInbox({
     departmentSlug,
     userScope: !departmentSlug && userScope,
@@ -41,6 +43,24 @@ export function OperationalInbox({
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferSlug, setTransferSlug] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
+  const [draft, setDraft] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setDraft("");
+  }, [selectedId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, selectedId]);
+
+  const handleSend = async () => {
+    const body = draft.trim();
+    if (!body) return;
+    setDraft("");
+    const ok = await sendReply(body);
+    if (!ok) setDraft(body);
+  };
 
   return (
     <section className="grid grid-cols-12 gap-6 min-h-[680px] animate-fade-up">
@@ -199,6 +219,16 @@ export function OperationalInbox({
                         </span>
                       </div>
                       <MessageMediaBody message={m} />
+                      <div
+                        className={`flex items-center justify-end gap-1 mt-1.5 ${
+                          fromCustomer ? "text-muted-foreground" : "text-primary-foreground/80"
+                        }`}
+                      >
+                        <span className="text-[10px] tabular-nums">
+                          {messageClock(m.createdAt)}
+                        </span>
+                        {!fromCustomer && <CheckCheck className="size-3.5 opacity-80" />}
+                      </div>
                     </div>
                   </div>
                 );
@@ -206,16 +236,27 @@ export function OperationalInbox({
               {messages.length === 0 && (
                 <p className="text-xs text-muted-foreground">Sin mensajes en el hilo.</p>
               )}
+              <div ref={bottomRef} />
             </div>
             <div className="p-3 border-t border-border bg-background/60 flex gap-2">
               <input
-                disabled
-                placeholder="Respuesta al cliente (mock — conexión Meta pendiente)"
-                className="flex-1 px-3 py-2 bg-card border border-border rounded-md text-xs outline-none opacity-60"
+                value={draft}
+                disabled={busy}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSend();
+                  }
+                }}
+                placeholder="Escribe un mensaje (se envía por Cloud API)"
+                className="flex-1 px-3 py-2 bg-card border border-border rounded-md text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
               />
               <button
-                disabled
-                className="px-4 py-2 bg-primary/50 text-primary-foreground text-xs font-bold rounded-md"
+                type="button"
+                disabled={busy || !draft.trim()}
+                onClick={() => void handleSend()}
+                className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-md disabled:opacity-40"
               >
                 Enviar
               </button>

@@ -3,6 +3,7 @@ import {
   getConversationContextFn,
   listConversationsFn,
   listMessagesFn,
+  sendWhatsAppReplyFn,
   takeControlFn,
   transferConversationFn,
 } from "@/adapters/http/server-fns";
@@ -17,6 +18,14 @@ export function relativeTime(iso: string): string {
   const h = Math.round(m / 60);
   if (h < 24) return `${h}h`;
   return `${Math.round(h / 24)}d`;
+}
+
+export function messageClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString("es-CO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export function intentLabel(intent?: string): { label: string; cls: string } {
@@ -183,6 +192,31 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     }
   };
 
+  const sendReply = async (body: string) => {
+    if (!session || !selectedId) return false;
+    const trimmed = body.trim();
+    if (!trimmed) return false;
+    setBusy(true);
+    try {
+      const result = await sendWhatsAppReplyFn({
+        data: {
+          conversationId: selectedId,
+          agentUserId: session.id,
+          body: trimmed,
+        },
+      });
+      setMessages((prev) => [...prev, result.message]);
+      toast.success("Enviado por Cloud API");
+      await reload({ silent: true });
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo enviar");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
 
   return {
@@ -198,5 +232,6 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     reload,
     takeControl,
     transfer,
+    sendReply,
   };
 }
