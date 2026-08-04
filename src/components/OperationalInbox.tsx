@@ -1,6 +1,7 @@
 import { Bot, User, ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 import { MessageMediaBody } from "@/components/chat/MessageMediaBody";
+import { InboxInternalNoteComposer } from "@/components/internal-chat/InboxInternalNoteComposer";
 import {
   intentLabel,
   relativeTime,
@@ -209,7 +210,7 @@ export function OperationalInbox({
             <div className="p-3 border-t border-border bg-background/60 flex gap-2">
               <input
                 disabled
-                placeholder="Respuesta (mock — conexión Meta pendiente)"
+                placeholder="Respuesta al cliente (mock — conexión Meta pendiente)"
                 className="flex-1 px-3 py-2 bg-card border border-border rounded-md text-xs outline-none opacity-60"
               />
               <button
@@ -219,6 +220,7 @@ export function OperationalInbox({
                 Enviar
               </button>
             </div>
+            <InboxInternalNoteComposer conversation={selected} />
           </>
         ) : (
           <div className="flex-1 grid place-items-center text-xs text-muted-foreground">

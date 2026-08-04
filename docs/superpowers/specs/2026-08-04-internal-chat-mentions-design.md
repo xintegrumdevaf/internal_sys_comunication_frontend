@@ -88,6 +88,16 @@ Abre panel/vista con:
 1. **Mencionar caso**: búsqueda de conversación/cliente; al elegir, abre o enfoca el DM con el agente asignado si se conoce, o inserta la mención en el thread activo.
 2. **Recientes**: lista de menciones hechas por el supervisor (mensaje excerpt, target, destinatario del DM, timestamp) con acción “Abrir caso”.
 
+### Nota interna desde bandeja (supervisor)
+
+En `OperationalInbox` / Bandeja Unificada, debajo del composer de respuesta al cliente (sigue separado y deshabilitado):
+
+- Bloque **Nota interna · solo staff**, visible **solo** si `isSupervisorSession`.
+- Mención automática de la conversación seleccionada.
+- Selector del agente destinatario + texto de feedback.
+- Envío al DM interno mock; **nunca** al hilo del cliente ni a WhatsApp.
+- Agentes (`role: agent`) no ven este bloque.
+
 ## Modelo de datos (mock)
 
 Persistencia: `localStorage` (clave sugerida `netops.internalChat.v1`).
