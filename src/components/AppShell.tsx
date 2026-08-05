@@ -13,16 +13,17 @@ import {
   LogOut,
   ChevronDown,
   MessagesSquare,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  DEMO_USERS,
   canAccessPath,
   departmentsForSession,
   modulesForSession,
   signIn,
   signOut,
+  useDemoUsers,
   useSession,
 } from "../lib/auth";
 
@@ -39,6 +40,7 @@ const departmentIcons: Record<string, LucideIcon> = {
 const moduleIcons: Record<string, LucideIcon> = {
   "/bandeja": Inbox,
   "/chat-interno": MessagesSquare,
+  "/usuarios": Users,
   "/flujos": GitBranch,
   "/campanas": Megaphone,
   "/auditoria": ShieldCheck,
@@ -55,6 +57,7 @@ export function AppShell({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const session = useSession();
+  const demoUsers = useDemoUsers();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -137,7 +140,7 @@ export function AppShell({
               <div className="p-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border">
                 Simular otro perfil
               </div>
-              {DEMO_USERS.filter((u) => u.id !== session.id).map((u) => (
+              {demoUsers.filter((u) => u.id !== session.id).map((u) => (
                 <button
                   key={u.id}
                   type="button"

@@ -18,6 +18,7 @@ import { Route as ChatInternoRouteImport } from './routes/chat-interno'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SoporteRouteImport } from './routes/soporte'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as UtgaRouteImport } from './routes/utga'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
 
@@ -66,6 +67,11 @@ const SoporteRoute = SoporteRouteImport.update({
   path: '/soporte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UtgaRoute = UtgaRouteImport.update({
   id: '/utga',
   path: '/utga',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
+  '/usuarios': typeof UsuariosRoute
   '/utga': typeof UtgaRoute
   '/whatsapp': typeof WhatsappRoute
 }
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
+  '/usuarios': typeof UsuariosRoute
   '/utga': typeof UtgaRoute
   '/whatsapp': typeof WhatsappRoute
 }
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
+  '/usuarios': typeof UsuariosRoute
   '/utga': typeof UtgaRoute
   '/whatsapp': typeof WhatsappRoute
 }
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/soporte'
+    | '/usuarios'
     | '/utga'
     | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/soporte'
+    | '/usuarios'
     | '/utga'
     | '/whatsapp'
   id:
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/soporte'
+    | '/usuarios'
     | '/utga'
     | '/whatsapp'
   fileRoutesById: FileRoutesById
@@ -169,6 +181,7 @@ export interface RootRouteChildren {
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
   SoporteRoute: typeof SoporteRoute
+  UsuariosRoute: typeof UsuariosRoute
   UtgaRoute: typeof UtgaRoute
   WhatsappRoute: typeof WhatsappRoute
 }
@@ -238,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SoporteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/utga': {
       id: '/utga'
       path: '/utga'
@@ -265,6 +285,7 @@ const rootRouteChildren: RootRouteChildren = {
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
   SoporteRoute: SoporteRoute,
+  UsuariosRoute: UsuariosRoute,
   UtgaRoute: UtgaRoute,
   WhatsappRoute: WhatsappRoute,
 }

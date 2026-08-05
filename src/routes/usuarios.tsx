@@ -1,0 +1,21 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { Users } from "lucide-react";
+import { AppShell } from "../components/AppShell";
+import { UsersAdminPanel } from "../components/users/UsersAdminPanel";
+
+export const Route = createFileRoute("/usuarios")({
+  component: UsuariosPage,
+});
+
+function UsuariosPage() {
+  return (
+    <AppShell title="Usuarios · Agentes" icon={Users}>
+      <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
+        Administración exclusiva de <span className="font-bold text-foreground">Admin TI</span>.
+        Los agentes creados aquí pueden iniciar sesión con su email (mock). La asignación de
+        casos desde el número central la realiza la IA.
+      </div>
+      <UsersAdminPanel />
+    </AppShell>
+  );
+}

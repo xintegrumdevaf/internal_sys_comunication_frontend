@@ -7,14 +7,13 @@ import { MentionsPanel } from "@/components/internal-chat/MentionsPanel";
 import { MessageBodyWithMentions } from "@/components/internal-chat/MessageBodyWithMentions";
 import { useInternalChat } from "@/hooks/use-internal-chat";
 import { relativeTime } from "@/hooks/use-operational-inbox";
-import { isSupervisorSession } from "@/lib/auth";
+import { isSupervisorSession, useDirectoryUsers } from "@/lib/auth";
 import { detectAtQuery, insertMentionAt } from "@/lib/internal-chat-mentions";
 import {
   mergeMentionTargets,
   targetsFromConversations,
 } from "@/lib/internal-chat-seed";
 import type { Mention, MentionTarget } from "@/lib/internal-chat-types";
-import { SEED_USERS } from "@/lib/auth-seed";
 import { toast } from "sonner";
 
 export function InternalChatShell({
@@ -25,6 +24,7 @@ export function InternalChatShell({
   onMentionsOpenChange: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const directory = useDirectoryUsers();
   const {
     session,
     peers,
@@ -183,7 +183,7 @@ export function InternalChatShell({
             )}
             {messages.map((m) => {
               const mine = m.authorId === session.id;
-              const author = SEED_USERS.find((u) => u.id === m.authorId);
+              const author = directory.find((u) => u.id === m.authorId);
               return (
                 <div
                   key={m.id}

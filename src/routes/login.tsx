@@ -1,7 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, LogIn, MessageCircle, Zap, Lock } from "lucide-react";
-import { DEMO_USERS, signIn, useSession, type DemoUser } from "../lib/auth";
+import { getUserByEmail } from "@/lib/users-store";
+import {
+  signIn,
+  toSessionUser,
+  useDemoUsers,
+  useSession,
+  type DemoUser,
+} from "../lib/auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -10,6 +17,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const session = useSession();
+  const demoUsers = useDemoUsers();
   const [email, setEmail] = useState("javier.diaz@netops.co");
   const [password, setPassword] = useState("demo1234");
   const [error, setError] = useState("");
@@ -30,16 +38,20 @@ function LoginPage() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const user = DEMO_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (!user) {
-      setError("Usuario no encontrado. Prueba con un perfil demo.");
+    const directoryUser = getUserByEmail(email);
+    if (!directoryUser) {
+      setError("Usuario no encontrado. Prueba con un perfil demo o crea uno en Usuarios.");
+      return;
+    }
+    if (!directoryUser.active) {
+      setError("Usuario inactivo. Contacta a Admin TI.");
       return;
     }
     if (password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres.");
       return;
     }
-    doLogin(user);
+    doLogin(toSessionUser(directoryUser));
   };
 
   return (
@@ -146,7 +158,7 @@ function LoginPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            {DEMO_USERS.map((u) => (
+            {demoUsers.map((u) => (
               <button
                 key={u.id}
                 type="button"
