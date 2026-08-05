@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { MessagesSquare, Send } from "lucide-react";
 import type { ConversationDto } from "@/adapters/http/dto";
-import { isSupervisorSession, useSession } from "@/lib/auth";
-import { SEED_USERS } from "@/lib/auth-seed";
+import { isSupervisorSession, useDirectoryUsers, useSession } from "@/lib/auth";
 import { mentionMarker } from "@/lib/internal-chat-mentions";
 import type { Mention } from "@/lib/internal-chat-types";
 import { getOrCreateThread, sendInternalMessage } from "@/lib/internal-chat-store";
@@ -26,12 +25,13 @@ export function InboxInternalNoteComposer({
   conversation: ConversationDto;
 }) {
   const session = useSession();
+  const directory = useDirectoryUsers();
   const navigate = useNavigate();
   const supervisor = isSupervisorSession(session);
 
   const peers = useMemo(
-    () => SEED_USERS.filter((u) => u.active && u.id !== session?.id),
-    [session?.id],
+    () => directory.filter((u) => u.active && u.id !== session?.id),
+    [directory, session?.id],
   );
 
   const defaultPeerId = useMemo(() => {

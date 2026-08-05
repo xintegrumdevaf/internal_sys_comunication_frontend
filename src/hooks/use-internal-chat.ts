@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
-import { SEED_USERS } from "@/lib/auth-seed";
-import { useSession } from "@/lib/auth";
+import { useSession, useDirectoryUsers } from "@/lib/auth";
 import type { Mention } from "@/lib/internal-chat-types";
 import {
   getInternalChatSnapshot,
@@ -17,6 +16,7 @@ import { toast } from "sonner";
 
 export function useInternalChat() {
   const session = useSession();
+  const directory = useDirectoryUsers();
   const state = useSyncExternalStore(
     subscribeInternalChat,
     getInternalChatSnapshot,
@@ -26,15 +26,15 @@ export function useInternalChat() {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 
   const peers = useMemo(
-    () => SEED_USERS.filter((u) => u.active && u.id !== session?.id),
-    [session?.id],
+    () => directory.filter((u) => u.active && u.id !== session?.id),
+    [directory, session?.id],
   );
 
   const threads = useMemo(() => {
     if (!session) return [];
     return listThreadsForUser(session.id).map((t) => {
       const peerId = peerIdOfThread(t, session.id);
-      const peer = SEED_USERS.find((u) => u.id === peerId);
+      const peer = directory.find((u) => u.id === peerId);
       return {
         thread: t,
         peerId,
@@ -43,7 +43,7 @@ export function useInternalChat() {
         preview: lastMessagePreview(t.id),
       };
     });
-  }, [session, state]);
+  }, [session, state, directory]);
 
   const messages = useMemo(() => {
     if (!selectedThreadId) return [];
