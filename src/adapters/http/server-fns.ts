@@ -1,90 +1,136 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { getContainer } from "@/core/composition/container";
-import {
-  toAuditDto,
-  toConversationDto,
-  toDepartmentDto,
-  toUserDto,
+import { apiGet, apiPost } from "@/lib/api-client";
+import type {
+  AuditEventDto,
+  ConversationDto,
+  CustomerDto,
+  DashboardDto,
+  DepartmentDto,
+  MessageDto,
+  UserDto,
 } from "@/adapters/http/dto";
-import { asConversationId, asDepartmentId, asUserId } from "@/core/shared/domain/ids";
-import { DomainError } from "@/core/shared/domain/errors";
+import type { PaymentCase, WorkOrder } from "@/lib/ops-types";
+import { resolveApiUrl } from "@/lib/api-base";
 
-function rethrowDomain(error: unknown): never {
-  if (error instanceof DomainError) {
-    throw new Error(`${error.code}: ${error.message}`);
-  }
-  throw error;
+type DataArg<T> = { data: T };
+type OptionalDataArg<T> = { data?: T };
+
+function withMediaUrls(messages: MessageDto[]): MessageDto[] {
+  return messages.map((message) =>
+    message.mediaUrl ? { ...message, mediaUrl: resolveApiUrl(message.mediaUrl) } : message,
+  );
 }
 
-/** UI adapter → Core: list departments (config-driven nav). */
-export const listDepartmentsFn = createServerFn({ method: "GET" }).handler(async () => {
-  const items = await getContainer().useCases.listDepartments.execute();
-  return items.map(toDepartmentDto);
-});
+export async function listDepartmentsFn(): Promise<DepartmentDto[]> {
+  return apiGet<DepartmentDto[]>("/api/departments");
+}
 
-export const listUsersFn = createServerFn({ method: "GET" }).handler(async () => {
-  const items = await getContainer().useCases.listUsers.execute();
-  return items.map(toUserDto);
-});
+export async function listUsersFn(): Promise<UserDto[]> {
+  return apiGet<UserDto[]>("/api/users");
+}
 
-export const listConversationsFn = createServerFn({ method: "GET" })
-  .validator(z.object({ departmentId: z.string().optional() }).optional())
-  .handler(async ({ data }) => {
-    const items = await getContainer().useCases.listConversations.execute({
-      departmentId: data?.departmentId ? asDepartmentId(data.departmentId) : undefined,
-    });
-    return items.map(toConversationDto);
-  });
+export async function listConversationsFn(
+  arg?: OptionalDataArg<{
+    departmentId?: string;
+    departmentSlug?: string;
+    userId?: string;
+  }>,
+): Promise<ConversationDto[]> {
+  return apiGet<ConversationDto[]>("/api/conversations", arg?.data);
+}
 
-export const takeControlFn = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      conversationId: z.string().min(1),
-      agentUserId: z.string().min(1),
-    }),
-  )
-  .handler(async ({ data }) => {
-    try {
-      const conversation = await getContainer().useCases.takeControl.execute({
-        conversationId: asConversationId(data.conversationId),
-        agentUserId: asUserId(data.agentUserId),
-      });
-      return toConversationDto(conversation);
-    } catch (error) {
-      rethrowDomain(error);
-    }
-  });
+export async function listMessagesFn(
+  arg: DataArg<{ conversationId: string }>,
+): Promise<MessageDto[]> {
+  const items = await apiGet<MessageDto[]>(
+    `/api/conversations/${arg.data.conversationId}/messages`,
+  );
+  return withMediaUrls(items);
+}
 
-export const transferConversationFn = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      conversationId: z.string().min(1),
-      toDepartmentSlug: z.string().min(1),
-      requestedByUserId: z.string().min(1),
-      reason: z.string().min(1),
-    }),
-  )
-  .handler(async ({ data }) => {
-    try {
-      const result = await getContainer().useCases.transferConversation.execute({
-        conversationId: asConversationId(data.conversationId),
-        toDepartmentSlug: data.toDepartmentSlug,
-        requestedByUserId: asUserId(data.requestedByUserId),
-        reason: data.reason,
-      });
-      return {
-        conversation: toConversationDto(result.conversation),
-        transferId: result.transfer.id,
-      };
-    } catch (error) {
-      rethrowDomain(error);
-    }
-  });
+export async function getConversationContextFn(arg: DataArg<{ conversationId: string }>) {
+  return apiGet<{
+    conversation: ConversationDto;
+    department: DepartmentDto | null;
+    customer: CustomerDto | null;
+    payment: PaymentCase | null;
+    workOrder: WorkOrder | null;
+    transferTargets: DepartmentDto[];
+  }>(`/api/conversations/${arg.data.conversationId}/context`);
+}
 
-export const listAuditEventsFn = createServerFn({ method: "GET" })
-  .validator(z.object({ limit: z.number().int().positive().max(200).optional() }).optional())
-  .handler(async ({ data }) => {
-    const items = await getContainer().audit.listRecent(data?.limit ?? 50);
-    return items.map(toAuditDto);
-  });
+export async function takeControlFn(
+  arg: DataArg<{ conversationId: string; agentUserId: string }>,
+): Promise<ConversationDto> {
+  return apiPost<ConversationDto>("/api/conversations/take-control", arg.data);
+}
+
+export async function transferConversationFn(
+  arg: DataArg<{
+    conversationId: string;
+    toDepartmentSlug: string;
+    requestedByUserId: string;
+    reason: string;
+  }>,
+): Promise<{ conversation: ConversationDto; transferId: string }> {
+  return apiPost("/api/conversations/transfer", arg.data);
+}
+
+export async function listAuditEventsFn(
+  arg?: OptionalDataArg<{ limit?: number }>,
+): Promise<AuditEventDto[]> {
+  return apiGet<AuditEventDto[]>("/api/audit", { limit: arg?.data?.limit });
+}
+
+export async function getDepartmentBoardFn(
+  arg: DataArg<{ departmentSlug: string; userId: string }>,
+) {
+  return apiGet<{
+    department: DepartmentDto | null;
+    conversations: ConversationDto[];
+    payments: PaymentCase[];
+    workOrders: WorkOrder[];
+    users: UserDto[];
+    denied: boolean;
+  }>("/api/departments/board", arg.data);
+}
+
+export async function getDashboardFn(arg: DataArg<{ userId: string }>) {
+  return apiGet<DashboardDto>("/api/dashboard", arg.data);
+}
+
+export async function simulateInboundMessageFn(
+  arg: DataArg<{ userId: string; body: string; waPhone?: string }>,
+) {
+  return apiPost("/api/simulate-inbound", arg.data);
+}
+
+export async function getWhatsAppCloudStatusFn() {
+  return apiGet<{
+    configured: boolean;
+    phoneNumberId: string | null;
+    graphVersion: string | null;
+    defaultDepartmentSlug: string | null;
+    webhookPath: string;
+    appPublicUrl: string | null;
+    publicWebhookUrl: string | null;
+    hasAppSecret: boolean;
+  }>("/api/whatsapp/status");
+}
+
+export async function sendWhatsAppReplyFn(
+  arg: DataArg<{
+    conversationId: string;
+    agentUserId: string;
+    body: string;
+  }>,
+) {
+  const result = await apiPost<{
+    conversation: ConversationDto;
+    message: MessageDto;
+    externalId?: string;
+  }>("/api/whatsapp/reply", arg.data);
+  return {
+    ...result,
+    message: withMediaUrls([result.message])[0]!,
+  };
+}

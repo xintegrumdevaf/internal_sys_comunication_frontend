@@ -14,11 +14,13 @@ import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as BandejaRouteImport } from './routes/bandeja'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as CarteraRouteImport } from './routes/cartera'
+import { Route as ChatInternoRouteImport } from './routes/chat-interno'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SoporteRouteImport } from './routes/soporte'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as UtgaRouteImport } from './routes/utga'
-import { Route as ApiWebhooksN8nInboundRouteImport } from './routes/api/webhooks/n8n.inbound'
+import { Route as WhatsappRouteImport } from './routes/whatsapp'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,6 +47,11 @@ const CarteraRoute = CarteraRouteImport.update({
   path: '/cartera',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatInternoRoute = ChatInternoRouteImport.update({
+  id: '/chat-interno',
+  path: '/chat-interno',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FlujosRoute = FlujosRouteImport.update({
   id: '/flujos',
   path: '/flujos',
@@ -60,14 +67,19 @@ const SoporteRoute = SoporteRouteImport.update({
   path: '/soporte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UtgaRoute = UtgaRouteImport.update({
   id: '/utga',
   path: '/utga',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWebhooksN8nInboundRoute = ApiWebhooksN8nInboundRouteImport.update({
-  id: '/api/webhooks/n8n/inbound',
-  path: '/api/webhooks/n8n/inbound',
+const WhatsappRoute = WhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -77,11 +89,13 @@ export interface FileRoutesByFullPath {
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
   '/cartera': typeof CarteraRoute
+  '/chat-interno': typeof ChatInternoRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
+  '/usuarios': typeof UsuariosRoute
   '/utga': typeof UtgaRoute
-  '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
+  '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,11 +103,13 @@ export interface FileRoutesByTo {
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
   '/cartera': typeof CarteraRoute
+  '/chat-interno': typeof ChatInternoRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
+  '/usuarios': typeof UsuariosRoute
   '/utga': typeof UtgaRoute
-  '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
+  '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,11 +118,13 @@ export interface FileRoutesById {
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
   '/cartera': typeof CarteraRoute
+  '/chat-interno': typeof ChatInternoRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/soporte': typeof SoporteRoute
+  '/usuarios': typeof UsuariosRoute
   '/utga': typeof UtgaRoute
-  '/api/webhooks/n8n/inbound': typeof ApiWebhooksN8nInboundRoute
+  '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,11 +134,13 @@ export interface FileRouteTypes {
     | '/bandeja'
     | '/campanas'
     | '/cartera'
+    | '/chat-interno'
     | '/flujos'
     | '/login'
     | '/soporte'
+    | '/usuarios'
     | '/utga'
-    | '/api/webhooks/n8n/inbound'
+    | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,11 +148,13 @@ export interface FileRouteTypes {
     | '/bandeja'
     | '/campanas'
     | '/cartera'
+    | '/chat-interno'
     | '/flujos'
     | '/login'
     | '/soporte'
+    | '/usuarios'
     | '/utga'
-    | '/api/webhooks/n8n/inbound'
+    | '/whatsapp'
   id:
     | '__root__'
     | '/'
@@ -140,11 +162,13 @@ export interface FileRouteTypes {
     | '/bandeja'
     | '/campanas'
     | '/cartera'
+    | '/chat-interno'
     | '/flujos'
     | '/login'
     | '/soporte'
+    | '/usuarios'
     | '/utga'
-    | '/api/webhooks/n8n/inbound'
+    | '/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,11 +177,13 @@ export interface RootRouteChildren {
   BandejaRoute: typeof BandejaRoute
   CampanasRoute: typeof CampanasRoute
   CarteraRoute: typeof CarteraRoute
+  ChatInternoRoute: typeof ChatInternoRoute
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
   SoporteRoute: typeof SoporteRoute
+  UsuariosRoute: typeof UsuariosRoute
   UtgaRoute: typeof UtgaRoute
-  ApiWebhooksN8nInboundRoute: typeof ApiWebhooksN8nInboundRoute
+  WhatsappRoute: typeof WhatsappRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -197,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarteraRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat-interno': {
+      id: '/chat-interno'
+      path: '/chat-interno'
+      fullPath: '/chat-interno'
+      preLoaderRoute: typeof ChatInternoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/flujos': {
       id: '/flujos'
       path: '/flujos'
@@ -218,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SoporteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/utga': {
       id: '/utga'
       path: '/utga'
@@ -225,11 +265,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UtgaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/webhooks/n8n/inbound': {
-      id: '/api/webhooks/n8n/inbound'
-      path: '/api/webhooks/n8n/inbound'
-      fullPath: '/api/webhooks/n8n/inbound'
-      preLoaderRoute: typeof ApiWebhooksN8nInboundRouteImport
+    '/whatsapp': {
+      id: '/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof WhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -241,11 +281,13 @@ const rootRouteChildren: RootRouteChildren = {
   BandejaRoute: BandejaRoute,
   CampanasRoute: CampanasRoute,
   CarteraRoute: CarteraRoute,
+  ChatInternoRoute: ChatInternoRoute,
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
   SoporteRoute: SoporteRoute,
+  UsuariosRoute: UsuariosRoute,
   UtgaRoute: UtgaRoute,
-  ApiWebhooksN8nInboundRoute: ApiWebhooksN8nInboundRoute,
+  WhatsappRoute: WhatsappRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
