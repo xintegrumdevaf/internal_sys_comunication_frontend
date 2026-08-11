@@ -1,7 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ShieldCheck, LogIn, MessageCircle, Zap } from "lucide-react";
-import { signIn, useDirectoryUsers, useSession } from "../lib/auth";
+import {
+  signIn,
+  useDirectoryUsers,
+  useSession,
+} from "@/modules/identity/application/use-session";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,

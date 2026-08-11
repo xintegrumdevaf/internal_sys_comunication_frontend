@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AtSign, MessagesSquare } from "lucide-react";
-import { AppShell } from "../components/AppShell";
-import { InternalChatShell } from "../components/internal-chat/InternalChatShell";
-import { isSupervisorSession, useSession } from "../lib/auth";
+import { AppShell } from "@/app/shell/AppShell";
+import { InternalChatShell } from "@/modules/internal-chat/ui/InternalChatShell";
+import { isSupervisorSession } from "@/modules/identity/application/access-control";
+import { useSession } from "@/modules/identity/application/use-session";
 
 export const Route = createFileRoute("/chat-interno")({
   component: ChatInternoPage,

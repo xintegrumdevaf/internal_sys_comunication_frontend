@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Inbox } from "lucide-react";
-import { AppShell } from "../components/AppShell";
-import { OperationalInbox } from "../components/OperationalInbox";
-import { useDepartmentsQuery } from "../lib/auth";
-import { useSession } from "../lib/auth";
+import { AppShell } from "@/app/shell/AppShell";
+import { OperationalInbox } from "@/modules/conversations/ui/OperationalInbox";
+import { useDepartmentsQuery, useSession } from "@/modules/identity/application/use-session";
 
 type BandejaSearch = {
   conversationId?: string;

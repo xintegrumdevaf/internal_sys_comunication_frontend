@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
-import { AppShell } from "../components/AppShell";
-import { UsersAdminPanel } from "../components/users/UsersAdminPanel";
+import { AppShell } from "@/app/shell/AppShell";
+import { UsersDirectoryPanel } from "@/modules/identity/ui/UsersDirectoryPanel";
 
 export const Route = createFileRoute("/usuarios")({
   component: UsuariosPage,
@@ -15,7 +15,7 @@ function UsuariosPage() {
         Lista real de agentes desde <code className="font-mono">isp-customer-service-api</code>.
         Crear/editar queda pendiente hasta que el backend lo soporte.
       </div>
-      <UsersAdminPanel />
+      <UsersDirectoryPanel />
     </AppShell>
   );
 }

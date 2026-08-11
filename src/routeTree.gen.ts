@@ -10,21 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AsignacionesRouteImport } from './routes/asignaciones'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as BandejaRouteImport } from './routes/bandeja'
 import { Route as CampanasRouteImport } from './routes/campanas'
-import { Route as CarteraRouteImport } from './routes/cartera'
 import { Route as ChatInternoRouteImport } from './routes/chat-interno'
+import { Route as EscalacionesRouteImport } from './routes/escalaciones'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as SoporteRouteImport } from './routes/soporte'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
-import { Route as UtgaRouteImport } from './routes/utga'
-import { Route as WhatsappRouteImport } from './routes/whatsapp'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AsignacionesRoute = AsignacionesRouteImport.update({
+  id: '/asignaciones',
+  path: '/asignaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditoriaRoute = AuditoriaRouteImport.update({
@@ -42,14 +45,14 @@ const CampanasRoute = CampanasRouteImport.update({
   path: '/campanas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CarteraRoute = CarteraRouteImport.update({
-  id: '/cartera',
-  path: '/cartera',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ChatInternoRoute = ChatInternoRouteImport.update({
   id: '/chat-interno',
   path: '/chat-interno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscalacionesRoute = EscalacionesRouteImport.update({
+  id: '/escalaciones',
+  path: '/escalaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlujosRoute = FlujosRouteImport.update({
@@ -62,128 +65,99 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SoporteRoute = SoporteRouteImport.update({
-  id: '/soporte',
-  path: '/soporte',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UtgaRoute = UtgaRouteImport.update({
-  id: '/utga',
-  path: '/utga',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WhatsappRoute = WhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
-  '/cartera': typeof CarteraRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
-  '/soporte': typeof SoporteRoute
   '/usuarios': typeof UsuariosRoute
-  '/utga': typeof UtgaRoute
-  '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
-  '/cartera': typeof CarteraRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
-  '/soporte': typeof SoporteRoute
   '/usuarios': typeof UsuariosRoute
-  '/utga': typeof UtgaRoute
-  '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
   '/campanas': typeof CampanasRoute
-  '/cartera': typeof CarteraRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
-  '/soporte': typeof SoporteRoute
   '/usuarios': typeof UsuariosRoute
-  '/utga': typeof UtgaRoute
-  '/whatsapp': typeof WhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
     | '/campanas'
-    | '/cartera'
     | '/chat-interno'
+    | '/escalaciones'
     | '/flujos'
     | '/login'
-    | '/soporte'
     | '/usuarios'
-    | '/utga'
-    | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
     | '/campanas'
-    | '/cartera'
     | '/chat-interno'
+    | '/escalaciones'
     | '/flujos'
     | '/login'
-    | '/soporte'
     | '/usuarios'
-    | '/utga'
-    | '/whatsapp'
   id:
     | '__root__'
     | '/'
+    | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
     | '/campanas'
-    | '/cartera'
     | '/chat-interno'
+    | '/escalaciones'
     | '/flujos'
     | '/login'
-    | '/soporte'
     | '/usuarios'
-    | '/utga'
-    | '/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AsignacionesRoute: typeof AsignacionesRoute
   AuditoriaRoute: typeof AuditoriaRoute
   BandejaRoute: typeof BandejaRoute
   CampanasRoute: typeof CampanasRoute
-  CarteraRoute: typeof CarteraRoute
   ChatInternoRoute: typeof ChatInternoRoute
+  EscalacionesRoute: typeof EscalacionesRoute
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
-  SoporteRoute: typeof SoporteRoute
   UsuariosRoute: typeof UsuariosRoute
-  UtgaRoute: typeof UtgaRoute
-  WhatsappRoute: typeof WhatsappRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -193,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/asignaciones': {
+      id: '/asignaciones'
+      path: '/asignaciones'
+      fullPath: '/asignaciones'
+      preLoaderRoute: typeof AsignacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auditoria': {
@@ -216,18 +197,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampanasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cartera': {
-      id: '/cartera'
-      path: '/cartera'
-      fullPath: '/cartera'
-      preLoaderRoute: typeof CarteraRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/chat-interno': {
       id: '/chat-interno'
       path: '/chat-interno'
       fullPath: '/chat-interno'
       preLoaderRoute: typeof ChatInternoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escalaciones': {
+      id: '/escalaciones'
+      path: '/escalaciones'
+      fullPath: '/escalaciones'
+      preLoaderRoute: typeof EscalacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flujos': {
@@ -244,13 +225,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/soporte': {
-      id: '/soporte'
-      path: '/soporte'
-      fullPath: '/soporte'
-      preLoaderRoute: typeof SoporteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/usuarios': {
       id: '/usuarios'
       path: '/usuarios'
@@ -258,36 +232,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsuariosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/utga': {
-      id: '/utga'
-      path: '/utga'
-      fullPath: '/utga'
-      preLoaderRoute: typeof UtgaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/whatsapp': {
-      id: '/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/whatsapp'
-      preLoaderRoute: typeof WhatsappRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AsignacionesRoute: AsignacionesRoute,
   AuditoriaRoute: AuditoriaRoute,
   BandejaRoute: BandejaRoute,
   CampanasRoute: CampanasRoute,
-  CarteraRoute: CarteraRoute,
   ChatInternoRoute: ChatInternoRoute,
+  EscalacionesRoute: EscalacionesRoute,
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
-  SoporteRoute: SoporteRoute,
   UsuariosRoute: UsuariosRoute,
-  UtgaRoute: UtgaRoute,
-  WhatsappRoute: WhatsappRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

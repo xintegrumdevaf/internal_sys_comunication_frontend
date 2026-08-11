@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Megaphone, CheckCircle2 } from "lucide-react";
-import { AppShell, StatCard } from "../components/AppShell";
-import { OperationalInbox } from "../components/OperationalInbox";
+import { Megaphone, CheckCircle2, AlertTriangle } from "lucide-react";
+import { AppShell, StatCard } from "@/app/shell/AppShell";
 
 export const Route = createFileRoute("/campanas")({
   component: CampanasPage,
@@ -48,11 +47,15 @@ const campaigns = [
 
 function CampanasPage() {
   return (
-    <AppShell title="Campañas Masivas · Administración" icon={Megaphone}>
-      <section className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Perfil demo de área: <span className="font-bold text-foreground">Camila Ortiz</span>{" "}
-        (Administración). Las campañas siguen siendo mock de UI; la bandeja inferior sí lee el
-        Core.
+    <AppShell title="Campañas Masivas · Fuera de alcance" icon={Megaphone}>
+      <section className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-warning/30 bg-warning/10 text-[11px] text-amber-900 animate-fade-up">
+        <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+        <p>
+          <span className="font-bold">Fuera de alcance de isp-customer-service-api.</span> El
+          backend actual no tiene endpoints de campañas masivas. Lo de abajo es una maqueta de UI
+          desconectada del backend — no envía nada real. Ver{" "}
+          <code className="font-mono">docs/spec/02_MODULES.md</code>.
+        </p>
       </section>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
@@ -121,8 +124,6 @@ function CampanasPage() {
           </div>
         </div>
       </section>
-
-      <OperationalInbox departmentSlug="administracion" subtitle="Cola Administración" />
     </AppShell>
   );
 }
