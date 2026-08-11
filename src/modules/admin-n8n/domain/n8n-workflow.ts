@@ -9,4 +9,5 @@ export type N8nWorkflowEntryDto = {
   maxRetries: number;
   active: boolean;
   updatedAt: string;
+  updatedBy?: string | null;
 };

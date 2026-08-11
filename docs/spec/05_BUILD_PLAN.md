@@ -2,6 +2,8 @@
 
 Orden de construcción, una etapa a la vez — no se avanza a la siguiente si la anterior deja el sistema inconsistente (misma disciplina que el backend). Requiere `isp-customer-service-api` corriendo localmente (`docker compose up -d` + `npm run migrate` + `npm run seed` + `npm run dev`) y `VITE_API_BASE_URL` apuntando a esa instancia.
 
+**Prerrequisito de backend (no negociable para probar en navegador):** `isp-customer-service-api` necesita CORS habilitado (`CORS_ALLOWED_ORIGINS` en su `.env`, o dejar vacío en `NODE_ENV=development` para reflejar cualquier origin). Sin esto, `curl`/Postman funcionan perfecto (no aplican CORS) pero el navegador bloquea **todas** las llamadas silenciosamente — se manifiesta como listas vacías sin ningún error visible ("no hay agentes activos" con agentes reales en la base). Este hueco se detectó y se corrigió durante la Etapa 8 (`src/shared/http/middlewares/cors.middleware.ts` en el backend).
+
 Cada etapa lista, además de qué construir, su **criterio de aprobación verificable** (no solo "se ve bien"): comandos exactos que deben pasar. Ver `docs/skills/testing-strategy-frontend.md` para el detalle del runner (Vitest + Testing Library) y los patrones de test usados.
 
 **Criterio de aprobación transversal (aplica a todas las etapas, no se repite en cada una):**
@@ -31,7 +33,7 @@ npm run build       # vite build (client + ssr), sin errores
 - Navegación por departamento dinámica desde `GET /api/departments` (`02_MODULES.md` §3).
 
 **Aprobación:**
-- Automatizado: `modules/identity/domain/session.test.ts` (cálculo de `SessionUser`, landing por rol), `modules/identity/application/access-control.test.ts` (`canAccessPath`/`canAccessDepartment`/`modulesForSession` para los 3 roles).
+- Automatizado: `modules/identity/domain/session.test.ts` (cálculo de `SessionUser`, landing por rol), `modules/identity/application/access-control.test.ts` (`canAccessPath`/`canAccessDepartment`/`modulesForSession` para los 3 roles), `modules/identity/infrastructure/agent-directory.gateway.test.ts`.
 - Manual: el selector de perfil solo ofrece agentes que existen en la base de datos real; `/usuarios` muestra el aviso de pendiente y no persiste nada; un agente sin `role=admin` no ve `/flujos`.
 
 ## Etapa 2 — Bandeja de conversaciones + tiempo real
@@ -64,16 +66,16 @@ npm run build       # vite build (client + ssr), sin errores
 - `06_BACKEND_GAPS.md` §2 (algoritmo automático) queda registrado y enlazado desde aquí — no se implementa en este trabajo.
 
 **Aprobación:**
-- Manual: un manager ve la carga por agente de su departamento y puede reasignar manualmente.
-- Pendiente de test automatizado (ver `docs/skills/testing-strategy-frontend.md` §5, prioridad 2): `use-assignment-board.ts` combina 2 gateways, todavía sin cobertura.
+- Automatizado: `modules/assignment/application/use-assignment-board.test.ts` (selección de depto. por defecto, filtrado de agentes, `assignCase`/`reassignCase` delegan con el actor real, un `getCase` fallido no rompe el tablero).
+- Manual: un manager ve la carga por agente de su departamento y puede reasignar manualmente (verificado contra el backend real, incluyendo CORS — ver `06_BACKEND_GAPS.md`).
 
 ## Etapa 6 — Dashboard, auditoría, admin n8n
 
 - `modules/dashboard/ui/DashboardOverview.tsx`, `modules/audit/ui/AuditLogView.tsx`, `modules/admin-n8n/ui/N8nWorkflowCatalog.tsx` contra endpoints reales.
 
 **Aprobación:**
-- Manual: las tres pantallas reflejan datos reales del backend local.
-- Pendiente de test automatizado (prioridad 1 de `testing-strategy-frontend.md` §5): gateways de `dashboard`/`audit`/`admin-n8n` sin cobertura todavía (mismo patrón que `case.gateway.test.ts`).
+- Automatizado: `modules/dashboard/infrastructure/dashboard.gateway.test.ts`, `modules/audit/infrastructure/audit.gateway.test.ts`, `modules/admin-n8n/infrastructure/n8n-workflow.gateway.test.ts` (incluye el caso de error 403 sin rol admin).
+- Manual: las tres pantallas reflejan datos reales del backend local (verificado con CORS habilitado — sin esto, las tres fallaban silenciosamente en el navegador, ver `06_BACKEND_GAPS.md`).
 
 ## Etapa 7 — Limpieza y pulido de mensajería
 

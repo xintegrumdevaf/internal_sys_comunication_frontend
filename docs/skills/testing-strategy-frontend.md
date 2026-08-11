@@ -50,9 +50,13 @@ Cada etapa del build plan se considera "aprobada" cuando, además de la verifica
 
 ## 5. Prioridad de cobertura futura (si se agrega en fases)
 
-1. Gateways restantes sin test todavía (`identity/agent-directory.gateway.ts`, `admin-n8n/n8n-workflow.gateway.ts`, `dashboard/dashboard.gateway.ts`, `audit/audit.gateway.ts`) — mismo patrón que los ya cubiertos.
-2. `modules/escalations/application/use-escalations.ts` y `modules/assignment/application/use-assignment-board.ts` — orquestación más compleja (múltiples gateways combinados).
-3. Componentes `ui/` críticos (`CasePanel`, `CaseSummaryDialog`) con `@testing-library/react` render + `screen`/`userEvent` — verificar que el `switch` por `workflowType` renderiza el bloque correcto y que las acciones deshabilitadas realmente no disparan el callback.
+Cubierto ya (Etapa 8): los 8 gateways de `modules/*/infrastructure/` tienen test, igual que `use-case-actions.ts`, `use-escalations.ts` y `use-assignment-board.ts` (los 3 hooks de aplicación más complejos, cada uno combinando 2+ gateways).
+
+Pendiente, siguiente prioridad si se retoma:
+
+1. Componentes `ui/` críticos (`CasePanel`, `CaseSummaryDialog`) con `@testing-library/react` render + `screen`/`userEvent` — verificar que el `switch` por `workflowType` renderiza el bloque correcto y que las acciones deshabilitadas realmente no disparan el callback.
+2. `use-operational-inbox.ts` — el hook más grande (combina conversations + cases + realtime); requiere mockear también `realtime-bus.ts`.
+3. `modules/internal-chat/application/use-internal-chat.ts` y `build-mention-targets.ts` — lógica de orquestación del chat interno.
 
 ## 6. Qué NO testear con esfuerzo desproporcionado
 

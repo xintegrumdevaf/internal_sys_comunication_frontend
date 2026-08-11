@@ -56,8 +56,17 @@ Reglas de negocio sugeridas (coherentes con `01_DATA_MODEL.md` §7 del backend):
 
 **Estado**: pendiente — mejora de rendimiento, no requisito funcional inmediato.
 
-## 4. Registro de cambios
+## 4. CORS (resuelto — no es un hueco pendiente, se documenta por trazabilidad)
+
+**Problema detectado**: `isp-customer-service-api` no tenía ningún middleware CORS. Los endpoints funcionaban perfecto por `curl`/Postman (CORS es una restricción exclusiva del navegador), pero **todas** las llamadas desde el frontend real fallaban silenciosamente en el navegador — sin ningún error visible más allá de listas vacías ("no hay agentes activos" con agentes reales en la base de datos).
+
+**Solución aplicada** (directamente en el backend, dado que bloqueaba cualquier prueba real del frontend): `src/shared/http/middlewares/cors.middleware.ts` + variable `CORS_ALLOWED_ORIGINS` en `src/shared/config/env.ts`. En `NODE_ENV=development` con la variable vacía, refleja cualquier `Origin` (conveniente porque el puerto de Vite cambia seguido); en producción exige una lista explícita.
+
+**Estado**: resuelto en esta sesión — no requiere seguimiento, pero queda documentado porque el hueco no estaba contemplado en el contrato original (`03_API_CONTRACT.md` no menciona CORS) y cualquier frontend nuevo que se conecte a este backend en otro origin necesita esto configurado.
+
+## 5. Registro de cambios
 
 | Fecha | Hueco agregado | Motivo |
 |---|---|---|
 | 2026-08-11 | CRUD de agentes, algoritmo de auto-asignación, endpoint de carga agregada | Detectados al diseñar el frontend real sobre `isp-customer-service-api` |
+| 2026-08-11 | CORS ausente en el backend (§4) — **resuelto**, no pendiente | Detectado al probar el login real desde el navegador; sin esto el frontend no puede operar en absoluto |
