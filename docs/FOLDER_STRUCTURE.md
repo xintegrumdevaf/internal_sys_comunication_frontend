@@ -8,15 +8,17 @@ src/
 │   └── shell/
 │       └── AppShell.tsx           ← composition root de UI (identity + realtime + nav)
 │
-├── shared/
-│   └── datetime.ts                ← relativeTime/messageClock, sin dueño de negocio
+├── shared/                        ← kernel técnico transversal, sin dueño de negocio
+│   ├── datetime.ts                ← relativeTime/messageClock (+ datetime.test.ts)
+│   ├── http/
+│   │   ├── http-client.ts         ← cliente HTTP genérico ({data}/{error}, x-agent-id)
+│   │   └── api-base.ts            ← getApiBaseUrl/resolveApiUrl (+ api-base.test.ts)
+│   └── server/
+│       ├── error-capture.ts       ← bootstrap SSR (usado por server.ts)
+│       └── error-page.ts
 │
-├── lib/                           ← kernel técnico transversal (NO se reestructura por módulo)
-│   ├── api-client.ts              ← cliente HTTP genérico ({data}/{error}, x-agent-id)
-│   ├── api-base.ts / .check.ts
-│   ├── utils.ts                   ← cn() de shadcn (convención externa, no tocar la ruta)
-│   ├── error-capture.ts           ← bootstrap de servidor
-│   └── error-page.ts
+├── lib/                           ← ÚNICA excepción: convenciones externas de shadcn CLI
+│   └── utils.ts                   ← cn(), shadcn siempre genera imports a "@/lib/utils"
 │
 ├── components/
 │   └── ui/                        ← shadcn (design system, sin lógica de negocio)
@@ -97,6 +99,21 @@ src/
 ├── router.tsx, server.ts, start.ts, styles.css   ← bootstrap de la app (TanStack Start)
 └── routeTree.gen.ts                ← autogenerado, no editar
 ```
+
+## Convención de tests
+
+`*.test.ts`/`*.test.tsx` vive **junto al archivo que prueba**, no en una carpeta `__tests__/` separada (ver `docs/skills/testing-strategy-frontend.md`). Ejemplo real ya presente en el árbol de arriba:
+
+```
+src/modules/cases/domain/case.ts
+src/modules/cases/domain/case.test.ts
+src/modules/cases/infrastructure/case.gateway.ts
+src/modules/cases/infrastructure/case.gateway.test.ts
+src/modules/cases/application/use-case-actions.ts
+src/modules/cases/application/use-case-actions.test.ts
+```
+
+Correr con `npm test` (una corrida) o `npm run test:watch` (desarrollo). Configuración en `vitest.config.ts` + `vitest.setup.ts` (raíz del repo, junto a `vite.config.ts`).
 
 ## Reglas de import (repetidas de `docs/skills/frontend-hexagonal-architecture.md`, por si solo lees este archivo)
 

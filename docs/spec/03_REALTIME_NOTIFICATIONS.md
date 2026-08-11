@@ -2,7 +2,7 @@
 
 ## 1. Cliente SSE
 
-`src/adapters/http/realtime-client.ts` — wrapper sobre `EventSource`:
+`src/modules/realtime/infrastructure/realtime.gateway.ts` — wrapper sobre `EventSource`:
 
 ```ts
 export function connectRealtime(userId: string, onEvent: (event: RealtimeEvent) => void): () => void {
@@ -22,7 +22,7 @@ export function connectRealtime(userId: string, onEvent: (event: RealtimeEvent) 
 }
 ```
 
-`useRealtimeEvents(userId)` (hook) expone `{ connected: boolean, lastEvent: RealtimeEvent | null }` y se monta **una sola vez** a nivel de `AppShell` (no por pantalla) — todas las pantallas se suscriben al mismo stream vía un pequeño event bus en memoria (`src/lib/realtime-bus.ts`), evitando abrir un `EventSource` por componente.
+`useRealtimeSession(userId)` (hook, `src/modules/realtime/application/use-realtime.ts`) se monta **una sola vez** a nivel de `app/shell/AppShell.tsx` (no por pantalla) — todas las pantallas se suscriben al mismo stream vía un event bus en memoria (`src/modules/realtime/infrastructure/realtime-bus.ts`), evitando abrir un `EventSource` por componente.
 
 ## 2. Catálogo de eventos → reacción UI
 

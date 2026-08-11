@@ -1,6 +1,6 @@
 # 01_DATA_MODEL.md
 
-DTOs de frontend, calcados 1:1 del contrato real del backend (`isp-customer-service-api/docs/spec/03_API_CONTRACT.md` §C.4 y `01_DATA_MODEL.md` §4/§6/§7). Reemplazan por completo `src/adapters/http/dto.ts` y eliminan `src/lib/ops-types.ts` (`PaymentCase`/`WorkOrder` no existen en el backend nuevo).
+DTOs de frontend, calcados 1:1 del contrato real del backend (`isp-customer-service-api/docs/spec/03_API_CONTRACT.md` §C.4 y `01_DATA_MODEL.md` §4/§6/§7). Cada tipo vive en el `domain/` del módulo dueño (`src/modules/<feature>/domain/*.ts`, ver `docs/FOLDER_STRUCTURE.md`) — ya no en un `dto.ts` monolítico. Se eliminó por completo `ops-types.ts` (`PaymentCase`/`WorkOrder` no existen en el backend nuevo).
 
 ## 1. Catálogos
 

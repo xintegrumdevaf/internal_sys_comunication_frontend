@@ -1,4 +1,4 @@
-import { resolveApiUrl } from "@/lib/api-base";
+import { resolveApiUrl } from "@/shared/http/api-base";
 import type { RealtimeEvent } from "@/modules/realtime/domain/realtime-event";
 
 /**

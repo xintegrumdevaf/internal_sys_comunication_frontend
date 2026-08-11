@@ -1,4 +1,4 @@
-import { apiGet } from "@/lib/api-client";
+import { apiGet } from "@/shared/http/http-client";
 import type { DashboardDto } from "@/modules/dashboard/domain/dashboard";
 
 /** Puerto de infraestructura: GET /api/dashboard?userId= (docs/API_ENDPOINTS.md §6). */

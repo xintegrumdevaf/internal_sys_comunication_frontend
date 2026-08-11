@@ -42,11 +42,17 @@ Regla dura: **un componente de `ui/` nunca importa un `gateway.ts` directamente*
 
 **Nunca** debe existir un ciclo (ej. `cases` importando algo de `conversations`). Si un módulo "de más abajo" necesita algo de "más arriba", es señal de que el límite está mal puesto — se resuelve subiendo la lógica compartida a un módulo común o a `shared/`, no importando en el sentido incorrecto.
 
-## 4. `shared/` vs `modules/`
+## 4. `shared/` vs `lib/` vs `modules/`
 
-`src/lib/` (utils de shadcn, cliente HTTP genérico, bootstrap de servidor) y `src/components/ui/` (shadcn) son **kernel técnico transversal**: no conocen "Conversation" ni "Case", siguen convenciones externas (shadcn CLI espera `@/lib/utils`), y por eso **no se movieron** a `modules/` — moverlos sería reetiquetar carpetas sin ganar aislamiento real, y rompería la convención de shadcn para futuros `npx shadcn add`.
+`src/shared/` es el kernel técnico transversal **propio de este proyecto**: no conoce "Conversation" ni "Case", pero tampoco sigue ninguna convención de terceros, así que sí se organiza como el resto (con su propia carpeta, sus propios tests):
 
-`src/shared/datetime.ts` sí es nuevo: formato de fecha puro, usado por varios módulos (`conversations`, `cases`, `escalations`, `audit`, `internal-chat`) — vive en `shared/` en vez de en un módulo porque ningún módulo de negocio es "dueño" de formatear una fecha (evita que todos dependan de `conversations` solo por `relativeTime`).
+- `shared/http/` — `http-client.ts` (envelope `{data}`/`{error}`, `x-agent-id`) + `api-base.ts` (resolución de URL). Todo gateway de `modules/*/infrastructure/` importa de aquí, nunca de otro gateway.
+- `shared/server/` — `error-capture.ts`/`error-page.ts`, bootstrap de SSR usado por `server.ts`/`start.ts`.
+- `shared/datetime.ts` — `relativeTime`/`messageClock`, usado por `conversations`, `cases`, `escalations`, `audit`, `internal-chat`. Vive en `shared/` porque ningún módulo de negocio es "dueño" de formatear una fecha (evita que todos dependan de `conversations` solo por esto).
+
+`src/lib/utils.ts` es la **única excepción real**: shadcn (el generador de `components/ui/`) siempre importa `cn()` desde `@/lib/utils` de forma hardcodeada en el código que genera su CLI (`npx shadcn add ...`). Moverlo rompería ese flujo para cualquier componente nuevo que se agregue después. Por eso `src/lib/` no desapareció del todo, pero quedó reducido a ese único archivo — todo lo demás que antes vivía ahí (cliente HTTP, bootstrap de servidor, identidad, chat interno...) ya se migró a `shared/` o a su `modules/<feature>/` correspondiente.
+
+`src/components/ui/` (shadcn) tampoco se movió por el mismo motivo: es un kit de diseño de terceros, sin lógica de negocio, gobernado por su propia convención de carpeta.
 
 ## 5. `src/routes/*.tsx` — la única excepción de nombres
 

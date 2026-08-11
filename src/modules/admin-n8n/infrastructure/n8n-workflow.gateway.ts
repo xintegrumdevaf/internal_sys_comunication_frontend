@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPut } from "@/lib/api-client";
+import { apiDelete, apiGet, apiPut } from "@/shared/http/http-client";
 import type { N8nWorkflowCategory, N8nWorkflowEntryDto } from "@/modules/admin-n8n/domain/n8n-workflow";
 
 /**

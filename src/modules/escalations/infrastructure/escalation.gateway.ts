@@ -1,4 +1,4 @@
-import { apiGet } from "@/lib/api-client";
+import { apiGet } from "@/shared/http/http-client";
 import type { EscalationDto, EscalationStatus } from "@/modules/escalations/domain/escalation";
 
 /** Puerto de infraestructura: GET /api/escalations (docs/API_ENDPOINTS.md §6). */

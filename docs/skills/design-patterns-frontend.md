@@ -4,7 +4,7 @@ Patrones concretos usados en este frontend, con el archivo real donde viven — 
 
 ## Gateway (Adapter)
 
-`modules/*/infrastructure/*.gateway.ts` — cada uno traduce el contrato REST real de `isp-customer-service-api` a tipos de dominio TypeScript. Si el backend cambiara de forma (`{data}` → `{result}`, por ejemplo), solo `src/lib/api-client.ts` (el cliente HTTP compartido) necesita cambiar; los gateways de cada módulo no.
+`modules/*/infrastructure/*.gateway.ts` — cada uno traduce el contrato REST real de `isp-customer-service-api` a tipos de dominio TypeScript. Si el backend cambiara de forma (`{data}` → `{result}`, por ejemplo), solo `src/shared/http/http-client.ts` (el cliente HTTP compartido) necesita cambiar; los gateways de cada módulo no.
 
 ## Custom Hook como Use Case
 

@@ -1,5 +1,5 @@
-import { apiGet, apiPost } from "@/lib/api-client";
-import { resolveApiUrl } from "@/lib/api-base";
+import { apiGet, apiPost } from "@/shared/http/http-client";
+import { resolveApiUrl } from "@/shared/http/api-base";
 import type {
   ConversationDto,
   ConversationStatus,

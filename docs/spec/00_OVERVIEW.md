@@ -73,7 +73,7 @@ Fuera de `docs/spec/` (normativo del backend a consumir), este paquete agrega:
 | `docs/skills/solid-principles-frontend.md` | SOLID con ejemplos reales de este repo |
 | `docs/skills/design-patterns-frontend.md` | Patrones usados (Gateway, Custom Hook as Use Case, Observer, Facade...) |
 | `docs/skills/ui-ux-design-principles.md` | Decisiones de UI/UX específicas de este producto (no genéricas) |
-| `docs/skills/testing-strategy-frontend.md` | Qué y cómo probar por capa, cuando se agregue un runner de tests |
+| `docs/skills/testing-strategy-frontend.md` | Runner configurado (Vitest + Testing Library), qué y cómo probar por capa, criterio de aprobación por etapa |
 
 ## 6. No-negociables de este frontend
 

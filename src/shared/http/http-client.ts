@@ -1,4 +1,4 @@
-import { getApiBaseUrl, resolveApiUrl } from "@/lib/api-base";
+import { getApiBaseUrl, resolveApiUrl } from "@/shared/http/api-base";
 
 /**
  * Cliente HTTP contra isp-customer-service-api.

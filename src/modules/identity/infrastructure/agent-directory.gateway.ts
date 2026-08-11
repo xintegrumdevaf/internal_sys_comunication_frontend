@@ -1,4 +1,4 @@
-import { apiGet } from "@/lib/api-client";
+import { apiGet } from "@/shared/http/http-client";
 import type { AgentDto } from "@/modules/identity/domain/agent";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 

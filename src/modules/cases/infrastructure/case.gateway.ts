@@ -1,5 +1,4 @@
-import { apiPost } from "@/lib/api-client";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiPost } from "@/shared/http/http-client";
 import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
 
 /**

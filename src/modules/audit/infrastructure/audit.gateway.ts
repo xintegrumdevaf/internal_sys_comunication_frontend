@@ -1,4 +1,4 @@
-import { apiGet } from "@/lib/api-client";
+import { apiGet } from "@/shared/http/http-client";
 import type { AuditEventDto } from "@/modules/audit/domain/audit-event";
 
 /** Puerto de infraestructura: GET /api/audit?limit= (docs/API_ENDPOINTS.md §7). */
