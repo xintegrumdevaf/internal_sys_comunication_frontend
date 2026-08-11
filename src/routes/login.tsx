@@ -1,62 +1,34 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ShieldCheck, LogIn, MessageCircle, Zap, Lock } from "lucide-react";
-import { getUserByEmail } from "@/lib/users-store";
-import {
-  signIn,
-  toSessionUser,
-  useDemoUsers,
-  useSession,
-  type DemoUser,
-} from "../lib/auth";
+import { useEffect } from "react";
+import { ShieldCheck, LogIn, MessageCircle, Zap } from "lucide-react";
+import { signIn, useDirectoryUsers, useSession } from "../lib/auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+/**
+ * Selector de perfil sobre agentes reales de isp-customer-service-api.
+ * El backend no tiene JWT/login todavía (docs/spec/00_OVERVIEW.md §2), así que
+ * no simulamos un password que no valida nada real: se elige el agente y listo.
+ */
 function LoginPage() {
   const navigate = useNavigate();
   const session = useSession();
-  const demoUsers = useDemoUsers();
-  const [email, setEmail] = useState("javier.diaz@netops.co");
-  const [password, setPassword] = useState("demo1234");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const directory = useDirectoryUsers();
+  const activeAgents = directory.filter((u) => u.active);
 
   useEffect(() => {
     if (session) navigate({ to: session.landing });
   }, [session, navigate]);
 
-  const doLogin = (user: DemoUser) => {
-    setLoading(true);
-    setError("");
-    setTimeout(() => {
-      signIn(user);
-      navigate({ to: user.landing });
-    }, 450);
-  };
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const directoryUser = getUserByEmail(email);
-    if (!directoryUser) {
-      setError("Usuario no encontrado. Prueba con un perfil demo o crea uno en Usuarios.");
-      return;
-    }
-    if (!directoryUser.active) {
-      setError("Usuario inactivo. Contacta a Admin TI.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-    doLogin(toSessionUser(directoryUser));
+  const doLogin = (agentId: string, landing: string) => {
+    signIn(agentId);
+    void navigate({ to: landing });
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans grid lg:grid-cols-2">
-      {/* Left — brand panel */}
       <div className="hidden lg:flex flex-col justify-between p-12 bg-card border-r border-border relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle_at_20%_20%,var(--color-primary)_0,transparent_50%),radial-gradient(circle_at_80%_80%,var(--color-primary)_0,transparent_50%)]" />
         <div className="relative">
@@ -70,21 +42,20 @@ function LoginPage() {
 
         <div className="relative space-y-6 max-w-md">
           <h2 className="text-3xl font-bold tracking-tight leading-tight">
-            Orquesta soporte, cartera y UTGA con agentes de IA sobre WhatsApp.
+            Orquesta soporte, facturación y ventas con agentes de IA sobre WhatsApp.
           </h2>
           <div className="space-y-3">
             <Feature icon={MessageCircle} label="Bandeja unificada + handover humano" />
-            <Feature icon={Zap} label="Flujos n8n: diagnóstico ONU, OCR boucher, viabilidad" />
-            <Feature icon={ShieldCheck} label="TLS 1.3 · RBAC · PII enmascarada · auditoría" />
+            <Feature icon={Zap} label="Motor de casos con escalación y auditoría real" />
+            <Feature icon={ShieldCheck} label="Datos en vivo desde isp-customer-service-api" />
           </div>
         </div>
 
         <div className="relative text-[10px] text-muted-foreground tracking-widest uppercase">
-          v1.0 · Prototype · © 2026 NetOps
+          v2.0 · isp-customer-service-api · © 2026 NetOps
         </div>
       </div>
 
-      {/* Right — form */}
       <div className="flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-8">
@@ -94,88 +65,45 @@ function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight">Iniciar sesión</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Selecciona tu perfil</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Accede a la consola operativa NetOps.
+              Agentes reales del backend (isp-customer-service-api). Aún no hay login con
+              contraseña — la identidad se declara por agente, igual que en la API.
             </p>
           </div>
 
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Correo corporativo
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 w-full px-4 py-2.5 bg-card border border-border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition"
-                placeholder="tu.usuario@netops.co"
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <Lock className="size-3" /> Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5 w-full px-4 py-2.5 bg-card border border-border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition"
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
-
-            {error && (
-              <p className="text-xs text-danger bg-danger/10 border border-danger/20 rounded-md px-3 py-2">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-foreground text-background text-sm font-bold rounded-md hover:bg-foreground/85 transition-colors disabled:opacity-60"
-            >
-              <LogIn className="size-4" />
-              {loading ? "Autenticando..." : "Ingresar"}
-            </button>
-
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-              <ShieldCheck className="size-3 text-primary" />
-              Sesión cifrada TLS 1.3 · MFA requerido en producción
-            </div>
-          </form>
-
-          <div className="my-8 flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Simular ingreso demo
-            </span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {demoUsers.map((u) => (
-              <button
-                key={u.id}
-                type="button"
-                onClick={() => doLogin(u)}
-                className="text-left p-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-primary/5 transition group"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold">
-                    {u.initials}
+          {activeAgents.length === 0 ? (
+            <p className="text-xs text-muted-foreground border border-border rounded-lg p-4 bg-card">
+              No hay agentes activos en el backend. Verifica que{" "}
+              <code className="font-mono">isp-customer-service-api</code> esté corriendo y con
+              seed aplicado (<code className="font-mono">npm run seed</code>).
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {activeAgents.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => doLogin(u.id, u.landing)}
+                  className="text-left p-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-primary/5 transition group"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="size-8 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold shrink-0">
+                      {u.initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold truncate">{u.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{u.roleLabel}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold truncate">{u.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{u.roleLabel}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 flex items-center gap-2 text-[10px] text-muted-foreground">
+            <LogIn className="size-3.5 text-primary" />
+            Sin contraseña por ahora — ver docs/spec/06_BACKEND_GAPS.md
           </div>
         </div>
       </div>
