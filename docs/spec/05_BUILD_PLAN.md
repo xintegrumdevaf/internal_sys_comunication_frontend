@@ -64,3 +64,7 @@ Orden de construcción, una etapa a la vez — no se avanza a la siguiente si la
 ## Huecos de backend detectados durante esta construcción
 
 Ver `06_BACKEND_GAPS.md` — se agregan ahí a medida que se detectan, no se dejan sueltos en comentarios de código.
+
+## Desviación documentada: reestructuración hexagonal (post Etapa 6)
+
+Las Etapas 0-6 se construyeron inicialmente con una estructura plana (`src/lib`, `src/hooks`, `src/components`, `src/adapters/http`) que funcionaba pero no reflejaba límites de módulo explícitos ni el mismo tratamiento arquitectónico que `isp-customer-service-api` (hexagonal, SOLID, `docs/skills/*`). Se reestructuró todo el código de negocio en `src/modules/<feature>/{domain,application,infrastructure,ui}` (ver `docs/FOLDER_STRUCTURE.md`), dejando en `src/lib`/`src/components/ui` únicamente el kernel técnico transversal (shadcn, cliente HTTP genérico, bootstrap de servidor) que no tiene dueño de negocio. Motivo: pedido explícito de mantener el mismo nivel de rigor arquitectónico que el backend, con nombres de archivo/carpeta en inglés y principios SOLID/DRY aplicados de forma verificable (no solo declarados). Se verificó `tsc --noEmit`, `npm run lint` y `npm run build` limpios después de la reestructuración completa.

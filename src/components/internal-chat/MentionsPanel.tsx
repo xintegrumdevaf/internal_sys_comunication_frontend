@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/command";
 import type { Mention, MentionTarget, RecentMentionEntry } from "@/lib/internal-chat-types";
 import { resolveConversationId } from "@/lib/internal-chat-mentions";
-import { getUserById } from "@/lib/users-store";
+import type { SessionUser } from "@/lib/identity";
 import { peerIdOfThread, getInternalChatSnapshot } from "@/lib/internal-chat-store";
 
 type Props = {
@@ -25,6 +25,7 @@ type Props = {
   targets: MentionTarget[];
   recent: RecentMentionEntry[];
   selfId: string;
+  directory: SessionUser[];
   onInsertMention: (mention: Mention) => void;
   onOpenCase: (conversationId: string) => void;
   onOpenThread: (threadId: string) => void;
@@ -36,6 +37,7 @@ export function MentionsPanel({
   targets,
   recent,
   selfId,
+  directory,
   onInsertMention,
   onOpenCase,
   onOpenThread,
@@ -116,7 +118,8 @@ export function MentionsPanel({
                   const state = getInternalChatSnapshot();
                   const thread = state.threads.find((t) => t.id === entry.threadId);
                   const peerId = thread ? peerIdOfThread(thread, selfId) : null;
-                  const peerName = (peerId ? getUserById(peerId)?.name : null) ?? "Agente";
+                  const peerName =
+                    (peerId ? directory.find((u) => u.id === peerId)?.name : null) ?? "Agente";
                   const conversationId = resolveConversationId(entry.mention, targets);
 
                   return (

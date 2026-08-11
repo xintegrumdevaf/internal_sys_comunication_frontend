@@ -1,49 +1,59 @@
-import { Bot, User, ArrowRightLeft, CheckCheck } from "lucide-react";
+import { Bot, User, CheckCheck, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MessageMediaBody } from "@/components/chat/MessageMediaBody";
 import { InboxInternalNoteComposer } from "@/components/internal-chat/InboxInternalNoteComposer";
+import { CasePanel } from "@/components/cases/CasePanel";
+import { CaseSummaryDialog } from "@/components/cases/CaseSummaryDialog";
 import {
-  intentLabel,
+  caseStatusLabel,
   messageClock,
   relativeTime,
   useOperationalInbox,
+  workflowLabel,
 } from "@/hooks/use-operational-inbox";
+import { useDepartmentsQuery } from "@/lib/auth";
+import { useRealtimeConnected } from "@/hooks/use-realtime";
 
 type Props = {
-  departmentSlug?: string;
-  userScope?: boolean;
+  departmentId?: string;
+  mineOnly?: boolean;
   subtitle?: string;
   initialConversationId?: string | null;
 };
 
 export function OperationalInbox({
-  departmentSlug,
-  userScope = true,
+  departmentId,
+  mineOnly = false,
   subtitle,
   initialConversationId,
 }: Props) {
   const {
+    session,
     conversations,
     selected,
     selectedId,
     setSelectedId,
     messages,
-    context,
+    activeCase,
+    caseSummary,
+    caseTimeline,
+    loadCaseSummary,
     loading,
     busy,
     takeControl,
+    claim,
+    complete,
+    cancel,
     transfer,
+    disableAutomation,
+    reactivateAutomation,
     sendReply,
-  } = useOperationalInbox({
-    departmentSlug,
-    userScope: !departmentSlug && userScope,
-    initialConversationId,
-  });
+  } = useOperationalInbox({ departmentId, mineOnly, initialConversationId });
 
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [transferSlug, setTransferSlug] = useState("");
-  const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
+  const { data: departments = [] } = useDepartmentsQuery();
+  const connected = useRealtimeConnected();
   const [draft, setDraft] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +74,14 @@ export function OperationalInbox({
     if (!ok) setDraft(body);
   };
 
+  const canWriteCase =
+    Boolean(session) &&
+    Boolean(activeCase) &&
+    (activeCase?.assignedAgentId === session?.id ||
+      activeCase?.assignedAgentId == null ||
+      session?.role === "manager" ||
+      session?.role === "admin");
+
   return (
     <section className="grid grid-cols-12 gap-6 h-[min(780px,calc(100vh-14rem))] min-h-[560px] animate-fade-up">
       <div className="col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full">
@@ -71,13 +89,17 @@ export function OperationalInbox({
           <h3 className="text-xs font-extrabold uppercase tracking-widest">
             {loading ? "Cargando…" : `${conversations.length} conversaciones`}
           </h3>
-          <span className="text-[10px] font-mono text-muted-foreground">
-            {subtitle ?? "Mock Core · WhatsApp"}
+          <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+            {connected ? (
+              <Wifi className="size-3 text-primary" />
+            ) : (
+              <WifiOff className="size-3 text-warning" />
+            )}
+            {subtitle ?? "isp-customer-service-api"}
           </span>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
           {conversations.map((c) => {
-            const tag = intentLabel(c.intent);
             const active = c.id === selectedId;
             return (
               <button
@@ -90,37 +112,30 @@ export function OperationalInbox({
                 }`}
               >
                 <div className="flex justify-between mb-1">
-                  <span className="text-xs font-bold">{c.customerName ?? c.waPhone}</span>
+                  <span className="text-xs font-bold">{c.waPhone}</span>
                   <span className="text-[10px] text-muted-foreground">
-                    {relativeTime(c.updatedAt)}
+                    {relativeTime(c.lastActivityAt)}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">
-                  {c.lastMessagePreview}
+                  {c.lastMessagePreview?.body ?? "Sin mensajes"}
                 </p>
                 <div className="mt-2 flex gap-1.5 flex-wrap items-center">
-                  <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded ${tag.cls}`}>
-                    {tag.label}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded ${
-                      c.handlerMode === "ai"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-purple-100 text-purple-700"
-                    }`}
-                  >
-                    {c.handlerMode === "ai" ? "IA" : "Humano"}
-                  </span>
                   <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
                     {c.status}
                   </span>
+                  {c.activeCaseId && (
+                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-blue-100 text-blue-700">
+                      Con caso activo
+                    </span>
+                  )}
                 </div>
               </button>
             );
           })}
           {!loading && conversations.length === 0 && (
             <p className="p-6 text-xs text-muted-foreground">
-              No hay conversaciones para este perfil/departamento.
+              No hay conversaciones abiertas para este filtro.
             </p>
           )}
         </div>
@@ -131,69 +146,32 @@ export function OperationalInbox({
           <>
             <div className="p-4 border-b border-border bg-background/60 flex items-center justify-between gap-2 shrink-0">
               <div className="min-w-0">
-                <p className="text-xs font-bold truncate">
-                  {selected.customerName ?? selected.waPhone}
-                </p>
+                <p className="text-xs font-bold truncate">{selected.waPhone}</p>
                 <p className="text-[10px] text-muted-foreground truncate">
-                  {selected.contractId
-                    ? `Contrato #${selected.contractId}`
-                    : selected.waPhone}
-                  {context?.department ? ` · ${context.department.name}` : ""}
+                  {activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}
+                  {activeCase ? ` · ${workflowLabel(activeCase.workflowType).label}` : ""}
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">
+                {activeCase?.assignedAgentId == null &&
+                  (activeCase?.status === "ESCALATED" || activeCase?.status === "HUMAN_ACTIVE") && (
+                    <button
+                      disabled={busy}
+                      onClick={() => void claim()}
+                      className="text-[10px] px-3 py-1.5 rounded bg-danger text-danger-foreground font-bold uppercase disabled:opacity-40"
+                    >
+                      Reclamar caso
+                    </button>
+                  )}
                 <button
-                  disabled={busy || selected.handlerMode === "human"}
+                  disabled={busy}
                   onClick={() => void takeControl()}
-                  className="text-[10px] px-3 py-1.5 rounded bg-danger text-danger-foreground font-bold uppercase disabled:opacity-40"
+                  className="text-[10px] px-3 py-1.5 rounded border border-border font-bold uppercase disabled:opacity-40"
                 >
                   Tomar Control
                 </button>
-                <button
-                  disabled={busy}
-                  onClick={() => {
-                    setTransferSlug(context?.transferTargets?.[0]?.slug ?? "");
-                    setTransferOpen((v) => !v);
-                  }}
-                  className="text-[10px] px-3 py-1.5 rounded border border-border font-bold uppercase flex items-center gap-1"
-                >
-                  <ArrowRightLeft className="size-3" /> Transferir
-                </button>
               </div>
             </div>
-
-            {transferOpen && (
-              <div className="p-3 border-b border-border bg-background/80 space-y-2 shrink-0">
-                <select
-                  value={transferSlug}
-                  onChange={(e) => setTransferSlug(e.target.value)}
-                  className="w-full text-xs px-2 py-1.5 border border-border rounded bg-card"
-                >
-                  {(context?.transferTargets ?? []).map((d) => (
-                    <option key={d.id} value={d.slug}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  value={transferReason}
-                  onChange={(e) => setTransferReason(e.target.value)}
-                  className="w-full text-xs px-2 py-1.5 border border-border rounded bg-card"
-                  placeholder="Motivo de transferencia"
-                />
-                <button
-                  disabled={busy || !transferSlug}
-                  onClick={() => {
-                    void transfer(transferSlug, transferReason).then(() =>
-                      setTransferOpen(false),
-                    );
-                  }}
-                  className="w-full text-[10px] py-1.5 rounded bg-foreground text-background font-bold uppercase"
-                >
-                  Confirmar transferencia
-                </button>
-              </div>
-            )}
 
             <div
               ref={messagesScrollRef}
@@ -253,7 +231,7 @@ export function OperationalInbox({
                     void handleSend();
                   }
                 }}
-                placeholder="Escribe un mensaje (se envía por Cloud API)"
+                placeholder="Escribe un mensaje (se envía por WhatsApp Cloud API)"
                 className="flex-1 px-3 py-2 bg-card border border-border rounded-md text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
               />
               <button
@@ -266,7 +244,10 @@ export function OperationalInbox({
               </button>
             </div>
             <div className="shrink-0 max-h-[40%] overflow-y-auto">
-              <InboxInternalNoteComposer conversation={selected} />
+              <InboxInternalNoteComposer
+                conversation={selected}
+                assignedAgentId={activeCase?.assignedAgentId}
+              />
             </div>
           </>
         ) : (
@@ -277,102 +258,38 @@ export function OperationalInbox({
       </div>
 
       <div className="col-span-12 lg:col-span-3 space-y-4 min-h-0 h-full overflow-y-auto">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3">
-            Contexto Cliente
-          </h3>
-          {context?.customer ? (
-            <div className="space-y-2 text-[11px] font-mono">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Contrato</span>
-                <span className="font-bold">#{context.customer.contractId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Plan</span>
-                <span>{context.customer.plan}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Estado</span>
-                <span className="text-primary font-bold uppercase">
-                  {context.customer.billingStatus.replace("_", " ")}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Sector</span>
-                <span>{context.customer.sector}</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Dirección</span>
-                <span className="text-right">{context.customer.address}</span>
-              </div>
-              {context.customer.onuPowerDbm != null && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">ONU RX</span>
-                  <span
-                    className={
-                      context.customer.onuPowerDbm < -25
-                        ? "text-danger font-bold"
-                        : "text-primary font-bold"
-                    }
-                  >
-                    {context.customer.onuPowerDbm} dBm
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-[11px] text-muted-foreground">
-              Sin contrato vinculado (prospecto / alerta sistema).
-            </p>
-          )}
-        </div>
-
-        {context?.payment && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3">Pago</h3>
-            <div className="space-y-2 text-[11px] font-mono">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Monto</span>
-                <span className="font-bold">
-                  {context.payment.monto.toLocaleString("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                    maximumFractionDigits: 0,
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Método</span>
-                <span>{context.payment.metodo}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Estado</span>
-                <span className="font-bold">{context.payment.estado}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {context?.workOrder && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3">OT</h3>
-            <div className="space-y-2 text-[11px] font-mono">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Código</span>
-                <span className="font-bold">{context.workOrder.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tipo</span>
-                <span className="text-right">{context.workOrder.tipo}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Estado</span>
-                <span className="font-bold">{context.workOrder.estado}</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <CasePanel
+          caseDto={activeCase}
+          busy={busy}
+          canWrite={canWriteCase}
+          departments={departments}
+          onOpenSummary={() => {
+            if (activeCase) void loadCaseSummary(activeCase.id);
+            setSummaryOpen(true);
+          }}
+          onComplete={(note) => void complete(note)}
+          onCancel={(reason) => void cancel(reason)}
+          onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
+          onDisableAutomation={(reason) => void disableAutomation(reason)}
+          onReactivateAutomation={() => void reactivateAutomation()}
+        />
       </div>
+
+      <CaseSummaryDialog
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        summary={caseSummary}
+        timeline={caseTimeline}
+        onClaim={
+          activeCase?.assignedAgentId == null
+            ? () => {
+                void claim();
+                setSummaryOpen(false);
+              }
+            : undefined
+        }
+        claimDisabled={busy}
+      />
     </section>
   );
 }

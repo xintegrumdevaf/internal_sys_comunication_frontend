@@ -3,43 +3,53 @@ import {
   Search,
   Wrench,
   Wallet,
-  HardHat,
-  Server,
+  ShoppingBag,
   Inbox,
   GitBranch,
   Megaphone,
-  Plus,
   ShieldCheck,
   LogOut,
   ChevronDown,
   MessagesSquare,
   Users,
+  Bell,
+  ArrowRightLeft,
+  Wifi,
+  WifiOff,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  canAccessDepartment,
   canAccessPath,
-  departmentsForSession,
   modulesForSession,
   signIn,
   signOut,
-  useDemoUsers,
+  useDepartmentsQuery,
+  useDirectoryUsers,
   useSession,
 } from "../lib/auth";
+import { useNotifications, useRealtimeConnected, useRealtimeSession } from "@/hooks/use-realtime";
+import { relativeTime } from "@/hooks/use-operational-inbox";
 
-type NavItem = { icon: LucideIcon; label: string; to: string };
+type NavItem = {
+  icon: LucideIcon;
+  label: string;
+  to: string;
+  search?: Record<string, string>;
+};
 
 const departmentIcons: Record<string, LucideIcon> = {
-  ti: Server,
-  soporte: Wrench,
-  cartera: Wallet,
-  administracion: Megaphone,
-  traslados: HardHat,
+  support: Wrench,
+  billing: Wallet,
+  sales: ShoppingBag,
 };
 
 const moduleIcons: Record<string, LucideIcon> = {
   "/bandeja": Inbox,
   "/chat-interno": MessagesSquare,
+  "/escalaciones": ArrowRightLeft,
+  "/asignaciones": Users,
   "/usuarios": Users,
   "/flujos": GitBranch,
   "/campanas": Megaphone,
@@ -57,18 +67,27 @@ export function AppShell({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const session = useSession();
-  const demoUsers = useDemoUsers();
+  const directory = useDirectoryUsers();
+  const { data: departments = [] } = useDepartmentsQuery();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  useRealtimeSession(session?.id ?? null);
+  const connected = useRealtimeConnected();
+  const { notifications, unreadCount, markAllRead } = useNotifications();
 
   const roleNav = useMemo<NavItem[]>(() => {
     if (!session) return [];
-    return departmentsForSession(session).map((d) => ({
-      icon: departmentIcons[d.slug] ?? Server,
-      label: d.label,
-      to: d.to,
-    }));
-  }, [session]);
+    return departments
+      .filter((d) => d.active && canAccessDepartment(session, d))
+      .map((d) => ({
+        icon: departmentIcons[d.slug] ?? Wrench,
+        label: d.name,
+        to: "/bandeja",
+        search: { departmentId: d.id },
+      }));
+  }, [session, departments]);
 
   const moduleNav = useMemo<NavItem[]>(() => {
     if (!session) return [];
@@ -101,7 +120,7 @@ export function AppShell({
   if (!canAccessPath(session, pathname)) {
     return (
       <div className="min-h-screen bg-background grid place-items-center text-muted-foreground text-sm">
-        Sin acceso a esta pantalla… redirigiendo a {session.area}
+        Sin acceso a esta pantalla… redirigiendo a {session.roleLabel}
       </div>
     );
   }
@@ -114,17 +133,23 @@ export function AppShell({
             <h1 className="font-extrabold tracking-tighter text-xl uppercase">
               NetOps <span className="text-primary">AI</span>
             </h1>
-            <p className="text-[10px] text-muted-foreground mt-1 tracking-wide">{session.area}</p>
+            <p className="text-[10px] text-muted-foreground mt-1 tracking-wide">
+              {session.departmentName ?? "Todos los departamentos"}
+            </p>
           </Link>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-            Mi área
-          </div>
-          {roleNav.map((r) => (
-            <NavLink key={r.to} item={r} pathname={pathname} />
-          ))}
+          {roleNav.length > 0 && (
+            <>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
+                Departamentos
+              </div>
+              {roleNav.map((r) => (
+                <NavLink key={`${r.to}-${r.search?.departmentId}`} item={r} pathname={pathname} />
+              ))}
+            </>
+          )}
 
           <div className="pt-8 text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
             Módulos
@@ -138,28 +163,30 @@ export function AppShell({
           {menuOpen && (
             <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-20">
               <div className="p-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border">
-                Simular otro perfil
+                Cambiar de perfil
               </div>
-              {demoUsers.filter((u) => u.id !== session.id).map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => {
-                    signIn(u);
-                    setMenuOpen(false);
-                    void navigate({ to: u.landing, replace: true });
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-foreground/5 text-left"
-                >
-                  <div className="size-7 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold">
-                    {u.initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold truncate">{u.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{u.roleLabel}</p>
-                  </div>
-                </button>
-              ))}
+              {directory
+                .filter((u) => u.active && u.id !== session.id)
+                .map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      signIn(u.id);
+                      setMenuOpen(false);
+                      void navigate({ to: u.landing, replace: true });
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-foreground/5 text-left"
+                  >
+                    <div className="size-7 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold">
+                      {u.initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold truncate">{u.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{u.roleLabel}</p>
+                    </div>
+                  </button>
+                ))}
               <button
                 type="button"
                 onClick={() => {
@@ -185,8 +212,14 @@ export function AppShell({
             <div className="flex-1 min-w-0 text-left">
               <p className="text-xs font-bold truncate">{session.name}</p>
               <div className="flex items-center gap-1.5">
-                <div className="size-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-[10px] text-muted-foreground truncate">{session.roleLabel}</span>
+                {connected ? (
+                  <Wifi className="size-2.5 text-primary" />
+                ) : (
+                  <WifiOff className="size-2.5 text-muted-foreground" />
+                )}
+                <span className="text-[10px] text-muted-foreground truncate">
+                  {session.roleLabel}
+                </span>
               </div>
             </div>
             <ChevronDown
@@ -205,27 +238,72 @@ export function AppShell({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar contrato, MAC o celular..."
+                placeholder="Buscar conversación o teléfono..."
                 className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition"
               />
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded ring-1 ring-primary/20">
-              {session.area}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setNotifOpen((v) => !v);
+                  if (!notifOpen) markAllRead();
+                }}
+                className="relative p-2 rounded-md hover:bg-foreground/5"
+                aria-label="Notificaciones"
+              >
+                <Bell className="size-4 text-muted-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-danger text-danger-foreground text-[9px] font-bold grid place-items-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-30">
+                  <div className="p-3 border-b border-border text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+                    Notificaciones
+                    {connected ? (
+                      <span className="text-primary normal-case font-normal">En vivo</span>
+                    ) : (
+                      <span className="text-warning normal-case font-normal">Reconectando…</span>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                    {notifications.length === 0 && (
+                      <p className="p-4 text-xs text-muted-foreground">Sin novedades por ahora.</p>
+                    )}
+                    {notifications.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => {
+                          setNotifOpen(false);
+                          void navigate({ to: "/bandeja" });
+                        }}
+                        className="w-full text-left p-3 hover:bg-foreground/5 text-xs"
+                      >
+                        <p className="font-bold">
+                          {n.kind === "CASE_ESCALATED"
+                            ? "Caso escalado a humano"
+                            : n.isMine
+                              ? "Se te asignó un caso"
+                              : "Caso asignado a otro agente"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Caso {n.caseId.slice(0, 8)}… · {relativeTime(n.createdAt)}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {session.isAdmin && (
-              <>
-                <div className="h-8 w-px bg-border" />
-                <button
-                  type="button"
-                  className="flex items-center gap-2 px-4 py-2 bg-foreground text-background text-xs font-bold rounded-md hover:bg-foreground/85 transition-colors"
-                >
-                  <Plus className="size-3.5" />
-                  Nueva Campaña
-                </button>
-              </>
-            )}
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded ring-1 ring-primary/20">
+              {session.roleLabel}
+            </div>
           </div>
         </header>
 
@@ -240,6 +318,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   return (
     <Link
       to={item.to}
+      search={item.search}
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${
         active
           ? "bg-primary/10 text-primary"

@@ -18,18 +18,20 @@ Mapeo módulo → ruta → endpoints reales, y qué pasa con cada pantalla actua
 
 ## 2. Qué pasa con cada pantalla actual
 
+Nota: tras la reestructuración hexagonal, la lógica de cada pantalla vive en `src/modules/<feature>/` (ver `docs/FOLDER_STRUCTURE.md`); las rutas de abajo son solo la cáscara delgada que arma `<AppShell>` + el componente `ui/` del módulo.
+
 | Pantalla actual | Acción |
 |---|---|
-| `src/routes/bandeja.tsx` + `OperationalInbox.tsx` + `use-operational-inbox.ts` | **Se reescribe** sobre el contrato real + SSE (Etapa 2/3) |
-| `src/routes/soporte.tsx`, `cartera.tsx`, `utga.tsx` | **Se eliminan** — dependían de `PaymentCase`/`WorkOrder` (`ops-types.ts`), que no existen en el backend nuevo. Se reemplazan por `/bandeja` filtrada por departamento + `/asignaciones` |
-| `src/routes/campanas.tsx` | **Se mantiene fuera de alcance** de esta entrega (no hay endpoint de campañas masivas en el backend nuevo); se deja como placeholder claramente marcado, no se borra la ruta para no romper navegación existente sin decisión explícita |
-| `src/routes/index.tsx` (dashboard) | **Se reescribe** sobre `DashboardDto` real (Etapa 6) |
-| `src/routes/auditoria.tsx` | **Se adapta** — el shape es casi idéntico (Etapa 6) |
-| `src/routes/flujos.tsx` | **Se reescribe** contra `/api/admin/n8n-workflows` real (Etapa 6) |
-| `src/routes/usuarios.tsx` | **Se adapta**: lectura real de agentes, formulario deshabilitado (Etapa 1) |
-| `src/routes/whatsapp.tsx` + `src/components/whatsapp/*` | **Se elimina** — sin equivalente en el backend nuevo (`/api/whatsapp/status` no existe) |
-| `src/routes/chat-interno.tsx` + `src/components/internal-chat/*` | **Se mantiene** (feature local, no depende del backend) |
-| `src/routes/login.tsx` | **Se adapta**: quita el password falso, selector de perfil real (Etapa 1) |
+| `src/routes/bandeja.tsx` → `modules/conversations/ui/OperationalInbox.tsx` | **Reescrita** sobre el contrato real + SSE (Etapa 2/3) |
+| `src/routes/soporte.tsx`, `cartera.tsx`, `utga.tsx` | **Eliminadas** — dependían de `PaymentCase`/`WorkOrder` (`ops-types.ts`), que no existen en el backend nuevo. Reemplazadas por `/bandeja` filtrada por departamento + `/asignaciones` |
+| `src/routes/campanas.tsx` | **Fuera de alcance** de esta entrega (no hay endpoint de campañas masivas en el backend nuevo); placeholder claramente marcado, no se borra la ruta para no romper navegación existente sin decisión explícita |
+| `src/routes/index.tsx` → `modules/dashboard/ui/DashboardOverview.tsx` | **Reescrita** sobre `DashboardDto` real (Etapa 6) |
+| `src/routes/auditoria.tsx` → `modules/audit/ui/AuditLogView.tsx` | **Adaptada** — el shape es casi idéntico (Etapa 6) |
+| `src/routes/flujos.tsx` → `modules/admin-n8n/ui/N8nWorkflowCatalog.tsx` | **Reescrita** contra `/api/admin/n8n-workflows` real (Etapa 6) |
+| `src/routes/usuarios.tsx` → `modules/identity/ui/UsersDirectoryPanel.tsx` | **Adaptada**: lectura real de agentes, formulario deshabilitado (Etapa 1) |
+| `src/routes/whatsapp.tsx` + `src/components/whatsapp/*` | **Eliminadas** — sin equivalente en el backend nuevo (`/api/whatsapp/status` no existe) |
+| `src/routes/chat-interno.tsx` → `modules/internal-chat/ui/InternalChatShell.tsx` | **Se mantiene** (feature local, no depende del backend) |
+| `src/routes/login.tsx` | **Adaptada**: quita el password falso, selector de perfil real (Etapa 1) |
 
 ## 3. Navegación dinámica por departamento
 

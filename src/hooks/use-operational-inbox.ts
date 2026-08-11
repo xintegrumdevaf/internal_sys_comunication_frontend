@@ -1,15 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
-  getConversationContextFn,
+  assignCaseFn,
+  cancelCaseFn,
+  claimCaseFn,
+  completeCaseFn,
+  disableAutomationFn,
+  getCaseFn,
+  getCaseSummaryFn,
+  getCaseTimelineFn,
+  listCasesForConversationFn,
   listConversationsFn,
   listMessagesFn,
-  sendWhatsAppReplyFn,
+  reactivateAutomationFn,
+  reassignCaseFn,
+  replyAsHumanFn,
   takeControlFn,
-  transferConversationFn,
+  transferCaseFn,
 } from "@/adapters/http/server-fns";
-import type { ConversationDto, MessageDto } from "@/adapters/http/dto";
+import type {
+  CaseDto,
+  CaseSummaryDto,
+  CaseTimelineEntryDto,
+  ConversationDto,
+  MessageDto,
+} from "@/adapters/http/dto";
 import { useSession } from "@/lib/auth";
-import { toast } from "sonner";
+import { subscribeRealtimeEvents } from "@/lib/realtime-bus";
 
 export function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -28,34 +45,53 @@ export function messageClock(iso: string): string {
   });
 }
 
-export function intentLabel(intent?: string): { label: string; cls: string } {
-  switch (intent) {
-    case "dano":
-      return { label: "Daño", cls: "bg-red-100 text-red-700" };
-    case "pago":
-      return { label: "Pago", cls: "bg-green-100 text-green-700" };
-    case "instalacion":
-      return { label: "Instalación", cls: "bg-amber-100 text-amber-700" };
-    case "traslado":
-      return { label: "Traslado", cls: "bg-amber-100 text-amber-700" };
-    case "velocidad":
-      return { label: "Velocidad", cls: "bg-blue-100 text-blue-700" };
-    case "infra":
-      return { label: "Infra", cls: "bg-purple-100 text-purple-700" };
-    case "campana":
-      return { label: "Campaña", cls: "bg-emerald-100 text-emerald-700" };
-    default:
-      return { label: intent ?? "General", cls: "bg-foreground/5 text-muted-foreground" };
-  }
+const WORKFLOW_LABELS: Record<string, { label: string; cls: string }> = {
+  SUPPORT_INTERNET: { label: "Soporte", cls: "bg-red-100 text-red-700" },
+  BILLING_BALANCE: { label: "Facturación", cls: "bg-green-100 text-green-700" },
+  SALES_PACKAGES: { label: "Ventas", cls: "bg-amber-100 text-amber-700" },
+  GENERAL_INQUIRY: { label: "Consulta", cls: "bg-blue-100 text-blue-700" },
+  UNCLASSIFIED: { label: "Sin clasificar", cls: "bg-purple-100 text-purple-700" },
+};
+
+export function workflowLabel(workflowType?: string | null): { label: string; cls: string } {
+  if (!workflowType) return { label: "Sin caso", cls: "bg-foreground/5 text-muted-foreground" };
+  return (
+    WORKFLOW_LABELS[workflowType] ?? {
+      label: workflowType,
+      cls: "bg-foreground/5 text-muted-foreground",
+    }
+  );
+}
+
+const CASE_STATUS_LABELS: Record<CaseDto["status"], string> = {
+  NEW: "Nuevo",
+  ACTIVE: "En curso (IA)",
+  WAITING_USER: "Esperando cliente",
+  PAUSED: "Pausado",
+  ESCALATED: "Escalado",
+  HUMAN_ACTIVE: "Atendido por humano",
+  COMPLETED: "Completado",
+  EXPIRED: "Expirado",
+  CANCELLED: "Cancelado",
+};
+
+export function caseStatusLabel(status?: CaseDto["status"]): string {
+  return status ? (CASE_STATUS_LABELS[status] ?? status) : "—";
+}
+
+/** Nombre del cliente si el caso activo ya lo validó (01_DATA_MODEL.md §4 del backend). */
+export function clientNameFromCase(c?: CaseDto | null): string | null {
+  if (!c) return null;
+  const data = c.context?.data as { client?: { fullName?: string } } | undefined;
+  return data?.client?.fullName ?? null;
 }
 
 type InboxOptions = {
-  /** If set, filter by department slug. If omitted with userScope, uses session user inbox. */
-  departmentSlug?: string;
-  userScope?: boolean;
-  /** Poll interval in ms for live WhatsApp/inbound updates. Default 2500. Set 0 to disable. */
-  pollMs?: number;
-  /** Prefiere esta conversación al cargar (deep-link desde menciones internas). */
+  /** Filtra por departamento (id real). */
+  departmentId?: string;
+  /** Si true, solo conversaciones con un caso asignado a mí. */
+  mineOnly?: boolean;
+  /** Prefiere esta conversación al cargar (deep-link desde menciones internas / notificaciones). */
   initialConversationId?: string | null;
 };
 
@@ -64,85 +100,86 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageDto[]>([]);
-  const [context, setContext] = useState<Awaited<
-    ReturnType<typeof getConversationContextFn>
-  > | null>(null);
+  const [cases, setCases] = useState<CaseDto[]>([]);
+  const [caseSummary, setCaseSummary] = useState<CaseSummaryDto | null>(null);
+  const [caseTimeline, setCaseTimeline] = useState<CaseTimelineEntryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
-  const pollMs = options.pollMs ?? 2500;
 
-  const reload = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!session) return;
-    if (!opts?.silent) setLoading(true);
-    try {
-      const data = await listConversationsFn({
-        data: options.departmentSlug
-          ? { departmentSlug: options.departmentSlug, userId: session.id }
-          : { userId: session.id },
-      });
-      setConversations(data);
+  const reload = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!session) return;
+      if (!opts?.silent) setLoading(true);
+      try {
+        const data = await listConversationsFn({
+          data: {
+            departmentId: options.departmentId,
+            userId: options.mineOnly ? session.id : undefined,
+            status: "open",
+          },
+        });
+        setConversations(data);
 
-      const prevId = selectedIdRef.current;
-      const preferred = options.initialConversationId;
-      const nextId =
-        prevId && data.some((c) => c.id === prevId)
-          ? prevId
-          : preferred && data.some((c) => c.id === preferred)
-            ? preferred
-            : (data[0]?.id ?? null);
-      setSelectedId(nextId);
-
-      if (!nextId) {
-        setMessages([]);
-        setContext(null);
-        return;
+        const prevId = selectedIdRef.current;
+        const preferred = options.initialConversationId;
+        const nextId =
+          prevId && data.some((c) => c.id === prevId)
+            ? prevId
+            : preferred && data.some((c) => c.id === preferred)
+              ? preferred
+              : (data[0]?.id ?? null);
+        setSelectedId(nextId);
+        if (!nextId) {
+          setMessages([]);
+          setCases([]);
+        }
+      } catch (e) {
+        if (!opts?.silent) {
+          toast.error(e instanceof Error ? e.message : "Error cargando bandeja");
+        }
+      } finally {
+        if (!opts?.silent) setLoading(false);
       }
-
-      const [msgs, ctx] = await Promise.all([
-        listMessagesFn({ data: { conversationId: nextId } }),
-        getConversationContextFn({ data: { conversationId: nextId } }),
-      ]);
-      setMessages(msgs);
-      setContext(ctx);
-    } catch (e) {
-      if (!opts?.silent) {
-        toast.error(e instanceof Error ? e.message : "Error cargando bandeja");
-      }
-    } finally {
-      if (!opts?.silent) setLoading(false);
-    }
-  }, [session, options.departmentSlug, options.userScope, options.initialConversationId]);
+    },
+    [session, options.departmentId, options.mineOnly, options.initialConversationId],
+  );
 
   useEffect(() => {
     void reload();
-  }, [reload]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id, options.departmentId, options.mineOnly]);
 
-  useEffect(() => {
-    if (pollMs <= 0) return;
-    const id = window.setInterval(() => {
-      void reload({ silent: true });
-    }, pollMs);
-    return () => window.clearInterval(id);
-  }, [reload, pollMs]);
+  const loadThread = useCallback(async (conversationId: string) => {
+    const [msgs, convCases] = await Promise.all([
+      listMessagesFn({ data: { conversationId } }),
+      listCasesForConversationFn({ data: { conversationId } }),
+    ]);
+    setMessages(msgs);
+    setCases(convCases);
+  }, []);
 
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
-      setContext(null);
+      setCases([]);
+      setCaseSummary(null);
+      setCaseTimeline([]);
       return;
     }
     let cancelled = false;
+    setCaseSummary(null);
+    setCaseTimeline([]);
     (async () => {
       try {
-        const [msgs, ctx] = await Promise.all([
+        const [msgs, convCases] = await Promise.all([
           listMessagesFn({ data: { conversationId: selectedId } }),
-          getConversationContextFn({ data: { conversationId: selectedId } }),
+          listCasesForConversationFn({ data: { conversationId: selectedId } }),
         ]);
         if (!cancelled) {
           setMessages(msgs);
-          setContext(ctx);
+          setCases(convCases);
         }
       } catch (e) {
         if (!cancelled) {
@@ -155,42 +192,61 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     };
   }, [selectedId]);
 
-  const takeControl = async () => {
-    if (!session || !selectedId) return;
-    setBusy(true);
-    try {
-      await takeControlFn({
-        data: { conversationId: selectedId, agentUserId: session.id },
-      });
-      toast.success("Control tomado");
-      await reload();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo tomar control");
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Tiempo real: refresca hilo/lista según lo que llegue por SSE (03_REALTIME_NOTIFICATIONS.md §2).
+  useEffect(() => {
+    return subscribeRealtimeEvents((event) => {
+      if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT") {
+        if (event.conversationId === selectedIdRef.current) {
+          void loadThread(event.conversationId);
+        }
+        void reload({ silent: true });
+        return;
+      }
+      if (
+        event.type === "CASE_ESCALATED" ||
+        event.type === "CASE_CLAIMED" ||
+        event.type === "HUMAN_ASSIGNED" ||
+        event.type === "AUTOMATION_ENABLED"
+      ) {
+        void reload({ silent: true });
+        if (selectedIdRef.current) void loadThread(selectedIdRef.current);
+      }
+    });
+  }, [reload, loadThread]);
 
-  const transfer = async (toDepartmentSlug: string, reason: string) => {
-    if (!session || !selectedId) return;
-    setBusy(true);
+  const selected = conversations.find((c) => c.id === selectedId) ?? null;
+  const activeCase = useMemo(() => {
+    if (!selected) return null;
+    return (
+      cases.find((c) => c.id === selected.activeCaseId) ??
+      cases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
+      cases[0] ??
+      null
+    );
+  }, [cases, selected]);
+
+  const loadCaseSummary = useCallback(async (caseId: string) => {
     try {
-      await transferConversationFn({
-        data: {
-          conversationId: selectedId,
-          toDepartmentSlug,
-          requestedByUserId: session.id,
-          reason,
-        },
-      });
-      toast.success(`Transferido a ${toDepartmentSlug}`);
-      await reload();
+      const [summary, timeline] = await Promise.all([
+        getCaseSummaryFn({ data: { caseId } }),
+        getCaseTimelineFn({ data: { caseId } }),
+      ]);
+      setCaseSummary(summary);
+      setCaseTimeline(timeline);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo transferir");
-    } finally {
-      setBusy(false);
+      toast.error(e instanceof Error ? e.message : "No se pudo cargar el resumen del caso");
     }
-  };
+  }, []);
+
+  const refreshActiveCase = useCallback(async () => {
+    if (!activeCase) return;
+    try {
+      const fresh = await getCaseFn({ data: { caseId: activeCase.id } });
+      setCases((prev) => prev.map((c) => (c.id === fresh.id ? fresh : c)));
+    } catch {
+      // silencioso: el próximo reload silencioso lo corrige
+    }
+  }, [activeCase]);
 
   const sendReply = async (body: string) => {
     if (!session || !selectedId) return false;
@@ -198,16 +254,11 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     if (!trimmed) return false;
     setBusy(true);
     try {
-      const result = await sendWhatsAppReplyFn({
-        data: {
-          conversationId: selectedId,
-          agentUserId: session.id,
-          body: trimmed,
-        },
+      const message = await replyAsHumanFn({
+        data: { conversationId: selectedId, agentUserId: session.id, body: trimmed },
       });
-      setMessages((prev) => [...prev, result.message]);
-      toast.success("Enviado por Cloud API");
-      await reload({ silent: true });
+      setMessages((prev) => [...prev, message]);
+      await refreshActiveCase();
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo enviar");
@@ -217,7 +268,147 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     }
   };
 
-  const selected = conversations.find((c) => c.id === selectedId) ?? null;
+  const takeControl = async () => {
+    if (!session || !selectedId) return;
+    setBusy(true);
+    try {
+      await takeControlFn({ data: { conversationId: selectedId, agentUserId: session.id } });
+      toast.success("Control tomado");
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo tomar control");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const claim = async () => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await claimCaseFn({ data: { caseId: activeCase.id, agentUserId: session.id } });
+      toast.success("Caso reclamado");
+      await refreshActiveCase();
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo reclamar el caso");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const assign = async (agentUserId: string) => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await assignCaseFn({
+        data: { caseId: activeCase.id, agentUserId, actorAgentId: session.id },
+      });
+      toast.success("Caso asignado");
+      await refreshActiveCase();
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo asignar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reassign = async (agentUserId: string) => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await reassignCaseFn({
+        data: { caseId: activeCase.id, agentUserId, actorAgentId: session.id },
+      });
+      toast.success("Caso reasignado");
+      await refreshActiveCase();
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo reasignar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const complete = async (resolutionNote?: string) => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await completeCaseFn({
+        data: { caseId: activeCase.id, agentUserId: session.id, resolutionNote },
+      });
+      toast.success("Caso completado");
+      await refreshActiveCase();
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo completar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancel = async (reason: string) => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await cancelCaseFn({ data: { caseId: activeCase.id, reason, agentUserId: session.id } });
+      toast.success("Caso cancelado");
+      await refreshActiveCase();
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo cancelar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const transfer = async (toDepartmentId: string, reason: string) => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await transferCaseFn({
+        data: { caseId: activeCase.id, toDepartmentId, reason, agentUserId: session.id },
+      });
+      toast.success("Caso transferido");
+      await refreshActiveCase();
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo transferir");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disableAutomation = async (reason: string) => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await disableAutomationFn({
+        data: { caseId: activeCase.id, reason, agentUserId: session.id },
+      });
+      toast.success("Automatización desactivada");
+      await refreshActiveCase();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo desactivar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reactivateAutomation = async () => {
+    if (!session || !activeCase) return;
+    setBusy(true);
+    try {
+      await reactivateAutomationFn({ data: { caseId: activeCase.id, agentUserId: session.id } });
+      toast.success("Automatización reactivada");
+      await refreshActiveCase();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo reactivar");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return {
     session,
@@ -226,12 +417,23 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     selectedId,
     setSelectedId,
     messages,
-    context,
+    cases,
+    activeCase,
+    caseSummary,
+    caseTimeline,
+    loadCaseSummary,
     loading,
     busy,
     reload,
-    takeControl,
-    transfer,
     sendReply,
+    takeControl,
+    claim,
+    assign,
+    reassign,
+    complete,
+    cancel,
+    transfer,
+    disableAutomation,
+    reactivateAutomation,
   };
 }

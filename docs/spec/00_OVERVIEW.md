@@ -36,19 +36,21 @@ El backend no tiene login/JWT: la identidad se declara con `agentUserId` (body) 
 ```mermaid
 flowchart LR
     BE["isp-customer-service-api\nREST + SSE + Postgres"]
-    HTTP["adapters/http\n(server-fns.ts, dto.ts)"]
-    RT["realtime-client.ts\nEventSource /api/realtime"]
-    HOOKS["hooks (driving adapters)\nuse-inbox, use-case, use-escalations,\nuse-assignment-board, use-notifications"]
-    UI["Rutas / componentes\nBandeja, Caso, Escalaciones,\nAsignación, Admin n8n"]
+    GW["modules/*/infrastructure\n*.gateway.ts"]
+    RT["modules/realtime/infrastructure\nrealtime.gateway.ts + realtime-bus.ts"]
+    APP["modules/*/application\nuse-*.ts (casos de uso)"]
+    UI["modules/*/ui + routes/*\nBandeja, Caso, Escalaciones,\nAsignación, Admin n8n"]
     PENDING["usuarios.tsx\nformulario deshabilitado\n(pendiente backend)"]
 
-    BE <-->|"REST JSON"| HTTP
+    BE <-->|"REST JSON"| GW
     BE -->|"eventos SSE"| RT
-    HTTP --> HOOKS
-    RT --> HOOKS
-    HOOKS --> UI
+    GW --> APP
+    RT --> APP
+    APP --> UI
     PENDING -.->|"sin persistencia real"| UI
 ```
+
+Ver `docs/FOLDER_STRUCTURE.md` y `docs/skills/frontend-hexagonal-architecture.md` para el detalle de por qué el código se organiza en `src/modules/<feature>/{domain,application,infrastructure,ui}` en vez de las carpetas planas (`lib/`, `hooks/`, `components/`) con las que arrancó este paquete de specs.
 
 ## 5. Documentos de este paquete
 
@@ -61,6 +63,17 @@ flowchart LR
 | `04_ASSIGNMENT_MANAGEMENT.md` | UI de gestión/monitoreo de carga y reasignación manual sobre endpoints reales |
 | `05_BUILD_PLAN.md` | Etapas de construcción, con criterios de aceptación |
 | `06_BACKEND_GAPS.md` | Huecos detectados en el backend (CRUD de agentes, algoritmo de auto-asignación) — documentados, no implementados aquí |
+
+Fuera de `docs/spec/` (normativo del backend a consumir), este paquete agrega:
+
+| Doc | Contenido |
+|---|---|
+| `docs/FOLDER_STRUCTURE.md` | Árbol completo de `src/` por módulo hexagonal |
+| `docs/skills/frontend-hexagonal-architecture.md` | Por qué y cómo se dividen domain/application/infrastructure/ui |
+| `docs/skills/solid-principles-frontend.md` | SOLID con ejemplos reales de este repo |
+| `docs/skills/design-patterns-frontend.md` | Patrones usados (Gateway, Custom Hook as Use Case, Observer, Facade...) |
+| `docs/skills/ui-ux-design-principles.md` | Decisiones de UI/UX específicas de este producto (no genéricas) |
+| `docs/skills/testing-strategy-frontend.md` | Qué y cómo probar por capa, cuando se agregue un runner de tests |
 
 ## 6. No-negociables de este frontend
 

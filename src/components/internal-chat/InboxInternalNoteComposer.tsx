@@ -9,20 +9,20 @@ import { getOrCreateThread, sendInternalMessage } from "@/lib/internal-chat-stor
 import { toast } from "sonner";
 
 function mentionFromConversation(c: ConversationDto): Mention {
-  const label = `${c.customerName ?? c.waPhone}${
-    c.contractId ? ` — Contrato #${c.contractId}` : ""
-  }`;
   return {
     type: "conversation",
     targetId: c.id,
-    label,
+    label: c.waPhone,
   };
 }
 
 export function InboxInternalNoteComposer({
   conversation,
+  assignedAgentId,
 }: {
   conversation: ConversationDto;
+  /** Agente asignado al caso activo de esta conversación (si lo hay). */
+  assignedAgentId?: string | null;
 }) {
   const session = useSession();
   const directory = useDirectoryUsers();
@@ -35,11 +35,11 @@ export function InboxInternalNoteComposer({
   );
 
   const defaultPeerId = useMemo(() => {
-    if (conversation.assigneeId && peers.some((p) => p.id === conversation.assigneeId)) {
-      return conversation.assigneeId;
+    if (assignedAgentId && peers.some((p) => p.id === assignedAgentId)) {
+      return assignedAgentId;
     }
     return peers[0]?.id ?? "";
-  }, [conversation.assigneeId, peers]);
+  }, [assignedAgentId, peers]);
 
   const [peerId, setPeerId] = useState(defaultPeerId);
   const [note, setNote] = useState("");

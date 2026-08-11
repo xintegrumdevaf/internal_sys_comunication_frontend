@@ -17,10 +17,7 @@ export function MessageMediaBody({
 }: Props) {
   const caption = message.caption?.trim() || undefined;
   const showCaption =
-    Boolean(caption) &&
-    (message.type === "image" ||
-      message.type === "video" ||
-      message.type === "document");
+    Boolean(caption) && (message.type === "image" || message.type === "document");
 
   if (message.mediaUrl && message.type === "image") {
     return (
@@ -41,22 +38,6 @@ export function MessageMediaBody({
       <audio controls preload="metadata" src={message.mediaUrl} className="w-full max-w-xs">
         Tu navegador no soporta audio.
       </audio>
-    );
-  }
-
-  if (message.mediaUrl && message.type === "video") {
-    return (
-      <div>
-        <video
-          controls
-          preload="metadata"
-          src={message.mediaUrl}
-          className={`${mediaClassName} max-h-72`}
-        >
-          Tu navegador no soporta video.
-        </video>
-        {showCaption && <p className={captionClassName}>{caption}</p>}
-      </div>
     );
   }
 

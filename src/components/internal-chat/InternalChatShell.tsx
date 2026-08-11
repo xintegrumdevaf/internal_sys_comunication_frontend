@@ -9,10 +9,7 @@ import { useInternalChat } from "@/hooks/use-internal-chat";
 import { relativeTime } from "@/hooks/use-operational-inbox";
 import { isSupervisorSession, useDirectoryUsers } from "@/lib/auth";
 import { detectAtQuery, insertMentionAt } from "@/lib/internal-chat-mentions";
-import {
-  mergeMentionTargets,
-  targetsFromConversations,
-} from "@/lib/internal-chat-seed";
+import { targetsFromConversations } from "@/lib/internal-chat-targets";
 import type { Mention, MentionTarget } from "@/lib/internal-chat-types";
 import { toast } from "sonner";
 
@@ -54,14 +51,15 @@ export function InternalChatShell({
       try {
         const data = await listConversationsFn({ data: { userId: session.id } });
         if (cancelled) return;
-        setTargets(mergeMentionTargets(targetsFromConversations(data)));
+        setTargets(targetsFromConversations(data));
       } catch {
-        if (!cancelled) setTargets(mergeMentionTargets([]));
+        if (!cancelled) setTargets([]);
       }
     })();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
 
   useEffect(() => {
@@ -286,6 +284,7 @@ export function InternalChatShell({
           targets={targets}
           recent={recentMentions}
           selfId={session.id}
+          directory={directory}
           onInsertMention={(mention) => {
             if (!selectedThreadId) {
               toast.message("Abre un chat con un agente e inserta la mención");
