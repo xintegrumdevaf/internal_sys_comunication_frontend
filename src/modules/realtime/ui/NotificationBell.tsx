@@ -34,14 +34,17 @@ export function NotificationBell() {
           <div className="p-3 border-b border-border text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
             Notificaciones
             {connected ? (
-              <span className="text-primary normal-case font-normal">En vivo</span>
+              <span className="text-primary normal-case font-normal">Conectado</span>
             ) : (
               <span className="text-warning normal-case font-normal">Reconectando…</span>
             )}
           </div>
           <div className="max-h-80 overflow-y-auto divide-y divide-border">
             {notifications.length === 0 && (
-              <p className="p-4 text-xs text-muted-foreground">Sin novedades por ahora.</p>
+              <p className="p-4 text-xs text-muted-foreground">
+                Por ahora no tienes novedades. Aquí verás cuando un cliente necesite un agente
+                humano o cuando te asignen un caso.
+              </p>
             )}
             {notifications.map((n) => (
               <button
@@ -49,19 +52,22 @@ export function NotificationBell() {
                 type="button"
                 onClick={() => {
                   setOpen(false);
-                  void navigate({ to: "/bandeja" });
+                  void navigate({ to: "/bandeja", search: { conversationId: n.conversationId } });
                 }}
                 className="w-full text-left p-3 hover:bg-foreground/5 text-xs"
               >
                 <p className="font-bold">
                   {n.kind === "CASE_ESCALATED"
-                    ? "Caso escalado a humano"
+                    ? "Un cliente necesita un agente humano"
                     : n.isMine
-                      ? "Se te asignó un caso"
-                      : "Caso asignado a otro agente"}
+                      ? "Te asignaron una conversación"
+                      : "Se asignó una conversación a otro agente"}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Caso {n.caseId.slice(0, 8)}… · {relativeTime(n.createdAt)}
+                  {n.kind === "CASE_ESCALATED"
+                    ? "Toca aquí para revisar el resumen y atenderlo"
+                    : "Toca aquí para abrir la conversación"}{" "}
+                  · {relativeTime(n.createdAt)}
                 </p>
               </button>
             ))}

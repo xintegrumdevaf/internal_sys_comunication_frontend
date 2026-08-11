@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { messageClock, relativeTime } from "./datetime";
+import { dayLabel, messageClock, relativeTime } from "./datetime";
 
 describe("relativeTime", () => {
   it("muestra minutos cuando el evento fue hace menos de una hora", () => {
@@ -20,6 +20,22 @@ describe("relativeTime", () => {
   it("muestra días cuando el evento fue hace más de 24 horas", () => {
     const iso = new Date(Date.now() - 2 * 86_400_000).toISOString();
     expect(relativeTime(iso)).toBe("2d");
+  });
+});
+
+describe("dayLabel", () => {
+  it("dice 'Hoy' para una fecha de hoy", () => {
+    expect(dayLabel(new Date().toISOString())).toBe("Hoy");
+  });
+
+  it("dice 'Ayer' para una fecha de ayer", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    expect(dayLabel(yesterday.toISOString())).toBe("Ayer");
+  });
+
+  it("muestra fecha completa en español para fechas mas antiguas", () => {
+    expect(dayLabel("2026-01-05T12:00:00.000Z")).toContain("enero");
   });
 });
 

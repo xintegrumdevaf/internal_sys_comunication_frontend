@@ -51,6 +51,14 @@ export type ConversationDto = {
   lastActivityAt: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Nombre real de perfil/agenda de WhatsApp (`contacts[].profile.name` del
+   * webhook de Meta) — nunca inventado, `null` hasta el primer mensaje del
+   * cliente. **No existe foto de perfil**: la API oficial de WhatsApp no la
+   * expone por política de privacidad de Meta (aplica a cualquier negocio,
+   * no es una limitación de este proyecto) — ver `06_BACKEND_GAPS.md`.
+   */
+  waProfileName: string | null;
   /** Calculado al leer (JOIN al último message) — nunca se persiste aparte. */
   lastMessagePreview: MessagePreviewDto;
 };
@@ -89,7 +97,32 @@ export type SupportInternetContext = {
   client?: { nationalId: string; fullName: string };
   contract?: { id: string; sector: string; oltName: string; pon: string; serial: string; router: string };
   balance?: { hasDebt: boolean; amount?: number };
-  diagnostic?: { status: string; lastQuestion?: string; result?: string };
+  diagnostic?: {
+    status: string;
+    lastQuestion?: string;
+    result?: string;
+    /** Lectura real de la ONU (2026-08-11) — puede faltar si el microservicio no logró leerla. */
+    technical?: SupportInternetDiagnosticTechnical;
+  };
+};
+
+/**
+ * Telemetría real de la ONU (mikrotik_api → TechnicalDataResponseDTO, ya
+ * aplanada por el backend). Es el dato de mayor valor para un agente de
+ * soporte cuando el caso se escala: le dice si el equipo está en línea y
+ * con buena señal sin que tenga que entender de redes. Ver
+ * `onuRunStateLabel`/`onuSignalQuality` en `modules/cases/domain/case.ts`,
+ * usados tanto en `CasePanel` como en `CaseSummaryDialog`.
+ */
+export type SupportInternetDiagnosticTechnical = {
+  brand?: string;
+  onuModel?: string;
+  onuSerial?: string;
+  macAddress?: string;
+  opticalPowerDbm?: number;
+  runState?: string;
+  adminState?: string;
+  channel?: string;
 };
 
 export type BillingBalanceContext = {

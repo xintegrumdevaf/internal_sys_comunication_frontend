@@ -1,34 +1,37 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ShieldCheck, LogIn, MessageCircle, Zap } from "lucide-react";
-import {
-  signIn,
-  useDirectoryUsers,
-  useSession,
-} from "@/modules/identity/application/use-session";
+import { useAuth, useSession } from "@/modules/identity/application/use-session";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 /**
- * Selector de perfil sobre agentes reales de isp-customer-service-api.
- * El backend no tiene JWT/login todavía (docs/spec/00_OVERVIEW.md §2), así que
- * no simulamos un password que no valida nada real: se elige el agente y listo.
+ * Login real con correo + contraseña (docs/spec/06_BACKEND_GAPS.md §1.b).
+ * El backend valida las credenciales y deja una cookie httpOnly de sesión —
+ * este componente nunca guarda ni maneja el token directamente.
  */
 function LoginPage() {
   const navigate = useNavigate();
   const session = useSession();
-  const directory = useDirectoryUsers();
-  const activeAgents = directory.filter((u) => u.active);
+  const { login, loggingIn, loginError } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (session) navigate({ to: session.landing });
   }, [session, navigate]);
 
-  const doLogin = (agentId: string, landing: string) => {
-    signIn(agentId);
-    void navigate({ to: landing });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const agent = await login(email.trim(), password);
+      const landing = agent.role === "agent" ? "/bandeja" : "/";
+      void navigate({ to: landing });
+    } catch {
+      // el error ya queda expuesto via loginError (loginMutation.error)
+    }
   };
 
   return (
@@ -51,7 +54,7 @@ function LoginPage() {
           <div className="space-y-3">
             <Feature icon={MessageCircle} label="Bandeja unificada + handover humano" />
             <Feature icon={Zap} label="Motor de casos con escalación y auditoría real" />
-            <Feature icon={ShieldCheck} label="Datos en vivo desde isp-customer-service-api" />
+            <Feature icon={ShieldCheck} label="Sesión protegida con inicio de sesión real" />
           </div>
         </div>
 
@@ -61,7 +64,7 @@ function LoginPage() {
       </div>
 
       <div className="flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8">
             <h1 className="font-extrabold tracking-tighter text-2xl uppercase">
               NetOps <span className="text-primary">AI</span>
@@ -69,46 +72,61 @@ function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight">Selecciona tu perfil</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Inicia sesión</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Agentes reales del backend (isp-customer-service-api). Aún no hay login con
-              contraseña — la identidad se declara por agente, igual que en la API.
+              Usa el correo y la contraseña que te dio tu administrador.
             </p>
           </div>
 
-          {activeAgents.length === 0 ? (
-            <p className="text-xs text-muted-foreground border border-border rounded-lg p-4 bg-card">
-              No hay agentes activos en el backend. Verifica que{" "}
-              <code className="font-mono">isp-customer-service-api</code> esté corriendo y con
-              seed aplicado (<code className="font-mono">npm run seed</code>).
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {activeAgents.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => doLogin(u.id, u.landing)}
-                  className="text-left p-3 bg-card border border-border rounded-lg hover:border-primary/40 hover:bg-primary/5 transition group"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold shrink-0">
-                      {u.initials}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold truncate">{u.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{u.roleLabel}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block text-xs space-y-1">
+              <span className="font-bold uppercase tracking-wide text-muted-foreground">
+                Correo
+              </span>
+              <input
+                type="email"
+                required
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu.correo@empresa.com"
+                className="w-full px-3 py-2.5 rounded-md border border-border bg-card text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+            <label className="block text-xs space-y-1">
+              <span className="font-bold uppercase tracking-wide text-muted-foreground">
+                Contraseña
+              </span>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2.5 rounded-md border border-border bg-card text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
 
-          <div className="mt-8 flex items-center gap-2 text-[10px] text-muted-foreground">
-            <LogIn className="size-3.5 text-primary" />
-            Sin contraseña por ahora — ver docs/spec/06_BACKEND_GAPS.md
-          </div>
+            {loginError && (
+              <p className="text-xs text-danger bg-danger/5 border border-danger/20 rounded-md px-3 py-2">
+                {loginError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loggingIn || !email.trim() || !password}
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-bold disabled:opacity-40"
+            >
+              <LogIn className="size-4" />
+              {loggingIn ? "Entrando…" : "Entrar"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-[11px] text-muted-foreground text-center">
+            ¿Olvidaste tu contraseña? Pide a un administrador que te la restablezca desde
+            "Agentes".
+          </p>
         </div>
       </div>
     </div>

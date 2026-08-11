@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { caseStatusLabel, clientNameFromCase, workflowLabel } from "./case";
+import {
+  caseStatusLabel,
+  caseStepLabel,
+  caseStepStatusLabel,
+  clientNameFromCase,
+  paymentStatusLabel,
+  workflowLabel,
+} from "./case";
 import type { CaseDto } from "./case";
 
 function makeCase(overrides: Partial<CaseDto> = {}): CaseDto {
@@ -48,6 +55,38 @@ describe("caseStatusLabel", () => {
 
   it("devuelve un placeholder cuando no hay estado", () => {
     expect(caseStatusLabel(undefined)).toBe("—");
+  });
+});
+
+describe("caseStepLabel", () => {
+  it("traduce los pasos conocidos del motor de workflow", () => {
+    expect(caseStepLabel("VALIDATE_CLIENT")).toBe("Verificación de identidad del cliente");
+    expect(caseStepLabel("CHECK_BALANCE")).toBe("Revisión de saldo");
+    expect(caseStepLabel("ESCALATE")).toBe("Escalado a un agente humano");
+  });
+
+  it("humaniza pasos futuros no contemplados (nunca el enum crudo)", () => {
+    expect(caseStepLabel("NEW_FUTURE_STEP")).toBe("New Future Step");
+  });
+});
+
+describe("caseStepStatusLabel", () => {
+  it("traduce los estados de un paso de la línea de tiempo", () => {
+    expect(caseStepStatusLabel("COMPLETED")).toBe("Completado");
+    expect(caseStepStatusLabel("FAILED")).toBe("Falló");
+    expect(caseStepStatusLabel("DISPATCHED")).toBe("En proceso");
+  });
+});
+
+describe("paymentStatusLabel", () => {
+  it("traduce los 3 estados reales del comprobante de pago", () => {
+    expect(paymentStatusLabel("PENDING")).toBe("Pendiente de revisión");
+    expect(paymentStatusLabel("RECORDED")).toBe("Registrado");
+    expect(paymentStatusLabel("REJECTED")).toBe("Rechazado");
+  });
+
+  it("devuelve un placeholder si no hay estado", () => {
+    expect(paymentStatusLabel(undefined)).toBe("—");
   });
 });
 

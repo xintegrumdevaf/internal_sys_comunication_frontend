@@ -9,3 +9,13 @@ export type DepartmentDto = {
   active: boolean;
   createdAt: string;
 };
+
+/**
+ * Explicacion en lenguaje simple de la visibilidad del departamento — nunca
+ * se muestra "shared"/"restricted" crudo a un usuario no tecnico.
+ */
+export function departmentVisibilityLabel(visibility: DepartmentVisibility): string {
+  return visibility === "restricted"
+    ? "Solo agentes de esta área"
+    : "Visible para todos los agentes";
+}

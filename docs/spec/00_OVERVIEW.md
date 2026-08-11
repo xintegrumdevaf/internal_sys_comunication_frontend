@@ -15,20 +15,21 @@ UI    → "¿Qué está pasando y quién lo atiende?"    → supervisa, intervie
 
 El frontend **nunca** decide negocio ni duplica estado: todo lo que se ve viene de una lectura al backend (REST o SSE), y toda acción del agente es una llamada a un endpoint real. Ningún dato de operación (conversaciones, mensajes, casos, escalaciones, agentes, departamentos, auditoría, dashboard) se simula ni se hardcodea en esta etapa.
 
-## 2. Regla de identidad (sin JWT todavía)
+## 2. Regla de identidad (login real con sesión de servidor)
 
-El backend no tiene login/JWT: la identidad se declara con `agentUserId` (body) / header `x-agent-id` / `userId` (query), usando UUIDs reales de `GET /api/agents`. Consecuencias de diseño:
+Desde `docs/spec/06_BACKEND_GAPS.md` §1.b, el backend tiene login real: `POST /api/auth/login` valida correo + contraseña (argon2) y deja una cookie `httpOnly` de sesión (token opaco en Redis, expiración deslizante de 12h). El header `x-agent-id` y los `agentUserId`/`actorId` que antes se declaraban en body/query **ya no se usan como identidad** — el backend siempre resuelve "quién soy" a partir de la cookie real, nunca de algo que el cliente afirme. Consecuencias de diseño:
 
-- La sesión del frontend se construye **directamente** sobre `AgentDto` real — el `id` de sesión **es** el `agent.id` de la base de datos, sin tabla puente ni ID local paralelo.
-- No hay `POST /api/agents` hoy. La pantalla `/usuarios` conserva su formulario de crear/editar/activar-desactivar (para no perder el trabajo de UI ya hecho), pero queda **deshabilitado** con un aviso explícito de "pendiente de backend" — nunca simula una creación que no persiste de verdad. Ver `06_BACKEND_GAPS.md`.
-- El login (`/login`) deja de validar una contraseña falsa (`password.length >= 6`, que no validaba nada real) y pasa a ser un selector de perfil sobre agentes reales activos.
+- La sesión del frontend se construye **directamente** sobre `AgentDto` real, consultado con `GET /api/auth/me` (nunca cacheado como fuente de verdad) — el `id` de sesión **es** el `agent.id` de la base de datos.
+- El frontend nunca lee ni escribe la cookie de sesión directamente (es `httpOnly`, invisible a JavaScript). Todo `fetch` manda `credentials: "include"` (`shared/http/http-client.ts`) para que el navegador la adjunte sola.
+- `POST /api/agents` genera una **contraseña temporal** automáticamente (el proyecto no tiene infraestructura de correo para invitar al agente) — se muestra una única vez en `/usuarios` justo después de crear o de "Restablecer contraseña".
+- Cada agente puede cambiar su propia contraseña desde el menú de perfil (`POST /api/auth/change-password`), requiriendo la contraseña actual.
 
 ## 3. Stack
 
 - **Framework**: TanStack Start + TanStack Router + TanStack Query (ya en uso, se mantiene).
 - **HTTP**: `fetch` contra `isp-customer-service-api`, envoltura `{ data }` / `{ error: { type, message } }` (`03_API_CONTRACT.md` §C del backend).
-- **Tiempo real**: `EventSource` nativo sobre `GET /api/realtime?userId=` (SSE, no WebSocket) — reemplaza el polling anterior.
-- **Estado de sesión**: `useSyncExternalStore` sobre `localStorage` solo para *cuál* `agent.id` está activo en este navegador (no para los datos del agente en sí, que siempre se refrescan desde `GET /api/agents`).
+- **Tiempo real**: `EventSource` nativo sobre `GET /api/realtime?userId=` (SSE, no WebSocket) — reemplaza el polling anterior. `withCredentials: true` para que la cookie de sesión viaje también en la conexión SSE.
+- **Estado de sesión**: `TanStack Query` sobre `GET /api/auth/me` (`identity/application/use-session.ts`) — nunca `localStorage`; la fuente de verdad de "quién soy" es siempre la cookie httpOnly que solo el backend puede leer/escribir.
 - **UI**: Radix + Tailwind (sin cambios, se mantiene el sistema de diseño existente en `src/components/ui`).
 
 ## 4. Componentes y flujo

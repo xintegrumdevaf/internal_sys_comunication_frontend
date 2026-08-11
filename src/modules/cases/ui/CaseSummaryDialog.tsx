@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, ListChecks } from "lucide-react";
+import { CheckCircle2, Clock, ListChecks, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,56 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
+import type {
+  CaseStatus,
+  CaseSummaryDto,
+  CaseTimelineEntryDto,
+  SupportInternetDiagnosticTechnical,
+} from "@/modules/cases/domain/case";
+import {
+  caseStatusLabel,
+  caseStepLabel,
+  caseStepStatusLabel,
+  onuRunStateLabel,
+  onuSignalQuality,
+} from "@/modules/cases/domain/case";
+import type { DepartmentDto } from "@/modules/identity/domain/department";
+
+function isOnuTechnicalData(value: unknown): value is SupportInternetDiagnosticTechnical {
+  return typeof value === "object" && value !== null;
+}
+
+function departmentDisplayName(slugOrName: string, departments: DepartmentDto[]): string {
+  const bySlug = departments.find((d) => d.slug === slugOrName);
+  return bySlug?.name ?? slugOrName;
+}
+
+const RESULT_KEY_LABELS: Record<string, string> = {
+  hasDebt: "¿Tiene deuda?",
+  debt: "Deuda",
+  amount: "Monto",
+  balance: "Saldo",
+  diagnostic: "Diagnóstico",
+  status: "Estado",
+  question: "Pregunta al cliente",
+  found: "¿Se encontró?",
+  contracts: "Contratos encontrados",
+  contractNumbers: "Cantidad de contratos",
+};
+
+function humanizeResultKey(key: string): string {
+  if (RESULT_KEY_LABELS[key]) return RESULT_KEY_LABELS[key];
+  const spaced = key.replace(/([a-z])([A-Z])/g, "$1 $2");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
+function formatResultValue(value: unknown): string {
+  if (value === true) return "Sí";
+  if (value === false) return "No";
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
 
 /**
  * Ventana de resumen de escalación (docs/spec/03_REALTIME_NOTIFICATIONS.md §4).
@@ -17,14 +66,17 @@ export function CaseSummaryDialog({
   onOpenChange,
   summary,
   timeline,
+  departments = [],
   onClaim,
   claimDisabled,
-  claimLabel = "Reclamar caso",
+  claimLabel = "Reclamar este caso",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   summary: CaseSummaryDto | null;
   timeline: CaseTimelineEntryDto[];
+  /** Para mostrar el nombre real del área en vez del slug técnico ("support"). */
+  departments?: DepartmentDto[];
   onClaim?: () => void;
   claimDisabled?: boolean;
   claimLabel?: string;
@@ -43,6 +95,15 @@ export function CaseSummaryDialog({
         {!summary ? (
           <p className="text-sm text-muted-foreground py-6 text-center">Cargando resumen…</p>
         ) : (
+          (() => {
+            const technical = isOnuTechnicalData(summary.results?.technical)
+              ? summary.results.technical
+              : undefined;
+            const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
+            const otherResults = Object.entries(summary.results ?? {}).filter(
+              ([key]) => key !== "technical",
+            );
+            return (
           <div className="space-y-4 text-sm">
             {summary.readableSummary && (
               <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-[13px] leading-relaxed">
@@ -60,13 +121,17 @@ export function CaseSummaryDialog({
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[10px] uppercase text-muted-foreground font-bold">
-                  Departamento
+                  Área responsable
                 </p>
-                <p className="font-semibold mt-0.5">{summary.department}</p>
+                <p className="font-semibold mt-0.5">
+                  {departmentDisplayName(summary.department, departments)}
+                </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[10px] uppercase text-muted-foreground font-bold">Estado</p>
-                <p className="font-semibold mt-0.5">{summary.status}</p>
+                <p className="font-semibold mt-0.5">
+                  {caseStatusLabel(summary.status as CaseStatus)}
+                </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[10px] uppercase text-muted-foreground font-bold">Razón</p>
@@ -83,24 +148,73 @@ export function CaseSummaryDialog({
                   {summary.completedSteps.map((step) => (
                     <li key={step} className="flex items-center gap-2 text-xs">
                       <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                      {step}
+                      {caseStepLabel(step)}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {Object.keys(summary.results ?? {}).length > 0 && (
+            {technical && (
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Wrench className="size-3.5" /> Estado real del equipo (ONU)
+                </h4>
+                <div className="rounded-lg border border-border divide-y divide-border text-xs">
+                  <div className="flex justify-between gap-3 px-3 py-1.5">
+                    <span className="text-muted-foreground">Estado</span>
+                    <span className="text-right font-medium">
+                      {onuRunStateLabel(technical.runState)}
+                    </span>
+                  </div>
+                  {technical.opticalPowerDbm !== undefined && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Potencia óptica</span>
+                      <span className="text-right font-medium flex items-center gap-1.5 justify-end">
+                        {technical.opticalPowerDbm.toFixed(1)} dBm
+                        {quality && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
+                          >
+                            {quality.label}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {technical.onuModel && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Modelo de ONU</span>
+                      <span className="text-right font-medium">{technical.onuModel}</span>
+                    </div>
+                  )}
+                  {technical.macAddress && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">MAC</span>
+                      <span className="text-right font-medium">{technical.macAddress}</span>
+                    </div>
+                  )}
+                  {technical.brand && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Marca del OLT</span>
+                      <span className="text-right font-medium">{technical.brand}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {otherResults.length > 0 && (
               <div>
                 <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
                   Resultados
                 </h4>
                 <div className="rounded-lg border border-border divide-y divide-border text-xs">
-                  {Object.entries(summary.results).map(([key, value]) => (
+                  {otherResults.map(([key, value]) => (
                     <div key={key} className="flex justify-between gap-3 px-3 py-1.5">
-                      <span className="text-muted-foreground">{key}</span>
-                      <span className="font-mono text-right break-all">
-                        {typeof value === "object" ? JSON.stringify(value) : String(value)}
+                      <span className="text-muted-foreground">{humanizeResultKey(key)}</span>
+                      <span className="text-right break-all font-medium">
+                        {formatResultValue(value)}
                       </span>
                     </div>
                   ))}
@@ -120,8 +234,10 @@ export function CaseSummaryDialog({
                 <ol className="space-y-1.5 text-[11px] font-mono max-h-40 overflow-y-auto">
                   {timeline.map((entry, i) => (
                     <li key={i} className="flex justify-between gap-2">
-                      <span className="truncate">{entry.action}</span>
-                      <span className="text-muted-foreground shrink-0">{entry.status}</span>
+                      <span className="truncate">{caseStepLabel(entry.action)}</span>
+                      <span className="text-muted-foreground shrink-0">
+                        {caseStepStatusLabel(entry.status)}
+                      </span>
                     </li>
                   ))}
                 </ol>
@@ -139,6 +255,8 @@ export function CaseSummaryDialog({
               </button>
             )}
           </div>
+            );
+          })()
         )}
       </DialogContent>
     </Dialog>

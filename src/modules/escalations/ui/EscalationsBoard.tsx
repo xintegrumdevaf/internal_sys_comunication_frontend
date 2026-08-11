@@ -3,21 +3,20 @@ import { AlertOctagon } from "lucide-react";
 import { StatCard } from "@/app/shell/AppShell";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
 import type { EscalationDto, EscalationStatus } from "@/modules/escalations/domain/escalation";
+import { escalationPriorityLabel, escalationStatusLabel } from "@/modules/escalations/domain/escalation";
 import { useEscalations } from "@/modules/escalations/application/use-escalations";
 import { relativeTime } from "@/shared/datetime";
-import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
+import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
 
-const priorityTone: Record<string, string> = {
-  urgent: "bg-danger/10 text-danger ring-danger/30",
-  high: "bg-warning/10 text-warning ring-warning/30",
-  normal: "bg-primary/10 text-primary ring-primary/30",
-  low: "bg-foreground/5 text-muted-foreground ring-border",
-};
-
-/** UI de la bandeja de escalaciones/triage (docs/spec/03_REALTIME_NOTIFICATIONS.md). */
+/**
+ * Casos que el asistente no pudo resolver solo y necesitan un agente humano
+ * (docs/spec/03_REALTIME_NOTIFICATIONS.md). "Sin clasificar" agrupa los que
+ * ni siquiera se pudo determinar a qué área pertenecen.
+ */
 export function EscalationsBoard() {
   const navigate = useNavigate();
   const { data: departments = [] } = useDepartmentsQuery();
+  const directory = useDirectoryUsers();
   const {
     session,
     departmentId,
@@ -41,18 +40,22 @@ export function EscalationsBoard() {
   const pending = escalations.filter((e) => e.status === "PENDING").length;
   const assigned = escalations.filter((e) => e.status === "ASSIGNED").length;
 
+  const agentName = (agentId: string | null) =>
+    agentId ? (directory.find((a) => a.id === agentId)?.name ?? "Agente") : "Sin asignar";
+
   return (
     <>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Bandeja real de <code className="font-mono">GET /api/escalations</code>. El pool de triage
-        (sin departamento) solo es visible para jefes de área/admin.
+        Casos que el asistente no pudo resolver solo y quedaron esperando a un agente humano.
+        {isSupervisor &&
+          " Los casos \"sin clasificar\" son de clientes cuya solicitud todavía no se pudo identificar a qué área pertenece — solo tú puedes revisarlos y asignarlos."}
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
         <StatCard label="Total" value={String(escalations.length)} />
-        <StatCard label="Pendientes" value={String(pending)} tone="warning" />
-        <StatCard label="Asignadas" value={String(assigned)} tone="success" />
-        <StatCard label="Modo" value={triage ? "Triage" : "Depto."} />
+        <StatCard label="Sin atender" value={String(pending)} tone="warning" />
+        <StatCard label="Ya asignados" value={String(assigned)} tone="success" />
+        <StatCard label="Viendo" value={triage ? "Sin clasificar" : "Por área"} />
       </section>
 
       <section className="flex flex-wrap gap-2 items-center animate-fade-up">
@@ -62,7 +65,7 @@ export function EscalationsBoard() {
             onChange={(e) => setDepartmentId(e.target.value)}
             className="text-xs px-3 py-2 border border-border rounded-md bg-card"
           >
-            <option value="">Todos los departamentos</option>
+            <option value="">Todas las áreas</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -76,7 +79,7 @@ export function EscalationsBoard() {
           className="text-xs px-3 py-2 border border-border rounded-md bg-card"
         >
           <option value="">Cualquier estado</option>
-          <option value="PENDING">Pendiente</option>
+          <option value="PENDING">Sin atender</option>
           <option value="ASSIGNED">Asignada</option>
           <option value="RESOLVED">Resuelta</option>
         </select>
@@ -89,9 +92,10 @@ export function EscalationsBoard() {
                 ? "bg-danger text-danger-foreground"
                 : "border border-border hover:bg-foreground/5"
             }`}
+            title="Casos que no se pudieron clasificar en ninguna área"
           >
             <AlertOctagon className="size-3.5" />
-            Pool de triage
+            Ver sin clasificar
           </button>
         )}
       </section>
@@ -100,57 +104,56 @@ export function EscalationsBoard() {
         <table className="w-full text-xs">
           <thead className="bg-background/60 text-[10px] uppercase tracking-widest text-muted-foreground">
             <tr>
-              <th className="text-left px-4 py-2">Razón</th>
+              <th className="text-left px-4 py-2">Motivo</th>
               <th className="text-left px-4 py-2">Prioridad</th>
               <th className="text-left px-4 py-2">Estado</th>
-              <th className="text-left px-4 py-2">Asignado</th>
-              <th className="text-left px-4 py-2">Creado</th>
+              <th className="text-left px-4 py-2">Agente</th>
+              <th className="text-left px-4 py-2">Hace</th>
               <th className="text-right px-4 py-2">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {escalations.map((e) => (
-              <tr key={e.id} className="hover:bg-foreground/5 transition-colors">
-                <td className="px-4 py-3 max-w-[240px] truncate">{e.reason}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-0.5 rounded font-bold text-[10px] ring-1 ${priorityTone[e.priority]}`}
-                  >
-                    {e.priority}
-                  </span>
-                </td>
-                <td className="px-4 py-3 uppercase font-bold text-[10px]">{e.status}</td>
-                <td className="px-4 py-3 font-mono text-[10px]">
-                  {e.assignedAgentId ? e.assignedAgentId.slice(0, 8) : "Sin asignar"}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{relativeTime(e.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void openSummary(e)}
-                      className="text-[10px] px-2 py-1 rounded border border-border font-bold uppercase hover:bg-foreground/5"
-                    >
-                      Resumen
-                    </button>
-                    {!e.assignedAgentId && (
+            {escalations.map((e) => {
+              const priority = escalationPriorityLabel(e.priority);
+              return (
+                <tr key={e.id} className="hover:bg-foreground/5 transition-colors">
+                  <td className="px-4 py-3 max-w-[240px] truncate">{e.reason}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded font-bold text-[10px] ring-1 ${priority.cls}`}>
+                      {priority.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-bold text-[10px]">{escalationStatusLabel(e.status)}</td>
+                  <td className="px-4 py-3 text-[11px]">{agentName(e.assignedAgentId)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{relativeTime(e.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        disabled={busy}
-                        onClick={() => void claim(e)}
-                        className="text-[10px] px-2 py-1 rounded bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40"
+                        onClick={() => void openSummary(e)}
+                        className="text-[10px] px-2 py-1 rounded border border-border font-bold uppercase hover:bg-foreground/5"
                       >
-                        Reclamar
+                        Ver resumen
                       </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      {!e.assignedAgentId && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void claim(e)}
+                          className="text-[10px] px-2 py-1 rounded bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40"
+                        >
+                          Atenderlo yo
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {!loading && escalations.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                  Sin escalaciones para este filtro.
+                  No hay casos esperando atención con este filtro. ¡Buen trabajo!
                 </td>
               </tr>
             )}
@@ -163,8 +166,10 @@ export function EscalationsBoard() {
         onOpenChange={(open) => !open && setSummaryFor(null)}
         summary={summary}
         timeline={timeline}
+        departments={departments}
         onClaim={summaryFor && !summaryFor.assignedAgentId ? () => void claim(summaryFor) : undefined}
         claimDisabled={busy}
+        claimLabel="Atender yo este caso"
       />
 
       {escalations.some((e) => e.assignedAgentId === session?.id) && (
@@ -173,7 +178,7 @@ export function EscalationsBoard() {
           onClick={() => void navigate({ to: "/bandeja" })}
           className="text-[11px] font-bold text-primary hover:underline"
         >
-          Ir a la bandeja para atender mis casos reclamados →
+          Ir a mis conversaciones para atenderlos →
         </button>
       )}
     </>

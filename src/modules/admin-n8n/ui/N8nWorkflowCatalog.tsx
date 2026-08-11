@@ -8,7 +8,13 @@ import {
   upsertN8nWorkflow,
 } from "@/modules/admin-n8n/infrastructure/n8n-workflow.gateway";
 import type { N8nWorkflowEntryDto } from "@/modules/admin-n8n/domain/n8n-workflow";
+import { caseStepLabel } from "@/modules/cases/domain/case";
 import { toast } from "sonner";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  case_action: "Acción dentro de un caso",
+  admin_action: "Acción administrativa",
+};
 
 type DraftMap = Record<string, { url: string; timeoutMs: number; maxRetries: number }>;
 
@@ -56,7 +62,7 @@ export function N8nWorkflowCatalog() {
         timeoutMs: draft.timeoutMs,
         maxRetries: draft.maxRetries,
       });
-      toast.success(`${action} actualizado`);
+      toast.success(`${caseStepLabel(action)} actualizado`);
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo guardar");
@@ -70,7 +76,7 @@ export function N8nWorkflowCatalog() {
     setBusyAction(action);
     try {
       await deactivateN8nWorkflow(session.id, action);
-      toast.success(`${action} desactivado`);
+      toast.success(`${caseStepLabel(action)} desactivado`);
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo desactivar");
@@ -82,27 +88,27 @@ export function N8nWorkflowCatalog() {
   return (
     <>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Catálogo real de <code className="font-mono">n8n_workflow_registry</code>. Editar aquí
-        cambia la URL/timeout/reintentos que usa el motor de casos en el próximo request — sin
-        redeploy.
+        Aquí se configuran las automatizaciones que ejecutan los flujos del asistente (por
+        ejemplo, a qué dirección web avisar cuando hay que revisar un saldo). Cambiar algo aquí
+        aplica de inmediato, sin reiniciar el sistema.
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
-        <StatCard label="Entradas" value={String(entries.length)} hint="Catálogo total" />
+        <StatCard label="Automatizaciones" value={String(entries.length)} />
         <StatCard label="Activas" value={String(activeCount)} tone="success" />
-        <StatCard label="Acciones de caso" value={String(caseActionCount)} hint="case_action" />
+        <StatCard label="Dentro de un caso" value={String(caseActionCount)} />
         <StatCard
-          label="Admin"
+          label="Permiso de edición"
           value={session?.role === "admin" ? "Sí" : "No"}
           tone={session?.role === "admin" ? "success" : "danger"}
-          hint="Requerido para editar"
+          hint="Solo administradores"
         />
       </section>
 
       <section className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up">
         <div className="p-4 border-b border-border flex justify-between items-center">
           <h3 className="text-xs font-extrabold uppercase tracking-widest">
-            {loading ? "Cargando…" : "Catálogo de acciones n8n"}
+            {loading ? "Cargando…" : "Catálogo de automatizaciones"}
           </h3>
         </div>
         <div className="divide-y divide-border">
@@ -116,9 +122,10 @@ export function N8nWorkflowCatalog() {
               <div key={e.action} className="p-4 space-y-2">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div>
-                    <p className="font-mono font-bold text-sm">{e.action}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                      {e.category} · actualizado {new Date(e.updatedAt).toLocaleString("es-CO")}
+                    <p className="font-bold text-sm">{caseStepLabel(e.action)}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {CATEGORY_LABELS[e.category] ?? e.category} · actualizado el{" "}
+                      {new Date(e.updatedAt).toLocaleString("es-CO")}
                     </p>
                   </div>
                   <span
@@ -142,7 +149,7 @@ export function N8nWorkflowCatalog() {
                       }))
                     }
                     className="sm:col-span-2 px-2 py-1.5 text-xs border border-border rounded bg-background font-mono disabled:opacity-60"
-                    placeholder="https://..."
+                    placeholder="Dirección web (https://...)"
                   />
                   <input
                     type="number"
@@ -154,8 +161,8 @@ export function N8nWorkflowCatalog() {
                         [e.action]: { ...draft, timeoutMs: Number(ev.target.value) },
                       }))
                     }
-                    className="px-2 py-1.5 text-xs border border-border rounded bg-background font-mono disabled:opacity-60"
-                    placeholder="timeoutMs"
+                    className="px-2 py-1.5 text-xs border border-border rounded bg-background disabled:opacity-60"
+                    placeholder="Tiempo máx. de espera (ms)"
                   />
                 </div>
                 {session?.role === "admin" && (
@@ -185,8 +192,7 @@ export function N8nWorkflowCatalog() {
           })}
           {!loading && entries.length === 0 && (
             <p className="p-6 text-center text-xs text-muted-foreground">
-              Catálogo vacío — poblar con migraciones o vía este panel una vez el backend tenga
-              entradas.
+              Todavía no hay automatizaciones configuradas.
             </p>
           )}
         </div>

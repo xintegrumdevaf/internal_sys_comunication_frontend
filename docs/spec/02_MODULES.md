@@ -6,14 +6,14 @@ Mapeo módulo → ruta → endpoints reales, y qué pasa con cada pantalla actua
 
 | Ruta | Módulo | Endpoints reales |
 |---|---|---|
-| `/login` | Selector de perfil | `GET /api/agents` |
+| `/login` | Login real (correo + contraseña) | `POST /api/auth/login` |
 | `/` (dashboard) | KPIs del agente | `GET /api/dashboard?userId=` |
 | `/bandeja` | Bandeja unificada de conversaciones + panel de caso | `GET /api/conversations`, `GET /api/conversations/:id/messages`, `GET /api/conversations/:id/cases`, `GET /api/conversations/:id/automation`, `POST /api/conversations/:id/reply`, `POST /api/conversations/:id/take-control`, `GET /api/cases/:id[/summary,/timeline]`, acciones de caso (§3 de `04_ASSIGNMENT_MANAGEMENT.md`) |
 | `/escalaciones` | Bandeja de escalaciones + pool de triage | `GET /api/escalations?departmentId=&status=`, `?triage=true` |
 | `/asignaciones` | Gestión/monitoreo de carga por agente | `GET /api/conversations` + `GET /api/cases/:id` agregados client-side, `POST /api/cases/:id/assign\|reassign` |
 | `/auditoria` | Auditoría | `GET /api/audit?limit=` |
 | `/flujos` | Catálogo n8n (solo `role=admin`) | `GET/PUT/DELETE /api/admin/n8n-workflows[/:action]` |
-| `/usuarios` | Directorio de agentes (lectura real) + formulario deshabilitado | `GET /api/agents`, `GET /api/departments` — crear/editar sin endpoint (ver `06_BACKEND_GAPS.md`) |
+| `/usuarios` | Directorio de agentes: crear/editar/desactivar/restablecer contraseña | `GET/POST/PUT/DELETE /api/agents`, `POST /api/agents/:id/reset-password`, `GET /api/departments` |
 | `/chat-interno` | Chat interno 1:1 con menciones (feature local, sin backend) | Sin cambios de fondo — peers = agentes activos reales |
 
 ## 2. Qué pasa con cada pantalla actual
@@ -28,10 +28,10 @@ Nota: tras la reestructuración hexagonal, la lógica de cada pantalla vive en `
 | `src/routes/index.tsx` → `modules/dashboard/ui/DashboardOverview.tsx` | **Reescrita** sobre `DashboardDto` real (Etapa 6) |
 | `src/routes/auditoria.tsx` → `modules/audit/ui/AuditLogView.tsx` | **Adaptada** — el shape es casi idéntico (Etapa 6) |
 | `src/routes/flujos.tsx` → `modules/admin-n8n/ui/N8nWorkflowCatalog.tsx` | **Reescrita** contra `/api/admin/n8n-workflows` real (Etapa 6) |
-| `src/routes/usuarios.tsx` → `modules/identity/ui/UsersDirectoryPanel.tsx` | **Adaptada**: lectura real de agentes, formulario deshabilitado (Etapa 1) |
+| `src/routes/usuarios.tsx` → `modules/identity/ui/UsersDirectoryPanel.tsx` | **CRUD real completo** (crear/editar/desactivar/restablecer contraseña, `06_BACKEND_GAPS.md` §1) |
 | `src/routes/whatsapp.tsx` + `src/components/whatsapp/*` | **Eliminadas** — sin equivalente en el backend nuevo (`/api/whatsapp/status` no existe) |
 | `src/routes/chat-interno.tsx` → `modules/internal-chat/ui/InternalChatShell.tsx` | **Se mantiene** (feature local, no depende del backend) |
-| `src/routes/login.tsx` | **Adaptada**: quita el password falso, selector de perfil real (Etapa 1) |
+| `src/routes/login.tsx` | **Reescrita**: login real con correo + contraseña sobre `POST /api/auth/login` (`06_BACKEND_GAPS.md` §1.b) |
 
 ## 3. Navegación dinámica por departamento
 

@@ -15,6 +15,7 @@ export function AssignmentBoard() {
     unassigned,
     assigned,
     cases,
+    customerNameByCaseId,
     loading,
     busy,
     reload,
@@ -25,10 +26,9 @@ export function AssignmentBoard() {
   return (
     <>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Asignación manual sobre <code className="font-mono">assign</code>/
-        <code className="font-mono">reassign</code> reales. El algoritmo automático por
-        departamento está documentado como pendiente en{" "}
-        <code className="font-mono">docs/spec/06_BACKEND_GAPS.md</code> §2 — no se simula aquí.
+        Aquí puedes ver cuántos casos tiene cada agente. Los casos escalados se asignan
+        automáticamente al agente con menos carga del área; si nadie está disponible, o si
+        prefieres moverlo tú mismo, puedes asignar o reasignar manualmente en cualquier momento.
       </div>
 
       <div className="flex items-center gap-2 animate-fade-up">
@@ -53,10 +53,10 @@ export function AssignmentBoard() {
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
-        <StatCard label="Agentes del depto." value={String(agentsInDept.length)} />
+        <StatCard label="Agentes del área" value={String(agentsInDept.length)} />
         <StatCard label="Sin asignar" value={String(unassigned.length)} tone="warning" />
         <StatCard label="Asignados" value={String(assigned.length)} tone="success" />
-        <StatCard label="Casos evaluados" value={String(cases.length)} hint="Ventana actual" />
+        <StatCard label="Total en el área" value={String(cases.length)} hint="Casos abiertos ahora" />
       </section>
 
       <section className="grid grid-cols-12 gap-6 animate-fade-up">
@@ -88,7 +88,7 @@ export function AssignmentBoard() {
             ))}
             {agentsInDept.length === 0 && (
               <p className="p-4 text-xs text-muted-foreground">
-                Sin agentes con este departamento como principal.
+                Todavía no hay agentes asignados a esta área.
               </p>
             )}
           </div>
@@ -105,11 +105,9 @@ export function AssignmentBoard() {
               {unassigned.map((c) => (
                 <div key={c.id} className="p-3 flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-xs font-bold">
+                    <p className="text-xs font-bold">{customerNameByCaseId[c.id] ?? "Cliente"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">
                       {workflowLabel(c.workflowType).label} · {caseStatusLabel(c.status)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">
-                      {c.id}
                     </p>
                   </div>
                   <select
@@ -147,11 +145,10 @@ export function AssignmentBoard() {
               {assigned.map((c) => (
                 <div key={c.id} className="p-3 flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-xs font-bold">
-                      {workflowLabel(c.workflowType).label} · {caseStatusLabel(c.status)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">
-                      Actual: {directory.find((a) => a.id === c.assignedAgentId)?.name ?? c.assignedAgentId}
+                    <p className="text-xs font-bold">{customerNameByCaseId[c.id] ?? "Cliente"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {workflowLabel(c.workflowType).label} · Atiende:{" "}
+                      {directory.find((a) => a.id === c.assignedAgentId)?.name ?? "—"}
                     </p>
                   </div>
                   <select

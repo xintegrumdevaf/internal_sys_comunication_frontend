@@ -3,16 +3,22 @@ import { toast } from "sonner";
 import * as conversationGateway from "@/modules/conversations/infrastructure/conversation.gateway";
 import * as caseGateway from "@/modules/cases/infrastructure/case.gateway";
 import { useCaseActions } from "@/modules/cases/application/use-case-actions";
-import type { ConversationDto, MessageDto } from "@/modules/conversations/domain/conversation";
+import type {
+  ConversationDto,
+  ConversationStatus,
+  MessageDto,
+} from "@/modules/conversations/domain/conversation";
 import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
 import { useSession } from "@/modules/identity/application/use-session";
 import { subscribeRealtimeEvents } from "@/modules/realtime/infrastructure/realtime-bus";
 
 type InboxOptions = {
-  /** Filtra por departamento (id real). */
+  /** Filtra por departamento (id real). undefined = todos los departamentos visibles. */
   departmentId?: string;
-  /** Si true, solo conversaciones con un caso asignado a mí. */
-  mineOnly?: boolean;
+  /** Filtra por agente asignado (puede ser "a mí mismo" o cualquier otro agente). undefined = todos. */
+  agentId?: string;
+  /** Filtra por estado de conversación. Por defecto "open" (las que requieren atención). */
+  status?: ConversationStatus;
   /** Prefiere esta conversación al cargar (deep-link desde menciones internas / notificaciones). */
   initialConversationId?: string | null;
 };
@@ -42,8 +48,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       try {
         const data = await conversationGateway.listConversations({
           departmentId: options.departmentId,
-          userId: options.mineOnly ? session.id : undefined,
-          status: "open",
+          userId: options.agentId,
+          status: options.status ?? "open",
         });
         setConversations(data);
 
@@ -68,13 +74,13 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [session, options.departmentId, options.mineOnly, options.initialConversationId],
+    [session, options.departmentId, options.agentId, options.status, options.initialConversationId],
   );
 
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.id, options.departmentId, options.mineOnly]);
+  }, [session?.id, options.departmentId, options.agentId, options.status]);
 
   const loadThread = useCallback(async (conversationId: string) => {
     const [msgs, convCases] = await Promise.all([

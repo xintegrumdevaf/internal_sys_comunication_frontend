@@ -19,3 +19,18 @@ export function messageClock(iso: string): string {
     hour12: false,
   });
 }
+
+/** "Hoy" / "Ayer" / fecha corta — para separadores de día estilo WhatsApp en el hilo de mensajes. */
+export function dayLabel(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  if (sameDay(date, today)) return "Hoy";
+  if (sameDay(date, yesterday)) return "Ayer";
+  return date.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+}

@@ -105,9 +105,9 @@ describe("canAccessPath", () => {
 });
 
 describe("modulesForSession", () => {
-  it("agent solo ve bandeja y chat interno", () => {
+  it("agent ve inicio, bandeja y chat interno", () => {
     const items = modulesForSession(makeSession({ role: "agent" })).map((m) => m.to);
-    expect(items).toEqual(["/bandeja", "/chat-interno"]);
+    expect(items).toEqual(["/", "/bandeja", "/chat-interno"]);
   });
 
   it("manager suma escalaciones y asignaciones", () => {

@@ -67,6 +67,7 @@ function makeConversation(overrides: Partial<ConversationDto> = {}): Conversatio
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     lastMessagePreview: null,
+    waProfileName: null,
     ...overrides,
   };
 }

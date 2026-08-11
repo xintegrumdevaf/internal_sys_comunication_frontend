@@ -9,6 +9,9 @@ lerna-debug.log*
 
 node_modules
 dist
+# El proyecto usa npm (package-lock.json) — este lockfile queda de alguna
+# instalacion puntual con bun y no debe versionarse junto al de npm.
+bun.lock
 dist-ssr
 .output
 .vinxi

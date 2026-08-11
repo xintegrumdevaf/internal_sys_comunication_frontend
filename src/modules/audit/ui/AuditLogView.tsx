@@ -3,17 +3,24 @@ import { useEffect, useState } from "react";
 import { StatCard } from "@/app/shell/AppShell";
 import { listAuditEvents } from "@/modules/audit/infrastructure/audit.gateway";
 import type { AuditEventDto } from "@/modules/audit/domain/audit-event";
+import { auditActionLabel } from "@/modules/audit/domain/audit-event";
 import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
 
 const actionTone: Record<string, string> = {
-  AUTH_OK: "text-info",
-  MESSAGE_RECEIVED: "text-info",
-  CONVERSATION_OPENED: "text-primary",
-  TRANSFER: "text-warning",
-  TAKE_CONTROL: "text-warning",
-  HANDOVER: "text-danger",
+  CASE_TRANSFERRED: "text-warning",
+  CASE_REASSIGNED: "text-warning",
+  CASE_ASSIGNED: "text-primary",
+  CASE_CLAIMED: "text-primary",
+  CASE_COMPLETED: "text-info",
+  AUTOMATION_DISABLED: "text-warning",
+  AUTOMATION_ENABLED: "text-info",
+  CONVERSATION_REPLY: "text-info",
 };
 
+/**
+ * Registro de auditoría — solo lo ve un administrador. Cada línea explica en
+ * español qué pasó, quién lo hizo y cuándo (nunca el enum crudo del backend).
+ */
 export function AuditLogView() {
   const [logs, setLogs] = useState<AuditEventDto[]>([]);
   const users = useDirectoryUsers();
@@ -23,8 +30,11 @@ export function AuditLogView() {
     void listAuditEvents(100).then(setLogs);
   }, []);
 
+  const agentName = (userId?: string | null) =>
+    userId ? (users.find((u) => u.id === userId)?.name ?? "Un agente") : "El sistema";
+
   const roleCounts = departments.map((d) => ({
-    slug: d.slug,
+    id: d.id,
     name: d.name,
     n: users.filter((u) => u.primaryDepartmentId === d.id).length,
   }));
@@ -32,52 +42,47 @@ export function AuditLogView() {
   return (
     <>
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
-        <StatCard label="Eventos" value={String(logs.length)} hint="GET /api/audit" />
-        <StatCard label="Agentes" value={String(users.length)} hint="GET /api/agents" tone="success" />
+        <StatCard label="Eventos registrados" value={String(logs.length)} />
+        <StatCard label="Agentes en el sistema" value={String(users.length)} tone="success" />
         <StatCard
-          label="Transferencias"
-          value={String(logs.filter((l) => l.action.toUpperCase().includes("TRANSFER")).length)}
-          hint="Entre departamentos"
+          label="Casos transferidos"
+          value={String(logs.filter((l) => l.action === "CASE_TRANSFERRED").length)}
+          hint="Entre áreas"
           tone="warning"
         />
         <StatCard
-          label="Take control"
-          value={String(logs.filter((l) => l.action.toUpperCase().includes("TAKE_CONTROL")).length)}
-          hint="Handover humano"
+          label="Casos reclamados"
+          value={String(logs.filter((l) => l.action === "CASE_CLAIMED").length)}
+          hint="Un agente tomó el caso"
           tone="success"
         />
       </section>
 
       <section className="grid grid-cols-12 gap-6 animate-fade-up">
-        <div className="col-span-12 lg:col-span-8 bg-canvas rounded-xl border-2 border-canvas-border shadow-2xl overflow-hidden">
-          <div className="p-4 border-b border-canvas-border bg-black/20 flex justify-between items-center">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-canvas-foreground">
-              audit_event · isp-customer-service-api
+        <div className="col-span-12 lg:col-span-8 bg-card border border-border rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-border bg-background/60">
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">
+              Historial de acciones
             </h3>
-            <span className="text-[10px] font-mono text-white/50">Postgres</span>
           </div>
-          <div className="divide-y divide-canvas-border font-mono text-[11px] max-h-[520px] overflow-y-auto">
+          <div className="divide-y divide-border text-[12px] max-h-[520px] overflow-y-auto">
             {logs.map((l) => (
-              <div key={l.id} className="flex items-start gap-4 px-4 py-2.5 hover:bg-white/5">
-                <span className="text-white/40 shrink-0 w-24">
+              <div key={l.id} className="flex items-start gap-4 px-4 py-2.5 hover:bg-foreground/5">
+                <span className="text-muted-foreground shrink-0 w-16 tabular-nums">
                   {new Date(l.createdAt).toLocaleTimeString("es-CO", { hour12: false })}
                 </span>
                 <span
-                  className={`font-bold uppercase shrink-0 w-36 truncate ${actionTone[l.action] ?? "text-white/70"}`}
+                  className={`font-semibold shrink-0 w-48 truncate ${actionTone[l.action] ?? "text-foreground"}`}
                 >
-                  {l.action}
+                  {auditActionLabel(l.action)}
                 </span>
-                <span className="text-white/50 shrink-0 w-28 truncate">
-                  {l.actorUserId ?? "sistema"}
-                </span>
-                <span className="text-canvas-foreground flex-1 truncate">
-                  {l.resourceType}/{l.resourceId}
-                  {l.metadata ? ` · ${JSON.stringify(l.metadata)}` : ""}
+                <span className="text-muted-foreground flex-1 truncate">
+                  {agentName(l.actorUserId)}
                 </span>
               </div>
             ))}
             {logs.length === 0 && (
-              <p className="p-6 text-center text-white/50">Sin eventos todavía.</p>
+              <p className="p-6 text-center text-muted-foreground">Sin eventos todavía.</p>
             )}
           </div>
         </div>
@@ -85,28 +90,23 @@ export function AuditLogView() {
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <div className="bg-card border border-border rounded-xl p-4">
             <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Lock className="size-3.5 text-primary" /> Seguridad
+              <Lock className="size-3.5 text-primary" /> Seguridad de la información
             </h3>
-            <div className="space-y-2 text-[11px] font-mono">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Canal</span>
-                <span className="text-primary font-bold">HTTPS</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Persistencia</span>
-                <span>PostgreSQL (audit_event)</span>
-              </div>
-            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Toda la información viaja cifrada y cada acción importante (transferir, reclamar o
+              resolver un caso) queda registrada de forma permanente con la fecha y el agente
+              responsable.
+            </p>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-4">
             <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2">
-              <KeyRound className="size-3.5 text-primary" /> Agentes por depto (principal)
+              <KeyRound className="size-3.5 text-primary" /> Agentes por área
             </h3>
             <div className="space-y-1.5 text-[11px]">
               {roleCounts.map((r) => (
-                <div key={r.slug} className="flex justify-between py-1 border-b border-border/60">
-                  <span className="font-mono">{r.slug}</span>
+                <div key={r.id} className="flex justify-between py-1 border-b border-border/60">
+                  <span>{r.name}</span>
                   <span className="font-bold">{r.n}</span>
                 </div>
               ))}

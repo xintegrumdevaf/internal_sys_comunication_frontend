@@ -15,6 +15,31 @@ export type CaseStatus =
   | "EXPIRED"
   | "CANCELLED";
 
+/**
+ * Espeja `CANCELLABLE_STATUSES` del backend (cancel-case.use-case.ts): un
+ * caso ya escalado/asignado a un humano no se cancela, se completa o se
+ * transfiere — mostrar el botón "Cancelar" ahí solo confundiría (el backend
+ * lo rechazaría con un error de negocio).
+ */
+export const CANCELLABLE_STATUSES: CaseStatus[] = ["ACTIVE", "PAUSED", "WAITING_USER"];
+
+/**
+ * Telemetria real de la ONU (mikrotik_api → TechnicalDataResponseDTO,
+ * ya aplanada por el backend en support-internet.context.ts). Todo es
+ * opcional: si la ONU esta muy caida, el microservicio puede no leer nada.
+ */
+export type SupportInternetDiagnosticTechnical = {
+  brand?: string;
+  onuModel?: string;
+  onuSerial?: string;
+  macAddress?: string;
+  /** Potencia óptica recibida (RX), en dBm. Mientras más cercano a 0, más fuerte la señal. */
+  opticalPowerDbm?: number;
+  runState?: string;
+  adminState?: string;
+  channel?: string;
+};
+
 export type SupportInternetContext = {
   client?: { nationalId: string; fullName: string };
   contract?: {
@@ -26,8 +51,45 @@ export type SupportInternetContext = {
     router: string;
   };
   balance?: { hasDebt: boolean; amount?: number };
-  diagnostic?: { status: string; lastQuestion?: string; result?: string };
+  diagnostic?: {
+    status: string;
+    lastQuestion?: string;
+    result?: string;
+    technical?: SupportInternetDiagnosticTechnical;
+  };
 };
+
+const ONU_RUN_STATE_LABELS: Record<string, string> = {
+  up: "En línea",
+  online: "En línea",
+  working: "En línea",
+  down: "Desconectada",
+  offline: "Desconectada",
+  los: "Sin señal óptica (LOS)",
+  "dying-gasp": "Se apagó abruptamente (corte de luz)",
+  "dying_gasp": "Se apagó abruptamente (corte de luz)",
+  unknown: "Desconocido",
+};
+
+export function onuRunStateLabel(runState?: string): string {
+  if (!runState) return "Desconocido";
+  return ONU_RUN_STATE_LABELS[runState.toLowerCase()] ?? runState;
+}
+
+/**
+ * Clasifica la potencia óptica recibida (RX) para GPON en una etiqueta que
+ * cualquier agente entienda sin saber de redes. Rangos aproximados de la
+ * industria (-8 a -27 dBm = operación normal); fuera de ahí, alerta.
+ */
+export function onuSignalQuality(
+  dbm: number | undefined,
+): { label: string; cls: string } | null {
+  if (dbm === undefined || dbm === null || Number.isNaN(dbm)) return null;
+  if (dbm > -8) return { label: "Señal muy fuerte (posible sobrecarga)", cls: "bg-amber-100 text-amber-700" };
+  if (dbm >= -23) return { label: "Buena", cls: "bg-emerald-100 text-emerald-700" };
+  if (dbm >= -27) return { label: "Regular — a vigilar", cls: "bg-amber-100 text-amber-700" };
+  return { label: "Crítica — señal muy débil", cls: "bg-red-100 text-red-700" };
+}
 
 export type BillingBalanceContext = {
   purpose?: "balance" | "record_payment";
@@ -137,6 +199,55 @@ const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
 
 export function caseStatusLabel(status?: CaseStatus): string {
   return status ? (CASE_STATUS_LABELS[status] ?? status) : "—";
+}
+
+const CASE_STEP_LABELS: Record<string, string> = {
+  VALIDATE_CLIENT: "Verificación de identidad del cliente",
+  CHECK_BALANCE: "Revisión de saldo",
+  DIAGNOSTIC: "Diagnóstico técnico",
+  CONTINUE_DIAGNOSTIC: "Diagnóstico técnico (continuación)",
+  RECORD_PAYMENT: "Registro de comprobante de pago",
+  APPLY_BANK_ACCOUNT: "Asociación de cuenta bancaria",
+  QUERY_KNOWLEDGE_BASE: "Búsqueda en base de conocimiento",
+  ESCALATE: "Escalado a un agente humano",
+  WAITING_USER: "Esperando respuesta del cliente",
+};
+
+function humanizeStep(step: string): string {
+  return step
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/** Texto claro en español para un paso del flujo (usado en resumen y línea de tiempo). */
+export function caseStepLabel(step: string): string {
+  return CASE_STEP_LABELS[step] ?? humanizeStep(step);
+}
+
+const CASE_STEP_STATUS_LABELS: Record<string, string> = {
+  DISPATCHED: "En proceso",
+  COMPLETED: "Completado",
+  FAILED: "Falló",
+  RECORDED: "Registrado",
+};
+
+/** Texto claro en español para el resultado de un paso (timeline). */
+export function caseStepStatusLabel(status: string): string {
+  return CASE_STEP_STATUS_LABELS[status] ?? status;
+}
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pendiente de revisión",
+  RECORDED: "Registrado",
+  REJECTED: "Rechazado",
+};
+
+/** Texto claro en español para el estado de un comprobante de pago. */
+export function paymentStatusLabel(status?: string): string {
+  if (!status) return "—";
+  return PAYMENT_STATUS_LABELS[status] ?? status;
 }
 
 /** Nombre del cliente si el caso activo ya lo validó (01_DATA_MODEL.md §4 del backend). */

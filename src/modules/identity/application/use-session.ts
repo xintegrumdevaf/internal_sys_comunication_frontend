@@ -1,46 +1,16 @@
-import { useMemo, useSyncExternalStore } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as authGateway from "@/modules/identity/infrastructure/auth.gateway";
 import { listAgents, listDepartments } from "@/modules/identity/infrastructure/agent-directory.gateway";
 import { toSessionUser, type SessionUser } from "@/modules/identity/domain/session";
 
 /**
- * Sesion real sobre isp-customer-service-api (docs/spec/00_OVERVIEW.md §2).
- * No hay JWT: solo se recuerda QUE agent.id esta activo en este navegador
- * (localStorage); sus datos (rol, departamento, activo/inactivo) siempre se
- * refrescan en vivo desde GET /api/agents. Nada se cachea como si fuera la
- * fuente de verdad.
+ * Sesion real sobre isp-customer-service-api (docs/spec/06_BACKEND_GAPS.md
+ * §1.b). La identidad vive en una cookie httpOnly que pone el backend al
+ * loguear con `POST /api/auth/login` — este modulo nunca la lee ni la
+ * escribe directamente, solo sabe "hay sesion o no" preguntando
+ * `GET /api/auth/me` (que el navegador manda automaticamente con la cookie).
  */
-
-const SESSION_KEY = "netops.session.agentId";
-const SESSION_EVENT = "netops-session-change";
-
-function readAgentId(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(SESSION_KEY);
-}
-
-export function signIn(agentId: string): void {
-  window.localStorage.setItem(SESSION_KEY, agentId);
-  window.dispatchEvent(new Event(SESSION_EVENT));
-}
-
-export function signOut(): void {
-  window.localStorage.removeItem(SESSION_KEY);
-  window.dispatchEvent(new Event(SESSION_EVENT));
-}
-
-function subscribeSession(cb: () => void) {
-  window.addEventListener(SESSION_EVENT, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(SESSION_EVENT, cb);
-    window.removeEventListener("storage", cb);
-  };
-}
-
-function useSelectedAgentId(): string | null {
-  return useSyncExternalStore(subscribeSession, readAgentId, () => null);
-}
 
 export function useAgentsQuery() {
   return useQuery({
@@ -48,6 +18,7 @@ export function useAgentsQuery() {
     queryFn: listAgents,
     staleTime: 15_000,
     refetchInterval: 30_000,
+    retry: false, // sin sesion, esto falla (403) a proposito — no tiene sentido reintentar
   });
 }
 
@@ -56,6 +27,16 @@ export function useDepartmentsQuery() {
     queryKey: ["departments"],
     queryFn: listDepartments,
     staleTime: 60_000,
+    retry: false,
+  });
+}
+
+function useCurrentAgentQuery() {
+  return useQuery({
+    queryKey: ["session", "me"],
+    queryFn: authGateway.fetchCurrentAgent,
+    staleTime: 30_000,
+    retry: false,
   });
 }
 
@@ -71,15 +52,55 @@ export function useDirectoryUsers(): SessionUser[] {
   }, [agents, departments]);
 }
 
-/** Sesion activa - null mientras carga o si el agente ya no existe/esta inactivo. */
+/** Sesion activa segun la cookie real — null mientras carga o si no hay sesion valida. */
 export function useSession(): SessionUser | null {
-  const agentId = useSelectedAgentId();
-  const { data: agents } = useAgentsQuery();
+  const { data: agent } = useCurrentAgentQuery();
   const { data: departments } = useDepartmentsQuery();
   return useMemo(() => {
-    if (!agentId || !agents || !departments) return null;
-    const agent = agents.find((a) => a.id === agentId);
-    if (!agent || !agent.active) return null;
+    if (!agent || !departments) return null;
     return toSessionUser(agent, departments);
-  }, [agentId, agents, departments]);
+  }, [agent, departments]);
+}
+
+/**
+ * true mientras todavia no sabemos si hay sesion o no (primera consulta a
+ * `GET /api/auth/me` en curso). Sin esto, `AppShell`/`login.tsx` verian
+ * `useSession() === null` un instante en CADA recarga de pagina y
+ * redirigirian a /login aunque la persona si tenga sesion — un "flash" de
+ * logout falso muy molesto para trabajo de alta frecuencia.
+ */
+export function useSessionLoading(): boolean {
+  const { isLoading } = useCurrentAgentQuery();
+  return isLoading;
+}
+
+/** Alta/baja de sesion: login real con credenciales, logout revoca la sesion en el servidor. */
+export function useAuth() {
+  const queryClient = useQueryClient();
+
+  const loginMutation = useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      authGateway.login(email, password),
+    onSuccess: async () => {
+      // Tras loguear, todo lo que dependia de "no hay sesion" (agents,
+      // departments, me) debe re-consultarse — ya no van a fallar con 403.
+      await queryClient.invalidateQueries();
+    },
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: authGateway.logout,
+    onSuccess: () => {
+      // Limpiar TODA la cache: nadie debe seguir viendo datos de la sesion
+      // anterior (conversaciones, casos, etc.) tras cerrar sesion.
+      queryClient.clear();
+    },
+  });
+
+  return {
+    login: (email: string, password: string) => loginMutation.mutateAsync({ email, password }),
+    logout: () => logoutMutation.mutateAsync(),
+    loggingIn: loginMutation.isPending,
+    loginError: loginMutation.error instanceof Error ? loginMutation.error.message : null,
+  };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
+import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
 import { getCase } from "@/modules/cases/infrastructure/case.gateway";
 import { useCaseActions } from "@/modules/cases/application/use-case-actions";
 import type { CaseDto } from "@/modules/cases/domain/case";
@@ -18,6 +19,7 @@ export function useAssignmentBoard() {
   const directory = useDirectoryUsers();
   const [departmentId, setDepartmentId] = useState("");
   const [cases, setCases] = useState<CaseDto[]>([]);
+  const [customerNameByCaseId, setCustomerNameByCaseId] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,10 +33,15 @@ export function useAssignmentBoard() {
     setLoading(true);
     try {
       const conversations = await listConversations({ departmentId, status: "open" });
+      const nameMap: Record<string, string> = {};
+      for (const conv of conversations) {
+        if (conv.activeCaseId) nameMap[conv.activeCaseId] = conversationDisplayName(conv);
+      }
       const caseIds = conversations.map((c) => c.activeCaseId).filter((id): id is string => !!id);
       const uniqueIds = Array.from(new Set(caseIds)).slice(0, 200);
       const loaded = await Promise.all(uniqueIds.map((id) => getCase(id).catch(() => null)));
       setCases(loaded.filter((c): c is CaseDto => c !== null));
+      setCustomerNameByCaseId(nameMap);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo cargar la carga del departamento");
     } finally {
@@ -83,6 +90,7 @@ export function useAssignmentBoard() {
     unassigned,
     assigned,
     cases,
+    customerNameByCaseId,
     loading,
     busy: caseActions.busy,
     reload,

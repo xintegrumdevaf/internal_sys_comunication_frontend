@@ -1,7 +1,26 @@
 import { useState } from "react";
-import { FileText, Power, PowerOff, XCircle } from "lucide-react";
-import type { CaseDto } from "@/modules/cases/domain/case";
-import { caseStatusLabel, clientNameFromCase, workflowLabel } from "@/modules/cases/domain/case";
+import {
+  FileText,
+  Lock,
+  Phone,
+  Power,
+  PowerOff,
+  Sparkles,
+  UserCircle2,
+  UserRound,
+  Wrench,
+  XCircle,
+} from "lucide-react";
+import type { CaseDto, SupportInternetDiagnosticTechnical } from "@/modules/cases/domain/case";
+import {
+  CANCELLABLE_STATUSES,
+  caseStatusLabel,
+  clientNameFromCase,
+  onuRunStateLabel,
+  onuSignalQuality,
+  paymentStatusLabel,
+  workflowLabel,
+} from "@/modules/cases/domain/case";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 
 function DataRow({ label, value }: { label: string; value: string | number | undefined | null }) {
@@ -14,6 +33,16 @@ function DataRow({ label, value }: { label: string; value: string | number | und
   );
 }
 
+function SectionLabel({ icon: Icon, children }: { icon: typeof Wrench; children: string }) {
+  return (
+    <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 pt-1">
+      <Icon className="size-3" />
+      {children}
+    </h4>
+  );
+}
+
+
 /** Panel de contexto de caso, renderizado por workflowType (01_DATA_MODEL.md §3). */
 function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
   const data = caseDto.context?.data as Record<string, unknown> | undefined;
@@ -23,8 +52,10 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
     const d = data as {
       contract?: { sector?: string; oltName?: string; pon?: string; serial?: string };
       balance?: { hasDebt?: boolean; amount?: number };
-      diagnostic?: { status?: string; result?: string };
+      diagnostic?: { status?: string; result?: string; technical?: SupportInternetDiagnosticTechnical };
     };
+    const technical = d.diagnostic?.technical;
+    const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
     return (
       <div className="space-y-1.5 text-[11px] font-mono">
         <DataRow label="Sector" value={d.contract?.sector} />
@@ -34,6 +65,34 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
         <DataRow label="Deuda" value={d.balance?.hasDebt ? `Sí ($${d.balance?.amount ?? 0})` : "No"} />
         <DataRow label="Diagnóstico" value={d.diagnostic?.status} />
         <DataRow label="Resultado" value={d.diagnostic?.result} />
+        {technical && (
+          <>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">
+              Lectura real del equipo (ONU)
+            </p>
+            <div className="flex justify-between gap-2 items-center">
+              <span className="text-muted-foreground">Estado del equipo</span>
+              <span className="text-right font-semibold">{onuRunStateLabel(technical.runState)}</span>
+            </div>
+            {technical.opticalPowerDbm !== undefined && (
+              <div className="flex justify-between gap-2 items-center">
+                <span className="text-muted-foreground">Potencia óptica</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="font-semibold">{technical.opticalPowerDbm.toFixed(1)} dBm</span>
+                  {quality && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
+                    >
+                      {quality.label}
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+            <DataRow label="Modelo de ONU" value={technical.onuModel} />
+            <DataRow label="MAC" value={technical.macAddress} />
+          </>
+        )}
       </div>
     );
   }
@@ -54,8 +113,8 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
               : undefined
           }
         />
-        <DataRow label="Referencia pago" value={d.payment?.reference} />
-        <DataRow label="Estado pago" value={d.payment?.status} />
+        <DataRow label="Referencia de pago" value={d.payment?.reference} />
+        <DataRow label="Estado del comprobante" value={paymentStatusLabel(d.payment?.status)} />
       </div>
     );
   }
@@ -92,9 +151,12 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
 export function CasePanel({
   caseDto,
+  customerName,
+  customerPhone,
   busy,
   canWrite,
   departments,
+  assignedAgentName,
   onOpenSummary,
   onComplete,
   onCancel,
@@ -103,9 +165,14 @@ export function CasePanel({
   onReactivateAutomation,
 }: {
   caseDto: CaseDto | null;
+  /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
+  customerName?: string;
+  customerPhone?: string;
   busy: boolean;
   canWrite: boolean;
   departments: DepartmentDto[];
+  /** Nombre del agente asignado ya resuelto — nunca se muestra el UUID crudo. */
+  assignedAgentName?: string | null;
   onOpenSummary: () => void;
   onComplete: (note?: string) => void;
   onCancel: (reason: string) => void;
@@ -117,10 +184,40 @@ export function CasePanel({
   const [transferDept, setTransferDept] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
 
+  const validatedName = caseDto ? clientNameFromCase(caseDto) : null;
+
+  const customerCard = (customerName || customerPhone) && (
+    <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+      <SectionLabel icon={UserRound}>Cliente</SectionLabel>
+      <div className="space-y-1.5 text-[11px] font-mono">
+        <DataRow label="Nombre de WhatsApp" value={customerName} />
+        {customerPhone && (
+          <div className="flex justify-between gap-2 items-center">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <Phone className="size-3" /> Teléfono
+            </span>
+            <span className="text-right font-semibold">{customerPhone}</span>
+          </div>
+        )}
+        {validatedName && validatedName !== customerName && (
+          <DataRow label="Nombre validado (cédula)" value={validatedName} />
+        )}
+      </div>
+    </div>
+  );
+
   if (!caseDto) {
     return (
-      <div className="bg-card border border-border rounded-xl p-4 text-[11px] text-muted-foreground">
-        Sin caso vinculado a esta conversación (aún no requiere workflow).
+      <div className="space-y-4">
+        {customerCard}
+        <div className="bg-card border border-border rounded-xl p-5 text-center">
+          <UserCircle2 className="size-8 text-muted-foreground/50 mx-auto mb-2" />
+          <p className="text-xs font-semibold">Aún no hay un caso para esta conversación</p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Este panel se abre solo en cuanto el asistente identifica en qué necesita ayuda el
+            cliente — no hace falta hacer nada.
+          </p>
+        </div>
       </div>
     );
   }
@@ -130,6 +227,8 @@ export function CasePanel({
 
   return (
     <div className="space-y-4">
+      {customerCard}
+
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-extrabold uppercase tracking-widest">Caso</h3>
@@ -137,35 +236,48 @@ export function CasePanel({
             {tag.label}
           </span>
         </div>
+
+        <SectionLabel icon={Sparkles}>Resumen</SectionLabel>
         <div className="space-y-1.5 text-[11px] font-mono">
-          <DataRow label="Cliente" value={clientNameFromCase(caseDto)} />
-          <DataRow label="Estado" value={caseStatusLabel(caseDto.status)} />
+          {!customerCard && <DataRow label="Cliente" value={validatedName} />}
+          <DataRow label="Estado del caso" value={caseStatusLabel(caseDto.status)} />
           <DataRow
-            label="Automatización"
+            label="Respuestas automáticas"
             value={
               caseDto.automation
                 ? caseDto.automation.enabled
-                  ? "Activa"
-                  : `Desactivada${caseDto.automation.disabledReason ? ` (${caseDto.automation.disabledReason})` : ""}`
+                  ? "Activas (responde el asistente)"
+                  : "En pausa (responde un agente)"
                 : "—"
             }
           />
-          <DataRow label="Asignado a" value={caseDto.assignedAgentId ?? "Sin asignar"} />
+          <DataRow label="Atendido por" value={assignedAgentName ?? "Sin asignar todavía"} />
         </div>
 
+        <SectionLabel icon={Wrench}>Datos técnicos</SectionLabel>
         <CaseContextBody caseDto={caseDto} />
 
         {canManageEscalation && (
           <button
             type="button"
             onClick={onOpenSummary}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-border text-[11px] font-bold uppercase hover:bg-foreground/5"
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition"
           >
             <FileText className="size-3.5" />
             Ver resumen del caso
           </button>
         )}
       </div>
+
+      {!canWrite && (
+        <div className="bg-card border border-border rounded-xl p-4 flex items-start gap-2.5">
+          <Lock className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground">
+            Este caso está asignado a otro agente. Puedes ver toda la información, pero solo esa
+            persona (o un jefe de área) puede tomar acciones aquí.
+          </p>
+        </div>
+      )}
 
       {canWrite && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-2">
@@ -176,18 +288,20 @@ export function CasePanel({
               type="button"
               disabled={busy}
               onClick={() => onDisableAutomation("Agente toma control manual")}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-border text-[11px] font-bold uppercase hover:bg-foreground/5 disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition disabled:opacity-40"
+              title="El asistente deja de responder; a partir de ahora respondes tú"
             >
-              <PowerOff className="size-3.5" /> Desactivar automatización
+              <PowerOff className="size-3.5" /> Responder yo mismo
             </button>
           ) : (
             <button
               type="button"
               disabled={busy}
               onClick={onReactivateAutomation}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-border text-[11px] font-bold uppercase hover:bg-foreground/5 disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition disabled:opacity-40"
+              title="El asistente vuelve a responder automáticamente, sin perder lo ya conversado"
             >
-              <Power className="size-3.5" /> Reactivar automatización
+              <Power className="size-3.5" /> Devolver al asistente
             </button>
           )}
 
@@ -195,18 +309,18 @@ export function CasePanel({
             type="button"
             disabled={busy || caseDto.status === "COMPLETED"}
             onClick={() => onComplete()}
-            className="w-full py-2 rounded-md bg-primary text-primary-foreground text-[11px] font-bold uppercase disabled:opacity-40"
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-wide shadow-sm hover:brightness-95 transition disabled:opacity-40"
           >
-            Completar caso
+            Marcar como resuelto
           </button>
 
           <button
             type="button"
             disabled={busy}
             onClick={() => setTransferOpen((v) => !v)}
-            className="w-full py-2 rounded-md border border-border text-[11px] font-bold uppercase hover:bg-foreground/5"
+            className="w-full py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition"
           >
-            Transferir a otro depto.
+            Enviar a otra área
           </button>
 
           {transferOpen && (
@@ -214,7 +328,7 @@ export function CasePanel({
               <select
                 value={transferDept}
                 onChange={(e) => setTransferDept(e.target.value)}
-                className="w-full text-xs px-2 py-1.5 border border-border rounded bg-card"
+                className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
               >
                 <option value="">Selecciona departamento</option>
                 {departments
@@ -228,8 +342,8 @@ export function CasePanel({
               <input
                 value={transferReason}
                 onChange={(e) => setTransferReason(e.target.value)}
-                className="w-full text-xs px-2 py-1.5 border border-border rounded bg-card"
-                placeholder="Motivo"
+                className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                placeholder="Motivo (lo verá el área que lo recibe)"
               />
               <button
                 type="button"
@@ -238,21 +352,23 @@ export function CasePanel({
                   onTransfer(transferDept, transferReason);
                   setTransferOpen(false);
                 }}
-                className="w-full py-1.5 rounded bg-foreground text-background text-[10px] font-bold uppercase disabled:opacity-40"
+                className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wide disabled:opacity-40"
               >
-                Confirmar transferencia
+                Confirmar envío
               </button>
             </div>
           )}
 
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onCancel("Cancelado manualmente por el agente")}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-danger/30 text-danger text-[11px] font-bold uppercase hover:bg-danger/5 disabled:opacity-40"
-          >
-            <XCircle className="size-3.5" /> Cancelar caso
-          </button>
+          {CANCELLABLE_STATUSES.includes(caseDto.status) && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onCancel("Cancelado manualmente por el agente")}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-danger/30 text-danger text-[11px] font-bold uppercase tracking-wide hover:bg-danger/5 transition disabled:opacity-40"
+            >
+              <XCircle className="size-3.5" /> Cancelar caso
+            </button>
+          )}
         </div>
       )}
     </div>

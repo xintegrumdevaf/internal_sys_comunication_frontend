@@ -1,35 +1,25 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Search,
-  Wrench,
-  Wallet,
-  ShoppingBag,
   Inbox,
   GitBranch,
   Megaphone,
   ShieldCheck,
   LogOut,
+  KeyRound,
   ChevronDown,
   MessagesSquare,
   Users,
   ArrowRightLeft,
   Wifi,
   WifiOff,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  canAccessDepartment,
-  canAccessPath,
-  modulesForSession,
-} from "@/modules/identity/application/access-control";
-import {
-  signIn,
-  signOut,
-  useDepartmentsQuery,
-  useDirectoryUsers,
-  useSession,
-} from "@/modules/identity/application/use-session";
+import { toast } from "sonner";
+import { canAccessPath, modulesForSession } from "@/modules/identity/application/access-control";
+import { useAuth, useSession, useSessionLoading } from "@/modules/identity/application/use-session";
+import { changePassword } from "@/modules/identity/infrastructure/auth.gateway";
 import { useRealtimeConnected, useRealtimeSession } from "@/modules/realtime/application/use-realtime";
 import { NotificationBell } from "@/modules/realtime/ui/NotificationBell";
 
@@ -37,16 +27,10 @@ type NavItem = {
   icon: LucideIcon;
   label: string;
   to: string;
-  search?: Record<string, string>;
-};
-
-const departmentIcons: Record<string, LucideIcon> = {
-  support: Wrench,
-  billing: Wallet,
-  sales: ShoppingBag,
 };
 
 const moduleIcons: Record<string, LucideIcon> = {
+  "/": LayoutDashboard,
   "/bandeja": Inbox,
   "/chat-interno": MessagesSquare,
   "/escalaciones": ArrowRightLeft,
@@ -74,25 +58,14 @@ export function AppShell({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const session = useSession();
-  const directory = useDirectoryUsers();
-  const { data: departments = [] } = useDepartmentsQuery();
+  const sessionLoading = useSessionLoading();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useRealtimeSession(session?.id ?? null);
   const connected = useRealtimeConnected();
-
-  const roleNav = useMemo<NavItem[]>(() => {
-    if (!session) return [];
-    return departments
-      .filter((d) => d.active && canAccessDepartment(session, d))
-      .map((d) => ({
-        icon: departmentIcons[d.slug] ?? Wrench,
-        label: d.name,
-        to: "/bandeja",
-        search: { departmentId: d.id },
-      }));
-  }, [session, departments]);
 
   const moduleNav = useMemo<NavItem[]>(() => {
     if (!session) return [];
@@ -105,6 +78,7 @@ export function AppShell({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (sessionLoading) return; // esperar a saber si hay sesion real antes de decidir nada
     if (!session && pathname !== "/login") {
       void navigate({ to: "/login", replace: true });
       return;
@@ -112,7 +86,15 @@ export function AppShell({
     if (session && !canAccessPath(session, pathname)) {
       void navigate({ to: session.landing, replace: true });
     }
-  }, [session, pathname, navigate]);
+  }, [session, sessionLoading, pathname, navigate]);
+
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen bg-background grid place-items-center text-muted-foreground text-sm">
+        Cargando…
+      </div>
+    );
+  }
 
   if (!session) {
     return (
@@ -139,72 +121,48 @@ export function AppShell({
               NetOps <span className="text-primary">AI</span>
             </h1>
             <p className="text-[10px] text-muted-foreground mt-1 tracking-wide">
-              {session.departmentName ?? "Todos los departamentos"}
+              {session.roleLabel}
             </p>
           </Link>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {roleNav.length > 0 && (
-            <>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-                Departamentos
-              </div>
-              {roleNav.map((r) => (
-                <NavLink key={`${r.to}-${r.search?.departmentId}`} item={r} pathname={pathname} />
-              ))}
-            </>
-          )}
-
-          <div className="pt-8 text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-            Módulos
-          </div>
           {moduleNav.map((m) => (
             <NavLink key={m.to} item={m} pathname={pathname} />
           ))}
         </nav>
 
         <div className="p-3 border-t border-border relative">
-          {menuOpen && (
+          {menuOpen && !changePasswordOpen && (
             <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-20">
-              <div className="p-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border">
-                Cambiar de perfil
-              </div>
-              {directory
-                .filter((u) => u.active && u.id !== session.id)
-                .map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => {
-                      signIn(u.id);
-                      setMenuOpen(false);
-                      void navigate({ to: u.landing, replace: true });
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-foreground/5 text-left"
-                  >
-                    <div className="size-7 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold">
-                      {u.initials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold truncate">{u.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{u.roleLabel}</p>
-                    </div>
-                  </button>
-                ))}
+              <button
+                type="button"
+                onClick={() => setChangePasswordOpen(true)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-foreground/5 text-left text-xs font-bold"
+              >
+                <KeyRound className="size-3.5 text-muted-foreground" />
+                Cambiar mi contraseña
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  signOut();
-                  void navigate({ to: "/login", replace: true });
+                  void logout().then(() => navigate({ to: "/login", replace: true }));
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-danger/10 text-danger border-t border-border text-xs font-bold"
+                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-danger/10 text-danger border-t border-border text-xs font-bold"
               >
                 <LogOut className="size-3.5" />
                 Cerrar sesión
               </button>
             </div>
+          )}
+          {changePasswordOpen && (
+            <ChangePasswordForm
+              onClose={() => {
+                setChangePasswordOpen(false);
+                setMenuOpen(false);
+              }}
+            />
           )}
           <button
             type="button"
@@ -236,17 +194,9 @@ export function AppShell({
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="h-16 border-b border-border bg-card flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-3 flex-1 max-w-md">
+          <div className="flex items-center gap-3">
             <Icon className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-bold tracking-tight">{title}</h2>
-            <div className="relative flex-1 ml-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Buscar conversación o teléfono..."
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition"
-              />
-            </div>
           </div>
           <div className="flex items-center gap-4">
             <NotificationBell />
@@ -262,12 +212,69 @@ export function AppShell({
   );
 }
 
+function ChangePasswordForm({ onClose }: { onClose: () => void }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await changePassword(current, next);
+      toast.success("Contraseña actualizada");
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo cambiar la contraseña");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-lg shadow-xl p-3 space-y-2 z-20">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        Cambiar mi contraseña
+      </p>
+      <input
+        type="password"
+        placeholder="Contraseña actual"
+        value={current}
+        onChange={(e) => setCurrent(e.target.value)}
+        className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background"
+      />
+      <input
+        type="password"
+        placeholder="Nueva contraseña (mín. 8 caracteres)"
+        value={next}
+        onChange={(e) => setNext(e.target.value)}
+        className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy || !current || next.length < 8}
+          onClick={() => void submit()}
+          className="flex-1 py-1.5 rounded bg-primary text-primary-foreground text-[11px] font-bold uppercase disabled:opacity-40"
+        >
+          Guardar
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-3 py-1.5 rounded border border-border text-[11px] font-bold uppercase"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = pathname === item.to;
   return (
     <Link
       to={item.to}
-      search={item.search}
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${
         active
           ? "bg-primary/10 text-primary"

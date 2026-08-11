@@ -40,21 +40,22 @@ export type NavItem = { label: string; to: string; adminOnly?: boolean };
 export function modulesForSession(session: SessionUser | null | undefined): NavItem[] {
   if (!session) return [];
   const base: NavItem[] = [
-    { label: "Bandeja Unificada", to: "/bandeja" },
+    { label: "Inicio", to: "/" },
+    { label: "Conversaciones", to: "/bandeja" },
     { label: "Chat interno", to: "/chat-interno" },
   ];
   if (isSupervisor(session)) {
     base.push(
-      { label: "Escalaciones", to: "/escalaciones" },
-      { label: "Gestión de Asignación", to: "/asignaciones" },
+      { label: "Casos escalados", to: "/escalaciones" },
+      { label: "Carga de trabajo", to: "/asignaciones" },
     );
   }
   if (session.role === "admin") {
     base.push(
-      { label: "Usuarios", to: "/usuarios", adminOnly: true },
-      { label: "Flujos n8n", to: "/flujos", adminOnly: true },
-      { label: "Campañas Masivas", to: "/campanas", adminOnly: true },
-      { label: "Auditoría & Logs", to: "/auditoria", adminOnly: true },
+      { label: "Agentes", to: "/usuarios", adminOnly: true },
+      { label: "Automatizaciones", to: "/flujos", adminOnly: true },
+      { label: "Campañas masivas", to: "/campanas", adminOnly: true },
+      { label: "Auditoría", to: "/auditoria", adminOnly: true },
     );
   }
   return base;

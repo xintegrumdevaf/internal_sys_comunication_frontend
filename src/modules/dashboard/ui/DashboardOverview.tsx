@@ -6,8 +6,11 @@ import { listConversations } from "@/modules/conversations/infrastructure/conver
 import { listAuditEvents } from "@/modules/audit/infrastructure/audit.gateway";
 import { relativeTime } from "@/shared/datetime";
 import type { AuditEventDto } from "@/modules/audit/domain/audit-event";
+import { auditActionLabel } from "@/modules/audit/domain/audit-event";
+import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import type { DashboardDto } from "@/modules/dashboard/domain/dashboard";
+import { departmentVisibilityLabel } from "@/modules/identity/domain/department";
 import { useDepartmentsQuery, useSession } from "@/modules/identity/application/use-session";
 
 export function DashboardOverview() {
@@ -27,9 +30,9 @@ export function DashboardOverview() {
   return (
     <>
       <section className="animate-fade-up mb-2 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground">
-        Datos en vivo de <code className="font-mono">isp-customer-service-api</code>. KPIs del
-        agente <span className="font-bold text-foreground">{session?.name}</span> (
-        {session?.roleLabel}).
+        Hola <span className="font-bold text-foreground">{session?.name}</span>, este es tu
+        resumen del día como {session?.roleLabel?.toLowerCase()}. Todo lo que ves aquí se
+        actualiza en tiempo real.
       </section>
 
       <section className="animate-fade-up">
@@ -37,7 +40,6 @@ export function DashboardOverview() {
           <h3 className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
             Mis indicadores
           </h3>
-          <span className="text-[10px] font-mono text-muted-foreground">GET /api/dashboard</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
@@ -70,7 +72,7 @@ export function DashboardOverview() {
             {conversations.slice(0, 20).map((c) => (
               <div key={c.id} className="p-4">
                 <div className="flex justify-between mb-1">
-                  <span className="text-xs font-bold">{c.waPhone}</span>
+                  <span className="text-xs font-bold">{conversationDisplayName(c)}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {relativeTime(c.lastActivityAt)}
                   </span>
@@ -98,16 +100,16 @@ export function DashboardOverview() {
               >
                 <div>
                   <p className="text-xs font-bold">{d.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{d.slug}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {departmentVisibilityLabel(d.visibility)}
+                  </p>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                    d.visibility === "shared"
-                      ? "bg-primary/10 text-primary"
-                      : "bg-warning/10 text-warning"
+                    d.active ? "bg-primary/10 text-primary" : "bg-foreground/5 text-muted-foreground"
                   }`}
                 >
-                  {d.visibility}
+                  {d.active ? "Activa" : "Inactiva"}
                 </span>
               </div>
             ))}
@@ -119,10 +121,10 @@ export function DashboardOverview() {
             <h3 className="text-xs font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2">
               <ShieldCheck className="size-3.5 text-primary" /> Auditoría reciente
             </h3>
-            <div className="space-y-1.5 text-[10px] font-mono">
+            <div className="space-y-1.5 text-[10px]">
               {audit.map((e) => (
                 <div key={e.id} className="flex justify-between py-1 border-b border-border/60 gap-2">
-                  <span className="text-muted-foreground truncate">{e.action}</span>
+                  <span className="text-muted-foreground truncate">{auditActionLabel(e.action)}</span>
                   <span className="text-primary font-bold shrink-0">
                     {relativeTime(e.createdAt)}
                   </span>
