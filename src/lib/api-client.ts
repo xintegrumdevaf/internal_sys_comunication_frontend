@@ -1,5 +1,22 @@
 import { getApiBaseUrl, resolveApiUrl } from "@/lib/api-base";
 
+/**
+ * Cliente HTTP contra isp-customer-service-api.
+ * Contrato real: casi todo responde `{ data: ... }`; errores `{ error: { type, message } }`
+ * (isp-customer-service-api/docs/API_ENDPOINTS.md). Ver docs/spec/00_OVERVIEW.md.
+ */
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly type?: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 function buildUrl(path: string, query?: Record<string, string | number | undefined>): string {
   const url = new URL(resolveApiUrl(path));
   if (query) {
@@ -12,29 +29,79 @@ function buildUrl(path: string, query?: Record<string, string | number | undefin
   return url.toString();
 }
 
-async function parseJson<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${text || res.statusText}`);
+async function parseEnvelope<T>(res: Response): Promise<T> {
+  if (res.status === 204) {
+    return undefined as T;
   }
-  return (await res.json()) as T;
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = text ? JSON.parse(text) : undefined;
+  } catch {
+    json = undefined;
+  }
+  if (!res.ok) {
+    const errorBody = json as { error?: { type?: string; message?: string } } | undefined;
+    const message = errorBody?.error?.message || res.statusText || `Error HTTP ${res.status}`;
+    throw new ApiError(message, res.status, errorBody?.error?.type);
+  }
+  const body = json as { data?: T } | undefined;
+  return (body?.data ?? (json as T)) as T;
 }
 
-export async function apiGet<T>(
-  path: string,
-  query?: Record<string, string | number | undefined>,
-): Promise<T> {
+export type RequestOptions = {
+  query?: Record<string, string | number | undefined>;
+  /** Identidad del agente actor — se envía como header x-agent-id cuando el contrato lo exige. */
+  agentId?: string | null;
+};
+
+function buildHeaders(agentId?: string | null): HeadersInit {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (agentId) headers["x-agent-id"] = agentId;
+  return headers;
+}
+
+export async function apiGet<T>(path: string, options?: RequestOptions): Promise<T> {
   void getApiBaseUrl(); // fail fast if unset
-  const res = await fetch(buildUrl(path, query));
-  return parseJson<T>(res);
+  const res = await fetch(buildUrl(path, options?.query), {
+    headers: buildHeaders(options?.agentId),
+  });
+  return parseEnvelope<T>(res);
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body?: unknown,
+  options?: RequestOptions,
+): Promise<T> {
   void getApiBaseUrl();
   const res = await fetch(resolveApiUrl(path), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders(options?.agentId),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  return parseJson<T>(res);
+  return parseEnvelope<T>(res);
+}
+
+export async function apiPut<T>(
+  path: string,
+  body?: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  void getApiBaseUrl();
+  const res = await fetch(resolveApiUrl(path), {
+    method: "PUT",
+    headers: buildHeaders(options?.agentId),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return parseEnvelope<T>(res);
+}
+
+export async function apiDelete<T>(path: string, options?: RequestOptions): Promise<T> {
+  void getApiBaseUrl();
+  const res = await fetch(resolveApiUrl(path), {
+    method: "DELETE",
+    headers: buildHeaders(options?.agentId),
+  });
+  return parseEnvelope<T>(res);
 }
