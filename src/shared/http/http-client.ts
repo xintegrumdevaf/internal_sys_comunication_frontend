@@ -105,6 +105,21 @@ export async function apiPut<T>(
   return parseEnvelope<T>(res);
 }
 
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  void getApiBaseUrl();
+  const res = await fetch(resolveApiUrl(path), {
+    method: "PATCH",
+    headers: buildHeaders(options?.agentId),
+    body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: "include",
+  });
+  return parseEnvelope<T>(res);
+}
+
 export async function apiDelete<T>(path: string, options?: RequestOptions): Promise<T> {
   void getApiBaseUrl();
   const res = await fetch(resolveApiUrl(path), {

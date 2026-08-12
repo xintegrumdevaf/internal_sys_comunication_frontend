@@ -73,7 +73,13 @@ src/
 │   │   ├── infrastructure/        dashboard.gateway.ts
 │   │   └── ui/                    DashboardOverview.tsx
 │   │
-│   └── internal-chat/             feature local (sin backend, ver docs/spec/02_MODULES.md)
+│   ├── quality/                   ← Etapa 9 UI (07_QUALITY_SUPERVISION.md); requiere backend Etapa 10
+│   │   ├── domain/                quality-review.ts (DTOs §8 de 01_DATA_MODEL.md)
+│   │   ├── application/           use-quality-board.ts, use-quality-review-detail.ts
+│   │   ├── infrastructure/        quality.gateway.ts
+│   │   └── ui/                    QualityBoard.tsx, QualityReviewDetail.tsx, CordialityBadge.tsx
+│   │
+│   └── internal-chat/             feature local (sin backend, ver docs/spec/02_MODULES.md); deep-link desde /calidad
 │       ├── domain/                internal-chat.ts, mention-parser.ts
 │       ├── application/           use-internal-chat.ts, build-mention-targets.ts
 │       ├── infrastructure/        internal-chat.store.ts (localStorage)
@@ -87,6 +93,7 @@ src/
 │   ├── bandeja.tsx                → OperationalInbox
 │   ├── escalaciones.tsx           → EscalationsBoard
 │   ├── asignaciones.tsx           → AssignmentBoard
+│   ├── calidad.tsx                → QualityBoard / detalle (manager|admin)
 │   ├── usuarios.tsx               → UsersDirectoryPanel
 │   ├── auditoria.tsx              → AuditLogView
 │   ├── flujos.tsx                 → N8nWorkflowCatalog

@@ -103,3 +103,22 @@ Ver `06_BACKEND_GAPS.md` — se agregan ahí a medida que se detectan, no se dej
 ## Desviación documentada: reestructuración hexagonal (Etapa 8)
 
 Las Etapas 0-7 se construyeron inicialmente con una estructura plana (`src/lib`, `src/hooks`, `src/components`, `src/adapters/http`) que funcionaba pero no reflejaba límites de módulo explícitos ni el mismo tratamiento arquitectónico que `isp-customer-service-api` (hexagonal, SOLID, `docs/skills/*`, tests por capa). En la Etapa 8 se migró todo el código de negocio a `src/modules/<feature>/{domain,application,infrastructure,ui}`, se consolidó la infraestructura compartida en `src/shared/`, y se agregó un runner de tests real (antes solo había scripts de verificación manual tipo `*.check.ts`). Motivo: pedido explícito de mantener el mismo nivel de rigor arquitectónico que el backend, con nombres de archivo/carpeta en inglés, principios SOLID/DRY aplicados de forma verificable (tests, no solo declarados en docs), y ningún archivo de la arquitectura anterior sobreviviendo sin justificación documentada.
+
+## Etapa 9 — Supervisión de calidad (`/calidad`)
+
+**Prerrequisito:** backend Etapa 10 (`/api/quality/*`) según `isp-customer-service-api/docs/spec/07_QUALITY_SUPERVISION.md` y `05_BUILD_PLAN.md` Etapa 10. Normativo UI: `docs/spec/07_QUALITY_SUPERVISION.md`.
+
+- Módulo `src/modules/quality/{domain,application,infrastructure,ui}` + ruta `routes/calidad.tsx`.
+- Access control: solo `manager`/`admin` en `access-control.ts` / nav.
+- Ranking (`GET /api/quality/agents`), lista y detalle de reviews, highlight de `finding.messageId`, coaching notes, mark reviewed, on-demand.
+- Deep-link a `/chat-interno?peerId=&qualityReviewId=` (chat sigue local).
+- Empty state honesto si el backend aún no expone los endpoints — **sin scores mock**.
+
+**Aprobación:**
+- Automatizado: access-control para `/calidad`; gateway quality (URLs/métodos); highlight de finding en detalle; parseo deep-link chat.
+- Manual: manager ve solo su alcance (backend); admin ve ranking global; detalle remarca mensajes; CTA chat abre peer correcto.
+- Los 4 comandos del criterio transversal limpios.
+
+## Etapa futura (no Etapa 9) — Chat interno staff persistente
+
+Cuando el backend exponga hilos/mensajes staff (documentado en backend `07` §8), migrar `internal-chat` de `localStorage` a API + realtime y enriquecer el deep-link desde calidad. Hasta entonces no inventar endpoints en el frontend.

@@ -23,7 +23,7 @@ export function canAccessDepartment(
 }
 
 const ADMIN_ONLY_PATHS = new Set(["/usuarios", "/flujos", "/auditoria", "/campanas"]);
-const SUPERVISOR_PATHS = new Set(["/escalaciones", "/asignaciones"]);
+const SUPERVISOR_PATHS = new Set(["/escalaciones", "/asignaciones", "/calidad"]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno"]);
 
 export function canAccessPath(session: SessionUser | null | undefined, pathname: string): boolean {
@@ -48,6 +48,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
     base.push(
       { label: "Casos escalados", to: "/escalaciones" },
       { label: "Carga de trabajo", to: "/asignaciones" },
+      { label: "Calidad", to: "/calidad" },
     );
   }
   if (session.role === "admin") {

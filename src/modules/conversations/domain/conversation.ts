@@ -76,6 +76,8 @@ export type MessageDto = {
   caseId: string | null;
   direction: MessageDirection;
   author: MessageAuthor;
+  /** Set en replies humanos (backend 07_QUALITY_SUPERVISION.md §6); null en inbound/ai/system. */
+  agentId: string | null;
   body: string;
   type: MessageType;
   createdAt: string;

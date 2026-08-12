@@ -76,16 +76,18 @@ describe("canAccessPath", () => {
     expect(canAccessPath(session, "/auditoria")).toBe(false);
   });
 
-  it("un agent no ve pantallas de supervisor (escalaciones/asignaciones)", () => {
+  it("un agent no ve pantallas de supervisor (escalaciones/asignaciones/calidad)", () => {
     const session = makeSession({ role: "agent" });
     expect(canAccessPath(session, "/escalaciones")).toBe(false);
     expect(canAccessPath(session, "/asignaciones")).toBe(false);
+    expect(canAccessPath(session, "/calidad")).toBe(false);
   });
 
-  it("un manager sí ve escalaciones/asignaciones pero no admin-only", () => {
+  it("un manager sí ve escalaciones/asignaciones/calidad pero no admin-only", () => {
     const session = makeSession({ role: "manager" });
     expect(canAccessPath(session, "/escalaciones")).toBe(true);
     expect(canAccessPath(session, "/asignaciones")).toBe(true);
+    expect(canAccessPath(session, "/calidad")).toBe(true);
     expect(canAccessPath(session, "/usuarios")).toBe(false);
   });
 
@@ -94,6 +96,7 @@ describe("canAccessPath", () => {
     expect(canAccessPath(session, "/usuarios")).toBe(true);
     expect(canAccessPath(session, "/flujos")).toBe(true);
     expect(canAccessPath(session, "/escalaciones")).toBe(true);
+    expect(canAccessPath(session, "/calidad")).toBe(true);
   });
 
   it("bandeja/chat-interno/dashboard son accesibles para cualquier rol autenticado", () => {
@@ -110,10 +113,11 @@ describe("modulesForSession", () => {
     expect(items).toEqual(["/", "/bandeja", "/chat-interno"]);
   });
 
-  it("manager suma escalaciones y asignaciones", () => {
+  it("manager suma escalaciones, asignaciones y calidad", () => {
     const items = modulesForSession(makeSession({ role: "manager" })).map((m) => m.to);
     expect(items).toContain("/escalaciones");
     expect(items).toContain("/asignaciones");
+    expect(items).toContain("/calidad");
     expect(items).not.toContain("/usuarios");
   });
 

@@ -108,7 +108,25 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 
 **Estado**: nombre — resuelto. Foto — cerrado permanentemente, documentado para no volver a investigarlo.
 
-## 6. Registro de cambios
+## 6. Chat interno staff persistente — pendiente (etapa futura)
+
+**Problema**: `/chat-interno` persiste solo en `localStorage` del navegador. No sincroniza entre dispositivos, no audita en servidor y no sirve como canal formal de coaching entre supervisor y agente.
+
+**Contexto de producto**: el panel de calidad (`07_QUALITY_SUPERVISION.md`) usa coaching híbrido MVP — notas estructuradas en API (`quality_coaching_note`) + deep-link al chat local. El chat persistente queda explícitamente **fuera** del MVP de calidad (backend Etapa 10 / front Etapa 9).
+
+**Propuesta (cuando se priorice)**: tablas `internal_thread` / `internal_message`, REST + realtime, deep-link desde `/calidad` abriendo hilo real con contexto `qualityReviewId`. Normativo backend: `07_QUALITY_SUPERVISION.md` §8.
+
+**Estado**: pendiente — no bloquea Etapa 9 del frontend ni Etapa 10 del backend de calidad.
+
+## 7. Endpoints de supervisión de calidad — contrato documentado (implementar en backend Etapa 10)
+
+**Problema**: el frontend Etapa 9 necesita `/api/quality/*` (agents ranking, reviews, notes). Hasta que el backend complete su Etapa 10, la UI debe mostrar empty state honesto.
+
+**Contrato**: ver backend `docs/spec/03_API_CONTRACT.md` §C y `07_QUALITY_SUPERVISION.md`.
+
+**Estado**: pendiente de implementación en backend; specs ya alineados en ambos repos.
+
+## 8. Registro de cambios
 
 | Fecha | Hueco agregado | Motivo |
 |---|---|---|
@@ -118,3 +136,4 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 | 2026-08-11 | Login con credenciales reales (§1.b) — **resuelto**: cookie httpOnly + Redis + argon2, hardening completo de todos los routers | Cierra el hueco de seguridad de fondo (cualquiera podía declararse cualquier agente por header) |
 | 2026-08-11 | Algoritmo de auto-asignación por departamento (§2) — **resuelto**, incluye cierre del hueco de "solo lectura" en reply/complete | Repartir automáticamente los casos escalados entre agentes disponibles, con posibilidad de reasignación manual siempre |
 | 2026-08-11 | Nombre de perfil de WhatsApp (§5) — **resuelto**; foto de perfil — limitación permanente de Meta, no implementable | Evitar mostrar solo el teléfono crudo en la bandeja; investigado a fondo antes de implementar para no prometer algo que la API de WhatsApp no permite |
+| 2026-08-12 | Chat interno persistente (§6) + endpoints quality (§7) | Requisito de supervisión de calidad / coaching; MVP usa notes API + chat local |

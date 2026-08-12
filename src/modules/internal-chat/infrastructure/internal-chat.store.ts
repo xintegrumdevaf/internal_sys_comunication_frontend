@@ -178,6 +178,9 @@ export function lastMessagePreview(threadId: string): string {
   const msgs = listMessages(threadId);
   const last = msgs[msgs.length - 1];
   if (!last) return "Sin mensajes";
+  if (last.body.includes("[[quality-review:")) {
+    return "Briefing de calidad";
+  }
   return last.body.replace(/@\[[^\]]+\]\([^)]+\)/g, (m) => {
     const label = m.match(/@\[([^\]]+)\]/)?.[1];
     return label ? `@${label}` : m;

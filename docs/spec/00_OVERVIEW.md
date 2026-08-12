@@ -2,18 +2,18 @@
 
 ## Frontend operativo para isp-customer-service-api (tipo Whaticket/Chatwoot, adaptado al negocio ISP)
 
-> Este paquete (`00` a `06`) es la fuente de verdad para reconstruir el frontend sobre el backend real `isp-customer-service-api`. Reemplaza el contrato mock anterior (`VITE_API_BASE_URL` + `/api/*` genérico) documentado implícitamente en el código previo de `src/adapters/http/`. El contrato normativo del backend vive en `isp-customer-service-api/docs/spec/00-03` y `docs/API_ENDPOINTS.md` — este paquete no lo repite completo, lo referencia.
+> Este paquete (`00` a `07`) es la fuente de verdad para reconstruir el frontend sobre el backend real `isp-customer-service-api`. Reemplaza el contrato mock anterior (`VITE_API_BASE_URL` + `/api/*` genérico) documentado implícitamente en el código previo de `src/adapters/http/`. El contrato normativo del backend vive en `isp-customer-service-api/docs/spec/00-03` y `docs/API_ENDPOINTS.md` — este paquete no lo repite completo, lo referencia.
 
 ## 1. Principio rector (heredado del backend, no negociable)
 
 ```
 API   → "¿Qué está pasando y qué debe ocurrir?"   → fuente de verdad, decide, persiste
-IA    → "¿Qué quiso decir el usuario?"             → interpreta, nunca gobierna el estado
+IA    → "¿Qué quiso decir / cómo fue la atención?" → interpreta o evalúa calidad, nunca gobierna el estado
 n8n   → "¿Cómo ejecuto esta integración?"          → ejecuta, nunca decide
-UI    → "¿Qué está pasando y quién lo atiende?"    → supervisa, interviene, reactiva
+UI    → "¿Qué está pasando, quién lo atiende y cómo atiende?" → supervisa operación y calidad humana, interviene, reactiva
 ```
 
-El frontend **nunca** decide negocio ni duplica estado: todo lo que se ve viene de una lectura al backend (REST o SSE), y toda acción del agente es una llamada a un endpoint real. Ningún dato de operación (conversaciones, mensajes, casos, escalaciones, agentes, departamentos, auditoría, dashboard) se simula ni se hardcodea en esta etapa.
+El frontend **nunca** decide negocio ni duplica estado: todo lo que se ve viene de una lectura al backend (REST o SSE), y toda acción del agente es una llamada a un endpoint real. Ningún dato de operación (conversaciones, mensajes, casos, escalaciones, agentes, departamentos, auditoría, dashboard, **calidad**) se simula ni se hardcodea en esta etapa.
 
 ## 2. Regla de identidad (login real con sesión de servidor)
 
@@ -40,7 +40,7 @@ flowchart LR
     GW["modules/*/infrastructure\n*.gateway.ts"]
     RT["modules/realtime/infrastructure\nrealtime.gateway.ts + realtime-bus.ts"]
     APP["modules/*/application\nuse-*.ts (casos de uso)"]
-    UI["modules/*/ui + routes/*\nBandeja, Caso, Escalaciones,\nAsignación, Admin n8n"]
+    UI["modules/*/ui + routes/*\nBandeja, Caso, Escalaciones,\nAsignación, Calidad, Admin n8n"]
     PENDING["usuarios.tsx\nformulario deshabilitado\n(pendiente backend)"]
 
     BE <-->|"REST JSON"| GW
@@ -58,12 +58,13 @@ Ver `docs/FOLDER_STRUCTURE.md` y `docs/skills/frontend-hexagonal-architecture.md
 | Doc | Contenido |
 |---|---|
 | `00_OVERVIEW.md` | Este documento |
-| `01_DATA_MODEL.md` | DTOs de frontend, `CaseContext` tipado, tipos locales (sesión, notificaciones) |
+| `01_DATA_MODEL.md` | DTOs de frontend, `CaseContext` tipado, tipos locales (sesión, notificaciones), DTOs de calidad |
 | `02_MODULES.md` | Mapeo módulo → ruta → endpoints; qué pantalla se adapta/reemplaza/elimina |
 | `03_REALTIME_NOTIFICATIONS.md` | Cliente SSE, catálogo de eventos → reacción UI, ventana de resumen de escalación |
 | `04_ASSIGNMENT_MANAGEMENT.md` | UI de gestión/monitoreo de carga y reasignación manual sobre endpoints reales |
 | `05_BUILD_PLAN.md` | Etapas de construcción, con criterios de aceptación |
-| `06_BACKEND_GAPS.md` | Huecos detectados en el backend (CRUD de agentes, algoritmo de auto-asignación) — documentados, no implementados aquí |
+| `06_BACKEND_GAPS.md` | Huecos detectados en el backend (CRUD de agentes, algoritmo de auto-asignación, chat interno persistente) — documentados, no implementados aquí |
+| `07_QUALITY_SUPERVISION.md` | Panel `/calidad`: ranking, reviews, highlight de mensajes, coaching híbrido + deep-link chat |
 
 Fuera de `docs/spec/` (normativo del backend a consumir), este paquete agrega:
 
@@ -78,8 +79,9 @@ Fuera de `docs/spec/` (normativo del backend a consumir), este paquete agrega:
 
 ## 6. No-negociables de este frontend
 
-- Sin datos mock/quemados en pantallas de operación (bandeja, casos, escalaciones, asignación, auditoría, dashboard).
+- Sin datos mock/quemados en pantallas de operación (bandeja, casos, escalaciones, asignación, auditoría, dashboard, calidad).
 - Ninguna acción de escritura se simula: si el endpoint no existe, la UI lo muestra explícitamente como pendiente (nunca oculta la limitación).
 - El cliente nunca inventa estados de `Case` fuera del catálogo real (`NEW/ACTIVE/WAITING_USER/PAUSED/ESCALATED/HUMAN_ACTIVE/COMPLETED/EXPIRED/CANCELLED`).
 - Visibilidad por defecto: cualquier agente lee (bandeja compartida); solo el `assignedAgentId` o un `manager/admin` de su departamento escribe.
+- Panel `/calidad` solo `manager`/`admin`; scores y findings solo desde `/api/quality/*` (nunca inventados en cliente).
 - Todo error de la API se muestra al agente de forma clara (nunca un `[object Object]` ni un stack trace).
