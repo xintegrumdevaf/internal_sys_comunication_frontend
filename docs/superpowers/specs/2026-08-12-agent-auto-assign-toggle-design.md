@@ -1,7 +1,7 @@
 # Asignación automática por agente (toggle en `/usuarios`)
 
 Fecha: 2026-08-12  
-Estado: pendiente de revisión del usuario antes del plan de implementación  
+Estado: aprobado — plan en `docs/superpowers/plans/2026-08-12-agent-auto-assign-toggle.md`  
 Alcance: **solo frontend** (contrato documentado para backend posterior)
 
 ## Problema
