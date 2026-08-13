@@ -15,6 +15,7 @@ function makeSession(overrides: Partial<SessionUser> = {}): SessionUser {
     departmentSlug: "support",
     departmentName: "Soporte técnico",
     roleLabel: "Agente · Soporte técnico",
+    autoAssignEnabled: false,
     landing: "/bandeja",
     ...overrides,
   };

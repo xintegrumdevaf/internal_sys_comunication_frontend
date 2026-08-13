@@ -1,6 +1,7 @@
 import { apiDelete, apiGet, apiPost, apiPut } from "@/shared/http/http-client";
 import type { AgentDto, AgentRole } from "@/modules/identity/domain/agent";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
+import { normalizeAgent } from "@/modules/identity/infrastructure/normalize-agent";
 
 export type CreateAgentPayload = {
   name: string;
@@ -9,7 +10,10 @@ export type CreateAgentPayload = {
   primaryDepartmentId?: string | null;
 };
 
-export type UpdateAgentPayload = Partial<CreateAgentPayload> & { active?: boolean };
+export type UpdateAgentPayload = Partial<CreateAgentPayload> & {
+  active?: boolean;
+  autoAssignEnabled?: boolean;
+};
 
 /**
  * La contrasena temporal solo viaja en la respuesta de create/reset-password
@@ -25,26 +29,31 @@ export type AgentWithTemporaryPassword = { agent: AgentDto; temporaryPassword: s
  * llama sea un agente con role=admin — verificado por el backend a partir
  * de la sesion real (cookie), no de algo que este cliente declare.
  */
-export function listAgents(): Promise<AgentDto[]> {
-  return apiGet<AgentDto[]>("/api/agents");
+export async function listAgents(): Promise<AgentDto[]> {
+  const agents = await apiGet<AgentDto[]>("/api/agents");
+  return agents.map((a) => normalizeAgent(a));
 }
 
 export function listDepartments(): Promise<DepartmentDto[]> {
   return apiGet<DepartmentDto[]>("/api/departments");
 }
 
-export function createAgent(payload: CreateAgentPayload): Promise<AgentWithTemporaryPassword> {
-  return apiPost<AgentWithTemporaryPassword>("/api/agents", payload);
+export async function createAgent(payload: CreateAgentPayload): Promise<AgentWithTemporaryPassword> {
+  const result = await apiPost<AgentWithTemporaryPassword>("/api/agents", payload);
+  return { ...result, agent: normalizeAgent(result.agent) };
 }
 
-export function updateAgent(agentId: string, payload: UpdateAgentPayload): Promise<AgentDto> {
-  return apiPut<AgentDto>(`/api/agents/${agentId}`, payload);
+export async function updateAgent(agentId: string, payload: UpdateAgentPayload): Promise<AgentDto> {
+  const agent = await apiPut<AgentDto>(`/api/agents/${agentId}`, payload);
+  return normalizeAgent(agent);
 }
 
-export function deactivateAgent(agentId: string): Promise<AgentDto> {
-  return apiDelete<AgentDto>(`/api/agents/${agentId}`);
+export async function deactivateAgent(agentId: string): Promise<AgentDto> {
+  const agent = await apiDelete<AgentDto>(`/api/agents/${agentId}`);
+  return normalizeAgent(agent);
 }
 
-export function resetAgentPassword(agentId: string): Promise<AgentWithTemporaryPassword> {
-  return apiPost<AgentWithTemporaryPassword>(`/api/agents/${agentId}/reset-password`);
+export async function resetAgentPassword(agentId: string): Promise<AgentWithTemporaryPassword> {
+  const result = await apiPost<AgentWithTemporaryPassword>(`/api/agents/${agentId}/reset-password`);
+  return { ...result, agent: normalizeAgent(result.agent) };
 }

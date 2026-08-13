@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from "@/shared/http/http-client";
 import type { AgentDto } from "@/modules/identity/domain/agent";
+import { normalizeAgent } from "@/modules/identity/infrastructure/normalize-agent";
 
 /**
  * Puerto de infraestructura para el login real (docs/spec/06_BACKEND_GAPS.md
@@ -7,8 +8,9 @@ import type { AgentDto } from "@/modules/identity/domain/agent";
  * el navegador la manda solo en cada request (`credentials: "include"` en
  * http-client.ts), nunca la maneja este codigo directamente.
  */
-export function login(email: string, password: string): Promise<AgentDto> {
-  return apiPost<AgentDto>("/api/auth/login", { email, password });
+export async function login(email: string, password: string): Promise<AgentDto> {
+  const agent = await apiPost<AgentDto>("/api/auth/login", { email, password });
+  return normalizeAgent(agent);
 }
 
 export function logout(): Promise<void> {
@@ -18,7 +20,8 @@ export function logout(): Promise<void> {
 /** Sesion actual segun la cookie real — null si no hay sesion (401/403). */
 export async function fetchCurrentAgent(): Promise<AgentDto | null> {
   try {
-    return await apiGet<AgentDto>("/api/auth/me");
+    const agent = await apiGet<AgentDto>("/api/auth/me");
+    return normalizeAgent(agent);
   } catch {
     return null;
   }

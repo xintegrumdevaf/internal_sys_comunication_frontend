@@ -18,6 +18,8 @@ export type SessionUser = {
   departmentSlug: string | null;
   departmentName: string | null;
   roleLabel: string;
+  /** Opt-in al pool de auto-asignación de su área principal. */
+  autoAssignEnabled: boolean;
   /** Ruta de aterrizaje segun el rol real del agente. */
   landing: string;
 };
@@ -54,6 +56,7 @@ export function toSessionUser(agent: AgentDto, departments: DepartmentDto[]): Se
     departmentSlug: department?.slug ?? null,
     departmentName: department?.name ?? null,
     roleLabel: roleLabel(agent.role, department?.name ?? null),
+    autoAssignEnabled: Boolean(agent.autoAssignEnabled),
     landing: agent.role === "agent" ? "/bandeja" : "/",
   };
 }

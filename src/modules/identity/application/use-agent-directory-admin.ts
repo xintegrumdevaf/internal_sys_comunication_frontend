@@ -59,6 +59,13 @@ export function useAgentDirectoryAdmin() {
   const updateAgent = (agentId: string, payload: UpdateAgentPayload) =>
     run("actualizar el agente", () => agentDirectoryGateway.updateAgent(agentId, payload), "Agente actualizado");
 
+  const setAutoAssign = (agentId: string, enabled: boolean) =>
+    run(
+      "actualizar la asignación automática",
+      () => agentDirectoryGateway.updateAgent(agentId, { autoAssignEnabled: enabled }),
+      enabled ? "Asignación automática activada" : "Asignación automática desactivada",
+    );
+
   const deactivateAgent = (agentId: string) =>
     run("desactivar el agente", () => agentDirectoryGateway.deactivateAgent(agentId), "Agente desactivado");
 
@@ -76,5 +83,5 @@ export function useAgentDirectoryAdmin() {
       "Contraseña restablecida",
     );
 
-  return { busy, createAgent, updateAgent, deactivateAgent, reactivateAgent, resetPassword };
+  return { busy, createAgent, updateAgent, setAutoAssign, deactivateAgent, reactivateAgent, resetPassword };
 }

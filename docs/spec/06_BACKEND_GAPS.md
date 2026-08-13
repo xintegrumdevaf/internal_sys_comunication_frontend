@@ -81,6 +81,22 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 
 **Estado**: resuelto.
 
+## 2.b Opt-in de auto-asignación por agente (`autoAssignEnabled`) — pendiente en backend
+
+**Problema**: el algoritmo de §2 incluye a todos los agentes activos del departamento. El admin necesita poder **excluir** agentes del pool sin desactivarlos (p. ej. jefes de área que no deben recibir carga automática).
+
+**Contrato que el frontend ya envía/espera** (spec `docs/superpowers/specs/2026-08-12-agent-auto-assign-toggle-design.md`):
+
+- Campo en `AgentDto`: `autoAssignEnabled: boolean` (default **`false`**).
+- `GET /api/agents` y auth responses deberían incluirlo; si falta, el FE trata como `false`.
+- `PUT /api/agents/:id` acepta `{ "autoAssignEnabled": true | false }` (parcial).
+- `POST /api/agents` puede omitirlo → persistir `false`.
+- `AutoAssignAgentService.pickAgentForDepartment` debe exigir `autoAssignEnabled === true` además de `active` y pertenencia al departamento.
+
+**UI**: en `/usuarios`, agentes agrupados por área con switch “Asignación automática” (solo área principal; deshabilitado si inactivo o sin área).
+
+**Estado**: resuelto en backend (`auto_assign_enabled`, `AutoAssignAgentService` filtra por flag). Frontend y backend alineados en el contrato `autoAssignEnabled`.
+
 ## 3. (Opcional, no bloqueante) Endpoint agregado de carga por departamento
 
 **Problema**: `/asignaciones` calcula la carga por agente agregando `GET /api/conversations` + `GET /api/cases/:id` en el cliente, lo que no escala bien con mucho volumen.
@@ -118,3 +134,4 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 | 2026-08-11 | Login con credenciales reales (§1.b) — **resuelto**: cookie httpOnly + Redis + argon2, hardening completo de todos los routers | Cierra el hueco de seguridad de fondo (cualquiera podía declararse cualquier agente por header) |
 | 2026-08-11 | Algoritmo de auto-asignación por departamento (§2) — **resuelto**, incluye cierre del hueco de "solo lectura" en reply/complete | Repartir automáticamente los casos escalados entre agentes disponibles, con posibilidad de reasignación manual siempre |
 | 2026-08-11 | Nombre de perfil de WhatsApp (§5) — **resuelto**; foto de perfil — limitación permanente de Meta, no implementable | Evitar mostrar solo el teléfono crudo en la bandeja; investigado a fondo antes de implementar para no prometer algo que la API de WhatsApp no permite |
+| 2026-08-12 | Opt-in `autoAssignEnabled` por agente (§2.b) — **resuelto** (FE + BE) | Admin controla quién entra al pool automático sin desactivar la cuenta |

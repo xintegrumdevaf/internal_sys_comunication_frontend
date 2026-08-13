@@ -22,6 +22,7 @@ function makeAgent(overrides: Partial<AgentDto> = {}): AgentDto {
     role: "agent",
     primaryDepartmentId: "dept_support",
     active: true,
+    autoAssignEnabled: false,
     createdAt: new Date().toISOString(),
     ...overrides,
   };
@@ -62,6 +63,13 @@ describe("toSessionUser", () => {
     expect(toSessionUser(makeAgent({ role: "agent" }), departments).landing).toBe("/bandeja");
     expect(toSessionUser(makeAgent({ role: "manager" }), departments).landing).toBe("/");
     expect(toSessionUser(makeAgent({ role: "admin" }), departments).landing).toBe("/");
+  });
+
+  it("preserva autoAssignEnabled desde el agente", () => {
+    expect(toSessionUser(makeAgent(), departments).autoAssignEnabled).toBe(false);
+    expect(toSessionUser(makeAgent({ autoAssignEnabled: true }), departments).autoAssignEnabled).toBe(
+      true,
+    );
   });
 });
 

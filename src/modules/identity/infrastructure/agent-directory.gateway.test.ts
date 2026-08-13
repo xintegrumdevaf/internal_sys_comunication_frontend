@@ -46,7 +46,18 @@ describe("agent-directory.gateway", () => {
   });
 
   it("createAgent hace POST a /api/agents y devuelve el agente + la contrasena temporal", async () => {
-    const fetchMock = mockFetchOnce({ agent: { id: "a1", name: "Ana" }, temporaryPassword: "abc123" });
+    const fetchMock = mockFetchOnce({
+      agent: {
+        id: "a1",
+        name: "Ana",
+        email: "ana@isp.local",
+        role: "agent",
+        primaryDepartmentId: null,
+        active: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      temporaryPassword: "abc123",
+    });
     const result = await createAgent({ name: "Ana", email: "ana@isp.local" });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
@@ -54,11 +65,21 @@ describe("agent-directory.gateway", () => {
     expect(init?.method).toBe("POST");
     expect(init?.credentials).toBe("include");
     expect(JSON.parse(init?.body as string)).toEqual({ name: "Ana", email: "ana@isp.local" });
-    expect(result).toEqual({ agent: { id: "a1", name: "Ana" }, temporaryPassword: "abc123" });
+    expect(result.temporaryPassword).toBe("abc123");
+    expect(result.agent.id).toBe("a1");
+    expect(result.agent.autoAssignEnabled).toBe(false);
   });
 
   it("updateAgent hace PUT a /api/agents/:id con el patch", async () => {
-    const fetchMock = mockFetchOnce({ id: "a1", name: "Ana Torres" });
+    const fetchMock = mockFetchOnce({
+      id: "a1",
+      name: "Ana Torres",
+      email: "ana@isp.local",
+      role: "agent",
+      primaryDepartmentId: null,
+      active: true,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
     await updateAgent("a1", { name: "Ana Torres" });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
@@ -66,8 +87,50 @@ describe("agent-directory.gateway", () => {
     expect(init?.method).toBe("PUT");
   });
 
+  it("updateAgent puede enviar autoAssignEnabled", async () => {
+    const fetchMock = mockFetchOnce({
+      id: "a1",
+      name: "Ana",
+      email: "ana@isp.local",
+      role: "agent",
+      primaryDepartmentId: "d1",
+      active: true,
+      autoAssignEnabled: true,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    const result = await updateAgent("a1", { autoAssignEnabled: true });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
+    expect(JSON.parse(init?.body as string)).toEqual({ autoAssignEnabled: true });
+    expect(result.autoAssignEnabled).toBe(true);
+  });
+
+  it("listAgents normaliza autoAssignEnabled ausente a false", async () => {
+    mockFetchOnce([
+      {
+        id: "a1",
+        name: "Ana",
+        email: "ana@isp.local",
+        role: "agent",
+        primaryDepartmentId: "d1",
+        active: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    const result = await listAgents();
+    expect(result[0]?.autoAssignEnabled).toBe(false);
+  });
+
   it("deactivateAgent hace DELETE a /api/agents/:id", async () => {
-    const fetchMock = mockFetchOnce({ id: "a1", active: false });
+    const fetchMock = mockFetchOnce({
+      id: "a1",
+      name: "Ana",
+      email: "ana@isp.local",
+      role: "agent",
+      primaryDepartmentId: null,
+      active: false,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
     await deactivateAgent("a1");
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
@@ -76,7 +139,18 @@ describe("agent-directory.gateway", () => {
   });
 
   it("resetAgentPassword hace POST a /api/agents/:id/reset-password", async () => {
-    const fetchMock = mockFetchOnce({ agent: { id: "a1" }, temporaryPassword: "xyz789" });
+    const fetchMock = mockFetchOnce({
+      agent: {
+        id: "a1",
+        name: "Ana",
+        email: "ana@isp.local",
+        role: "agent",
+        primaryDepartmentId: null,
+        active: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      temporaryPassword: "xyz789",
+    });
     const result = await resetAgentPassword("a1");
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];

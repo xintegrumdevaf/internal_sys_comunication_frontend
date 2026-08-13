@@ -8,5 +8,7 @@ export type AgentDto = {
   role: AgentRole;
   primaryDepartmentId: string | null;
   active: boolean;
+  /** Opt-in al pool de auto-asignación de su área principal. Default false. */
+  autoAssignEnabled: boolean;
   createdAt: string;
 };

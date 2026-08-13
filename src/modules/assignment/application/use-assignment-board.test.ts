@@ -37,6 +37,7 @@ const session: SessionUser = {
   departmentSlug: "support",
   departmentName: "Soporte técnico",
   roleLabel: "Jefe de área · Soporte técnico",
+  autoAssignEnabled: false,
   landing: "/",
 };
 

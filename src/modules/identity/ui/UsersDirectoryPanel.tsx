@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { Copy, KeyRound, Plus, ShieldCheck, UserX } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Copy, KeyRound, Plus, Search, ShieldCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
 import { useAgentDirectoryAdmin } from "@/modules/identity/application/use-agent-directory-admin";
-import type { AgentRole } from "@/modules/identity/domain/session";
+import { groupDirectoryByDepartment } from "@/modules/identity/application/group-directory-by-department";
+import type { AgentRole, SessionUser } from "@/modules/identity/domain/session";
+import { Switch } from "@/components/ui/switch";
 
 /**
  * Alta, edición y baja de agentes reales — conectado a
  * `POST/PUT/DELETE /api/agents` (docs/spec/06_BACKEND_GAPS.md §1, resuelto).
+ * Toggle de asignación automática por agente (docs/superpowers/specs/2026-08-12-agent-auto-assign-toggle-design.md).
  * Esta pantalla solo la ve un administrador (access-control.ts).
  */
 
@@ -29,17 +32,30 @@ function roleText(role: AgentRole): string {
 export function UsersDirectoryPanel() {
   const users = useDirectoryUsers();
   const { data: departments = [] } = useDepartmentsQuery();
-  const { busy, createAgent, updateAgent, deactivateAgent, reactivateAgent, resetPassword } =
+  const { busy, createAgent, updateAgent, setAutoAssign, deactivateAgent, reactivateAgent, resetPassword } =
     useAgentDirectoryAdmin();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [search, setSearch] = useState("");
+  const [pendingAutoAssignId, setPendingAutoAssignId] = useState<string | null>(null);
   const [temporaryPasswordFor, setTemporaryPasswordFor] = useState<{ name: string; password: string } | null>(
     null,
   );
 
-  const departmentName = (id: string | null) => departments.find((d) => d.id === id)?.name ?? "Sin área";
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+    );
+  }, [users, search]);
+
+  const sections = useMemo(
+    () => groupDirectoryByDepartment(filteredUsers, departments),
+    [filteredUsers, departments],
+  );
 
   const openCreate = () => {
     setEditingId(null);
@@ -99,6 +115,15 @@ export function UsersDirectoryPanel() {
     }
   };
 
+  const handleAutoAssign = async (user: SessionUser, enabled: boolean) => {
+    setPendingAutoAssignId(user.id);
+    try {
+      await setAutoAssign(user.id, enabled);
+    } finally {
+      setPendingAutoAssignId(null);
+    }
+  };
+
   const copyPassword = async (password: string) => {
     try {
       await navigator.clipboard.writeText(password);
@@ -116,8 +141,8 @@ export function UsersDirectoryPanel() {
         <div>
           <h2 className="text-sm font-bold">Agentes del sistema</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Aquí creas, editas y desactivas las cuentas de las personas que atienden a los
-            clientes. Los cambios se aplican de inmediato.
+            Agrupados por área. El switch de asignación automática indica si el agente entra al
+            pool de chats de su departamento (opt-in; por defecto desactivado).
           </p>
         </div>
         <button
@@ -128,6 +153,17 @@ export function UsersDirectoryPanel() {
           <Plus className="size-3.5" />
           Nuevo agente
         </button>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar agente"
+          className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+        />
       </div>
 
       {temporaryPasswordFor && (
@@ -229,7 +265,8 @@ export function UsersDirectoryPanel() {
           {!editingId && (
             <p className="text-[11px] text-muted-foreground bg-background rounded-md px-3 py-2">
               El sistema genera una contraseña temporal automáticamente al crear el agente — la
-              verás una sola vez justo después de guardar.
+              verás una sola vez justo después de guardar. La asignación automática queda
+              desactivada hasta que la actives en la lista.
             </p>
           )}
           <div className="flex gap-2">
@@ -252,96 +289,118 @@ export function UsersDirectoryPanel() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-background/60 border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-extrabold">Nombre</th>
-                <th className="px-4 py-3 font-extrabold">Correo</th>
-                <th className="px-4 py-3 font-extrabold">Área</th>
-                <th className="px-4 py-3 font-extrabold">Acceso</th>
-                <th className="px-4 py-3 font-extrabold">Estado</th>
-                <th className="px-4 py-3 font-extrabold text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {users.map((u) => (
-                <tr key={u.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="size-7 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold">
-                        {u.initials}
-                      </span>
-                      <span className="font-semibold">{u.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{u.email}</td>
-                  <td className="px-4 py-3">{departmentName(u.primaryDepartmentId)}</td>
-                  <td className="px-4 py-3">{roleText(u.role)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        u.active
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {u.active ? "Activo" : "Inactivo"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(u.id)}
-                        className="px-2 py-1 rounded border border-border text-[10px] font-bold uppercase hover:bg-muted"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void handleResetPassword(u.id, u.name)}
-                        title="Genera una contraseña temporal nueva para esta persona"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-[10px] font-bold uppercase hover:bg-muted disabled:opacity-40"
-                      >
-                        <KeyRound className="size-3" />
-                        Restablecer
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void toggleActive(u.id, u.active)}
-                        title={
-                          u.active
-                            ? "La persona ya no podrá iniciar sesión ni recibir conversaciones nuevas"
-                            : "Vuelve a permitir que inicie sesión y reciba conversaciones"
-                        }
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[10px] font-bold uppercase disabled:opacity-40 ${
-                          u.active
-                            ? "border-danger/30 text-danger hover:bg-danger/10"
-                            : "border-primary/30 text-primary hover:bg-primary/10"
-                        }`}
-                      >
-                        <UserX className="size-3" />
-                        {u.active ? "Desactivar" : "Reactivar"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {users.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                    Sin agentes — crea el primero con el botón "Nuevo agente".
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {sections.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+          {users.length === 0
+            ? 'Sin agentes — crea el primero con el botón "Nuevo agente".'
+            : "Ningún agente coincide con la búsqueda."}
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          {sections.map((section) => (
+            <div key={section.departmentId ?? "none"} className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="flex items-center justify-between gap-2 border-b border-border bg-background/60 px-4 py-2.5">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest">{section.title}</h3>
+                <span className="text-[10px] font-bold text-muted-foreground">
+                  {section.users.length} {section.users.length === 1 ? "agente" : "agentes"}
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-extrabold">Nombre</th>
+                      <th className="px-4 py-3 font-extrabold">Correo</th>
+                      <th className="px-4 py-3 font-extrabold">Acceso</th>
+                      <th className="px-4 py-3 font-extrabold">Estado</th>
+                      <th className="px-4 py-3 font-extrabold">Asignación automática</th>
+                      <th className="px-4 py-3 font-extrabold text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {section.users.map((u) => {
+                      const canToggleAutoAssign = Boolean(u.active && u.primaryDepartmentId);
+                      const switchBusy = busy || pendingAutoAssignId === u.id;
+                      return (
+                        <tr key={u.id} className="hover:bg-muted/30">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="size-7 rounded-full bg-primary/15 text-primary grid place-items-center text-[10px] font-bold">
+                                {u.initials}
+                              </span>
+                              <span className="font-semibold">{u.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">{u.email}</td>
+                          <td className="px-4 py-3">{roleText(u.role)}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                u.active
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {u.active ? "Activo" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Switch
+                              checked={u.autoAssignEnabled}
+                              disabled={!canToggleAutoAssign || switchBusy}
+                              onCheckedChange={(checked) => void handleAutoAssign(u, checked)}
+                              aria-label={`Asignación automática para ${u.name}`}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(u.id)}
+                                className="px-2 py-1 rounded border border-border text-[10px] font-bold uppercase hover:bg-muted"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleResetPassword(u.id, u.name)}
+                                title="Genera una contraseña temporal nueva para esta persona"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-[10px] font-bold uppercase hover:bg-muted disabled:opacity-40"
+                              >
+                                <KeyRound className="size-3" />
+                                Restablecer
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void toggleActive(u.id, u.active)}
+                                title={
+                                  u.active
+                                    ? "La persona ya no podrá iniciar sesión ni recibir conversaciones nuevas"
+                                    : "Vuelve a permitir que inicie sesión y reciba conversaciones"
+                                }
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[10px] font-bold uppercase disabled:opacity-40 ${
+                                  u.active
+                                    ? "border-danger/30 text-danger hover:bg-danger/10"
+                                    : "border-primary/30 text-primary hover:bg-primary/10"
+                                }`}
+                              >
+                                <UserX className="size-3" />
+                                {u.active ? "Desactivar" : "Reactivar"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
