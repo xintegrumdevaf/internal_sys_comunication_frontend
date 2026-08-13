@@ -69,6 +69,7 @@ export type MessageDto = {
   caseId: string | null;
   direction: MessageDirection;
   author: MessageAuthor;
+  agentId: string | null;  // set en replies humanos (backend 07_QUALITY_SUPERVISION.md §6); null en inbound/ai/system
   body: string;
   type: MessageType;
   createdAt: string;
@@ -262,7 +263,71 @@ export type RealtimeEvent =
   | { type: "AUTOMATION_ENABLED"; caseId: string };
 ```
 
-## 8. Tipos locales de frontend (sin equivalente backend, uso interno de UI)
+## 8. Calidad de atención humana (backend Etapa 10 / `07_QUALITY_SUPERVISION.md`)
+
+Calcados 1:1 de `03_API_CONTRACT.md` §C.4 del backend. Viven en `modules/quality/domain/`.
+
+```ts
+export type AgentQualityStatsDto = {
+  agentId: string;
+  agentName: string;
+  departmentId: string | null;
+  casesCompleted: number;
+  avgCordialityScore: number | null;
+  criticalReviewCount: number;
+  avgFirstHumanReplyMs: number | null;
+};
+
+export type QualityFindingSeverity = "low" | "medium" | "high";
+export type QualityFindingCategory =
+  | "aggression"
+  | "disrespect"
+  | "neglect"
+  | "misinformation"
+  | "inefficiency"
+  | "other";
+
+export type QualityFindingDto = {
+  id: string;
+  messageId: string;
+  severity: QualityFindingSeverity;
+  category: QualityFindingCategory;
+  excerpt: string;
+  rationale: string;
+};
+
+export type QualityCoachingNoteDto = {
+  id: string;
+  reviewId: string;
+  authorAgentId: string;
+  body: string;
+  ackStatus: "open" | "acknowledged";
+  acknowledgedAt: string | null;
+  createdAt: string;
+};
+
+export type QualityReviewStatus = "pending" | "ready" | "failed" | "reviewed";
+export type QualityReviewTrigger = "auto_case_closed" | "on_demand";
+
+export type QualityReviewDto = {
+  id: string;
+  conversationId: string;
+  caseId: string;
+  agentId: string;
+  departmentId: string | null;
+  cordialityScore: number | null;
+  efficiencyNotes: string | null;
+  status: QualityReviewStatus;
+  trigger: QualityReviewTrigger;
+  summary: string | null;
+  findings: QualityFindingDto[];
+  notes: QualityCoachingNoteDto[];
+  createdAt: string;
+  completedAt: string | null;
+};
+```
+
+## 9. Tipos locales de frontend (sin equivalente backend, uso interno de UI)
 
 ```ts
 /** Sesión activa en este navegador — id = AgentDto.id real, sin capa puente. */

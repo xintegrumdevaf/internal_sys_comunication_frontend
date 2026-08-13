@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AsignacionesRouteImport } from './routes/asignaciones'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as BandejaRouteImport } from './routes/bandeja'
+import { Route as CalidadRouteImport } from './routes/calidad'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as ChatInternoRouteImport } from './routes/chat-interno'
 import { Route as EscalacionesRouteImport } from './routes/escalaciones'
@@ -38,6 +39,11 @@ const AuditoriaRoute = AuditoriaRouteImport.update({
 const BandejaRoute = BandejaRouteImport.update({
   id: '/bandeja',
   path: '/bandeja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalidadRoute = CalidadRouteImport.update({
+  id: '/calidad',
+  path: '/calidad',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampanasRoute = CampanasRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
+  '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/escalaciones': typeof EscalacionesRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
+  '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/escalaciones': typeof EscalacionesRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
+  '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/escalaciones': typeof EscalacionesRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
+    | '/calidad'
     | '/campanas'
     | '/chat-interno'
     | '/escalaciones'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
+    | '/calidad'
     | '/campanas'
     | '/chat-interno'
     | '/escalaciones'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
+    | '/calidad'
     | '/campanas'
     | '/chat-interno'
     | '/escalaciones'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   AsignacionesRoute: typeof AsignacionesRoute
   AuditoriaRoute: typeof AuditoriaRoute
   BandejaRoute: typeof BandejaRoute
+  CalidadRoute: typeof CalidadRoute
   CampanasRoute: typeof CampanasRoute
   ChatInternoRoute: typeof ChatInternoRoute
   EscalacionesRoute: typeof EscalacionesRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/bandeja'
       fullPath: '/bandeja'
       preLoaderRoute: typeof BandejaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calidad': {
+      id: '/calidad'
+      path: '/calidad'
+      fullPath: '/calidad'
+      preLoaderRoute: typeof CalidadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campanas': {
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   AsignacionesRoute: AsignacionesRoute,
   AuditoriaRoute: AuditoriaRoute,
   BandejaRoute: BandejaRoute,
+  CalidadRoute: CalidadRoute,
   CampanasRoute: CampanasRoute,
   ChatInternoRoute: ChatInternoRoute,
   EscalacionesRoute: EscalacionesRoute,

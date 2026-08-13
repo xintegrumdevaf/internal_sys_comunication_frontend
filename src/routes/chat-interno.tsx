@@ -3,15 +3,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AtSign, MessagesSquare } from "lucide-react";
 import { AppShell } from "@/app/shell/AppShell";
 import { InternalChatShell } from "@/modules/internal-chat/ui/InternalChatShell";
+import { parseInternalChatDeepLink } from "@/modules/internal-chat/domain/deep-link";
 import { isSupervisorSession } from "@/modules/identity/application/access-control";
 import { useSession } from "@/modules/identity/application/use-session";
 
+type ChatInternoSearch = {
+  peerId?: string;
+  qualityReviewId?: string;
+};
+
 export const Route = createFileRoute("/chat-interno")({
+  validateSearch: (search: Record<string, unknown>): ChatInternoSearch =>
+    parseInternalChatDeepLink(search),
   component: ChatInternoPage,
 });
 
 function ChatInternoPage() {
   const session = useSession();
+  const deepLink = Route.useSearch();
   const [mentionsOpen, setMentionsOpen] = useState(false);
   const supervisor = isSupervisorSession(session);
 
@@ -21,6 +30,8 @@ function ChatInternoPage() {
         <p>
           Conversaciones 1:1 entre agentes. Las menciones de casos son privadas:{" "}
           <span className="font-bold text-foreground">el cliente no las ve</span>.
+          {" "}
+          <span className="italic">Solo en este navegador (localStorage).</span>
         </p>
         {supervisor && (
           <button
@@ -36,6 +47,8 @@ function ChatInternoPage() {
       <InternalChatShell
         mentionsOpen={mentionsOpen}
         onMentionsOpenChange={setMentionsOpen}
+        initialPeerId={deepLink.peerId}
+        initialQualityReviewId={deepLink.qualityReviewId}
       />
     </AppShell>
   );

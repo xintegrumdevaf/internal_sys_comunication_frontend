@@ -11,15 +11,29 @@ import { isSupervisorSession } from "@/modules/identity/application/access-contr
 import { useDirectoryUsers } from "@/modules/identity/application/use-session";
 import { detectAtQuery, insertMentionAt } from "@/modules/internal-chat/domain/mention-parser";
 import { targetsFromConversations } from "@/modules/internal-chat/application/build-mention-targets";
+import {
+  qualityFindingsChatMessage,
+  qualityReviewMessageMarker,
+} from "@/modules/internal-chat/domain/deep-link";
 import type { Mention, MentionTarget } from "@/modules/internal-chat/domain/internal-chat";
+import {
+  listMessages,
+  sendInternalMessage,
+} from "@/modules/internal-chat/infrastructure/internal-chat.store";
+import { getQualityReview } from "@/modules/quality/infrastructure/quality.gateway";
 import { toast } from "sonner";
 
 export function InternalChatShell({
   mentionsOpen,
   onMentionsOpenChange,
+  initialPeerId,
+  initialQualityReviewId,
 }: {
   mentionsOpen: boolean;
   onMentionsOpenChange: (open: boolean) => void;
+  /** Deep-link desde /calidad (07_QUALITY_SUPERVISION.md §5). */
+  initialPeerId?: string;
+  initialQualityReviewId?: string;
 }) {
   const navigate = useNavigate();
   const directory = useDirectoryUsers();
@@ -42,6 +56,7 @@ export function InternalChatShell({
   const [caret, setCaret] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const deepLinkApplied = useRef(false);
 
   const supervisor = isSupervisorSession(session);
 
@@ -62,6 +77,47 @@ export function InternalChatShell({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
+
+  // Deep-link calidad → mensaje real en el hilo (sin panel ni draft).
+  useEffect(() => {
+    if (!session || deepLinkApplied.current) return;
+    if (!initialPeerId && !initialQualityReviewId) return;
+    deepLinkApplied.current = true;
+
+    void (async () => {
+      try {
+        let peerId = initialPeerId;
+        let review = null as Awaited<ReturnType<typeof getQualityReview>> | null;
+
+        if (initialQualityReviewId) {
+          review = await getQualityReview(initialQualityReviewId);
+          peerId = peerId || review.agentId;
+        }
+
+        if (!peerId) return;
+        const thread = openThreadWith(peerId);
+        if (!thread) return;
+
+        setDraft("");
+
+        if (!review) return;
+
+        const marker = qualityReviewMessageMarker(review.id);
+        const already = listMessages(thread.id).some((m) => m.body.includes(marker));
+        if (already) return;
+
+        sendInternalMessage({
+          threadId: thread.id,
+          authorId: session.id,
+          body: qualityFindingsChatMessage(review),
+          mentions: [],
+        });
+        toast.success("Hallazgos publicados en el chat con el agente");
+      } catch {
+        toast.error("No se pudo publicar el briefing de calidad en el chat");
+      }
+    })();
+  }, [session, initialPeerId, initialQualityReviewId, openThreadWith]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -183,16 +239,20 @@ export function InternalChatShell({
             {messages.map((m) => {
               const mine = m.authorId === session.id;
               const author = directory.find((u) => u.id === m.authorId);
+              const isQualityBrief = m.body.includes("[[quality-review:");
+              const displayBody = m.body.replace(/\[\[quality-review:[^\]]+\]\]\n?/g, "");
               return (
                 <div
                   key={m.id}
                   className={`flex ${mine ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
-                      mine
-                        ? "bg-sky-600 text-white rounded-br-md"
-                        : "bg-background border border-border rounded-bl-md"
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-sm whitespace-pre-wrap ${
+                      isQualityBrief
+                        ? "bg-amber-50 border border-amber-200 text-foreground rounded-br-md dark:bg-amber-950/40 dark:border-amber-800"
+                        : mine
+                          ? "bg-sky-600 text-white rounded-br-md"
+                          : "bg-background border border-border rounded-bl-md"
                     }`}
                   >
                     {!mine && (
@@ -200,9 +260,20 @@ export function InternalChatShell({
                         {author?.name ?? m.authorId}
                       </p>
                     )}
-                    <div className={mine ? "[&_button]:text-white [&_button]:bg-white/20 [&_button:hover]:bg-white/30 [&_.text-sky-700]:text-sky-100 [&_.text-sky-800]:text-white" : ""}>
+                    {isQualityBrief && (
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800 dark:text-amber-200 mb-2">
+                        Briefing de calidad
+                      </p>
+                    )}
+                    <div
+                      className={
+                        mine && !isQualityBrief
+                          ? "[&_button]:text-white [&_button]:bg-white/20 [&_button:hover]:bg-white/30 [&_.text-sky-700]:text-sky-100 [&_.text-sky-800]:text-white"
+                          : ""
+                      }
+                    >
                       <MessageBodyWithMentions
-                        body={m.body}
+                        body={displayBody}
                         mentions={m.mentions}
                         targets={targets}
                         onOpenConversation={openCase}
@@ -210,7 +281,7 @@ export function InternalChatShell({
                     </div>
                     <p
                       className={`text-[10px] mt-1 ${
-                        mine ? "text-white/70" : "text-muted-foreground"
+                        mine && !isQualityBrief ? "text-white/70" : "text-muted-foreground"
                       }`}
                     >
                       {new Date(m.createdAt).toLocaleTimeString("es-CO", {
