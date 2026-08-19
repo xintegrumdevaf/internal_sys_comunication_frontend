@@ -19,8 +19,8 @@ export default defineConfig({
     },
   },
   server: {
-    host: "::",
+    host: '0.0.0.0',
     port: 8080,
-    allowedHosts: [".ngrok-free.dev", ".ngrok-free.app", ".ngrok.io", ".ngrok.app"],
+    allowedHosts: [".ngrok-free.dev", ".ngrok-free.app", ".ngrok.io", ".ngrok.app", '5pwtzqcz0withrg0lapl8s4o.2.24.85.141.sslip.io', '2.24.85.141'],
   },
 });
