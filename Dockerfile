@@ -1,8 +1,7 @@
-# Build stage
-FROM node:20-alpine AS build
+FROM node:22-alpine
 
-# Habilitar pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Habilitar pnpm con versión compatible
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 
 WORKDIR /app
 
@@ -15,16 +14,8 @@ RUN pnpm install --frozen-lockfile
 # Copiar el resto del código
 COPY . .
 
-# Compilar la aplicación (genera el directorio .output)
+# Compilar la aplicación (genera el directorio dist)
 RUN pnpm build
-
-# Runner stage
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-# Copiar la build de producción generada por TanStack Start / Nitro
-COPY --from=build /app/.output ./.output
 
 # Variables de entorno para producción
 ENV NODE_ENV=production
@@ -33,5 +24,5 @@ ENV HOST=0.0.0.0
 
 EXPOSE 8080
 
-# Comando para iniciar la aplicación usando el entrypoint de Nitro
-CMD ["node", ".output/server/index.mjs"]
+# Comando para iniciar la aplicación usando vite preview
+CMD ["pnpm", "preview", "--port", "8080", "--host", "0.0.0.0"]
