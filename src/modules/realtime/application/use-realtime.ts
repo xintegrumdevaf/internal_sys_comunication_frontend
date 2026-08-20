@@ -48,7 +48,16 @@ export function useRealtimeSession(userId: string | null): void {
         }
       } else if (event.type === "MESSAGE_RECEIVED") {
         if (document.visibilityState === "hidden" && Notification.permission === "granted") {
-          new Notification("Nuevo mensaje", { body: "Tienes un nuevo mensaje en una de tus conversaciones." });
+          const author = event.authorName || "Cliente";
+          const body = event.bodyPreview || "Tienes un nuevo mensaje";
+          const notification = new Notification(`Nuevo mensaje de ${author}`, {
+            body: body,
+            tag: event.conversationId, // Agrupa múltiples mensajes del mismo chat
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+          };
         }
       }
     });
