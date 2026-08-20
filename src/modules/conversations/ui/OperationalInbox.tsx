@@ -248,11 +248,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 key={tab.value}
                 type="button"
                 onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${
-                  statusFilter === tab.value
+                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${statusFilter === tab.value
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -276,11 +275,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           <button
             type="button"
             onClick={() => setDepartmentId(undefined)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-              !departmentId
+            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${!departmentId
                 ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                 : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-            }`}
+              }`}
           >
             Todas
           </button>
@@ -289,11 +287,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               key={d.id}
               type="button"
               onClick={() => setDepartmentId(d.id)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                departmentId === d.id
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${departmentId === d.id
                   ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                   : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-              }`}
+                }`}
             >
               {d.name}
             </button>
@@ -343,9 +340,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <button
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className={`w-full text-left p-3 transition-colors flex gap-3 ${
-                    active ? "bg-primary/5 border-l-4 border-primary" : "hover:bg-foreground/5 border-l-4 border-transparent"
-                  }`}
+                  className={`w-full text-left p-3 transition-colors flex gap-3 ${active ? "bg-primary/5 border-l-4 border-primary" : "hover:bg-foreground/5 border-l-4 border-transparent"
+                    }`}
                 >
                   <ConversationAvatar conversation={c} />
                   <div className="min-w-0 flex-1">
@@ -388,9 +384,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
 
         {/* Hilo de conversación */}
         <div
-          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full transition-[grid-column] ${
-            detailsOpen ? "lg:col-span-5" : "lg:col-span-8"
-          }`}
+          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full transition-[grid-column] ${detailsOpen ? "lg:col-span-5" : "lg:col-span-8"
+            }`}
         >
           {selected ? (
             <>
@@ -409,11 +404,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <div className="flex items-center gap-2 shrink-0">
                   {assignedAgentName && (
                     <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${
-                        isAssignedToMe
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${isAssignedToMe
                           ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                           : "bg-foreground/5 text-muted-foreground ring-1 ring-border"
-                      }`}
+                        }`}
                       title={isAssignedToOther ? "Solo esta persona puede responder" : undefined}
                     >
                       {isAssignedToMe ? (
@@ -454,11 +448,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                         ? "Ocultar los datos del cliente y del caso"
                         : "Ver los datos del cliente y del caso"
                     }
-                    className={`inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full font-bold transition ${
-                      detailsOpen
+                    className={`inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full font-bold transition ${detailsOpen
                         ? "bg-primary text-primary-foreground shadow-sm hover:brightness-95"
                         : "border border-border hover:bg-foreground/5"
-                    }`}
+                      }`}
                   >
                     {detailsOpen ? (
                       <PanelRightClose className="size-3.5" />
@@ -499,17 +492,15 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       <div className={`flex items-end gap-2 mb-2 ${fromCustomer ? "justify-start" : "justify-end"}`}>
                         {fromCustomer && <MessageAvatar author={m.author} conversation={selected} />}
                         <div
-                          className={`max-w-[70%] px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm ${
-                            fromCustomer
+                          className={`max-w-[70%] px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm ${fromCustomer
                               ? "bg-card border border-border rounded-bl-md"
                               : "bg-primary text-primary-foreground rounded-br-md"
-                          }`}
+                            }`}
                         >
                           {showSenderLabel && (
                             <p
-                              className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${
-                                fromCustomer ? "text-muted-foreground" : "text-primary-foreground/75"
-                              }`}
+                              className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${fromCustomer ? "text-muted-foreground" : "text-primary-foreground/75"
+                                }`}
                             >
                               {fromCustomer
                                 ? conversationDisplayName(selected)
@@ -520,9 +511,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           )}
                           <MessageMediaBody message={m} />
                           <div
-                            className={`flex items-center justify-end gap-1 mt-1.5 ${
-                              fromCustomer ? "text-muted-foreground" : "text-primary-foreground/80"
-                            }`}
+                            className={`flex items-center justify-end gap-1 mt-1.5 ${fromCustomer ? "text-muted-foreground" : "text-primary-foreground/80"
+                              }`}
                           >
                             <span className="text-[10px] tabular-nums">{messageClock(m.createdAt)}</span>
                             {!fromCustomer && <CheckCheck className="size-3.5 opacity-80" />}
@@ -575,12 +565,12 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   </button>
                 </div>
               )}
-              <div className="shrink-0 max-h-[40%] overflow-y-auto">
+              {/* <div className="shrink-0 max-h-[40%] overflow-y-auto">
                 <InboxInternalNoteComposer
                   conversation={selected}
                   assignedAgentId={activeCase?.assignedAgentId}
                 />
-              </div>
+              </div> */}
             </>
           ) : (
             <div className="flex-1 grid place-items-center text-center px-6">
@@ -644,9 +634,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
         onClaim={
           activeCase?.assignedAgentId == null
             ? () => {
-                void claim();
-                setSummaryOpen(false);
-              }
+              void claim();
+              setSummaryOpen(false);
+            }
             : undefined
         }
         claimDisabled={busy}

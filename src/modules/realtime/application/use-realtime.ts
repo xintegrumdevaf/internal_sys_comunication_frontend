@@ -22,6 +22,9 @@ import {
  */
 export function useRealtimeSession(userId: string | null): void {
   useEffect(() => {
+    if (userId && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
     ensureRealtimeConnection(userId);
     wireNotifications(userId);
   }, [userId]);
@@ -33,10 +36,20 @@ export function useRealtimeSession(userId: string | null): void {
         toast.warning("Caso escalado a humano", {
           description: `Conversación ${event.conversationId.slice(0, 8)}… requiere atención`,
         });
+        if (document.visibilityState === "hidden" && Notification.permission === "granted") {
+          new Notification("Caso escalado a humano", { body: "Una conversación requiere atención en la plataforma." });
+        }
       } else if (event.type === "HUMAN_ASSIGNED" && event.agentUserId === userId) {
         toast.success("Se te asignó un caso", {
           description: `Caso ${event.caseId.slice(0, 8)}… ahora es tuyo`,
         });
+        if (document.visibilityState === "hidden" && Notification.permission === "granted") {
+          new Notification("Se te asignó un nuevo caso", { body: "Tienes un caso asignado listo para atender." });
+        }
+      } else if (event.type === "MESSAGE_RECEIVED") {
+        if (document.visibilityState === "hidden" && Notification.permission === "granted") {
+          new Notification("Nuevo mensaje", { body: "Tienes un nuevo mensaje en una de tus conversaciones." });
+        }
       }
     });
   }, [userId]);
