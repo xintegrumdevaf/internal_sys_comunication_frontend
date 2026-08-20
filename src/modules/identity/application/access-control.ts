@@ -22,7 +22,7 @@ export function canAccessDepartment(
   return session.primaryDepartmentId === department.id;
 }
 
-const ADMIN_ONLY_PATHS = new Set(["/usuarios", "/flujos", "/auditoria", "/campanas"]);
+const ADMIN_ONLY_PATHS = new Set(["/usuarios", "/departamentos", "/flujos", "/auditoria", "/campanas"]);
 const SUPERVISOR_PATHS = new Set(["/escalaciones", "/asignaciones", "/calidad"]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno"]);
 
@@ -54,6 +54,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   if (session.role === "admin") {
     base.push(
       { label: "Agentes", to: "/usuarios", adminOnly: true },
+      { label: "Departamentos", to: "/departamentos", adminOnly: true },
       { label: "Automatizaciones", to: "/flujos", adminOnly: true },
       { label: "Campañas masivas", to: "/campanas", adminOnly: true },
       { label: "Auditoría", to: "/auditoria", adminOnly: true },

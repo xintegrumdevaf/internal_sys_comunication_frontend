@@ -10,6 +10,17 @@ export type CreateAgentPayload = {
   primaryDepartmentId?: string | null;
 };
 
+export type CreateDepartmentPayload = {
+  name: string;
+  slug: string;
+  visibility: "shared" | "restricted";
+};
+
+export type UpdateDepartmentPayload = Partial<CreateDepartmentPayload> & {
+  active?: boolean;
+};
+
+
 export type UpdateAgentPayload = Partial<CreateAgentPayload> & {
   active?: boolean;
   autoAssignEnabled?: boolean;
@@ -57,3 +68,16 @@ export async function resetAgentPassword(agentId: string): Promise<AgentWithTemp
   const result = await apiPost<AgentWithTemporaryPassword>(`/api/agents/${agentId}/reset-password`);
   return { ...result, agent: normalizeAgent(result.agent) };
 }
+
+export async function createDepartment(payload: CreateDepartmentPayload): Promise<DepartmentDto> {
+  return apiPost<DepartmentDto>("/api/departments", payload);
+}
+
+export async function updateDepartment(departmentId: string, payload: UpdateDepartmentPayload): Promise<DepartmentDto> {
+  return apiPut<DepartmentDto>(`/api/departments/${departmentId}`, payload);
+}
+
+export async function deactivateDepartment(departmentId: string): Promise<DepartmentDto> {
+  return apiDelete<DepartmentDto>(`/api/departments/${departmentId}`);
+}
+

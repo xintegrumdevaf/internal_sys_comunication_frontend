@@ -16,6 +16,7 @@ import { Route as BandejaRouteImport } from './routes/bandeja'
 import { Route as CalidadRouteImport } from './routes/calidad'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as ChatInternoRouteImport } from './routes/chat-interno'
+import { Route as DepartamentosRouteImport } from './routes/departamentos'
 import { Route as EscalacionesRouteImport } from './routes/escalaciones'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
@@ -56,6 +57,11 @@ const ChatInternoRoute = ChatInternoRouteImport.update({
   path: '/chat-interno',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DepartamentosRoute = DepartamentosRouteImport.update({
+  id: '/departamentos',
+  path: '/departamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EscalacionesRoute = EscalacionesRouteImport.update({
   id: '/escalaciones',
   path: '/escalaciones',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/calidad'
     | '/campanas'
     | '/chat-interno'
+    | '/departamentos'
     | '/escalaciones'
     | '/flujos'
     | '/login'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/calidad'
     | '/campanas'
     | '/chat-interno'
+    | '/departamentos'
     | '/escalaciones'
     | '/flujos'
     | '/login'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/calidad'
     | '/campanas'
     | '/chat-interno'
+    | '/departamentos'
     | '/escalaciones'
     | '/flujos'
     | '/login'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   CalidadRoute: typeof CalidadRoute
   CampanasRoute: typeof CampanasRoute
   ChatInternoRoute: typeof ChatInternoRoute
+  DepartamentosRoute: typeof DepartamentosRoute
   EscalacionesRoute: typeof EscalacionesRoute
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatInternoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/departamentos': {
+      id: '/departamentos'
+      path: '/departamentos'
+      fullPath: '/departamentos'
+      preLoaderRoute: typeof DepartamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/escalaciones': {
       id: '/escalaciones'
       path: '/escalaciones'
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalidadRoute: CalidadRoute,
   CampanasRoute: CampanasRoute,
   ChatInternoRoute: ChatInternoRoute,
+  DepartamentosRoute: DepartamentosRoute,
   EscalacionesRoute: EscalacionesRoute,
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,

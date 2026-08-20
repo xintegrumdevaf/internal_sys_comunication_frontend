@@ -13,6 +13,7 @@ import {
   Wifi,
   WifiOff,
   LayoutDashboard,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -36,6 +37,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/escalaciones": ArrowRightLeft,
   "/asignaciones": Users,
   "/usuarios": Users,
+  "/departamentos": Building2,
   "/flujos": GitBranch,
   "/campanas": Megaphone,
   "/auditoria": ShieldCheck,

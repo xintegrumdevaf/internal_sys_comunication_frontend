@@ -137,3 +137,29 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 | 2026-08-11 | Algoritmo de auto-asignación por departamento (§2) — **resuelto**, incluye cierre del hueco de "solo lectura" en reply/complete | Repartir automáticamente los casos escalados entre agentes disponibles, con posibilidad de reasignación manual siempre |
 | 2026-08-11 | Nombre de perfil de WhatsApp (§5) — **resuelto**; foto de perfil — limitación permanente de Meta, no implementable | Evitar mostrar solo el teléfono crudo en la bandeja; investigado a fondo antes de implementar para no prometer algo que la API de WhatsApp no permite |
 | 2026-08-12 | Chat interno persistente (§6) + endpoints quality (§7) | Requisito de supervisión de calidad / coaching; MVP usa notes API + chat local |
+| 2026-08-20 | CRUD de departamentos (§9) | Requisito de administración para gestionar áreas dinámicamente desde el frontend |
+
+## 9. CRUD de departamentos (`POST` / `PUT` / `DELETE /api/departments`) — pendiente
+
+**Problema**: El frontend ahora cuenta con la interfaz (`/departamentos`) para gestionar la creación, edición y desactivación de departamentos. Sin embargo, el backend actualmente solo expone `GET /api/departments`. 
+
+**Solución requerida en backend**:
+Implementar los siguientes endpoints exigiendo `role=admin`:
+
+```http
+POST /api/departments
+{ "name": "Soporte Técnico", "slug": "soporte-tecnico", "visibility": "shared" | "restricted" }
+→ 201 { "data": DepartmentDto }
+
+PUT /api/departments/:id
+{ "name"?, "slug"?, "visibility"?, "active"? }
+→ 200 { "data": DepartmentDto }
+
+DELETE /api/departments/:id
+→ 200 { "data": DepartmentDto } (Soft delete: active = false)
+```
+
+**Consideraciones**:
+- `slug` debe ser único.
+- El rol `admin` es el único autorizado para efectuar estas mutaciones.
+- Se debe validar que no rompa integraciones existentes al desactivar un departamento (ej. casos huérfanos o agentes sin departamento).
