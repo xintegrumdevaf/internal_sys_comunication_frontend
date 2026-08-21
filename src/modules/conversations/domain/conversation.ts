@@ -1,3 +1,5 @@
+import type { CaseStatus } from "@/modules/cases/domain/case";
+
 /** Entidades Conversation/Message reales del backend (03_API_CONTRACT.md §C.4). */
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -21,6 +23,17 @@ export type ConversationDto = {
   lastActivityAt: string;
   createdAt: string;
   updatedAt: string;
+  /** Cantidad de mensajes no leídos desde la última vez que el asesor abrió el chat. */
+  unreadCount: number;
+  /** Estado del caso activo si lo hay (aplanado desde el backend). */
+  activeCase?: {
+    id?: string;
+    status: CaseStatus;
+    departmentId: string | null;
+    assignedAgentId: string | null;
+    assignedAgentName?: string | null;
+    automationEnabled: boolean;
+  };
   /** Calculado al leer (JOIN al último message) — nunca se persiste aparte. */
   lastMessagePreview: MessagePreviewDto;
   /**

@@ -10,4 +10,5 @@ export type RealtimeEvent =
     }
   | { type: "CASE_CLAIMED"; caseId: string; agentUserId: string }
   | { type: "HUMAN_ASSIGNED"; caseId: string; agentUserId: string }
-  | { type: "AUTOMATION_ENABLED"; caseId: string };
+  | { type: "AUTOMATION_ENABLED"; caseId: string }
+  | { type: "AUTOMATION_DISABLED"; caseId: string };

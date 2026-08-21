@@ -13,6 +13,8 @@ import {
   subscribeNotifications,
   wireNotifications,
 } from "@/modules/realtime/application/notifications.state";
+import { incrementUnreadTotal, setTotalUnread, getActiveChatId } from "@/modules/realtime/application/unread.state";
+import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 
 /**
  * Monta la conexión SSE global + el listener de notificaciones para el agente
@@ -27,6 +29,15 @@ export function useRealtimeSession(userId: string | null): void {
     }
     ensureRealtimeConnection(userId);
     wireNotifications(userId);
+
+    if (userId) {
+      void listConversations()
+        .then((conversations) => {
+          const total = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+          setTotalUnread(total);
+        })
+        .catch(() => {});
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -47,6 +58,9 @@ export function useRealtimeSession(userId: string | null): void {
           new Notification("Se te asignó un nuevo caso", { body: "Tienes un caso asignado listo para atender." });
         }
       } else if (event.type === "MESSAGE_RECEIVED") {
+        if (getActiveChatId() !== event.conversationId) {
+          incrementUnreadTotal();
+        }
         if (document.visibilityState === "hidden" && Notification.permission === "granted") {
           const author = event.authorName || "Cliente";
           const body = event.bodyPreview || "Tienes un nuevo mensaje";

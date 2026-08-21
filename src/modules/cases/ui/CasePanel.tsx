@@ -43,109 +43,133 @@ function SectionLabel({ icon: Icon, children }: { icon: typeof Wrench; children:
 }
 
 
-/** Panel de contexto de caso, renderizado por workflowType (01_DATA_MODEL.md §3). */
+/** Panel de contexto de caso con extracción unificada y robusta de datos técnicos, comerciales y financieros. */
 function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
-  const data = caseDto.context?.data as Record<string, unknown> | undefined;
-  if (!data) return <p className="text-muted-foreground">Sin contexto todavía.</p>;
+  const data = (caseDto.context?.data ?? {}) as Record<string, unknown>;
+  const rawContext = caseDto.context as unknown as Record<string, unknown> | undefined;
 
-  if (caseDto.context.workflowType === "SUPPORT_INTERNET") {
-    const d = data as {
-      contract?: { sector?: string; oltName?: string; pon?: string; serial?: string };
-      balance?: { hasDebt?: boolean; amount?: number };
-      diagnostic?: { status?: string; result?: string; technical?: SupportInternetDiagnosticTechnical };
-    };
-    const technical = d.diagnostic?.technical;
-    const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
-    return (
-      <div className="space-y-1.5 text-[11px] font-mono">
-        <DataRow label="Sector" value={d.contract?.sector} />
-        <DataRow label="OLT" value={d.contract?.oltName} />
-        <DataRow label="PON" value={d.contract?.pon} />
-        <DataRow label="Serial" value={d.contract?.serial} />
-        <DataRow label="Deuda" value={d.balance?.hasDebt ? `Sí ($${d.balance?.amount ?? 0})` : "No"} />
-        <DataRow label="Diagnóstico" value={d.diagnostic?.status} />
-        <DataRow label="Resultado" value={d.diagnostic?.result} />
-        {technical && (
-          <>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">
-              Lectura real del equipo (ONU)
-            </p>
+  // 1. Contrato y Red
+  const contract = (data.contract ?? rawContext?.contract) as
+    | { sector?: string; oltName?: string; pon?: string | number; serial?: string }
+    | undefined;
+
+  // 2. Deuda y Estado Financiero
+  const balance = (data.balance ?? rawContext?.balance) as
+    | { hasDebt?: boolean; amount?: number }
+    | undefined;
+  const hasDebt = balance?.hasDebt ?? (data.hasDebt as boolean | undefined);
+  const debtAmount = balance?.amount ?? (data.debt as number | undefined) ?? (data.amount as number | undefined);
+
+  // 3. Diagnóstico Técnico
+  const diagnostic = (data.diagnostic ?? rawContext?.diagnostic) as
+    | { status?: string; result?: string; technical?: SupportInternetDiagnosticTechnical }
+    | string
+    | undefined;
+  const diagnosticResult = typeof diagnostic === "string" ? diagnostic : (diagnostic?.result ?? diagnostic?.status);
+
+  // 4. Pago y Comprobantes
+  const payment = (data.payment ?? rawContext?.payment) as
+    | { amount?: number; reference?: string; status?: string }
+    | undefined;
+
+  // 5. Planes y Ofertas (Ventas / Comercial)
+  const requestedSpeed = data.requestedSpeed as string | undefined;
+  const currentPlan = data.currentPlan as { name?: string; speed?: string } | undefined;
+  const offer = data.offer as { name?: string; price?: number | string; speed?: string } | undefined;
+
+  // 6. Telemetría de la ONU
+  const technical = (data.technical ?? (typeof diagnostic === "object" ? diagnostic?.technical : undefined)) as
+    | SupportInternetDiagnosticTechnical
+    | undefined;
+  const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
+
+  const hasAnyData = Boolean(
+    contract?.sector ||
+      contract?.oltName ||
+      contract?.serial ||
+      hasDebt !== undefined ||
+      debtAmount != null ||
+      diagnosticResult ||
+      payment?.reference ||
+      payment?.status ||
+      requestedSpeed ||
+      currentPlan?.name ||
+      offer?.name ||
+      technical,
+  );
+
+  if (!hasAnyData) {
+    return <p className="text-xs text-muted-foreground italic py-1">Sin datos técnicos adicionales.</p>;
+  }
+
+  return (
+    <div className="space-y-1.5 text-[11px] font-mono">
+      {/* Contrato / Sector */}
+      {contract?.sector && <DataRow label="Sector" value={contract.sector} />}
+      {contract?.oltName && <DataRow label="OLT" value={contract.oltName} />}
+      {contract?.pon !== undefined && <DataRow label="PON" value={String(contract.pon)} />}
+      {contract?.serial && <DataRow label="Serial" value={contract.serial} />}
+
+      {/* Deuda / Saldo */}
+      {(hasDebt !== undefined || debtAmount != null) && (
+        <DataRow
+          label="Deuda"
+          value={hasDebt ? `Sí ($${debtAmount ?? 0})` : "No"}
+        />
+      )}
+
+      {/* Diagnóstico técnico */}
+      {diagnosticResult && (
+        <DataRow label="Diagnóstico" value={diagnosticResult} />
+      )}
+
+      {/* Comercial / Planes (para Ventas) */}
+      {requestedSpeed && <DataRow label="Velocidad solicitada" value={requestedSpeed} />}
+      {currentPlan?.name && <DataRow label="Plan actual" value={currentPlan.name} />}
+      {offer?.name && <DataRow label="Oferta" value={offer.name} />}
+      {offer?.price != null && (
+        <DataRow
+          label="Precio oferta"
+          value={typeof offer.price === "number" ? `$${offer.price}` : String(offer.price)}
+        />
+      )}
+
+      {/* Pagos / Comprobantes */}
+      {payment?.reference && <DataRow label="Referencia de pago" value={payment.reference} />}
+      {payment?.status && <DataRow label="Estado pago" value={paymentStatusLabel(payment.status)} />}
+
+      {/* Telemetría técnica ONU */}
+      {technical && (
+        <>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">
+            Lectura real del equipo (ONU)
+          </p>
+          {technical.runState && (
             <div className="flex justify-between gap-2 items-center">
               <span className="text-muted-foreground">Estado del equipo</span>
               <span className="text-right font-semibold">{onuRunStateLabel(technical.runState)}</span>
             </div>
-            {technical.opticalPowerDbm !== undefined && (
-              <div className="flex justify-between gap-2 items-center">
-                <span className="text-muted-foreground">Potencia óptica</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="font-semibold">{technical.opticalPowerDbm.toFixed(1)} dBm</span>
-                  {quality && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
-                    >
-                      {quality.label}
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
+          )}
+          {technical.opticalPowerDbm != null && (
+            <div className="flex justify-between gap-2 items-center">
+              <span className="text-muted-foreground">Potencia óptica</span>
+              <span className="flex items-center gap-1.5">
+                <span className="font-semibold">{technical.opticalPowerDbm.toFixed(1)} dBm</span>
+                {quality && (
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}>
+                    {quality.label}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+          {technical.onuModel && technical.onuModel !== "unknown" && (
             <DataRow label="Modelo de ONU" value={technical.onuModel} />
-            <DataRow label="MAC" value={technical.macAddress} />
-          </>
-        )}
-      </div>
-    );
-  }
-
-  if (caseDto.context.workflowType === "BILLING_BALANCE") {
-    const d = data as {
-      balance?: { hasDebt?: boolean; amount?: number };
-      payment?: { amount?: number; reference?: string; status?: string };
-    };
-    return (
-      <div className="space-y-1.5 text-[11px] font-mono">
-        <DataRow label="Deuda" value={d.balance?.hasDebt ? "Sí" : "No"} />
-        <DataRow
-          label="Monto"
-          value={
-            d.balance?.amount != null
-              ? d.balance.amount.toLocaleString("es-CO", { style: "currency", currency: "COP" })
-              : undefined
-          }
-        />
-        <DataRow label="Referencia de pago" value={d.payment?.reference} />
-        <DataRow label="Estado del comprobante" value={paymentStatusLabel(d.payment?.status)} />
-      </div>
-    );
-  }
-
-  if (caseDto.context.workflowType === "SALES_PACKAGES") {
-    const d = data as {
-      requestedSpeed?: string;
-      currentPlan?: { name?: string; speed?: string };
-      offer?: { name?: string; price?: number; speed?: string };
-    };
-    return (
-      <div className="space-y-1.5 text-[11px] font-mono">
-        <DataRow label="Velocidad solicitada" value={d.requestedSpeed} />
-        <DataRow label="Plan actual" value={d.currentPlan?.name} />
-        <DataRow label="Oferta" value={d.offer?.name} />
-        <DataRow
-          label="Precio oferta"
-          value={
-            d.offer?.price != null
-              ? d.offer.price.toLocaleString("es-CO", { style: "currency", currency: "COP" })
-              : undefined
-          }
-        />
-      </div>
-    );
-  }
-
-  return (
-    <pre className="text-[10px] font-mono whitespace-pre-wrap break-all text-muted-foreground">
-      {JSON.stringify(data, null, 2)}
-    </pre>
+          )}
+          {technical.macAddress && <DataRow label="MAC" value={technical.macAddress} />}
+        </>
+      )}
+    </div>
   );
 }
 

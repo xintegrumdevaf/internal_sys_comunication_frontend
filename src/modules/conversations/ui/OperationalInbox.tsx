@@ -144,6 +144,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
     setSelectedId,
     messages,
     activeCase,
+    automationState,
     caseSummary,
     caseTimeline,
     loadCaseSummary,
@@ -192,9 +193,16 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   }, [conversations, search]);
 
   const assignedAgentName = useMemo(() => {
-    if (!activeCase?.assignedAgentId) return null;
-    return directory.find((a) => a.id === activeCase.assignedAgentId)?.name ?? null;
-  }, [activeCase, directory]);
+    if (activeCase?.assignedAgentName) return activeCase.assignedAgentName;
+    if (selected?.activeCase?.assignedAgentName) return selected.activeCase.assignedAgentName;
+    const agentId = activeCase?.assignedAgentId || selected?.activeCase?.assignedAgentId;
+    if (!agentId) return null;
+    if (session && agentId === session.id) return session.name || "Tú";
+    return (
+      directory.find((a) => a.id === agentId)?.name ??
+      (selected?.activeCase?.departmentId ? "Agente de Área" : "Agente Asignado")
+    );
+  }, [activeCase, selected?.activeCase, directory, session]);
 
   useEffect(() => {
     setDraft("");
@@ -230,8 +238,41 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
     Boolean(activeCase) &&
     !activeCase?.assignedAgentId &&
     (activeCase?.status === "ESCALATED" || activeCase?.status === "HUMAN_ACTIVE");
+
+  const isAutomationActive = useMemo(() => {
+    // 1. Si el caso está en atención humana activa o fue transferido a un humano:
+    if (activeCase?.status === "HUMAN_ACTIVE" || selected?.activeCase?.status === "HUMAN_ACTIVE") {
+      return false;
+    }
+
+    // 2. Si la automatización está apagada en el caso:
+    if (activeCase?.automation && activeCase.automation.enabled === false) {
+      return false;
+    }
+    if (selected?.activeCase && selected.activeCase.automationEnabled === false) {
+      return false;
+    }
+
+    // 3. Si el caso tiene agente asignado:
+    if (activeCase?.assignedAgentId || selected?.activeCase?.assignedAgentId) {
+      return false;
+    }
+
+    // 4. Si el endpoint de automatización dice que está apagada:
+    if (automationState && !automationState.enabled) {
+      return false;
+    }
+
+    // 5. En caso contrario, si automationState o el caso dice que está encendida:
+    if (automationState) {
+      return automationState.enabled;
+    }
+
+    return Boolean(activeCase?.automation?.enabled ?? selected?.activeCase?.automationEnabled ?? false);
+  }, [activeCase, selected?.activeCase, automationState]);
+
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
-  const showTakeControl = canWriteCase && !showClaim && !alreadyInControl;
+  const showTakeControl = isAutomationActive && canWriteCase && !showClaim && !alreadyInControl;
   const readOnly = Boolean(activeCase) && !canWriteCase;
 
   let lastRenderedDay = "";
@@ -343,7 +384,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   className={`w-full text-left p-3 transition-colors flex gap-3 ${active ? "bg-primary/5 border-l-4 border-primary" : "hover:bg-foreground/5 border-l-4 border-transparent"
                     }`}
                 >
-                  <ConversationAvatar conversation={c} />
+                  <div className="relative shrink-0">
+                    <ConversationAvatar conversation={c} />
+                    {(c.unreadCount ?? 0) > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white ring-2 ring-background">
+                        {c.unreadCount > 99 ? "99+" : c.unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between gap-2">
                       <span className="text-sm font-bold truncate">{conversationDisplayName(c)}</span>
@@ -361,10 +409,33 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
                         {conversationStatusLabel(c.status)}
                       </span>
-                      {c.activeCaseId && (
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-blue-100 text-blue-700">
-                          Con caso abierto
-                        </span>
+                      {c.activeCase && (
+                        <>
+                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-blue-100 text-blue-700 flex items-center gap-1">
+                            {!c.activeCase.automationEnabled && (c.activeCase.assignedAgentId || c.activeCase.assignedAgentName) ? (
+                              <>
+                                <User className="size-2.5" />
+                                <span>
+                                  {c.activeCase.assignedAgentName ||
+                                    (c.activeCase.assignedAgentId === session?.id
+                                      ? "Tú"
+                                      : directory.find((a) => a.id === c.activeCase?.assignedAgentId)?.name) ||
+                                    "Humano"}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Bot className="size-2.5" />
+                                <span>IA</span>
+                              </>
+                            )}
+                          </span>
+                          {c.activeCase.departmentId && (
+                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-100 text-amber-700 flex items-center gap-1">
+                              {departments.find((d) => d.id === c.activeCase!.departmentId)?.name || "Dpto"}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -402,12 +473,18 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {assignedAgentName && (
+                  {isAutomationActive ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                      <Bot className="size-3.5 text-emerald-500 animate-pulse" />
+                      <span>Asistente IA</span>
+                    </span>
+                  ) : (
                     <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${isAssignedToMe
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${
+                        isAssignedToMe
                           ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                           : "bg-foreground/5 text-muted-foreground ring-1 ring-border"
-                        }`}
+                      }`}
                       title={isAssignedToOther ? "Solo esta persona puede responder" : undefined}
                     >
                       {isAssignedToMe ? (
@@ -415,7 +492,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       ) : (
                         <Lock className="size-3" />
                       )}
-                      {isAssignedToMe ? "Asignado a ti" : assignedAgentName}
+                      {isAssignedToMe
+                        ? "Asignado a ti"
+                        : assignedAgentName
+                          ? `Atendido por ${assignedAgentName}`
+                          : "Atención Manual"}
                     </span>
                   )}
                   {showClaim && (
@@ -465,6 +546,27 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   </button>
                 </div>
               </div>
+
+              {isAutomationActive && (
+                <div className="mx-4 mt-2.5 px-3.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between gap-2 shrink-0 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Bot className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="font-medium truncate">
+                      El Asistente IA está atendiendo esta conversación.
+                    </span>
+                  </div>
+                  {showTakeControl && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void takeControl()}
+                      className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0"
+                    >
+                      Tomar control manual
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div
                 ref={messagesScrollRef}
@@ -544,7 +646,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <div className="p-3 border-t border-border bg-background/60 flex gap-2 shrink-0">
                   <input
                     value={draft}
-                    disabled={busy}
+                    disabled={busy || isAutomationActive}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
@@ -552,12 +654,12 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                         void handleSend();
                       }
                     }}
-                    placeholder="Escribe tu respuesta… se envía por WhatsApp"
+                    placeholder={isAutomationActive ? "El asistente IA está atendiendo..." : "Escribe tu respuesta… se envía por WhatsApp"}
                     className="flex-1 px-3.5 py-2.5 bg-card border border-border rounded-full text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                   />
                   <button
                     type="button"
-                    disabled={busy || !draft.trim()}
+                    disabled={busy || !draft.trim() || isAutomationActive}
                     onClick={() => void handleSend()}
                     className="px-5 py-2.5 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-sm hover:brightness-95 transition disabled:opacity-40"
                   >

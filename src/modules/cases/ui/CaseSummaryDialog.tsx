@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, ListChecks, Wrench } from "lucide-react";
+import { CheckCircle2, Clock, ListChecks, Sparkles, UserRound, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -96,12 +96,37 @@ export function CaseSummaryDialog({
           <p className="text-sm text-muted-foreground py-6 text-center">Cargando resumen…</p>
         ) : (
           (() => {
+            const client = summary.results?.client as { fullName?: string; nationalId?: string } | undefined;
+            const contract = summary.results?.contract as { sector?: string; oltName?: string; pon?: string | number; serial?: string } | undefined;
+            const balanceObj = summary.results?.balance as { hasDebt?: boolean; amount?: number } | undefined;
+            const hasDebtVal = balanceObj?.hasDebt ?? (summary.results?.hasDebt as boolean | undefined);
+            const debtAmountVal = balanceObj?.amount ?? (summary.results?.debt as number | undefined) ?? (summary.results?.amount as number | undefined);
+            const hasDebt = hasDebtVal !== undefined ? Boolean(hasDebtVal) : undefined;
+            const debtAmount = debtAmountVal != null ? Number(debtAmountVal) : undefined;
+
+            const diagnostic = summary.results?.diagnostic as string | undefined;
             const technical = isOnuTechnicalData(summary.results?.technical)
-              ? summary.results.technical
+              ? (summary.results.technical as SupportInternetDiagnosticTechnical)
               : undefined;
-            const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
+            const quality = technical ? onuSignalQuality(technical.opticalPowerDbm ?? undefined) : null;
             const otherResults = Object.entries(summary.results ?? {}).filter(
-              ([key]) => key !== "technical",
+              ([key]) =>
+                ![
+                  "client",
+                  "contract",
+                  "balance",
+                  "diagnostic",
+                  "technical",
+                  "hasDebt",
+                  "debt",
+                  "amount",
+                  "nationalId",
+                  "fullName",
+                  "sector",
+                  "oltName",
+                  "pon",
+                  "serial",
+                ].includes(key),
             );
             return (
           <div className="space-y-4 text-sm">
@@ -134,7 +159,7 @@ export function CaseSummaryDialog({
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[10px] uppercase text-muted-foreground font-bold">Razón</p>
+                <p className="text-[10px] uppercase text-muted-foreground font-bold">Razón / Motivo</p>
                 <p className="font-semibold mt-0.5">{summary.reason}</p>
               </div>
             </div>
@@ -155,49 +180,151 @@ export function CaseSummaryDialog({
               </div>
             )}
 
-            {technical && (
+            {(client || contract) && (
               <div>
                 <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <Wrench className="size-3.5" /> Estado real del equipo (ONU)
+                  <UserRound className="size-3.5" /> Cliente y Contrato
                 </h4>
                 <div className="rounded-lg border border-border divide-y divide-border text-xs">
-                  <div className="flex justify-between gap-3 px-3 py-1.5">
-                    <span className="text-muted-foreground">Estado</span>
-                    <span className="text-right font-medium">
-                      {onuRunStateLabel(technical.runState)}
-                    </span>
-                  </div>
-                  {technical.opticalPowerDbm !== undefined && (
+                  {client?.fullName && (
                     <div className="flex justify-between gap-3 px-3 py-1.5">
-                      <span className="text-muted-foreground">Potencia óptica</span>
-                      <span className="text-right font-medium flex items-center gap-1.5 justify-end">
-                        {technical.opticalPowerDbm.toFixed(1)} dBm
-                        {quality && (
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
-                          >
-                            {quality.label}
-                          </span>
-                        )}
+                      <span className="text-muted-foreground">Nombre</span>
+                      <span className="text-right font-semibold">{client.fullName}</span>
+                    </div>
+                  )}
+                  {client?.nationalId && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Cédula / DNI</span>
+                      <span className="text-right font-medium">{client.nationalId}</span>
+                    </div>
+                  )}
+                  {contract?.sector && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Sector</span>
+                      <span className="text-right font-medium">{contract.sector}</span>
+                    </div>
+                  )}
+                  {contract?.oltName && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">OLT</span>
+                      <span className="text-right font-medium">{contract.oltName}</span>
+                    </div>
+                  )}
+                  {contract?.pon !== undefined && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">PON</span>
+                      <span className="text-right font-medium">{String(contract.pon)}</span>
+                    </div>
+                  )}
+                  {contract?.serial && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Serial</span>
+                      <span className="text-right font-medium font-mono">{contract.serial}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(diagnostic || hasDebt !== undefined || debtAmount != null) && (
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Sparkles className="size-3.5" /> Diagnóstico y Estado
+                </h4>
+                <div className="rounded-lg border border-border divide-y divide-border text-xs">
+                  {diagnostic && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Diagnóstico</span>
+                      <span className="text-right font-bold text-primary">{diagnostic}</span>
+                    </div>
+                  )}
+                  {(hasDebt !== undefined || debtAmount != null) && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Deuda</span>
+                      <span className="text-right font-medium">
+                        {hasDebt ? `Sí ($${debtAmount ?? 0})` : "No"}
                       </span>
                     </div>
                   )}
-                  {technical.onuModel && (
+                </div>
+              </div>
+            )}
+
+            {technical && (
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Wrench className="size-3.5" /> Telemetría del Equipo (ONU)
+                </h4>
+                <div className="rounded-lg border border-border divide-y divide-border text-xs">
+                  {technical.brand && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Marca</span>
+                      <span className="text-right font-medium">{technical.brand}</span>
+                    </div>
+                  )}
+                  {(technical.phaseState || technical.runState) && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Estado de fase / ONU</span>
+                      <span className="text-right font-medium">
+                        {technical.phaseState || onuRunStateLabel(technical.runState)}
+                      </span>
+                    </div>
+                  )}
+                  {technical.adminState && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Estado administrativo</span>
+                      <span className="text-right font-medium">{technical.adminState}</span>
+                    </div>
+                  )}
+                  {(technical.onuIndex || technical.stateOnuIndex) && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Índice ONU</span>
+                      <span className="text-right font-medium font-mono">
+                        {technical.onuIndex || technical.stateOnuIndex}
+                      </span>
+                    </div>
+                  )}
+                  {technical.omccState && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">OMCC</span>
+                      <span className="text-right font-medium">{technical.omccState}</span>
+                    </div>
+                  )}
+                  {technical.channel && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Canal GPON</span>
+                      <span className="text-right font-medium">{technical.channel}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-3 px-3 py-1.5">
+                    <span className="text-muted-foreground">Potencia óptica</span>
+                    <span className="text-right font-medium flex items-center gap-1.5 justify-end">
+                      {technical.opticalPowerDbm != null ? `${technical.opticalPowerDbm.toFixed(1)} dBm` : "N/A"}
+                      {quality && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
+                        >
+                          {quality.label}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {technical.onuModel && technical.onuModel !== "unknown" && (
                     <div className="flex justify-between gap-3 px-3 py-1.5">
                       <span className="text-muted-foreground">Modelo de ONU</span>
                       <span className="text-right font-medium">{technical.onuModel}</span>
+                    </div>
+                  )}
+                  {technical.onuSerial && (
+                    <div className="flex justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground">Serial ONU</span>
+                      <span className="text-right font-medium font-mono">{technical.onuSerial}</span>
                     </div>
                   )}
                   {technical.macAddress && (
                     <div className="flex justify-between gap-3 px-3 py-1.5">
                       <span className="text-muted-foreground">MAC</span>
                       <span className="text-right font-medium">{technical.macAddress}</span>
-                    </div>
-                  )}
-                  {technical.brand && (
-                    <div className="flex justify-between gap-3 px-3 py-1.5">
-                      <span className="text-muted-foreground">Marca del OLT</span>
-                      <span className="text-right font-medium">{technical.brand}</span>
                     </div>
                   )}
                 </div>
@@ -207,7 +334,7 @@ export function CaseSummaryDialog({
             {otherResults.length > 0 && (
               <div>
                 <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                  Resultados
+                  Otros Resultados
                 </h4>
                 <div className="rounded-lg border border-border divide-y divide-border text-xs">
                   {otherResults.map(([key, value]) => (

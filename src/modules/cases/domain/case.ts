@@ -32,12 +32,20 @@ export type SupportInternetDiagnosticTechnical = {
   brand?: string;
   onuModel?: string;
   onuSerial?: string;
-  macAddress?: string;
+  macAddress?: string | null;
   /** Potencia óptica recibida (RX), en dBm. Mientras más cercano a 0, más fuerte la señal. */
-  opticalPowerDbm?: number;
+  opticalPowerDbm?: number | null;
   runState?: string;
+  phaseState?: string;
   adminState?: string;
+  onuIndex?: string;
+  onuId?: number | string;
+  onuProfile?: string;
+  onuMode?: string;
+  stateOnuIndex?: string;
+  omccState?: string;
   channel?: string;
+  onuNumber?: string;
 };
 
 export type SupportInternetContext = {
@@ -82,7 +90,7 @@ export function onuRunStateLabel(runState?: string): string {
  * industria (-8 a -27 dBm = operación normal); fuera de ahí, alerta.
  */
 export function onuSignalQuality(
-  dbm: number | undefined,
+  dbm: number | null | undefined,
 ): { label: string; cls: string } | null {
   if (dbm === undefined || dbm === null || Number.isNaN(dbm)) return null;
   if (dbm > -8) return { label: "Señal muy fuerte (posible sobrecarga)", cls: "bg-amber-100 text-amber-700" };
@@ -135,6 +143,7 @@ export type CaseDto = {
   status: CaseStatus;
   departmentId: string | null;
   assignedAgentId: string | null;
+  assignedAgentName?: string | null;
   context: CaseContext;
   automation: AutomationStateDto | null;
   currentState?: string;

@@ -11,6 +11,8 @@ import type {
 import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
 import { useSession } from "@/modules/identity/application/use-session";
 import { subscribeRealtimeEvents } from "@/modules/realtime/infrastructure/realtime-bus";
+import { setTotalUnread, setActiveChatId } from "@/modules/realtime/application/unread.state";
+import type { AutomationStateDto } from "@/modules/cases/domain/case";
 
 type InboxOptions = {
   /** Filtra por departamento (id real). undefined = todos los departamentos visibles. */
@@ -38,6 +40,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const [caseTimeline, setCaseTimeline] = useState<CaseTimelineEntryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [automationState, setAutomationState] = useState<{ caseId: string; enabled: boolean; disabledReason: string | null } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
 
@@ -61,6 +64,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
             : preferred && data.some((c) => c.id === preferred)
               ? preferred
               : (data[0]?.id ?? null);
+        
+        const total = data.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        setTotalUnread(total);
+
         setSelectedId(nextId);
         if (!nextId) {
           setMessages([]);
@@ -79,6 +86,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
   useEffect(() => {
     void reload();
+    return () => {
+      setActiveChatId(null);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, options.departmentId, options.agentId, options.status]);
 
@@ -97,20 +107,34 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       setCases([]);
       setCaseSummary(null);
       setCaseTimeline([]);
+      setAutomationState(null);
+      setActiveChatId(null);
       return;
     }
     let cancelled = false;
     setCaseSummary(null);
     setCaseTimeline([]);
+    setAutomationState(null);
+    setActiveChatId(selectedId);
+
     (async () => {
       try {
-        const [msgs, convCases] = await Promise.all([
+        const [msgs, convCases, automation] = await Promise.all([
           conversationGateway.listMessages(selectedId),
           conversationGateway.listCasesForConversation(selectedId),
+          conversationGateway.getConversationAutomation(selectedId),
         ]);
+        await conversationGateway.markAsRead(selectedId).catch(() => {});
         if (!cancelled) {
           setMessages(msgs);
           setCases(convCases);
+          setAutomationState(automation);
+          setConversations((prev) =>
+            prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c))
+          );
+          
+          // Re-sum total unread after marking one as read
+          setTotalUnread(conversations.reduce((acc, c) => acc + (c.id === selectedId ? 0 : (c.unreadCount || 0)), 0));
         }
       } catch (e) {
         if (!cancelled) {
@@ -120,8 +144,20 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     })();
     return () => {
       cancelled = true;
+      setActiveChatId(null);
     };
   }, [selectedId]);
+
+  const selected = conversations.find((c) => c.id === selectedId) ?? null;
+  const activeCase = useMemo(() => {
+    if (!selected) return null;
+    return (
+      cases.find((c) => c.id === selected.activeCaseId) ??
+      cases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
+      cases[0] ??
+      null
+    );
+  }, [cases, selected]);
 
   // Tiempo real: refresca hilo/lista según lo que llegue por SSE (03_REALTIME_NOTIFICATIONS.md §2).
   useEffect(() => {
@@ -137,24 +173,21 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         event.type === "CASE_ESCALATED" ||
         event.type === "CASE_CLAIMED" ||
         event.type === "HUMAN_ASSIGNED" ||
-        event.type === "AUTOMATION_ENABLED"
+        event.type === "AUTOMATION_ENABLED" ||
+        event.type === "AUTOMATION_DISABLED"
       ) {
+        if (event.type === "AUTOMATION_DISABLED") {
+          setAutomationState({
+            caseId: activeCase?.id ?? "",
+            enabled: false,
+            disabledReason: "manual_override",
+          });
+        }
         void reload({ silent: true });
         if (selectedIdRef.current) void loadThread(selectedIdRef.current);
       }
     });
-  }, [reload, loadThread]);
-
-  const selected = conversations.find((c) => c.id === selectedId) ?? null;
-  const activeCase = useMemo(() => {
-    if (!selected) return null;
-    return (
-      cases.find((c) => c.id === selected.activeCaseId) ??
-      cases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
-      cases[0] ??
-      null
-    );
-  }, [cases, selected]);
+  }, [reload, loadThread, activeCase?.id]);
 
   const refreshActiveCase = useCallback(async () => {
     if (!activeCase) return;
@@ -207,6 +240,46 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     setSending(true);
     try {
       await conversationGateway.takeControl(selectedId, session.id);
+      setAutomationState({
+        caseId: activeCase?.id ?? "",
+        enabled: false,
+        disabledReason: "manual_override",
+      });
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedId
+            ? {
+                ...c,
+                activeCase: c.activeCase
+                  ? {
+                      ...c.activeCase,
+                      automationEnabled: false,
+                      status: "HUMAN_ACTIVE",
+                      assignedAgentId: session.id,
+                      assignedAgentName: session.name,
+                    }
+                  : undefined,
+              }
+            : c,
+        ),
+      );
+      setCases((prev) =>
+        prev.map((cs) =>
+          cs.id === activeCase?.id
+            ? {
+                ...cs,
+                status: "HUMAN_ACTIVE",
+                assignedAgentId: session.id,
+                automation: {
+                  ...cs.automation,
+                  enabled: false,
+                  disabledReason: "manual_override",
+                  disabledAt: new Date().toISOString(),
+                },
+              }
+            : cs,
+        ),
+      );
       toast.success("Control tomado");
       await reload({ silent: true });
     } catch (e) {
@@ -225,6 +298,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     messages,
     cases,
     activeCase,
+    automationState,
     caseSummary,
     caseTimeline,
     loadCaseSummary,

@@ -272,8 +272,13 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
   );
 }
 
+import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
+
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = pathname === item.to;
+  const unreadCount = useUnreadBadge();
+  const showBadge = item.to === "/bandeja" && unreadCount > 0;
+
   return (
     <Link
       to={item.to}
@@ -284,7 +289,12 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       }`}
     >
       <item.icon className="size-4 shrink-0" />
-      {item.label}
+      <span className="flex-1 text-left">{item.label}</span>
+      {showBadge && (
+        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-danger text-white text-[9px] font-bold min-w-4">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
     </Link>
   );
 }
