@@ -13,6 +13,8 @@ import {
   Wifi,
   WifiOff,
   LayoutDashboard,
+  Building2,
+  BrainCircuit,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -39,6 +41,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/flujos": GitBranch,
   "/campanas": Megaphone,
   "/auditoria": ShieldCheck,
+  "/conocimiento": BrainCircuit,
 };
 
 /**
