@@ -67,6 +67,7 @@ function makeConversation(overrides: Partial<ConversationDto> = {}): Conversatio
     lastActivityAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    unreadCount: 0,
     lastMessagePreview: null,
     waProfileName: null,
     ...overrides,

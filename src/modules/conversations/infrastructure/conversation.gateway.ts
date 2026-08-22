@@ -13,9 +13,15 @@ import type { CaseDto } from "@/modules/cases/domain/case";
  */
 
 function withMediaUrls(messages: MessageDto[]): MessageDto[] {
-  return messages.map((message) =>
-    message.mediaUrl ? { ...message, mediaUrl: resolveApiUrl(message.mediaUrl) } : message,
-  );
+  return messages.map((message) => {
+    if (message.mediaUrl) {
+      return { ...message, mediaUrl: resolveApiUrl(message.mediaUrl) };
+    }
+    if (message.mediaId) {
+      return { ...message, mediaUrl: resolveApiUrl(`/api/media/${message.mediaId}`) };
+    }
+    return message;
+  });
 }
 
 export function listConversations(filter?: {
@@ -63,3 +69,8 @@ export function takeControl(conversationId: string, agentUserId: string): Promis
     agentUserId,
   });
 }
+
+export function markAsRead(conversationId: string): Promise<void> {
+  return apiPost(`/api/conversations/${conversationId}/read`);
+}
+

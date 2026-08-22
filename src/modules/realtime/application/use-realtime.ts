@@ -13,6 +13,8 @@ import {
   subscribeNotifications,
   wireNotifications,
 } from "@/modules/realtime/application/notifications.state";
+import { incrementUnreadTotal, setTotalUnread, getActiveChatId } from "@/modules/realtime/application/unread.state";
+import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 
 /**
  * Monta la conexión SSE global + el listener de notificaciones para el agente
@@ -22,8 +24,20 @@ import {
  */
 export function useRealtimeSession(userId: string | null): void {
   useEffect(() => {
+    if (userId && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
     ensureRealtimeConnection(userId);
     wireNotifications(userId);
+
+    if (userId) {
+      void listConversations()
+        .then((conversations) => {
+          const total = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+          setTotalUnread(total);
+        })
+        .catch(() => {});
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -33,10 +47,32 @@ export function useRealtimeSession(userId: string | null): void {
         toast.warning("Caso escalado a humano", {
           description: `Conversación ${event.conversationId.slice(0, 8)}… requiere atención`,
         });
+        if (document.visibilityState === "hidden" && Notification.permission === "granted") {
+          new Notification("Caso escalado a humano", { body: "Una conversación requiere atención en la plataforma." });
+        }
       } else if (event.type === "HUMAN_ASSIGNED" && event.agentUserId === userId) {
         toast.success("Se te asignó un caso", {
           description: `Caso ${event.caseId.slice(0, 8)}… ahora es tuyo`,
         });
+        if (document.visibilityState === "hidden" && Notification.permission === "granted") {
+          new Notification("Se te asignó un nuevo caso", { body: "Tienes un caso asignado listo para atender." });
+        }
+      } else if (event.type === "MESSAGE_RECEIVED") {
+        if (getActiveChatId() !== event.conversationId) {
+          incrementUnreadTotal();
+        }
+        if (document.visibilityState === "hidden" && Notification.permission === "granted") {
+          const author = event.authorName || "Cliente";
+          const body = event.bodyPreview || "Tienes un nuevo mensaje";
+          const notification = new Notification(`Nuevo mensaje de ${author}`, {
+            body: body,
+            tag: event.conversationId, // Agrupa múltiples mensajes del mismo chat
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+          };
+        }
       }
     });
   }, [userId]);

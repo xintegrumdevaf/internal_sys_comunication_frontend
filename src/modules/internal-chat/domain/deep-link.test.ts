@@ -40,7 +40,7 @@ describe("qualityFindingsChatMessage", () => {
       status: "ready",
       messagesTotal: 10,
       messagesAnalyzed: 10,
-      chunkSize: 100,
+      chunkSize: 10,
       trigger: "auto_case_closed",
       customerLabel: "Ana Cliente",
       waPhone: "+5939900103",
