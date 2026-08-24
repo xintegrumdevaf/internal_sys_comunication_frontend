@@ -55,6 +55,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   if (session.role === "admin") {
     base.push(
       { label: "Agentes", to: "/usuarios", adminOnly: true },
+      { label: "Departamentos", to: "/departamentos", adminOnly: true },
       { label: "Automatizaciones", to: "/flujos", adminOnly: true },
       { label: "Campañas masivas", to: "/campanas", adminOnly: true },
       { label: "Auditoría", to: "/auditoria", adminOnly: true },

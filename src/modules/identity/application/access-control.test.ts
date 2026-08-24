@@ -125,6 +125,7 @@ describe("modulesForSession", () => {
   it("admin suma las pantallas exclusivas de administración", () => {
     const items = modulesForSession(makeSession({ role: "admin" })).map((m) => m.to);
     expect(items).toContain("/usuarios");
+    expect(items).toContain("/departamentos");
     expect(items).toContain("/flujos");
     expect(items).toContain("/auditoria");
   });

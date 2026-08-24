@@ -38,6 +38,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/escalaciones": ArrowRightLeft,
   "/asignaciones": Users,
   "/usuarios": Users,
+  "/departamentos": Building2,
   "/flujos": GitBranch,
   "/campanas": Megaphone,
   "/auditoria": ShieldCheck,
