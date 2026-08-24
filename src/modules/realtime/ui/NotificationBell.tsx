@@ -2,7 +2,10 @@ import { Bell } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { relativeTime } from "@/shared/datetime";
-import { useNotifications, useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
+import {
+  useNotifications,
+  useRealtimeConnected,
+} from "@/modules/realtime/application/use-realtime";
 
 /** Campana de notificaciones global (docs/spec/03_REALTIME_NOTIFICATIONS.md §3). */
 export function NotificationBell() {

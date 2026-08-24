@@ -40,9 +40,15 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const [caseTimeline, setCaseTimeline] = useState<CaseTimelineEntryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [automationState, setAutomationState] = useState<{ caseId: string; enabled: boolean; disabledReason: string | null } | null>(null);
+  const [automationState, setAutomationState] = useState<{
+    caseId: string;
+    enabled: boolean;
+    disabledReason: string | null;
+  } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
+  const conversationsRef = useRef<ConversationDto[]>([]);
+  conversationsRef.current = conversations;
 
   const reload = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -64,7 +70,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
             : preferred && data.some((c) => c.id === preferred)
               ? preferred
               : (data[0]?.id ?? null);
-        
+
         const total = data.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
         setTotalUnread(total);
 
@@ -130,11 +136,16 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           setCases(convCases);
           setAutomationState(automation);
           setConversations((prev) =>
-            prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c))
+            prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c)),
           );
-          
+
           // Re-sum total unread after marking one as read
-          setTotalUnread(conversations.reduce((acc, c) => acc + (c.id === selectedId ? 0 : (c.unreadCount || 0)), 0));
+          setTotalUnread(
+            conversationsRef.current.reduce(
+              (acc, c) => acc + (c.id === selectedId ? 0 : c.unreadCount || 0),
+              0,
+            ),
+          );
         }
       } catch (e) {
         if (!cancelled) {
@@ -317,7 +328,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     cancel: (reason: string) =>
       activeCase ? caseActions.cancel(activeCase.id, reason) : Promise.resolve(false),
     transfer: (toDepartmentId: string, reason: string) =>
-      activeCase ? caseActions.transfer(activeCase.id, toDepartmentId, reason) : Promise.resolve(false),
+      activeCase
+        ? caseActions.transfer(activeCase.id, toDepartmentId, reason)
+        : Promise.resolve(false),
     disableAutomation: (reason: string) =>
       activeCase ? caseActions.disableAutomation(activeCase.id, reason) : Promise.resolve(false),
     reactivateAutomation: () =>

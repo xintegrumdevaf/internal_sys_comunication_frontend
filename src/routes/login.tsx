@@ -124,8 +124,7 @@ function LoginPage() {
           </form>
 
           <p className="mt-6 text-[11px] text-muted-foreground text-center">
-            ¿Olvidaste tu contraseña? Pide a un administrador que te la restablezca desde
-            "Agentes".
+            ¿Olvidaste tu contraseña? Pide a un administrador que te la restablezca desde "Agentes".
           </p>
         </div>
       </div>

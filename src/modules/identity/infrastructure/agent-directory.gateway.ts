@@ -20,7 +20,6 @@ export type UpdateDepartmentPayload = Partial<CreateDepartmentPayload> & {
   active?: boolean;
 };
 
-
 export type UpdateAgentPayload = Partial<CreateAgentPayload> & {
   active?: boolean;
   autoAssignEnabled?: boolean;
@@ -49,7 +48,9 @@ export function listDepartments(): Promise<DepartmentDto[]> {
   return apiGet<DepartmentDto[]>("/api/departments");
 }
 
-export async function createAgent(payload: CreateAgentPayload): Promise<AgentWithTemporaryPassword> {
+export async function createAgent(
+  payload: CreateAgentPayload,
+): Promise<AgentWithTemporaryPassword> {
   const result = await apiPost<AgentWithTemporaryPassword>("/api/agents", payload);
   return { ...result, agent: normalizeAgent(result.agent) };
 }
@@ -73,11 +74,13 @@ export async function createDepartment(payload: CreateDepartmentPayload): Promis
   return apiPost<DepartmentDto>("/api/departments", payload);
 }
 
-export async function updateDepartment(departmentId: string, payload: UpdateDepartmentPayload): Promise<DepartmentDto> {
+export async function updateDepartment(
+  departmentId: string,
+  payload: UpdateDepartmentPayload,
+): Promise<DepartmentDto> {
   return apiPut<DepartmentDto>(`/api/departments/${departmentId}`, payload);
 }
 
 export async function deactivateDepartment(departmentId: string): Promise<DepartmentDto> {
   return apiDelete<DepartmentDto>(`/api/departments/${departmentId}`);
 }
-

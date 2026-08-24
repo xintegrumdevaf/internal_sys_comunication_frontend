@@ -5,7 +5,11 @@ import { conversationDisplayName } from "@/modules/conversations/domain/conversa
 import { getCase } from "@/modules/cases/infrastructure/case.gateway";
 import { useCaseActions } from "@/modules/cases/application/use-case-actions";
 import type { CaseDto } from "@/modules/cases/domain/case";
-import { useDepartmentsQuery, useDirectoryUsers, useSession } from "@/modules/identity/application/use-session";
+import {
+  useDepartmentsQuery,
+  useDirectoryUsers,
+  useSession,
+} from "@/modules/identity/application/use-session";
 
 /**
  * Gestion/monitoreo de asignacion manual (docs/spec/04_ASSIGNMENT_MANAGEMENT.md).
@@ -65,10 +69,12 @@ export function useAssignmentBoard() {
     () =>
       agentsInDept.map((agent) => ({
         agent,
-        activeCases: cases.filter((c) => c.assignedAgentId === agent.id && c.status === "HUMAN_ACTIVE")
-          .length,
-        waitingUser: cases.filter((c) => c.assignedAgentId === agent.id && c.status === "WAITING_USER")
-          .length,
+        activeCases: cases.filter(
+          (c) => c.assignedAgentId === agent.id && c.status === "HUMAN_ACTIVE",
+        ).length,
+        waitingUser: cases.filter(
+          (c) => c.assignedAgentId === agent.id && c.status === "WAITING_USER",
+        ).length,
       })),
     [agentsInDept, cases],
   );
@@ -95,6 +101,7 @@ export function useAssignmentBoard() {
     busy: caseActions.busy,
     reload,
     assignCase: (caseId: string, agentUserId: string) => caseActions.assign(caseId, agentUserId),
-    reassignCase: (caseId: string, agentUserId: string) => caseActions.reassign(caseId, agentUserId),
+    reassignCase: (caseId: string, agentUserId: string) =>
+      caseActions.reassign(caseId, agentUserId),
   };
 }

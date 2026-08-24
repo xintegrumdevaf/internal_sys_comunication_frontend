@@ -23,6 +23,7 @@ npm run build       # vite build (client + ssr), sin errores
 - Eliminado: `ops-types.ts`, `whatsapp-webhook-url*.ts`, `components/whatsapp/*`, `routes/whatsapp.tsx`, `adapters/http/*` (no existen equivalentes en el backend nuevo).
 
 **Aprobación:**
+
 - Automatizado: `shared/http/api-base.test.ts`, `modules/cases/infrastructure/case.gateway.test.ts`, `modules/conversations/infrastructure/conversation.gateway.test.ts`, `modules/escalations/infrastructure/escalation.gateway.test.ts` (URL/método/headers/body exactos contra el contrato).
 - Manual: `GET /api/departments` y `GET /api/agents` responden datos reales desde la UI (verificable en Network tab).
 
@@ -33,6 +34,7 @@ npm run build       # vite build (client + ssr), sin errores
 - Navegación por departamento dinámica desde `GET /api/departments` (`02_MODULES.md` §3).
 
 **Aprobación:**
+
 - Automatizado: `modules/identity/domain/session.test.ts` (cálculo de `SessionUser`, landing por rol), `modules/identity/application/access-control.test.ts` (`canAccessPath`/`canAccessDepartment`/`modulesForSession` para los 3 roles), `modules/identity/infrastructure/agent-directory.gateway.test.ts`.
 - Manual: el selector de perfil solo ofrece agentes que existen en la base de datos real; `/usuarios` muestra el aviso de pendiente y no persiste nada; un agente sin `role=admin` no ve `/flujos`.
 
@@ -41,6 +43,7 @@ npm run build       # vite build (client + ssr), sin errores
 - `modules/conversations/{domain,infrastructure,application,ui}` — `use-operational-inbox.ts` sobre SSE (sin polling) y el contrato real de conversaciones/mensajes.
 
 **Aprobación:**
+
 - Automatizado: `modules/conversations/infrastructure/conversation.gateway.test.ts` (filtros de query, resolución de `mediaUrl`).
 - Manual: un mensaje nuevo (probado con un mensaje real vía WhatsApp o simulando el webhook) aparece sin refrescar la página.
 
@@ -49,6 +52,7 @@ npm run build       # vite build (client + ssr), sin errores
 - `modules/cases/{domain,infrastructure,application,ui}` — `CasePanel` + `CaseSummaryDialog` (`03_REALTIME_NOTIFICATIONS.md` §4) + `use-case-actions.ts` (acción reutilizable, ver `docs/skills/solid-principles-frontend.md` §DIP).
 
 **Aprobación:**
+
 - Automatizado: `modules/cases/domain/case.test.ts` (labels/estado/extracción de cliente), `modules/cases/application/use-case-actions.test.ts` (claim/assign disparan el gateway correcto, `busy`, manejo de error).
 - Manual: reclamar/asignar/completar/cancelar/transferir/activar-desactivar automatización funcionan de punta a punta contra el backend real y se reflejan sin recargar.
 
@@ -57,6 +61,7 @@ npm run build       # vite build (client + ssr), sin errores
 - `modules/escalations/{domain,infrastructure,application,ui}` + `modules/realtime/ui/NotificationBell.tsx` en `app/shell/AppShell.tsx` (`03_REALTIME_NOTIFICATIONS.md` §2-3).
 
 **Aprobación:**
+
 - Automatizado: `modules/escalations/infrastructure/escalation.gateway.test.ts` (mapeo de `triage`/`departmentId`).
 - Manual: al escalar un caso, los agentes/managers con visibilidad reciben notificación; al asignar, el agente asignado recibe notificación aunque esté en otra pantalla.
 
@@ -66,6 +71,7 @@ npm run build       # vite build (client + ssr), sin errores
 - `06_BACKEND_GAPS.md` §2 (algoritmo automático) queda registrado y enlazado desde aquí — no se implementa en este trabajo.
 
 **Aprobación:**
+
 - Automatizado: `modules/assignment/application/use-assignment-board.test.ts` (selección de depto. por defecto, filtrado de agentes, `assignCase`/`reassignCase` delegan con el actor real, un `getCase` fallido no rompe el tablero).
 - Manual: un manager ve la carga por agente de su departamento y puede reasignar manualmente (verificado contra el backend real, incluyendo CORS — ver `06_BACKEND_GAPS.md`).
 
@@ -74,6 +80,7 @@ npm run build       # vite build (client + ssr), sin errores
 - `modules/dashboard/ui/DashboardOverview.tsx`, `modules/audit/ui/AuditLogView.tsx`, `modules/admin-n8n/ui/N8nWorkflowCatalog.tsx` contra endpoints reales.
 
 **Aprobación:**
+
 - Automatizado: `modules/dashboard/infrastructure/dashboard.gateway.test.ts`, `modules/audit/infrastructure/audit.gateway.test.ts`, `modules/admin-n8n/infrastructure/n8n-workflow.gateway.test.ts` (incluye el caso de error 403 sin rol admin).
 - Manual: las tres pantallas reflejan datos reales del backend local (verificado con CORS habilitado — sin esto, las tres fallaban silenciosamente en el navegador, ver `06_BACKEND_GAPS.md`).
 
@@ -84,6 +91,7 @@ npm run build       # vite build (client + ssr), sin errores
 - Pulido UX: estados de envío, indicador de conexión SSE, medios ya soportados.
 
 **Aprobación:**
+
 - Automatizado: `modules/internal-chat/domain/mention-parser.test.ts` (parseo/inserción de menciones, casos límite de `@`).
 - Manual: chat interno funciona con agentes reales del directorio; menciones abren el caso correcto en `/bandeja`.
 
@@ -115,6 +123,7 @@ Las Etapas 0-7 se construyeron inicialmente con una estructura plana (`src/lib`,
 - Empty state honesto si el backend aún no expone los endpoints — **sin scores mock**.
 
 **Aprobación:**
+
 - Automatizado: access-control para `/calidad`; gateway quality (URLs/métodos); highlight de finding en detalle; parseo deep-link chat.
 - Manual: manager ve solo su alcance (backend); admin ve ranking global; detalle remarca mensajes; CTA chat abre peer correcto.
 - Los 4 comandos del criterio transversal limpios.

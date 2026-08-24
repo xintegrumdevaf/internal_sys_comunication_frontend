@@ -7,7 +7,9 @@ describe("auditActionLabel", () => {
     expect(auditActionLabel("CASE_ASSIGNED")).toBe("Caso asignado a un agente");
     expect(auditActionLabel("CONVERSATION_REPLY")).toBe("Respuesta enviada al cliente");
     expect(auditActionLabel("AUTOMATION_DISABLED")).toBe("Se desactivó la automatización");
-    expect(auditActionLabel("CASE_AUTO_ASSIGNED")).toBe("Caso asignado automáticamente por el sistema");
+    expect(auditActionLabel("CASE_AUTO_ASSIGNED")).toBe(
+      "Caso asignado automáticamente por el sistema",
+    );
     expect(auditActionLabel("AGENT_PASSWORD_RESET")).toBe("Contraseña de agente restablecida");
   });
 

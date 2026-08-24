@@ -42,10 +42,22 @@ const session: SessionUser = {
 };
 
 const departments: DepartmentDto[] = [
-  { id: "dept_support", slug: "support", name: "Soporte técnico", visibility: "shared", active: true, createdAt: "" },
+  {
+    id: "dept_support",
+    slug: "support",
+    name: "Soporte técnico",
+    visibility: "shared",
+    active: true,
+    createdAt: "",
+  },
 ];
 
-const agentInDept: SessionUser = { ...session, id: "agent_1", role: "agent", name: "Laura Mendoza" };
+const agentInDept: SessionUser = {
+  ...session,
+  id: "agent_1",
+  role: "agent",
+  name: "Laura Mendoza",
+};
 
 vi.mock("@/modules/identity/application/use-session", () => ({
   useSession: () => session,
@@ -105,7 +117,10 @@ describe("useAssignmentBoard", () => {
     await waitFor(() => expect(result.current.departmentId).toBe("dept_support"));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(listConversationsMock).toHaveBeenCalledWith({ departmentId: "dept_support", status: "open" });
+    expect(listConversationsMock).toHaveBeenCalledWith({
+      departmentId: "dept_support",
+      status: "open",
+    });
     expect(result.current.cases).toHaveLength(1);
     expect(result.current.unassigned).toHaveLength(1);
   });

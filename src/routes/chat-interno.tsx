@@ -29,8 +29,7 @@ function ChatInternoPage() {
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up flex flex-wrap items-center justify-between gap-3">
         <p>
           Conversaciones 1:1 entre agentes. Las menciones de casos son privadas:{" "}
-          <span className="font-bold text-foreground">el cliente no las ve</span>.
-          {" "}
+          <span className="font-bold text-foreground">el cliente no las ve</span>.{" "}
           <span className="italic">Solo en este navegador (localStorage).</span>
         </p>
         {supervisor && (

@@ -26,13 +26,13 @@ El backend ya puede auto-asignar chats a agentes elegibles de un departamento. H
 
 ## Decisiones confirmadas
 
-| Tema | Decisión |
-|---|---|
-| Ubicación | `/usuarios` (opción A), con secciones por departamento |
-| Controles por fila | Solo **Asignación automática** |
-| Ámbito | Solo el `primaryDepartmentId` del agente |
-| Default | `false` (opt-in explícito) |
-| Backend | Frontend-first; persistencia real cuando el API acepte el campo |
+| Tema               | Decisión                                                        |
+| ------------------ | --------------------------------------------------------------- |
+| Ubicación          | `/usuarios` (opción A), con secciones por departamento          |
+| Controles por fila | Solo **Asignación automática**                                  |
+| Ámbito             | Solo el `primaryDepartmentId` del agente                        |
+| Default            | `false` (opt-in explícito)                                      |
+| Backend            | Frontend-first; persistencia real cuando el API acepte el campo |
 
 ## Contrato API (para el backend)
 
@@ -94,11 +94,11 @@ Normalización al mapear respuestas: `autoAssignEnabled: Boolean(raw.autoAssignE
 
 ### Comportamiento del switch
 
-| Condición | Comportamiento |
-|---|---|
-| Agente activo + tiene área | Editable |
-| Agente inactivo | Deshabilitado |
-| Sin área principal | Deshabilitado |
+| Condición                     | Comportamiento                |
+| ----------------------------- | ----------------------------- |
+| Agente activo + tiene área    | Editable                      |
+| Agente inactivo               | Deshabilitado                 |
+| Sin área principal            | Deshabilitado                 |
 | Mutación en curso en esa fila | Deshabilitado hasta respuesta |
 
 Al cambiar:
@@ -125,13 +125,13 @@ UsersDirectoryPanel
 
 Piezas a tocar:
 
-| Archivo | Cambio |
-|---|---|
-| `src/modules/identity/domain/agent.ts` | Campo `autoAssignEnabled` |
-| `src/modules/identity/infrastructure/agent-directory.gateway.ts` | Payload + normalización si aplica |
-| `src/modules/identity/application/use-agent-directory-admin.ts` | Mutación / toast específico (opcional helper) |
-| `src/modules/identity/ui/UsersDirectoryPanel.tsx` | Secciones + Switch |
-| Docs de gaps/API si el repo las mantiene para el backend | Nota del contrato |
+| Archivo                                                          | Cambio                                        |
+| ---------------------------------------------------------------- | --------------------------------------------- |
+| `src/modules/identity/domain/agent.ts`                           | Campo `autoAssignEnabled`                     |
+| `src/modules/identity/infrastructure/agent-directory.gateway.ts` | Payload + normalización si aplica             |
+| `src/modules/identity/application/use-agent-directory-admin.ts`  | Mutación / toast específico (opcional helper) |
+| `src/modules/identity/ui/UsersDirectoryPanel.tsx`                | Secciones + Switch                            |
+| Docs de gaps/API si el repo las mantiene para el backend         | Nota del contrato                             |
 
 Componente UI: `src/components/ui/switch.tsx` (ya existe).
 

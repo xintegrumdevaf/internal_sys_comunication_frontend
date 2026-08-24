@@ -21,7 +21,10 @@ import { toast } from "sonner";
 import { canAccessPath, modulesForSession } from "@/modules/identity/application/access-control";
 import { useAuth, useSession, useSessionLoading } from "@/modules/identity/application/use-session";
 import { changePassword } from "@/modules/identity/infrastructure/auth.gateway";
-import { useRealtimeConnected, useRealtimeSession } from "@/modules/realtime/application/use-realtime";
+import {
+  useRealtimeConnected,
+  useRealtimeSession,
+} from "@/modules/realtime/application/use-realtime";
 import { NotificationBell } from "@/modules/realtime/ui/NotificationBell";
 
 type NavItem = {

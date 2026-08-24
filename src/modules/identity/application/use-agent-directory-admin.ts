@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as agentDirectoryGateway from "@/modules/identity/infrastructure/agent-directory.gateway";
-import type { CreateAgentPayload, UpdateAgentPayload } from "@/modules/identity/infrastructure/agent-directory.gateway";
+import type {
+  CreateAgentPayload,
+  UpdateAgentPayload,
+} from "@/modules/identity/infrastructure/agent-directory.gateway";
 
 /**
  * Alta/edición/baja/reinicio de contraseña de agentes
@@ -57,7 +60,11 @@ export function useAgentDirectoryAdmin() {
     );
 
   const updateAgent = (agentId: string, payload: UpdateAgentPayload) =>
-    run("actualizar el agente", () => agentDirectoryGateway.updateAgent(agentId, payload), "Agente actualizado");
+    run(
+      "actualizar el agente",
+      () => agentDirectoryGateway.updateAgent(agentId, payload),
+      "Agente actualizado",
+    );
 
   const setAutoAssign = (agentId: string, enabled: boolean) =>
     run(
@@ -67,7 +74,11 @@ export function useAgentDirectoryAdmin() {
     );
 
   const deactivateAgent = (agentId: string) =>
-    run("desactivar el agente", () => agentDirectoryGateway.deactivateAgent(agentId), "Agente desactivado");
+    run(
+      "desactivar el agente",
+      () => agentDirectoryGateway.deactivateAgent(agentId),
+      "Agente desactivado",
+    );
 
   const reactivateAgent = (agentId: string) =>
     run(
@@ -83,5 +94,13 @@ export function useAgentDirectoryAdmin() {
       "Contraseña restablecida",
     );
 
-  return { busy, createAgent, updateAgent, setAutoAssign, deactivateAgent, reactivateAgent, resetPassword };
+  return {
+    busy,
+    createAgent,
+    updateAgent,
+    setAutoAssign,
+    deactivateAgent,
+    reactivateAgent,
+    resetPassword,
+  };
 }

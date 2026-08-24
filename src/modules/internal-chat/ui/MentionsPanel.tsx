@@ -14,7 +14,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import type { Mention, MentionTarget, RecentMentionEntry } from "@/modules/internal-chat/domain/internal-chat";
+import type {
+  Mention,
+  MentionTarget,
+  RecentMentionEntry,
+} from "@/modules/internal-chat/domain/internal-chat";
 import { resolveConversationId } from "@/modules/internal-chat/domain/mention-parser";
 import type { SessionUser } from "@/modules/identity/domain/session";
 import {
@@ -110,9 +114,7 @@ export function MentionsPanel({
           </section>
 
           <section>
-            <h3 className="text-xs font-extrabold uppercase tracking-widest mb-2">
-              Recientes
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest mb-2">Recientes</h3>
             {recent.length === 0 ? (
               <p className="text-sm text-muted-foreground">Aún no has mencionado casos.</p>
             ) : (
@@ -126,10 +128,7 @@ export function MentionsPanel({
                   const conversationId = resolveConversationId(entry.mention, targets);
 
                   return (
-                    <li
-                      key={entry.id}
-                      className="rounded-lg border border-border p-3 space-y-2"
-                    >
+                    <li key={entry.id} className="rounded-lg border border-border p-3 space-y-2">
                       <p className="text-sm font-semibold">@{entry.mention.label}</p>
                       <p className="text-[11px] text-muted-foreground">
                         Con {peerName} ·{" "}

@@ -14,22 +14,23 @@
 
 ## File map
 
-| Archivo | Rol |
-|---|---|
-| `src/modules/identity/domain/agent.ts` | Campo `autoAssignEnabled` |
-| `src/modules/identity/domain/session.ts` | Propagar flag en `SessionUser` / `toSessionUser` |
-| `src/modules/identity/domain/session.test.ts` | Fixtures + test default false |
-| `src/modules/identity/infrastructure/agent-directory.gateway.ts` | Payload update + `normalizeAgent` |
-| `src/modules/identity/application/use-agent-directory-admin.ts` | Helper `setAutoAssign` + toast específico |
-| `src/modules/identity/ui/UsersDirectoryPanel.tsx` | Secciones + Switch + búsqueda opcional |
-| `docs/spec/06_BACKEND_GAPS.md` (si aplica) | Nota del contrato FE → BE |
-| Tests mock de agentes en assignment/cases/escalations | Añadir `autoAssignEnabled: false` a fixtures |
+| Archivo                                                          | Rol                                              |
+| ---------------------------------------------------------------- | ------------------------------------------------ |
+| `src/modules/identity/domain/agent.ts`                           | Campo `autoAssignEnabled`                        |
+| `src/modules/identity/domain/session.ts`                         | Propagar flag en `SessionUser` / `toSessionUser` |
+| `src/modules/identity/domain/session.test.ts`                    | Fixtures + test default false                    |
+| `src/modules/identity/infrastructure/agent-directory.gateway.ts` | Payload update + `normalizeAgent`                |
+| `src/modules/identity/application/use-agent-directory-admin.ts`  | Helper `setAutoAssign` + toast específico        |
+| `src/modules/identity/ui/UsersDirectoryPanel.tsx`                | Secciones + Switch + búsqueda opcional           |
+| `docs/spec/06_BACKEND_GAPS.md` (si aplica)                       | Nota del contrato FE → BE                        |
+| Tests mock de agentes en assignment/cases/escalations            | Añadir `autoAssignEnabled: false` a fixtures     |
 
 ---
 
 ### Task 1: Dominio — `autoAssignEnabled`
 
 **Files:**
+
 - Modify: `src/modules/identity/domain/agent.ts`
 - Modify: `src/modules/identity/domain/session.ts`
 - Modify: `src/modules/identity/domain/session.test.ts`
@@ -49,6 +50,7 @@
 ### Task 2: Gateway — normalización y payload
 
 **Files:**
+
 - Modify: `src/modules/identity/infrastructure/agent-directory.gateway.ts`
 - Create (opcional): `src/modules/identity/infrastructure/agent-directory.gateway.test.ts` si el módulo ya tiene patrón de tests de gateway; si no, cubrir normalización en un test de dominio/helpers junto al gateway.
 
@@ -69,6 +71,7 @@
 ### Task 3: Hook admin — `setAutoAssign`
 
 **Files:**
+
 - Modify: `src/modules/identity/application/use-agent-directory-admin.ts`
 
 - [ ] **Step 1:** Añadir `setAutoAssign(agentId: string, enabled: boolean)` que llame a `updateAgent` con `{ autoAssignEnabled: enabled }` y toast:
@@ -84,6 +87,7 @@
 ### Task 4: UI — secciones por departamento + Switch
 
 **Files:**
+
 - Modify: `src/modules/identity/ui/UsersDirectoryPanel.tsx`
 - Use: `src/components/ui/switch.tsx`
 
@@ -112,6 +116,7 @@
 ### Task 5: Documentación de contrato backend
 
 **Files:**
+
 - Modify: `docs/spec/06_BACKEND_GAPS.md` (o sección equivalente de API si es el lugar canónico)
 - Modify: `docs/superpowers/specs/2026-08-12-agent-auto-assign-toggle-design.md` → Estado: aprobado / plan listo
 

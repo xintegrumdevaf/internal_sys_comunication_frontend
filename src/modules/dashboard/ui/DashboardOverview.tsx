@@ -30,9 +30,9 @@ export function DashboardOverview() {
   return (
     <>
       <section className="animate-fade-up mb-2 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground">
-        Hola <span className="font-bold text-foreground">{session?.name}</span>, este es tu
-        resumen del día como {session?.roleLabel?.toLowerCase()}. Todo lo que ves aquí se
-        actualiza en tiempo real.
+        Hola <span className="font-bold text-foreground">{session?.name}</span>, este es tu resumen
+        del día como {session?.roleLabel?.toLowerCase()}. Todo lo que ves aquí se actualiza en
+        tiempo real.
       </section>
 
       <section className="animate-fade-up">
@@ -106,7 +106,9 @@ export function DashboardOverview() {
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                    d.active ? "bg-primary/10 text-primary" : "bg-foreground/5 text-muted-foreground"
+                    d.active
+                      ? "bg-primary/10 text-primary"
+                      : "bg-foreground/5 text-muted-foreground"
                   }`}
                 >
                   {d.active ? "Activa" : "Inactiva"}
@@ -123,8 +125,13 @@ export function DashboardOverview() {
             </h3>
             <div className="space-y-1.5 text-[10px]">
               {audit.map((e) => (
-                <div key={e.id} className="flex justify-between py-1 border-b border-border/60 gap-2">
-                  <span className="text-muted-foreground truncate">{auditActionLabel(e.action)}</span>
+                <div
+                  key={e.id}
+                  className="flex justify-between py-1 border-b border-border/60 gap-2"
+                >
+                  <span className="text-muted-foreground truncate">
+                    {auditActionLabel(e.action)}
+                  </span>
                   <span className="text-primary font-bold shrink-0">
                     {relativeTime(e.createdAt)}
                   </span>

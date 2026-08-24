@@ -238,9 +238,7 @@ export function DepartmentsDirectoryPanel() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          d.active
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                          d.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {d.active ? "Activo" : "Inactivo"}

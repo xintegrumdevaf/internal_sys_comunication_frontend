@@ -36,9 +36,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     try {
       const msgs = await listMessages(detail.conversationId, { limit: 200 });
       setMessages(
-        detail.caseId
-          ? msgs.filter((m) => m.caseId === detail.caseId || m.caseId === null)
-          : msgs,
+        detail.caseId ? msgs.filter((m) => m.caseId === detail.caseId || m.caseId === null) : msgs,
       );
     } catch {
       setMessages([]);
@@ -136,11 +134,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     setBusy(true);
     try {
       const created = await requestOnDemandReview(review.caseId);
-      toast.success(
-        created.status === "pending"
-          ? "Análisis en curso…"
-          : "Análisis solicitado",
-      );
+      toast.success(created.status === "pending" ? "Análisis en curso…" : "Análisis solicitado");
       return created.id;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo solicitar el análisis");
@@ -150,9 +144,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     }
   };
 
-  const chatDeepLink = review
-    ? buildQualityChatDeepLink(review.agentId, review.id)
-    : null;
+  const chatDeepLink = review ? buildQualityChatDeepLink(review.agentId, review.id) : null;
 
   return {
     session,

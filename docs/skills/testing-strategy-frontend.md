@@ -10,13 +10,13 @@ Estrategia y runner de tests de este frontend (misma disciplina que `isp-custome
 
 ## 1. Qué probar en cada capa (con ejemplos reales de este repo)
 
-| Capa | Qué probar | Ejemplo real |
-|---|---|---|
-| `domain/*.ts` | Funciones puras: casos límite, no solo el camino feliz | `modules/cases/domain/case.test.ts`, `modules/identity/domain/session.test.ts`, `modules/internal-chat/domain/mention-parser.test.ts` |
-| `application/access-control.ts` | Reglas de autorización cliente por rol/visibilidad — errores aquí son bugs de seguridad/UX | `modules/identity/application/access-control.test.ts` |
-| `infrastructure/*.gateway.ts` | Que la URL/método/headers/body armados coincidan exactamente con el contrato REST real (con `fetch` mockeado vía `vi.stubGlobal`) | `modules/cases/infrastructure/case.gateway.test.ts`, `modules/conversations/infrastructure/conversation.gateway.test.ts`, `modules/escalations/infrastructure/escalation.gateway.test.ts` |
-| `application/use-*.ts` (hooks) | Orquestación: la acción correcta dispara el gateway correcto, actualiza `busy`, notifica éxito/error — con el gateway mockeado vía `vi.mock` | `modules/cases/application/use-case-actions.test.ts` (cubre los 3 módulos que lo reutilizan: conversations, escalations, assignment) |
-| `shared/*.ts` | Utilidades puras compartidas | `shared/datetime.test.ts`, `shared/http/api-base.test.ts` |
+| Capa                            | Qué probar                                                                                                                                   | Ejemplo real                                                                                                                                                                              |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain/*.ts`                   | Funciones puras: casos límite, no solo el camino feliz                                                                                       | `modules/cases/domain/case.test.ts`, `modules/identity/domain/session.test.ts`, `modules/internal-chat/domain/mention-parser.test.ts`                                                     |
+| `application/access-control.ts` | Reglas de autorización cliente por rol/visibilidad — errores aquí son bugs de seguridad/UX                                                   | `modules/identity/application/access-control.test.ts`                                                                                                                                     |
+| `infrastructure/*.gateway.ts`   | Que la URL/método/headers/body armados coincidan exactamente con el contrato REST real (con `fetch` mockeado vía `vi.stubGlobal`)            | `modules/cases/infrastructure/case.gateway.test.ts`, `modules/conversations/infrastructure/conversation.gateway.test.ts`, `modules/escalations/infrastructure/escalation.gateway.test.ts` |
+| `application/use-*.ts` (hooks)  | Orquestación: la acción correcta dispara el gateway correcto, actualiza `busy`, notifica éxito/error — con el gateway mockeado vía `vi.mock` | `modules/cases/application/use-case-actions.test.ts` (cubre los 3 módulos que lo reutilizan: conversations, escalations, assignment)                                                      |
+| `shared/*.ts`                   | Utilidades puras compartidas                                                                                                                 | `shared/datetime.test.ts`, `shared/http/api-base.test.ts`                                                                                                                                 |
 
 ## 2. Patrón para mockear `fetch` en tests de gateway
 

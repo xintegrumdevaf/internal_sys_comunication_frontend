@@ -52,7 +52,12 @@ const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
 
 function initialsFromProfileName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+  return (
+    parts
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
 }
 
 /**
@@ -230,7 +235,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       session?.role === "manager" ||
       session?.role === "admin");
 
-  const isAssignedToMe = Boolean(activeCase?.assignedAgentId && activeCase.assignedAgentId === session?.id);
+  const isAssignedToMe = Boolean(
+    activeCase?.assignedAgentId && activeCase.assignedAgentId === session?.id,
+  );
   const isAssignedToOther = Boolean(
     activeCase?.assignedAgentId && activeCase.assignedAgentId !== session?.id,
   );
@@ -268,7 +275,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       return automationState.enabled;
     }
 
-    return Boolean(activeCase?.automation?.enabled ?? selected?.activeCase?.automationEnabled ?? false);
+    return Boolean(
+      activeCase?.automation?.enabled ?? selected?.activeCase?.automationEnabled ?? false,
+    );
   }, [activeCase, selected?.activeCase, automationState]);
 
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
@@ -289,10 +298,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 key={tab.value}
                 type="button"
                 onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${statusFilter === tab.value
+                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${
+                  statusFilter === tab.value
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
-                  }`}
+                }`}
               >
                 {tab.label}
               </button>
@@ -316,10 +326,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           <button
             type="button"
             onClick={() => setDepartmentId(undefined)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${!departmentId
+            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+              !departmentId
                 ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                 : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-              }`}
+            }`}
           >
             Todas
           </button>
@@ -328,10 +339,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               key={d.id}
               type="button"
               onClick={() => setDepartmentId(d.id)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${departmentId === d.id
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                departmentId === d.id
                   ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                   : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-                }`}
+              }`}
             >
               {d.name}
             </button>
@@ -381,8 +393,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <button
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className={`w-full text-left p-3 transition-colors flex gap-3 ${active ? "bg-primary/5 border-l-4 border-primary" : "hover:bg-foreground/5 border-l-4 border-transparent"
-                    }`}
+                  className={`w-full text-left p-3 transition-colors flex gap-3 ${
+                    active
+                      ? "bg-primary/5 border-l-4 border-primary"
+                      : "hover:bg-foreground/5 border-l-4 border-transparent"
+                  }`}
                 >
                   <div className="relative shrink-0">
                     <ConversationAvatar conversation={c} />
@@ -394,13 +409,17 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between gap-2">
-                      <span className="text-sm font-bold truncate">{conversationDisplayName(c)}</span>
+                      <span className="text-sm font-bold truncate">
+                        {conversationDisplayName(c)}
+                      </span>
                       <span className="text-[10px] text-muted-foreground shrink-0">
                         {relativeTime(c.lastActivityAt)}
                       </span>
                     </div>
                     {c.waProfileName && (
-                      <p className="text-[10px] text-muted-foreground truncate">{formatWaPhone(c.waPhone)}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {formatWaPhone(c.waPhone)}
+                      </p>
                     )}
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {c.lastMessagePreview?.body ?? "Todavía no hay mensajes"}
@@ -412,14 +431,17 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       {c.activeCase && (
                         <>
                           <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-blue-100 text-blue-700 flex items-center gap-1">
-                            {!c.activeCase.automationEnabled && (c.activeCase.assignedAgentId || c.activeCase.assignedAgentName) ? (
+                            {!c.activeCase.automationEnabled &&
+                            (c.activeCase.assignedAgentId || c.activeCase.assignedAgentName) ? (
                               <>
                                 <User className="size-2.5" />
                                 <span>
                                   {c.activeCase.assignedAgentName ||
                                     (c.activeCase.assignedAgentId === session?.id
                                       ? "Tú"
-                                      : directory.find((a) => a.id === c.activeCase?.assignedAgentId)?.name) ||
+                                      : directory.find(
+                                          (a) => a.id === c.activeCase?.assignedAgentId,
+                                        )?.name) ||
                                     "Humano"}
                                 </span>
                               </>
@@ -432,7 +454,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           </span>
                           {c.activeCase.departmentId && (
                             <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-100 text-amber-700 flex items-center gap-1">
-                              {departments.find((d) => d.id === c.activeCase!.departmentId)?.name || "Dpto"}
+                              {departments.find((d) => d.id === c.activeCase!.departmentId)?.name ||
+                                "Dpto"}
                             </span>
                           )}
                         </>
@@ -455,8 +478,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
 
         {/* Hilo de conversación */}
         <div
-          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full transition-[grid-column] ${detailsOpen ? "lg:col-span-5" : "lg:col-span-8"
-            }`}
+          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full transition-[grid-column] ${
+            detailsOpen ? "lg:col-span-5" : "lg:col-span-8"
+          }`}
         >
           {selected ? (
             <>
@@ -464,7 +488,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <div className="flex items-center gap-2.5 min-w-0">
                   <ConversationAvatar conversation={selected} size="size-9" />
                   <div className="min-w-0">
-                    <p className="text-sm font-bold truncate">{conversationDisplayName(selected)}</p>
+                    <p className="text-sm font-bold truncate">
+                      {conversationDisplayName(selected)}
+                    </p>
                     <p className="text-[11px] text-muted-foreground truncate">
                       {selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}
                       {activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}
@@ -529,10 +555,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                         ? "Ocultar los datos del cliente y del caso"
                         : "Ver los datos del cliente y del caso"
                     }
-                    className={`inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full font-bold transition ${detailsOpen
+                    className={`inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full font-bold transition ${
+                      detailsOpen
                         ? "bg-primary text-primary-foreground shadow-sm hover:brightness-95"
                         : "border border-border hover:bg-foreground/5"
-                      }`}
+                    }`}
                   >
                     {detailsOpen ? (
                       <PanelRightClose className="size-3.5" />
@@ -591,37 +618,52 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           </span>
                         </div>
                       )}
-                      <div className={`flex items-end gap-2 mb-2 ${fromCustomer ? "justify-start" : "justify-end"}`}>
-                        {fromCustomer && <MessageAvatar author={m.author} conversation={selected} />}
+                      <div
+                        className={`flex items-end gap-2 mb-2 ${fromCustomer ? "justify-start" : "justify-end"}`}
+                      >
+                        {fromCustomer && (
+                          <MessageAvatar author={m.author} conversation={selected} />
+                        )}
                         <div
-                          className={`max-w-[70%] px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm ${fromCustomer
+                          className={`max-w-[70%] px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm ${
+                            fromCustomer
                               ? "bg-card border border-border rounded-bl-md"
                               : "bg-primary text-primary-foreground rounded-br-md"
-                            }`}
+                          }`}
                         >
                           {showSenderLabel && (
                             <p
-                              className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${fromCustomer ? "text-muted-foreground" : "text-primary-foreground/75"
-                                }`}
+                              className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${
+                                fromCustomer
+                                  ? "text-muted-foreground"
+                                  : "text-primary-foreground/75"
+                              }`}
                             >
                               {fromCustomer
                                 ? conversationDisplayName(selected)
                                 : m.author === "agent"
-                                  ? assignedAgentName ?? "Agente"
+                                  ? (assignedAgentName ?? "Agente")
                                   : "Asistente IA"}
                             </p>
                           )}
                           <MessageMediaBody message={m} />
                           <div
-                            className={`flex items-center justify-end gap-1 mt-1.5 ${fromCustomer ? "text-muted-foreground" : "text-primary-foreground/80"
-                              }`}
+                            className={`flex items-center justify-end gap-1 mt-1.5 ${
+                              fromCustomer ? "text-muted-foreground" : "text-primary-foreground/80"
+                            }`}
                           >
-                            <span className="text-[10px] tabular-nums">{messageClock(m.createdAt)}</span>
+                            <span className="text-[10px] tabular-nums">
+                              {messageClock(m.createdAt)}
+                            </span>
                             {!fromCustomer && <CheckCheck className="size-3.5 opacity-80" />}
                           </div>
                         </div>
                         {!fromCustomer && (
-                          <MessageAvatar author={m.author} conversation={selected} agentName={assignedAgentName} />
+                          <MessageAvatar
+                            author={m.author}
+                            conversation={selected}
+                            agentName={assignedAgentName}
+                          />
                         )}
                       </div>
                     </div>
@@ -654,7 +696,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                         void handleSend();
                       }
                     }}
-                    placeholder={isAutomationActive ? "El asistente IA está atendiendo..." : "Escribe tu respuesta… se envía por WhatsApp"}
+                    placeholder={
+                      isAutomationActive
+                        ? "El asistente IA está atendiendo..."
+                        : "Escribe tu respuesta… se envía por WhatsApp"
+                    }
                     className="flex-1 px-3.5 py-2.5 bg-card border border-border rounded-full text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                   />
                   <button
@@ -736,9 +782,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
         onClaim={
           activeCase?.assignedAgentId == null
             ? () => {
-              void claim();
-              setSummaryOpen(false);
-            }
+                void claim();
+                setSummaryOpen(false);
+              }
             : undefined
         }
         claimDisabled={busy}

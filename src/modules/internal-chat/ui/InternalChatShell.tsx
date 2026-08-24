@@ -130,9 +130,7 @@ export function InternalChatShell({
     setDraft(next.text);
     setCaret(next.caret);
     setDraftMentions((prev) => {
-      const exists = prev.some(
-        (m) => m.type === mention.type && m.targetId === mention.targetId,
-      );
+      const exists = prev.some((m) => m.type === mention.type && m.targetId === mention.targetId);
       return exists ? prev : [...prev, mention];
     });
     requestAnimationFrame(() => {
@@ -164,9 +162,7 @@ export function InternalChatShell({
       <section className="grid grid-cols-12 gap-6 min-h-[680px] animate-fade-up">
         <div className="col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden">
           <div className="p-4 border-b border-border bg-background/60">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">
-              Agentes
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">Agentes</h3>
             <p className="text-[10px] text-muted-foreground mt-1">
               Chat interno 1:1 · no visible para el cliente
             </p>
@@ -242,10 +238,7 @@ export function InternalChatShell({
               const isQualityBrief = m.body.includes("[[quality-review:");
               const displayBody = m.body.replace(/\[\[quality-review:[^\]]+\]\]\n?/g, "");
               return (
-                <div
-                  key={m.id}
-                  className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                >
+                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-sm whitespace-pre-wrap ${
                       isQualityBrief

@@ -75,17 +75,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "NetOps AI — Plataforma de Atención WhatsApp para ISP" },
-      { name: "description", content: "Orquestación de Soporte Técnico, Cartera y UTGA con agentes de IA sobre WhatsApp. Bandeja unificada, flujos n8n, handover humano y campañas masivas." },
+      {
+        name: "description",
+        content:
+          "Orquestación de Soporte Técnico, Cartera y UTGA con agentes de IA sobre WhatsApp. Bandeja unificada, flujos n8n, handover humano y campañas masivas.",
+      },
       { name: "author", content: "NetOps AI" },
       { property: "og:title", content: "NetOps AI — Plataforma de Atención WhatsApp para ISP" },
-      { property: "og:description", content: "Automatiza Soporte, Cartera y UTGA con IA + n8n sobre WhatsApp, con handover humano y auditoría." },
+      {
+        property: "og:description",
+        content:
+          "Automatiza Soporte, Cartera y UTGA con IA + n8n sobre WhatsApp, con handover humano y auditoría.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],

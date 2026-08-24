@@ -1,5 +1,8 @@
 import { apiDelete, apiGet, apiPut } from "@/shared/http/http-client";
-import type { N8nWorkflowCategory, N8nWorkflowEntryDto } from "@/modules/admin-n8n/domain/n8n-workflow";
+import type {
+  N8nWorkflowCategory,
+  N8nWorkflowEntryDto,
+} from "@/modules/admin-n8n/domain/n8n-workflow";
 
 /**
  * Puerto de infraestructura: GET/PUT/DELETE /api/admin/n8n-workflows[/:action]

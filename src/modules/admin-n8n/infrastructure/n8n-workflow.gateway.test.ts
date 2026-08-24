@@ -62,7 +62,10 @@ describe("n8n-workflow.gateway", () => {
 
   it("propaga un error de autorización legible si no es admin", async () => {
     mockFetchOnce(403, {
-      error: { type: "FORBIDDEN", message: "Se requiere rol admin para administrar el catálogo de n8n" },
+      error: {
+        type: "FORBIDDEN",
+        message: "Se requiere rol admin para administrar el catálogo de n8n",
+      },
     });
     await expect(listN8nWorkflows("agent_1")).rejects.toThrow(/rol admin/);
   });

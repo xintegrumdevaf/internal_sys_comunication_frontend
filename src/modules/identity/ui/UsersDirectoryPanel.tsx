@@ -32,17 +32,25 @@ function roleText(role: AgentRole): string {
 export function UsersDirectoryPanel() {
   const users = useDirectoryUsers();
   const { data: departments = [] } = useDepartmentsQuery();
-  const { busy, createAgent, updateAgent, setAutoAssign, deactivateAgent, reactivateAgent, resetPassword } =
-    useAgentDirectoryAdmin();
+  const {
+    busy,
+    createAgent,
+    updateAgent,
+    setAutoAssign,
+    deactivateAgent,
+    reactivateAgent,
+    resetPassword,
+  } = useAgentDirectoryAdmin();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [search, setSearch] = useState("");
   const [pendingAutoAssignId, setPendingAutoAssignId] = useState<string | null>(null);
-  const [temporaryPasswordFor, setTemporaryPasswordFor] = useState<{ name: string; password: string } | null>(
-    null,
-  );
+  const [temporaryPasswordFor, setTemporaryPasswordFor] = useState<{
+    name: string;
+    password: string;
+  } | null>(null);
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -141,8 +149,8 @@ export function UsersDirectoryPanel() {
         <div>
           <h2 className="text-sm font-bold">Agentes del sistema</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Agrupados por área. El switch de asignación automática indica si el agente entra al
-            pool de chats de su departamento (opt-in; por defecto desactivado).
+            Agrupados por área. El switch de asignación automática indica si el agente entra al pool
+            de chats de su departamento (opt-in; por defecto desactivado).
           </p>
         </div>
         <button
@@ -298,9 +306,14 @@ export function UsersDirectoryPanel() {
       ) : (
         <div className="space-y-4">
           {sections.map((section) => (
-            <div key={section.departmentId ?? "none"} className="rounded-xl border border-border bg-card overflow-hidden">
+            <div
+              key={section.departmentId ?? "none"}
+              className="rounded-xl border border-border bg-card overflow-hidden"
+            >
               <div className="flex items-center justify-between gap-2 border-b border-border bg-background/60 px-4 py-2.5">
-                <h3 className="text-[11px] font-extrabold uppercase tracking-widest">{section.title}</h3>
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest">
+                  {section.title}
+                </h3>
                 <span className="text-[10px] font-bold text-muted-foreground">
                   {section.users.length} {section.users.length === 1 ? "agente" : "agentes"}
                 </span>

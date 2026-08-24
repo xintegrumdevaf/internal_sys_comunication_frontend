@@ -42,7 +42,6 @@ function SectionLabel({ icon: Icon, children }: { icon: typeof Wrench; children:
   );
 }
 
-
 /** Panel de contexto de caso con extracción unificada y robusta de datos técnicos, comerciales y financieros. */
 function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
   const data = (caseDto.context?.data ?? {}) as Record<string, unknown>;
@@ -50,56 +49,58 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
   // 1. Contrato y Red
   const contract = (data.contract ?? rawContext?.contract) as
-    | { sector?: string; oltName?: string; pon?: string | number; serial?: string }
-    | undefined;
+    { sector?: string; oltName?: string; pon?: string | number; serial?: string } | undefined;
 
   // 2. Deuda y Estado Financiero
   const balance = (data.balance ?? rawContext?.balance) as
-    | { hasDebt?: boolean; amount?: number }
-    | undefined;
+    { hasDebt?: boolean; amount?: number } | undefined;
   const hasDebt = balance?.hasDebt ?? (data.hasDebt as boolean | undefined);
-  const debtAmount = balance?.amount ?? (data.debt as number | undefined) ?? (data.amount as number | undefined);
+  const debtAmount =
+    balance?.amount ?? (data.debt as number | undefined) ?? (data.amount as number | undefined);
 
   // 3. Diagnóstico Técnico
   const diagnostic = (data.diagnostic ?? rawContext?.diagnostic) as
     | { status?: string; result?: string; technical?: SupportInternetDiagnosticTechnical }
     | string
     | undefined;
-  const diagnosticResult = typeof diagnostic === "string" ? diagnostic : (diagnostic?.result ?? diagnostic?.status);
+  const diagnosticResult =
+    typeof diagnostic === "string" ? diagnostic : (diagnostic?.result ?? diagnostic?.status);
 
   // 4. Pago y Comprobantes
   const payment = (data.payment ?? rawContext?.payment) as
-    | { amount?: number; reference?: string; status?: string }
-    | undefined;
+    { amount?: number; reference?: string; status?: string } | undefined;
 
   // 5. Planes y Ofertas (Ventas / Comercial)
   const requestedSpeed = data.requestedSpeed as string | undefined;
   const currentPlan = data.currentPlan as { name?: string; speed?: string } | undefined;
-  const offer = data.offer as { name?: string; price?: number | string; speed?: string } | undefined;
+  const offer = data.offer as
+    { name?: string; price?: number | string; speed?: string } | undefined;
 
   // 6. Telemetría de la ONU
-  const technical = (data.technical ?? (typeof diagnostic === "object" ? diagnostic?.technical : undefined)) as
-    | SupportInternetDiagnosticTechnical
-    | undefined;
+  const technical = (data.technical ??
+    (typeof diagnostic === "object" ? diagnostic?.technical : undefined)) as
+    SupportInternetDiagnosticTechnical | undefined;
   const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
 
   const hasAnyData = Boolean(
     contract?.sector ||
-      contract?.oltName ||
-      contract?.serial ||
-      hasDebt !== undefined ||
-      debtAmount != null ||
-      diagnosticResult ||
-      payment?.reference ||
-      payment?.status ||
-      requestedSpeed ||
-      currentPlan?.name ||
-      offer?.name ||
-      technical,
+    contract?.oltName ||
+    contract?.serial ||
+    hasDebt !== undefined ||
+    debtAmount != null ||
+    diagnosticResult ||
+    payment?.reference ||
+    payment?.status ||
+    requestedSpeed ||
+    currentPlan?.name ||
+    offer?.name ||
+    technical,
   );
 
   if (!hasAnyData) {
-    return <p className="text-xs text-muted-foreground italic py-1">Sin datos técnicos adicionales.</p>;
+    return (
+      <p className="text-xs text-muted-foreground italic py-1">Sin datos técnicos adicionales.</p>
+    );
   }
 
   return (
@@ -112,16 +113,11 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
       {/* Deuda / Saldo */}
       {(hasDebt !== undefined || debtAmount != null) && (
-        <DataRow
-          label="Deuda"
-          value={hasDebt ? `Sí ($${debtAmount ?? 0})` : "No"}
-        />
+        <DataRow label="Deuda" value={hasDebt ? `Sí ($${debtAmount ?? 0})` : "No"} />
       )}
 
       {/* Diagnóstico técnico */}
-      {diagnosticResult && (
-        <DataRow label="Diagnóstico" value={diagnosticResult} />
-      )}
+      {diagnosticResult && <DataRow label="Diagnóstico" value={diagnosticResult} />}
 
       {/* Comercial / Planes (para Ventas) */}
       {requestedSpeed && <DataRow label="Velocidad solicitada" value={requestedSpeed} />}
@@ -136,7 +132,9 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
       {/* Pagos / Comprobantes */}
       {payment?.reference && <DataRow label="Referencia de pago" value={payment.reference} />}
-      {payment?.status && <DataRow label="Estado pago" value={paymentStatusLabel(payment.status)} />}
+      {payment?.status && (
+        <DataRow label="Estado pago" value={paymentStatusLabel(payment.status)} />
+      )}
 
       {/* Telemetría técnica ONU */}
       {technical && (
@@ -147,7 +145,9 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
           {technical.runState && (
             <div className="flex justify-between gap-2 items-center">
               <span className="text-muted-foreground">Estado del equipo</span>
-              <span className="text-right font-semibold">{onuRunStateLabel(technical.runState)}</span>
+              <span className="text-right font-semibold">
+                {onuRunStateLabel(technical.runState)}
+              </span>
             </div>
           )}
           {technical.opticalPowerDbm != null && (
@@ -156,7 +156,9 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold">{technical.opticalPowerDbm.toFixed(1)} dBm</span>
                 {quality && (
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
+                  >
                     {quality.label}
                   </span>
                 )}

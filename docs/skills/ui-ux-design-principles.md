@@ -13,12 +13,12 @@ Los agentes viven en `/bandeja` 8 horas. Cada decisión de diseño se evalúa co
 
 Esta paleta ya está fijada por `tone` en `StatCard`/badges — reutilízala, no inventes combinaciones nuevas:
 
-| Color | Significa | Ejemplos reales |
-|---|---|---|
-| `primary` | Normal, saludable, IA activa | Automatización activa, depto. `shared` |
-| `warning` | Requiere atención pronto, no urgente | Escalado pendiente, depto. `restricted`, SSE reconectando |
-| `danger` | Bloqueante o requiere acción inmediata | Reclamar caso, cancelar caso, sin agentes activos |
-| `muted-foreground` | Informativo, no accionable | Metadatos, timestamps |
+| Color              | Significa                              | Ejemplos reales                                           |
+| ------------------ | -------------------------------------- | --------------------------------------------------------- |
+| `primary`          | Normal, saludable, IA activa           | Automatización activa, depto. `shared`                    |
+| `warning`          | Requiere atención pronto, no urgente   | Escalado pendiente, depto. `restricted`, SSE reconectando |
+| `danger`           | Bloqueante o requiere acción inmediata | Reclamar caso, cancelar caso, sin agentes activos         |
+| `muted-foreground` | Informativo, no accionable             | Metadatos, timestamps                                     |
 
 Nunca uses rojo para algo que no bloquea al agente, ni verde para "todo bien" si en realidad hay una escalación pendiente sin resolver.
 

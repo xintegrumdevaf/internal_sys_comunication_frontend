@@ -21,11 +21,11 @@ El rol `agent` **no** ve esta ruta.
 
 ## 2. Ruta y acceso
 
-| Item | Valor |
-|---|---|
-| Ruta | `/calidad` |
-| Módulo | `src/modules/quality/` |
-| Roles | `manager` \| `admin` (`canAccessPath` / `modulesForSession`) |
+| Item    | Valor                                                                               |
+| ------- | ----------------------------------------------------------------------------------- |
+| Ruta    | `/calidad`                                                                          |
+| Módulo  | `src/modules/quality/`                                                              |
+| Roles   | `manager` \| `admin` (`canAccessPath` / `modulesForSession`)                        |
 | Landing | No cambia la landing actual; entrada en nav de supervisores junto a `/asignaciones` |
 
 Manager: el gateway envía filtros; si el backend filtra por membership, la UI no inventa depto ajenos. Admin puede filtrar `departmentId` opcional.
@@ -72,12 +72,12 @@ Estados: `pending` (spinner / “análisis en curso”), `failed` (mensaje de re
 
 Alineado al backend (`07` §5):
 
-| Score | Clase visual | Label |
-|---|---|---|
-| ≥ 70 | ok / neutro positivo | Cordial |
-| 40–69 | atención / warning | Revisar |
-| &lt; 40 | crítico / destructive | Crítico |
-| `null` | muted | Sin score |
+| Score   | Clase visual          | Label     |
+| ------- | --------------------- | --------- |
+| ≥ 70    | ok / neutro positivo  | Cordial   |
+| 40–69   | atención / warning    | Revisar   |
+| &lt; 40 | crítico / destructive | Crítico   |
+| `null`  | muted                 | Sin score |
 
 No inventar colores fuera del design system existente (Radix/Tailwind del repo).
 

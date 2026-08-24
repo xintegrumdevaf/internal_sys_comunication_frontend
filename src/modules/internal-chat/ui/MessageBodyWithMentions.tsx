@@ -53,7 +53,8 @@ export function MessageBodyWithMentions({ body, targets, onOpenConversation }: P
                     <p className="text-muted-foreground">Contrato #{target.contractId}</p>
                   )}
                   <p className="text-muted-foreground">
-                    {[target.department, target.status].filter(Boolean).join(" · ") || "Sin detalle"}
+                    {[target.department, target.status].filter(Boolean).join(" · ") ||
+                      "Sin detalle"}
                   </p>
                   {target.preview && (
                     <p className="text-muted-foreground line-clamp-2 pt-1 border-t border-border">

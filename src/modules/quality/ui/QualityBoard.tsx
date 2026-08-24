@@ -62,13 +62,7 @@ export function QualityBoard({
   })();
 
   if (reviewId) {
-    return (
-      <QualityReviewDetail
-        reviewId={reviewId}
-        onBack={onClearReview}
-        agentName={agentName}
-      />
-    );
+    return <QualityReviewDetail reviewId={reviewId} onBack={onClearReview} agentName={agentName} />;
   }
 
   if (backendUnavailable) {
@@ -88,9 +82,7 @@ export function QualityBoard({
     (r) => r.status === "pending" || !isMessageAnalysisComplete(r),
   ).length;
   const showAgentColumn = !filters.agentId;
-  const listTitle = filters.agentId
-    ? `Chats de ${agentName(filters.agentId)}`
-    : "Chats";
+  const listTitle = filters.agentId ? `Chats de ${agentName(filters.agentId)}` : "Chats";
   const analyzeBtnLabel = filters.agentId
     ? `Analizar chats de ${agentName(filters.agentId)}`
     : "Analizar chats recientes";
@@ -107,7 +99,8 @@ export function QualityBoard({
         <div className="mb-4 flex items-center gap-2 p-3 rounded-lg border border-primary/30 bg-primary/5 text-xs text-foreground animate-fade-up">
           <Loader2 className="size-4 animate-spin shrink-0 text-primary" />
           <span>
-            Analizando tramos… ({pendingCount} conversación(es) en cola). La lista se actualiza sola.
+            Analizando tramos… ({pendingCount} conversación(es) en cola). La lista se actualiza
+            sola.
           </span>
         </div>
       )}
@@ -217,9 +210,7 @@ export function QualityBoard({
       <section className="grid grid-cols-12 gap-6 animate-fade-up">
         <div className="col-span-12 lg:col-span-4 bg-card border border-border rounded-xl overflow-hidden">
           <div className="p-4 border-b border-border">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">
-              Ranking por agente
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">Ranking por agente</h3>
             <p className="text-[10px] text-muted-foreground mt-1">
               Score promedio de chats con valoración total completa.
             </p>
@@ -386,8 +377,8 @@ export function QualityBoard({
                       <td className="px-3 py-2.5 text-muted-foreground max-w-[200px]">
                         <span className="line-clamp-2">
                           {r.status === "failed"
-                            ? r.errorMessage ?? "Error de análisis"
-                            : r.summary ?? "—"}
+                            ? (r.errorMessage ?? "Error de análisis")
+                            : (r.summary ?? "—")}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
@@ -425,8 +416,8 @@ export function QualityBoard({
                       colSpan={showAgentColumn ? 9 : 8}
                       className="px-4 py-8 text-muted-foreground text-center"
                     >
-                      No hay revisiones aún. Pulsa «{analyzeBtnLabel}» para encolar casos
-                      cerrados recientes.
+                      No hay revisiones aún. Pulsa «{analyzeBtnLabel}» para encolar casos cerrados
+                      recientes.
                     </td>
                   </tr>
                 )}
