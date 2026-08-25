@@ -39,6 +39,20 @@ export function NotificationBell() {
               <span className="text-warning normal-case font-normal">Reconectando…</span>
             )}
           </div>
+          {typeof window !== "undefined" && "Notification" in window && Notification.permission === "default" && (
+            <div className="p-2.5 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-foreground font-medium">¿Recibir alertas cuando estés en otra app?</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void Notification.requestPermission();
+                }}
+                className="px-2.5 py-1 bg-primary text-primary-foreground text-[10px] font-bold rounded shadow-sm hover:brightness-95 shrink-0"
+              >
+                Activar
+              </button>
+            </div>
+          )}
           <div className="max-h-80 overflow-y-auto divide-y divide-border">
             {notifications.length === 0 && (
               <p className="p-4 text-xs text-muted-foreground">

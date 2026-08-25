@@ -1,3 +1,4 @@
+import { apiPost } from "@/shared/http/http-client";
 import type {
   KnowledgeDocument,
   FaqItem,
@@ -23,37 +24,47 @@ class KnowledgeService {
     }
   }
 
-  async uploadDocument(file: File, category: string): Promise<KnowledgeDocument> {
-    const payload = {
-      name: file.name,
-      category: category || "General",
-      mimeType: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "application/octet-stream"),
-      sizeBytes: file.size,
-      uploadedBy: "Admin Sistema",
-    };
+  // async uploadDocument(file: File, category: string): Promise<KnowledgeDocument> {
+  //   const payload = {
+  //     name: file.name,
+  //     category: category || "General",
+  //     mimeType: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "application/octet-stream"),
+  //     sizeBytes: file.size,
+  //     uploadedBy: "Admin Sistema",
+  //   };
 
-    const res = await fetch(`${API_BASE}/api/rag/documents`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+  //   const res = await fetch(`${API_BASE}/api/rag/documents`, {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify(payload),
+  //   });
 
-    if (!res.ok) throw new Error("No se pudo guardar el documento en PostgreSQL");
-    const json = await res.json();
+  //   if (!res.ok) throw new Error("No se pudo guardar el documento en PostgreSQL");
+  //   const json = await res.json();
 
-    // Notificar al webhook de n8n para procesamiento de vectores si está activo
-    try {
-      const formData = new FormData();
-      formData.append("Documentos_a_cargar", file);
-      formData.append("category", category);
-      void fetch("http://localhost:5678/webhook-test/cargar-documentos", {
-        method: "POST",
-        body: formData,
-      }).catch(() => {});
-    } catch {}
+  //   // Notificar al webhook de n8n para procesamiento de vectores si está activo
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append("Documentos_a_cargar", file);
+  //     formData.append("category", category);
+  //     void fetch("http://localhost:5678/webhook-test/cargar-documentos", {
+  //       method: "POST",
+  //       body: formData,
+  //     }).catch(() => {});
+  //   } catch {}
 
-    return json.data;
+  //   return json.data;
+  // }
+
+  // En knowledgeService.ts (o el archivo donde tengas definido knowledgeService)
+  async uploadDocument(file: File, category: string = 'General'): Promise<KnowledgeDocument> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+
+    return apiPost<KnowledgeDocument>('/api/rag/documents', formData);
   }
+
 
   async deleteDocument(id: string): Promise<void> {
     const res = await fetch(`${API_BASE}/api/rag/documents/${id}`, {

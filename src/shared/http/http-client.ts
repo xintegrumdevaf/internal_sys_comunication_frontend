@@ -60,11 +60,21 @@ export type RequestOptions = {
   agentId?: string | null;
 };
 
-function buildHeaders(agentId?: string | null): HeadersInit {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+// function buildHeaders(agentId?: string | null): HeadersInit {
+//   const headers: Record<string, string> = { "Content-Type": "application/json" };
+//   if (agentId) headers["x-agent-id"] = agentId;
+//   return headers;
+// }
+
+function buildHeaders(agentId?: string | null, isFormData = false): HeadersInit {
+  const headers: Record<string, string> = {};
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
   if (agentId) headers["x-agent-id"] = agentId;
   return headers;
 }
+
 
 export async function apiGet<T>(path: string, options?: RequestOptions): Promise<T> {
   void getApiBaseUrl(); // fail fast if unset
@@ -81,14 +91,30 @@ export async function apiPost<T>(
   options?: RequestOptions,
 ): Promise<T> {
   void getApiBaseUrl();
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   const res = await fetch(resolveApiUrl(path), {
     method: "POST",
-    headers: buildHeaders(options?.agentId),
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: buildHeaders(options?.agentId, isFormData),
+    body: isFormData ? (body as FormData) : body === undefined ? undefined : JSON.stringify(body),
     credentials: "include",
   });
   return parseEnvelope<T>(res);
 }
+
+// export async function apiPost<T>(
+//   path: string,
+//   body?: unknown,
+//   options?: RequestOptions,
+// ): Promise<T> {
+//   void getApiBaseUrl();
+//   const res = await fetch(resolveApiUrl(path), {
+//     method: "POST",
+//     headers: buildHeaders(options?.agentId),
+//     body: body === undefined ? undefined : JSON.stringify(body),
+//     credentials: "include",
+//   });
+//   return parseEnvelope<T>(res);
+// }
 
 export async function apiPut<T>(
   path: string,

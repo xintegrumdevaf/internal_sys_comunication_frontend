@@ -49,7 +49,31 @@ export function KnowledgeBasePage() {
     void loadData();
   }, []);
 
-  const handleUploadDocument = async (file: File, category: string) => {
+  // const handleUploadDocument = async (file: File, category: string) => {
+  //   try {
+  //     const newDoc = await knowledgeService.uploadDocument(file, category);
+  //     setDocuments((prev) => [newDoc, ...prev]);
+  //     toast.success(`Documento ${file.name} cargado e indexado correctamente`);
+  //     void loadData();
+  //   } catch (err) {
+  //     toast.error("Error al vectorizar el documento en n8n");
+  //     throw err;
+  //   }
+  // };
+
+  // Al seleccionar o soltar el archivo (ej: en el evento onDrop o onChange del <input type="file" />)
+  // const handleUploadDocument = async (file: File, category: string = 'General') => {
+  //   const formData = new FormData();
+  //   formData.append('file', file); // 👈 Adjunta el archivo binario real
+  //   formData.append('category', category);
+
+  //   // Si usás fetch:
+  //   const response = await fetch('/api/rag/documents', {
+  //     method: 'POST',
+  //     body: formData, // ⚠️ IMPORTANTE: No agregues el header 'Content-Type', el navegador lo pone automáticamente con el boundary
+  //   });
+
+  const handleUploadDocument = async (file: File, category: string = 'General') => {
     try {
       const newDoc = await knowledgeService.uploadDocument(file, category);
       setDocuments((prev) => [newDoc, ...prev]);
@@ -57,9 +81,19 @@ export function KnowledgeBasePage() {
       void loadData();
     } catch (err) {
       toast.error("Error al vectorizar el documento en n8n");
+      console.error(err);
       throw err;
     }
   };
+
+
+  // O si usás axios:
+  // await axios.post('/api/rag/documents', formData);
+
+  //   const result = await response.json();
+  //   return result;
+  // };
+
 
   const handleDeleteDocument = async (id: string) => {
     try {
@@ -130,11 +164,10 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("sources")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "sources"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "sources"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <FileText className="size-4" />
             Fuentes y Documentos ({documents.length})
@@ -143,11 +176,10 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("faqs")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "faqs"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "faqs"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <HelpCircle className="size-4" />
             FAQs y Contenido Directo ({faqs.length})
@@ -156,11 +188,10 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("playground")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "playground"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "playground"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <Sparkles className="size-4 text-amber-400" />
             🧪 RAG Playground (Simulador en Vivo)
@@ -169,11 +200,10 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("metrics")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "metrics"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "metrics"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <BarChart3 className="size-4" />
             📊 Métricas de Entrenamiento

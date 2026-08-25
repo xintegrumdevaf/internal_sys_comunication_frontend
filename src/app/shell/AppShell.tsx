@@ -23,6 +23,7 @@ import { canAccessPath, modulesForSession } from "@/modules/identity/application
 import { useAuth, useSession, useSessionLoading } from "@/modules/identity/application/use-session";
 import { changePassword } from "@/modules/identity/infrastructure/auth.gateway";
 import { useRealtimeConnected, useRealtimeSession } from "@/modules/realtime/application/use-realtime";
+import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
 import { NotificationBell } from "@/modules/realtime/ui/NotificationBell";
 
 type NavItem = {
@@ -117,32 +118,32 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex">
-      <aside className="w-64 border-r border-border flex flex-col bg-card shrink-0">
-        <div className="p-6 border-b border-border">
+    <div className="h-screen w-screen bg-background text-foreground font-sans flex overflow-hidden">
+      <aside className="w-56 border-r border-border flex flex-col bg-card shrink-0 select-none">
+        <div className="p-4 border-b border-border">
           <Link to={session.landing} className="block">
-            <h1 className="font-extrabold tracking-tighter text-xl uppercase">
+            <h1 className="font-extrabold tracking-tighter text-lg uppercase">
               NetOps <span className="text-primary">AI</span>
             </h1>
-            <p className="text-[10px] text-muted-foreground mt-1 tracking-wide">
+            <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide">
               {session.roleLabel}
             </p>
           </Link>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
           {moduleNav.map((m) => (
             <NavLink key={m.to} item={m} pathname={pathname} />
           ))}
         </nav>
 
-        <div className="p-3 border-t border-border relative">
+        <div className="p-2.5 border-t border-border relative">
           {menuOpen && !changePasswordOpen && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-20">
+            <div className="absolute bottom-full left-2.5 right-2.5 mb-2 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-20">
               <button
                 type="button"
                 onClick={() => setChangePasswordOpen(true)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-foreground/5 text-left text-xs font-bold"
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-foreground/5 text-left text-xs font-semibold"
               >
                 <KeyRound className="size-3.5 text-muted-foreground" />
                 Cambiar mi contraseña
@@ -153,7 +154,7 @@ export function AppShell({
                   setMenuOpen(false);
                   void logout().then(() => navigate({ to: "/login", replace: true }));
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-danger/10 text-danger border-t border-border text-xs font-bold"
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-danger/10 text-danger border-t border-border text-xs font-semibold"
               >
                 <LogOut className="size-3.5" />
                 Cerrar sesión
@@ -171,14 +172,14 @@ export function AppShell({
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="w-full flex items-center gap-3 p-1.5 rounded-md hover:bg-foreground/5 transition-colors"
+            className="w-full flex items-center gap-2.5 p-1.5 rounded-md hover:bg-foreground/5 transition-colors"
           >
-            <div className="size-9 rounded-full bg-primary/15 text-primary grid place-items-center text-xs font-bold">
+            <div className="size-8 rounded-full bg-primary/15 text-primary grid place-items-center text-xs font-bold shrink-0">
               {session.initials}
             </div>
             <div className="flex-1 min-w-0 text-left">
               <p className="text-xs font-bold truncate">{session.name}</p>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 {connected ? (
                   <Wifi className="size-2.5 text-primary" />
                 ) : (
@@ -196,21 +197,21 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="h-16 border-b border-border bg-card flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-3">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0 h-full">
+        <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
+          <div className="flex items-center gap-2.5">
             <Icon className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-bold tracking-tight">{title}</h2>
+            <h2 className="text-xs font-bold tracking-tight">{title}</h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded ring-1 ring-primary/20">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded ring-1 ring-primary/20">
               {session.roleLabel}
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-8">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col">{children}</div>
       </main>
     </div>
   );
@@ -276,17 +277,27 @@ function ChangePasswordForm({ onClose }: { onClose: () => void }) {
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = pathname === item.to;
+  const unreadBadge = useUnreadBadge();
+  const showBadge = item.to === "/bandeja" && unreadBadge > 0;
+
   return (
     <Link
       to={item.to}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${
+      className={`w-full flex items-center justify-between px-3 py-2 rounded-md font-medium text-xs transition-colors ${
         active
-          ? "bg-primary/10 text-primary"
+          ? "bg-primary/10 text-primary font-bold"
           : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
       }`}
     >
-      <item.icon className="size-4 shrink-0" />
-      {item.label}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <item.icon className="size-4 shrink-0" />
+        <span className="truncate">{item.label}</span>
+      </div>
+      {showBadge && (
+        <span className="flex h-4 min-w-[18px] px-1 items-center justify-center rounded-full bg-danger text-[10px] font-extrabold text-white shadow-sm ring-1 ring-background">
+          {unreadBadge > 99 ? "99+" : unreadBadge}
+        </span>
+      )}
     </Link>
   );
 }
