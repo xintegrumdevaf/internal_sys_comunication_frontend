@@ -253,22 +253,17 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       return false;
     }
 
-    // 3. Si el caso tiene agente asignado:
-    if (activeCase?.assignedAgentId || selected?.activeCase?.assignedAgentId) {
-      return false;
-    }
-
-    // 4. Si el endpoint de automatización dice que está apagada:
+    // 3. Si el endpoint de automatización dice que está apagada:
     if (automationState && !automationState.enabled) {
       return false;
     }
 
-    // 5. En caso contrario, si automationState o el caso dice que está encendida:
+    // 4. Si automationState o el caso dice que está encendida:
     if (automationState) {
       return automationState.enabled;
     }
 
-    return Boolean(activeCase?.automation?.enabled ?? selected?.activeCase?.automationEnabled ?? false);
+    return Boolean(activeCase?.automation?.enabled ?? selected?.activeCase?.automationEnabled ?? true);
   }, [activeCase, selected?.activeCase, automationState]);
 
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
@@ -409,10 +404,16 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
                         {conversationStatusLabel(c.status)}
                       </span>
-                      {c.activeCase && (
+                      {c.activeCase ? (
                         <>
-                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-blue-100 text-blue-700 flex items-center gap-1">
-                            {!c.activeCase.automationEnabled && (c.activeCase.assignedAgentId || c.activeCase.assignedAgentName) ? (
+                          <span
+                            className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 ${
+                              !c.activeCase.automationEnabled || c.activeCase.status === "HUMAN_ACTIVE"
+                                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30"
+                                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
+                            }`}
+                          >
+                            {!c.activeCase.automationEnabled || c.activeCase.status === "HUMAN_ACTIVE" ? (
                               <>
                                 <User className="size-2.5" />
                                 <span>
@@ -425,17 +426,22 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                               </>
                             ) : (
                               <>
-                                <Bot className="size-2.5" />
+                                <Bot className="size-2.5 text-emerald-500" />
                                 <span>IA</span>
                               </>
                             )}
                           </span>
                           {c.activeCase.departmentId && (
-                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-100 text-amber-700 flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-1">
                               {departments.find((d) => d.id === c.activeCase!.departmentId)?.name || "Dpto"}
                             </span>
                           )}
                         </>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 flex items-center gap-1">
+                          <Bot className="size-2.5 text-emerald-500" />
+                          <span>IA</span>
+                        </span>
                       )}
                     </div>
                   </div>
@@ -462,7 +468,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
             <>
               <div className="p-3 border-b border-border bg-background/60 flex items-center justify-between gap-2 shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <ConversationAvatar conversation={selected} size="size-9" />
+                  <div className="relative shrink-0">
+                    <ConversationAvatar conversation={selected} size="size-9" />
+                    {isAutomationActive && (
+                      <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.5 ring-2 ring-background">
+                        <Bot className="size-2.5" />
+                      </span>
+                    )}
+                  </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold truncate">{conversationDisplayName(selected)}</p>
                     <p className="text-[11px] text-muted-foreground truncate">
@@ -473,10 +486,15 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {isAutomationActive ? (
+                  {isAutomationActive || activeCase?.status !== "HUMAN_ACTIVE" ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
-                      <Bot className="size-3.5 text-emerald-500 animate-pulse" />
+                      <Bot className="size-3.5 text-emerald-500 animate-pulse shrink-0" />
                       <span>Asistente IA</span>
+                      {assignedAgentName && (
+                        <span className="text-emerald-700/70 dark:text-emerald-300/70 font-normal">
+                          · Asignado a {isAssignedToMe ? "ti" : assignedAgentName}
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span
@@ -493,7 +511,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                         <Lock className="size-3" />
                       )}
                       {isAssignedToMe
-                        ? "Asignado a ti"
+                        ? "Atención Humana (Tú)"
                         : assignedAgentName
                           ? `Atendido por ${assignedAgentName}`
                           : "Atención Manual"}
@@ -548,19 +566,27 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               </div>
 
               {isAutomationActive && (
-                <div className="mx-4 mt-2.5 px-3.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between gap-2 shrink-0 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Bot className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="font-medium truncate">
-                      El Asistente IA está atendiendo esta conversación.
-                    </span>
+                <div className="mx-4 mt-2.5 p-3 rounded-xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs flex items-center justify-between gap-3 shrink-0 shadow-sm backdrop-blur-md">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-8 rounded-full bg-emerald-500 text-white grid place-items-center shrink-0 shadow animate-pulse">
+                      <Bot className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-extrabold uppercase tracking-wide text-[11px] text-emerald-700 dark:text-emerald-300">
+                        🤖 ATENCIÓN AUTOMATIZADA POR IA
+                      </p>
+                      <p className="text-[11px] text-emerald-800 dark:text-emerald-200 truncate">
+                        El Asistente IA está respondiendo automáticamente las consultas del cliente.
+                        {assignedAgentName ? ` (Supervisado por ${assignedAgentName})` : ""}
+                      </p>
+                    </div>
                   </div>
                   {showTakeControl && (
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void takeControl()}
-                      className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0"
+                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider shadow hover:bg-emerald-700 transition shrink-0"
                     >
                       Tomar control manual
                     </button>
@@ -643,28 +669,48 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   </span>
                 </div>
               ) : (
-                <div className="p-2 border-t border-border bg-background/60 flex gap-2 shrink-0">
-                  <input
-                    value={draft}
-                    disabled={busy || isAutomationActive}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        void handleSend();
-                      }
-                    }}
-                    placeholder={isAutomationActive ? "El asistente IA está atendiendo..." : "Escribe tu respuesta… se envía por WhatsApp"}
-                    className="flex-1 px-3.5 py-1.5 bg-card border border-border rounded-full text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                  />
-                  <button
-                    type="button"
-                    disabled={busy || !draft.trim() || isAutomationActive}
-                    onClick={() => void handleSend()}
-                    className="px-4 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-sm hover:brightness-95 transition disabled:opacity-40"
-                  >
-                    Enviar
-                  </button>
+                <div className="flex flex-col border-t border-border bg-background/60 shrink-0">
+                  {isAutomationActive && (
+                    <div className="px-3.5 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+                        <Bot className="size-4 text-emerald-500 animate-pulse shrink-0" />
+                        <span>🤖 ATENCIÓN DE IA ACTIVA — El Asistente IA está respondiendo a este cliente.</span>
+                      </div>
+                      {showTakeControl && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void takeControl()}
+                          className="px-2.5 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-700 transition shrink-0"
+                        >
+                          Tomar control manual
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div className="p-2 flex gap-2">
+                    <input
+                      value={draft}
+                      disabled={busy || isAutomationActive}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void handleSend();
+                        }
+                      }}
+                      placeholder={isAutomationActive ? "🤖 El Asistente IA está respondiendo... Haz clic en 'Tomar control' para escribir" : "Escribe tu respuesta… se envía por WhatsApp"}
+                      className="flex-1 px-3.5 py-1.5 bg-card border border-border rounded-full text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      disabled={busy || !draft.trim() || isAutomationActive}
+                      onClick={() => void handleSend()}
+                      className="px-4 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-sm hover:brightness-95 transition disabled:opacity-40"
+                    >
+                      Enviar
+                    </button>
+                  </div>
                 </div>
               )}
               {/* <div className="shrink-0 max-h-[40%] overflow-y-auto">

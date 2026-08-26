@@ -46,21 +46,91 @@ function playNotificationSound(): void {
   }
 }
 
-function sendDesktopNotification(title: string, options?: NotificationOptions): void {
+let titleFlashTimer: ReturnType<typeof setInterval> | null = null;
+function flashDocumentTitle(text: string): void {
+  if (typeof document === "undefined") return;
+  if (titleFlashTimer) clearInterval(titleFlashTimer);
+  
+  const originalTitle = document.title;
+  let toggle = false;
+  titleFlashTimer = setInterval(() => {
+    if (!document.hidden && document.hasFocus()) {
+      if (titleFlashTimer) clearInterval(titleFlashTimer);
+      titleFlashTimer = null;
+      document.title = originalTitle;
+      return;
+    }
+    document.title = toggle ? `🔔 ${text}` : `💬 NetOps AI`;
+    toggle = !toggle;
+  }, 1000);
+}
+
+export async function requestDesktopNotificationPermission(): Promise<NotificationPermission> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "denied";
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") {
+      toast.success("Notificaciones del navegador activadas");
+    } else if (perm === "denied") {
+      toast.error("Las notificaciones fueron bloqueadas en la configuración de tu navegador");
+    }
+    return perm;
+  } catch {
+    return Notification.permission;
+  }
+}
+
+export function sendDesktopNotification(title: string, options?: NotificationOptions): void {
   if (typeof window === "undefined" || !("Notification" in window)) return;
+  
   if (Notification.permission === "granted") {
     try {
       const notification = new Notification(title, {
         icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        requireInteraction: true,
         ...options,
       });
-      notification.onclick = () => {
+      notification.onclick = (e) => {
+        e.preventDefault();
         window.focus();
+        if (typeof window.focus === "function") {
+          window.focus();
+        }
         notification.close();
       };
     } catch {
-      // Fallback
+      // Fallback si la API de Notification no soporta ciertos parámetros
+      try {
+        new Notification(title, { body: options?.body });
+      } catch {
+        // Silencioso
+      }
     }
+  }
+}
+
+export function sendTestDesktopNotification(): void {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    toast.error("Este navegador no soporta notificaciones de escritorio");
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    playNotificationSound();
+    sendDesktopNotification("Notificación de prueba — NetOps AI", {
+      body: "¡Las notificaciones del navegador están funcionando correctamente incluso al minimizar!",
+      tag: "test-notification",
+    });
+    toast.success("Notificación enviada. Revisa la esquina de tu pantalla o centro de notificaciones.");
+  } else {
+    void requestDesktopNotificationPermission().then((perm) => {
+      if (perm === "granted") {
+        sendTestDesktopNotification();
+      }
+    });
   }
 }
 
@@ -83,9 +153,6 @@ export function useRealtimeSession(userId: string | null): void {
   }, [unreadCount]);
 
   useEffect(() => {
-    if (userId && "Notification" in window && Notification.permission === "default") {
-      void Notification.requestPermission();
-    }
     ensureRealtimeConnection(userId);
     wireNotifications(userId);
 
@@ -108,6 +175,7 @@ export function useRealtimeSession(userId: string | null): void {
         });
         if (isAppInBackground()) {
           playNotificationSound();
+          flashDocumentTitle("¡Caso escalado!");
           sendDesktopNotification("Caso escalado a humano", {
             body: "Una conversación requiere atención urgente en la plataforma.",
             tag: `escalation-${event.conversationId}`,
@@ -119,6 +187,7 @@ export function useRealtimeSession(userId: string | null): void {
         });
         if (isAppInBackground()) {
           playNotificationSound();
+          flashDocumentTitle("¡Nuevo caso asignado!");
           sendDesktopNotification("Se te asignó un nuevo caso", {
             body: "Tienes un caso asignado listo para atender.",
             tag: `assigned-${event.caseId}`,
@@ -132,6 +201,9 @@ export function useRealtimeSession(userId: string | null): void {
           playNotificationSound();
           const author = event.authorName || "Cliente";
           const body = event.bodyPreview || "Tienes un nuevo mensaje";
+          if (isAppInBackground()) {
+            flashDocumentTitle(`Nuevo mensaje de ${author}`);
+          }
           sendDesktopNotification(`Nuevo mensaje de ${author}`, {
             body: body,
             tag: event.conversationId,

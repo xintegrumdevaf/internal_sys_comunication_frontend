@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Bot,
   FileText,
   Lock,
   Phone,
@@ -249,6 +250,13 @@ export function CasePanel({
   const tag = workflowLabel(caseDto.workflowType);
   const canManageEscalation = caseDto.status === "ESCALATED" || caseDto.status === "HUMAN_ACTIVE";
 
+  const isAiAttending = (caseDto.automation?.enabled ?? true) && caseDto.status !== "HUMAN_ACTIVE";
+  const handlerLabel = isAiAttending
+    ? assignedAgentName
+      ? `Asistente IA (Asignado a ${assignedAgentName})`
+      : "Asistente IA"
+    : assignedAgentName ?? "Sin asignar todavía";
+
   return (
     <div className="space-y-4">
       {customerCard}
@@ -262,6 +270,19 @@ export function CasePanel({
         </div>
 
         <SectionLabel icon={Sparkles}>Resumen</SectionLabel>
+        {isAiAttending && (
+          <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
+            <Bot className="size-4 text-emerald-500 shrink-0 animate-pulse" />
+            <div>
+              <p className="font-extrabold text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Atendido por Asistente IA
+              </p>
+              <p className="text-[10px] text-emerald-700 dark:text-emerald-300 leading-tight mt-0.5">
+                Las respuestas de este caso están siendo generadas automáticamente por la IA.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="space-y-1.5 text-[11px] font-mono">
           {!customerCard && <DataRow label="Cliente" value={validatedName} />}
           <DataRow label="Estado del caso" value={caseStatusLabel(caseDto.status)} />
@@ -275,7 +296,7 @@ export function CasePanel({
                 : "—"
             }
           />
-          <DataRow label="Atendido por" value={assignedAgentName ?? "Sin asignar todavía"} />
+          <DataRow label="Atendido por" value={handlerLabel} />
         </div>
 
         <SectionLabel icon={Wrench}>Datos técnicos</SectionLabel>

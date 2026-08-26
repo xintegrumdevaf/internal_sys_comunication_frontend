@@ -1,8 +1,13 @@
-import { Bell } from "lucide-react";
+import { Bell, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { relativeTime } from "@/shared/datetime";
-import { useNotifications, useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
+import {
+  useNotifications,
+  useRealtimeConnected,
+  requestDesktopNotificationPermission,
+  sendTestDesktopNotification,
+} from "@/modules/realtime/application/use-realtime";
 
 /** Campana de notificaciones global (docs/spec/03_REALTIME_NOTIFICATIONS.md §3). */
 export function NotificationBell() {
@@ -10,6 +15,9 @@ export function NotificationBell() {
   const connected = useRealtimeConnected();
   const { notifications, unreadCount, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
+
+  const hasNotificationSupport = typeof window !== "undefined" && "Notification" in window;
+  const permissionState = hasNotificationSupport ? Notification.permission : "denied";
 
   return (
     <div className="relative">
@@ -39,17 +47,39 @@ export function NotificationBell() {
               <span className="text-warning normal-case font-normal">Reconectando…</span>
             )}
           </div>
-          {typeof window !== "undefined" && "Notification" in window && Notification.permission === "default" && (
-            <div className="p-2.5 bg-primary/10 border-b border-primary/20 flex items-center justify-between gap-2">
-              <p className="text-[11px] text-foreground font-medium">¿Recibir alertas cuando estés en otra app?</p>
+
+          {hasNotificationSupport && permissionState !== "granted" && (
+            <div className="p-2.5 bg-warning/10 border-b border-warning/20 space-y-1.5">
+              <p className="text-[11px] text-foreground font-semibold">
+                ¿Recibir notificaciones cuando minimices el navegador?
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Tu navegador requiere tu autorización para mostrar ventanas de alerta al estar minimizado.
+              </p>
               <button
                 type="button"
                 onClick={() => {
-                  void Notification.requestPermission();
+                  void requestDesktopNotificationPermission().then(() => setOpen(true));
                 }}
-                className="px-2.5 py-1 bg-primary text-primary-foreground text-[10px] font-bold rounded shadow-sm hover:brightness-95 shrink-0"
+                className="w-full py-1.5 bg-primary text-primary-foreground text-[10px] font-bold uppercase rounded shadow-sm hover:brightness-95"
               >
-                Activar
+                Activar notificaciones de escritorio
+              </button>
+            </div>
+          )}
+
+          {hasNotificationSupport && permissionState === "granted" && (
+            <div className="p-2 border-b border-border bg-background/50 flex items-center justify-between gap-2">
+              <span className="text-[10px] text-muted-foreground">Notificaciones activas</span>
+              <button
+                type="button"
+                onClick={() => {
+                  sendTestDesktopNotification();
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-foreground/5 hover:bg-foreground/10 text-foreground transition"
+              >
+                <Volume2 className="size-3 text-primary" />
+                Probar notificación
               </button>
             </div>
           )}
