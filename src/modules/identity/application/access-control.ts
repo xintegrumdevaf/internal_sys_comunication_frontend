@@ -28,6 +28,7 @@ const ADMIN_ONLY_PATHS = new Set([
   "/flujos",
   "/auditoria",
   "/campanas",
+  "/plantillas",
 ]);
 const SUPERVISOR_PATHS = new Set(["/escalaciones", "/asignaciones", "/calidad", "/conocimiento"]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno"]);
