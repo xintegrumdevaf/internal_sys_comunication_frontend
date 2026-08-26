@@ -86,17 +86,20 @@ export async function requestDesktopNotificationPermission(): Promise<Notificati
   }
 }
 
-export function sendDesktopNotification(title: string, options?: NotificationOptions): void {
+export type AppNotificationOptions = NotificationOptions & {
+  renotify?: boolean;
+};
+
+export function sendDesktopNotification(title: string, options?: AppNotificationOptions): void {
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
-  if (Notification.permission === "granted") {
+  const showNotification = () => {
     try {
       const notification = new Notification(title, {
         icon: "/favicon.ico",
         badge: "/favicon.ico",
-        requireInteraction: true,
         ...options,
-      });
+      } as NotificationOptions);
       notification.onclick = (e) => {
         e.preventDefault();
         window.focus();
@@ -113,6 +116,16 @@ export function sendDesktopNotification(title: string, options?: NotificationOpt
         // Silencioso
       }
     }
+  };
+
+  if (Notification.permission === "granted") {
+    showNotification();
+  } else if (Notification.permission === "default") {
+    void Notification.requestPermission().then((perm) => {
+      if (perm === "granted") {
+        showNotification();
+      }
+    });
   }
 }
 
@@ -126,7 +139,8 @@ export function sendTestDesktopNotification(): void {
     playNotificationSound();
     sendDesktopNotification("Notificación de prueba — NetOps AI", {
       body: "¡Las notificaciones del navegador están funcionando correctamente incluso al minimizar!",
-      tag: "test-notification",
+      tag: `test-notification-${Date.now()}`,
+      renotify: true,
     });
     toast.success(
       "Notificación enviada. Revisa la esquina de tu pantalla o centro de notificaciones.",
@@ -163,6 +177,12 @@ export function useRealtimeSession(userId: string | null): void {
     wireNotifications(userId);
 
     if (userId) {
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "default") {
+          void Notification.requestPermission().catch(() => {});
+        }
+      }
+
       void listConversations()
         .then((conversations) => {
           const total = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
@@ -185,6 +205,7 @@ export function useRealtimeSession(userId: string | null): void {
           sendDesktopNotification("Caso escalado a humano", {
             body: "Una conversación requiere atención urgente en la plataforma.",
             tag: `escalation-${event.conversationId}`,
+            renotify: true,
           });
         }
       } else if (event.type === "HUMAN_ASSIGNED" && event.agentUserId === userId) {
@@ -197,22 +218,27 @@ export function useRealtimeSession(userId: string | null): void {
           sendDesktopNotification("Se te asignó un nuevo caso", {
             body: "Tienes un caso asignado listo para atender.",
             tag: `assigned-${event.caseId}`,
+            renotify: true,
           });
         }
       } else if (event.type === "MESSAGE_RECEIVED") {
-        if (getActiveChatId() !== event.conversationId) {
+        const isCurrentActiveChat = getActiveChatId() === event.conversationId;
+        const inBackground = isAppInBackground();
+
+        if (!isCurrentActiveChat) {
           incrementUnreadTotal();
         }
-        if (isAppInBackground() || getActiveChatId() !== event.conversationId) {
+        if (inBackground || !isCurrentActiveChat) {
           playNotificationSound();
           const author = event.authorName || "Cliente";
           const body = event.bodyPreview || "Tienes un nuevo mensaje";
-          if (isAppInBackground()) {
+          if (inBackground) {
             flashDocumentTitle(`Nuevo mensaje de ${author}`);
           }
           sendDesktopNotification(`Nuevo mensaje de ${author}`, {
             body: body,
-            tag: event.conversationId,
+            tag: `msg-${event.conversationId}-${Date.now()}`,
+            renotify: true,
           });
         }
       }

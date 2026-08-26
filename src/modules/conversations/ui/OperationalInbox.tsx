@@ -229,8 +229,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
 
   const canWriteCase =
     Boolean(session) &&
-    Boolean(activeCase) &&
-    (activeCase?.assignedAgentId === session?.id ||
+    (!activeCase ||
+      activeCase?.assignedAgentId === session?.id ||
       activeCase?.assignedAgentId == null ||
       session?.role === "manager" ||
       session?.role === "admin");
@@ -252,7 +252,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       return false;
     }
 
-    // 2. Si la automatización está apagada en el caso:
+    // 2. Si la automatización fue explícitamente apagada en el caso:
     if (activeCase?.automation && activeCase.automation.enabled === false) {
       return false;
     }
@@ -260,19 +260,13 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       return false;
     }
 
-    // 3. Si el endpoint de automatización dice que está apagada:
-    if (automationState && !automationState.enabled) {
+    // 3. Si la automatización fue apagada manualmente:
+    if (automationState && !automationState.enabled && automationState.disabledReason) {
       return false;
     }
 
-    // 4. Si automationState o el caso dice que está encendida:
-    if (automationState) {
-      return automationState.enabled;
-    }
-
-    return Boolean(
-      activeCase?.automation?.enabled ?? selected?.activeCase?.automationEnabled ?? true,
-    );
+    // Por defecto, toda conversación no tomada por un humano está en manos del Asistente IA
+    return true;
   }, [activeCase, selected?.activeCase, automationState]);
 
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
@@ -396,7 +390,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 >
                   <div className="relative shrink-0">
                     <ConversationAvatar conversation={c} />
-                    {(c.unreadCount ?? 0) > 0 && (
+                    {!active && (c.unreadCount ?? 0) > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white ring-2 ring-background">
                         {c.unreadCount > 99 ? "99+" : c.unreadCount}
                       </span>
@@ -593,35 +587,6 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 </div>
               </div>
 
-              {isAutomationActive && (
-                <div className="mx-4 mt-2.5 p-3 rounded-xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs flex items-center justify-between gap-3 shrink-0 shadow-sm backdrop-blur-md">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="size-8 rounded-full bg-emerald-500 text-white grid place-items-center shrink-0 shadow animate-pulse">
-                      <Bot className="size-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-extrabold uppercase tracking-wide text-[11px] text-emerald-700 dark:text-emerald-300">
-                        🤖 ATENCIÓN AUTOMATIZADA POR IA
-                      </p>
-                      <p className="text-[11px] text-emerald-800 dark:text-emerald-200 truncate">
-                        El Asistente IA está respondiendo automáticamente las consultas del cliente.
-                        {assignedAgentName ? ` (Supervisado por ${assignedAgentName})` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  {showTakeControl && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void takeControl()}
-                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider shadow hover:bg-emerald-700 transition shrink-0"
-                    >
-                      Tomar control manual
-                    </button>
-                  )}
-                </div>
-              )}
-
               <div
                 ref={messagesScrollRef}
                 className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-1 bg-background/40"
@@ -715,11 +680,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <div className="flex flex-col border-t border-border bg-background/60 shrink-0">
                   {isAutomationActive && (
                     <div className="px-3.5 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
-                        <Bot className="size-4 text-emerald-500 animate-pulse shrink-0" />
-                        <span>
-                          🤖 ATENCIÓN DE IA ACTIVA — El Asistente IA está respondiendo a este
-                          cliente.
+                      <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200 font-semibold text-[11px] min-w-0">
+                        <Bot className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="truncate">
+                          <strong className="font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                            Atención de IA activa
+                          </strong>{" "}
+                          — El Asistente IA está respondiendo automáticamente
+                          {assignedAgentName ? ` (Supervisado por ${assignedAgentName})` : ""}.
                         </span>
                       </div>
                       {showTakeControl && (
@@ -727,8 +695,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           type="button"
                           disabled={busy}
                           onClick={() => void takeControl()}
-                          className="px-2.5 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-700 transition shrink-0"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm hover:bg-emerald-700 transition shrink-0 disabled:opacity-40"
                         >
+                          <UserCheck className="size-3" />
                           Tomar control manual
                         </button>
                       )}
