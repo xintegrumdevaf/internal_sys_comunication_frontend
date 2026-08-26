@@ -75,7 +75,7 @@ const ONU_RUN_STATE_LABELS: Record<string, string> = {
   offline: "Desconectada",
   los: "Sin señal óptica (LOS)",
   "dying-gasp": "Se apagó abruptamente (corte de luz)",
-  "dying_gasp": "Se apagó abruptamente (corte de luz)",
+  dying_gasp: "Se apagó abruptamente (corte de luz)",
   unknown: "Desconocido",
 };
 
@@ -93,7 +93,8 @@ export function onuSignalQuality(
   dbm: number | null | undefined,
 ): { label: string; cls: string } | null {
   if (dbm === undefined || dbm === null || Number.isNaN(dbm)) return null;
-  if (dbm > -8) return { label: "Señal muy fuerte (posible sobrecarga)", cls: "bg-amber-100 text-amber-700" };
+  if (dbm > -8)
+    return { label: "Señal muy fuerte (posible sobrecarga)", cls: "bg-amber-100 text-amber-700" };
   if (dbm >= -23) return { label: "Buena", cls: "bg-emerald-100 text-emerald-700" };
   if (dbm >= -27) return { label: "Regular — a vigilar", cls: "bg-amber-100 text-amber-700" };
   return { label: "Crítica — señal muy débil", cls: "bg-red-100 text-red-700" };

@@ -43,9 +43,7 @@ export function qualityReviewMessageMarker(reviewId: string): string {
  * (visible en la ventana de chat, no en el input).
  */
 export function qualityFindingsChatMessage(review: QualityReviewDto): string {
-  const negative = review.findings.filter(
-    (f) => f.severity === "high" || f.severity === "medium",
-  );
+  const negative = review.findings.filter((f) => f.severity === "high" || f.severity === "medium");
   const marker = qualityReviewMessageMarker(review.id);
   const client =
     review.customerLabel || review.waPhone
@@ -56,10 +54,7 @@ export function qualityFindingsChatMessage(review: QualityReviewDto): string {
       ? `Score de cordialidad: ${review.cordialityScore}`
       : null;
 
-  const lines: string[] = [
-    "Revisión de calidad — mensajes a justificar:",
-    marker,
-  ];
+  const lines: string[] = ["Revisión de calidad — mensajes a justificar:", marker];
   if (client) lines.push(client);
   if (score) lines.push(score);
   if (review.summary) {

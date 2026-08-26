@@ -4,7 +4,9 @@ import type { FaqItem } from "../types/knowledge.types";
 
 interface FaqDirectEditorProps {
   faqs: FaqItem[];
-  onSaveFaq: (faq: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string }) => Promise<void>;
+  onSaveFaq: (
+    faq: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string },
+  ) => Promise<void>;
   onDeleteFaq: (id: string) => Promise<void>;
 }
 
@@ -49,7 +51,9 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h3 className="text-base font-bold text-foreground">Conocimiento Directo & Preguntas Frecuentes</h3>
+          <h3 className="text-base font-bold text-foreground">
+            Conocimiento Directo & Preguntas Frecuentes
+          </h3>
           <p className="text-xs text-muted-foreground">
             Añade respuestas directas que el bot RAG priorizará sobre los documentos extensos.
           </p>
@@ -141,7 +145,10 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
                 onChange={(e) =>
                   setEditingFaq({
                     ...editingFaq,
-                    tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+                    tags: e.target.value
+                      .split(",")
+                      .map((t) => t.trim())
+                      .filter(Boolean),
                   })
                 }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -212,7 +219,10 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/50">
                 <Tag className="size-3 text-muted-foreground" />
                 {faq.tags.map((tag, idx) => (
-                  <span key={idx} className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                  <span
+                    key={idx}
+                    className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded"
+                  >
                     #{tag}
                   </span>
                 ))}

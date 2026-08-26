@@ -28,7 +28,9 @@ export function dayLabel(iso: string): string {
   yesterday.setDate(today.getDate() - 1);
 
   const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
 
   if (sameDay(date, today)) return "Hoy";
   if (sameDay(date, yesterday)) return "Ayer";

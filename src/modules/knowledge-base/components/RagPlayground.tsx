@@ -103,7 +103,8 @@ export function RagPlayground() {
             <div>
               <h3 className="text-sm font-bold text-foreground">Simulador de Consulta RAG</h3>
               <p className="text-[11px] text-muted-foreground">
-                Conectado a <code className="text-primary font-mono">query-knowledge-base</code> (n8n + PGVector)
+                Conectado a <code className="text-primary font-mono">query-knowledge-base</code>{" "}
+                (n8n + PGVector)
               </p>
             </div>
           </div>
@@ -227,7 +228,8 @@ export function RagPlayground() {
               <Layers className="size-10 text-muted-foreground/30 mb-2" />
               <p className="font-semibold text-sm">Sin inspección activa</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Haz una pregunta en el simulador para inspeccionar exactamente qué fragmentos vectoriales recuperó el RAG.
+                Haz una pregunta en el simulador para inspeccionar exactamente qué fragmentos
+                vectoriales recuperó el RAG.
               </p>
             </div>
           ) : (

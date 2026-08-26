@@ -57,7 +57,11 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
       "text/plain",
     ];
 
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith(".pdf") && !file.name.endsWith(".docx")) {
+    if (
+      !allowedTypes.includes(file.type) &&
+      !file.name.endsWith(".pdf") &&
+      !file.name.endsWith(".docx")
+    ) {
       setError("Solo se permiten archivos PDF, DOCX o TXT.");
       return false;
     }
@@ -85,7 +89,9 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
       setSelectedFile(null);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al subir e indexar el documento en n8n.");
+      setError(
+        err instanceof Error ? err.message : "Error al subir e indexar el documento en n8n.",
+      );
     } finally {
       setLoading(false);
     }
@@ -137,8 +143,8 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
               isDragging
                 ? "border-primary bg-primary/10"
                 : selectedFile
-                ? "border-emerald-500/50 bg-emerald-500/5"
-                : "border-border hover:border-primary/50 hover:bg-muted/20"
+                  ? "border-emerald-500/50 bg-emerald-500/5"
+                  : "border-border hover:border-primary/50 hover:bg-muted/20"
             }`}
           >
             <input
@@ -156,13 +162,16 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
                 <p className="text-xs text-muted-foreground font-mono">
                   {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                 </p>
-                <p className="text-xs text-primary font-medium mt-1">Haz clic o arrastra para cambiar archivo</p>
+                <p className="text-xs text-primary font-medium mt-1">
+                  Haz clic o arrastra para cambiar archivo
+                </p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <FileText className="size-10 text-muted-foreground" />
                 <p className="text-sm font-semibold text-foreground">
-                  Arrastra tu archivo aquí o <span className="text-primary hover:underline">examina</span>
+                  Arrastra tu archivo aquí o{" "}
+                  <span className="text-primary hover:underline">examina</span>
                 </p>
                 <p className="text-xs text-muted-foreground">Soporta PDF, DOCX y TXT (Máx. 25MB)</p>
               </div>
@@ -181,7 +190,10 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
               ℹ️ Procesamiento en n8n:
             </p>
             <p>
-              Al subir el archivo, el flujo <code className="text-primary font-mono">upload-files-rag</code> en n8n dividirá el documento en fragmentos (chunks) y generará los vectores en PostgreSQL usando <strong>Ollama qwen3-embedding</strong>.
+              Al subir el archivo, el flujo{" "}
+              <code className="text-primary font-mono">upload-files-rag</code> en n8n dividirá el
+              documento en fragmentos (chunks) y generará los vectores en PostgreSQL usando{" "}
+              <strong>Ollama qwen3-embedding</strong>.
             </p>
           </div>
 

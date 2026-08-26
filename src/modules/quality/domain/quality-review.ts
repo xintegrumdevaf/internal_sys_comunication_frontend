@@ -16,12 +16,7 @@ export type AgentQualityStatsDto = {
 
 export type QualityFindingSeverity = "low" | "medium" | "high";
 export type QualityFindingCategory =
-  | "aggression"
-  | "disrespect"
-  | "neglect"
-  | "misinformation"
-  | "inefficiency"
-  | "other";
+  "aggression" | "disrespect" | "neglect" | "misinformation" | "inefficiency" | "other";
 
 export type QualityFindingDto = {
   id: string;
@@ -217,7 +212,10 @@ export function highFindingCount(
 }
 
 /** Deep-link a chat interno desde detalle de calidad (07 §5). */
-export function buildQualityChatDeepLink(agentId: string, reviewId: string): {
+export function buildQualityChatDeepLink(
+  agentId: string,
+  reviewId: string,
+): {
   to: "/chat-interno";
   search: { peerId: string; qualityReviewId: string };
 } {
@@ -243,7 +241,9 @@ export function defaultQualityDateRange(days = 30): { from: string; to: string }
 }
 
 /** Normaliza un review de lista (backend puede omitir findings/notes/summary). */
-export function normalizeQualityReview(raw: Partial<QualityReviewDto> & { id: string }): QualityReviewDto {
+export function normalizeQualityReview(
+  raw: Partial<QualityReviewDto> & { id: string },
+): QualityReviewDto {
   const findings = raw.findings ?? [];
   const highFromFindings = findings.filter((f) => f.severity === "high").length;
   return {

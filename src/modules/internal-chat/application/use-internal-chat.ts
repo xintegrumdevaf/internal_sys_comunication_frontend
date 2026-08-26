@@ -19,7 +19,11 @@ const EMPTY_STATE = { threads: [], messages: [] };
 export function useInternalChat() {
   const session = useSession();
   const directory = useDirectoryUsers();
-  const state = useSyncExternalStore(subscribeInternalChat, getInternalChatSnapshot, () => EMPTY_STATE);
+  const state = useSyncExternalStore(
+    subscribeInternalChat,
+    getInternalChatSnapshot,
+    () => EMPTY_STATE,
+  );
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 

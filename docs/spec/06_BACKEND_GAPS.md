@@ -22,6 +22,7 @@ DELETE /api/agents/:id   (soft delete: pone active=false, nunca borra la fila)
 ```
 
 Reglas de negocio implementadas (coherentes con `01_DATA_MODEL.md` §7 del backend):
+
 - Email único, comparado y almacenado siempre en minúsculas (case-insensitive).
 - No permite desactivar al único `role=admin` activo, ni quitarle el rol admin si es el único activo (`agent-guardrails.ts`).
 - `primaryDepartmentId` se valida contra `department` antes de escribir (nunca se deja que el error llegue como violación de FK cruda de Postgres).
@@ -49,6 +50,7 @@ POST /api/agents/:id/reset-password → 200 { data: { agent: AgentDto, temporary
 ```
 
 Decisiones de diseño (confirmadas con el equipo antes de implementar):
+
 - **Sesión**: cookie `httpOnly` (`sid`) + token opaco aleatorio guardado en Redis (`session:<token>` → `{ agentId, createdAt }`), **no JWT** — permite revocar una sesión al instante borrando la clave, cosa que un JWT firmado no permite hasta que expira.
 - **Expiración deslizante de 12h**: cada request autenticado renueva el TTL en Redis y el `Max-Age` de la cookie (`session.middleware.ts`).
 - **Hashing**: `argon2id` (`shared/security/password-hasher.ts`).
@@ -128,20 +130,20 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 
 ## 8. Registro de cambios
 
-| Fecha | Hueco agregado | Motivo |
-|---|---|---|
-| 2026-08-11 | CRUD de agentes, algoritmo de auto-asignación, endpoint de carga agregada | Detectados al diseñar el frontend real sobre `isp-customer-service-api` |
-| 2026-08-11 | CORS ausente en el backend (§4) — **resuelto**, no pendiente | Detectado al probar el login real desde el navegador; sin esto el frontend no puede operar en absoluto |
-| 2026-08-11 | CRUD de agentes (§1) — **resuelto** | Implementado en sesión dedicada de backend, siguiendo el mismo patrón hexagonal que el catálogo n8n |
-| 2026-08-11 | Login con credenciales reales (§1.b) — **resuelto**: cookie httpOnly + Redis + argon2, hardening completo de todos los routers | Cierra el hueco de seguridad de fondo (cualquiera podía declararse cualquier agente por header) |
-| 2026-08-11 | Algoritmo de auto-asignación por departamento (§2) — **resuelto**, incluye cierre del hueco de "solo lectura" en reply/complete | Repartir automáticamente los casos escalados entre agentes disponibles, con posibilidad de reasignación manual siempre |
-| 2026-08-11 | Nombre de perfil de WhatsApp (§5) — **resuelto**; foto de perfil — limitación permanente de Meta, no implementable | Evitar mostrar solo el teléfono crudo en la bandeja; investigado a fondo antes de implementar para no prometer algo que la API de WhatsApp no permite |
-| 2026-08-12 | Chat interno persistente (§6) + endpoints quality (§7) | Requisito de supervisión de calidad / coaching; MVP usa notes API + chat local |
-| 2026-08-20 | CRUD de departamentos (§9) | Requisito de administración para gestionar áreas dinámicamente desde el frontend |
+| Fecha      | Hueco agregado                                                                                                                  | Motivo                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | CRUD de agentes, algoritmo de auto-asignación, endpoint de carga agregada                                                       | Detectados al diseñar el frontend real sobre `isp-customer-service-api`                                                                               |
+| 2026-08-11 | CORS ausente en el backend (§4) — **resuelto**, no pendiente                                                                    | Detectado al probar el login real desde el navegador; sin esto el frontend no puede operar en absoluto                                                |
+| 2026-08-11 | CRUD de agentes (§1) — **resuelto**                                                                                             | Implementado en sesión dedicada de backend, siguiendo el mismo patrón hexagonal que el catálogo n8n                                                   |
+| 2026-08-11 | Login con credenciales reales (§1.b) — **resuelto**: cookie httpOnly + Redis + argon2, hardening completo de todos los routers  | Cierra el hueco de seguridad de fondo (cualquiera podía declararse cualquier agente por header)                                                       |
+| 2026-08-11 | Algoritmo de auto-asignación por departamento (§2) — **resuelto**, incluye cierre del hueco de "solo lectura" en reply/complete | Repartir automáticamente los casos escalados entre agentes disponibles, con posibilidad de reasignación manual siempre                                |
+| 2026-08-11 | Nombre de perfil de WhatsApp (§5) — **resuelto**; foto de perfil — limitación permanente de Meta, no implementable              | Evitar mostrar solo el teléfono crudo en la bandeja; investigado a fondo antes de implementar para no prometer algo que la API de WhatsApp no permite |
+| 2026-08-12 | Chat interno persistente (§6) + endpoints quality (§7)                                                                          | Requisito de supervisión de calidad / coaching; MVP usa notes API + chat local                                                                        |
+| 2026-08-20 | CRUD de departamentos (§9)                                                                                                      | Requisito de administración para gestionar áreas dinámicamente desde el frontend                                                                      |
 
 ## 9. CRUD de departamentos (`POST` / `PUT` / `DELETE /api/departments`) — pendiente
 
-**Problema**: El frontend ahora cuenta con la interfaz (`/departamentos`) para gestionar la creación, edición y desactivación de departamentos. Sin embargo, el backend actualmente solo expone `GET /api/departments`. 
+**Problema**: El frontend ahora cuenta con la interfaz (`/departamentos`) para gestionar la creación, edición y desactivación de departamentos. Sin embargo, el backend actualmente solo expone `GET /api/departments`.
 
 **Solución requerida en backend**:
 Implementar los siguientes endpoints exigiendo `role=admin`:
@@ -160,6 +162,7 @@ DELETE /api/departments/:id
 ```
 
 **Consideraciones**:
+
 - `slug` debe ser único.
 - El rol `admin` es el único autorizado para efectuar estas mutaciones.
 - Se debe validar que no rompa integraciones existentes al desactivar un departamento (ej. casos huérfanos o agentes sin departamento).

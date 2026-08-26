@@ -57,14 +57,13 @@ class KnowledgeService {
   // }
 
   // En knowledgeService.ts (o el archivo donde tengas definido knowledgeService)
-  async uploadDocument(file: File, category: string = 'General'): Promise<KnowledgeDocument> {
+  async uploadDocument(file: File, category: string = "General"): Promise<KnowledgeDocument> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('category', category);
+    formData.append("file", file);
+    formData.append("category", category);
 
-    return apiPost<KnowledgeDocument>('/api/rag/documents', formData);
+    return apiPost<KnowledgeDocument>("/api/rag/documents", formData);
   }
-
 
   async deleteDocument(id: string): Promise<void> {
     const res = await fetch(`${API_BASE}/api/rag/documents/${id}`, {
@@ -87,7 +86,9 @@ class KnowledgeService {
     }
   }
 
-  async saveFaq(faq: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string }): Promise<FaqItem> {
+  async saveFaq(
+    faq: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string },
+  ): Promise<FaqItem> {
     const res = await fetch(`${API_BASE}/api/rag/faqs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

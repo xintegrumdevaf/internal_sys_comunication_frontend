@@ -20,7 +20,9 @@ import type { KnowledgeDocument, FaqItem, RagMetrics } from "../types/knowledge.
 import { toast } from "sonner";
 
 export function KnowledgeBasePage() {
-  const [activeTab, setActiveTab] = useState<"sources" | "faqs" | "playground" | "metrics">("sources");
+  const [activeTab, setActiveTab] = useState<"sources" | "faqs" | "playground" | "metrics">(
+    "sources",
+  );
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [metrics, setMetrics] = useState<RagMetrics | null>(null);
@@ -73,7 +75,7 @@ export function KnowledgeBasePage() {
   //     body: formData, // ⚠️ IMPORTANTE: No agregues el header 'Content-Type', el navegador lo pone automáticamente con el boundary
   //   });
 
-  const handleUploadDocument = async (file: File, category: string = 'General') => {
+  const handleUploadDocument = async (file: File, category: string = "General") => {
     try {
       const newDoc = await knowledgeService.uploadDocument(file, category);
       setDocuments((prev) => [newDoc, ...prev]);
@@ -86,14 +88,12 @@ export function KnowledgeBasePage() {
     }
   };
 
-
   // O si usás axios:
   // await axios.post('/api/rag/documents', formData);
 
   //   const result = await response.json();
   //   return result;
   // };
-
 
   const handleDeleteDocument = async (id: string) => {
     try {
@@ -106,7 +106,9 @@ export function KnowledgeBasePage() {
     }
   };
 
-  const handleSaveFaq = async (faqData: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string }) => {
+  const handleSaveFaq = async (
+    faqData: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string },
+  ) => {
     try {
       await knowledgeService.saveFaq(faqData);
       toast.success("Pregunta frecuente guardada");
@@ -164,10 +166,11 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("sources")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "sources"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === "sources"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
             <FileText className="size-4" />
             Fuentes y Documentos ({documents.length})
@@ -176,10 +179,11 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("faqs")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "faqs"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === "faqs"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
             <HelpCircle className="size-4" />
             FAQs y Contenido Directo ({faqs.length})
@@ -188,10 +192,11 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("playground")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "playground"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === "playground"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
             <Sparkles className="size-4 text-amber-400" />
             🧪 RAG Playground (Simulador en Vivo)
@@ -200,10 +205,11 @@ export function KnowledgeBasePage() {
           <button
             type="button"
             onClick={() => setActiveTab("metrics")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === "metrics"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === "metrics"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
             <BarChart3 className="size-4" />
             📊 Métricas de Entrenamiento
@@ -236,21 +242,31 @@ export function KnowledgeBasePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border border-border rounded-lg bg-background space-y-2">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Tasa de Respuestas Exitosas</p>
+                <p className="text-xs font-bold uppercase text-muted-foreground">
+                  Tasa de Respuestas Exitosas
+                </p>
                 <p className="text-3xl font-extrabold text-emerald-400 font-mono">96.2%</p>
-                <p className="text-xs text-muted-foreground">Consultas con similitud vectorial &gt; 70%</p>
+                <p className="text-xs text-muted-foreground">
+                  Consultas con similitud vectorial &gt; 70%
+                </p>
               </div>
 
               <div className="p-4 border border-border rounded-lg bg-background space-y-2">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Tiempo Promedio de Respuesta</p>
+                <p className="text-xs font-bold uppercase text-muted-foreground">
+                  Tiempo Promedio de Respuesta
+                </p>
                 <p className="text-3xl font-extrabold text-foreground font-mono">420ms</p>
                 <p className="text-xs text-muted-foreground">Búsqueda PGVector + n8n webhook</p>
               </div>
 
               <div className="p-4 border border-border rounded-lg bg-background space-y-2">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Consultas de Baja Confianza</p>
+                <p className="text-xs font-bold uppercase text-muted-foreground">
+                  Consultas de Baja Confianza
+                </p>
                 <p className="text-3xl font-extrabold text-amber-400 font-mono">3.8%</p>
-                <p className="text-xs text-muted-foreground">Revisión recomendada para entrenamiento</p>
+                <p className="text-xs text-muted-foreground">
+                  Revisión recomendada para entrenamiento
+                </p>
               </div>
             </div>
 
@@ -261,10 +277,15 @@ export function KnowledgeBasePage() {
               </h4>
               <ul className="text-xs text-muted-foreground space-y-2 list-disc list-inside">
                 <li>
-                  Se detectaron 5 consultas sobre <strong className="text-foreground">"descuentos por pronto pago"</strong> con bajo puntaje de coincidencia. Se sugiere agregar un PDF o FAQ directa con esta política.
+                  Se detectaron 5 consultas sobre{" "}
+                  <strong className="text-foreground">"descuentos por pronto pago"</strong> con bajo
+                  puntaje de coincidencia. Se sugiere agregar un PDF o FAQ directa con esta
+                  política.
                 </li>
                 <li>
-                  El manual <strong className="text-foreground">Manual_Soporte_Tecnico_FTTH_v3.pdf</strong> genera el 62% de los fragmentos recuperados en casos de soporte.
+                  El manual{" "}
+                  <strong className="text-foreground">Manual_Soporte_Tecnico_FTTH_v3.pdf</strong>{" "}
+                  genera el 62% de los fragmentos recuperados en casos de soporte.
                 </li>
               </ul>
             </div>

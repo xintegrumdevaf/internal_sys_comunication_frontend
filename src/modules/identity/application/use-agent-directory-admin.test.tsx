@@ -36,7 +36,10 @@ describe("useAgentDirectoryAdmin", () => {
   });
 
   it("createAgent llama al gateway y devuelve la contraseña temporal generada por el backend", async () => {
-    createAgentMock.mockResolvedValueOnce({ agent: { id: "a1" }, temporaryPassword: "temp-abc123" });
+    createAgentMock.mockResolvedValueOnce({
+      agent: { id: "a1" },
+      temporaryPassword: "temp-abc123",
+    });
     const { result } = renderHook(() => useAgentDirectoryAdmin(), { wrapper });
 
     let temporaryPassword: string | null = null;
@@ -50,7 +53,9 @@ describe("useAgentDirectoryAdmin", () => {
   });
 
   it("un error de negocio del backend (ej: email duplicado) se muestra como toast y devuelve null", async () => {
-    createAgentMock.mockRejectedValueOnce(new Error("Ya existe un agente con el correo ana@isp.local"));
+    createAgentMock.mockRejectedValueOnce(
+      new Error("Ya existe un agente con el correo ana@isp.local"),
+    );
     const { result } = renderHook(() => useAgentDirectoryAdmin(), { wrapper });
 
     let temporaryPassword: string | null = null;
@@ -63,7 +68,10 @@ describe("useAgentDirectoryAdmin", () => {
   });
 
   it("resetPassword devuelve la nueva contraseña temporal", async () => {
-    resetAgentPasswordMock.mockResolvedValueOnce({ agent: { id: "a1" }, temporaryPassword: "temp-xyz789" });
+    resetAgentPasswordMock.mockResolvedValueOnce({
+      agent: { id: "a1" },
+      temporaryPassword: "temp-xyz789",
+    });
     const { result } = renderHook(() => useAgentDirectoryAdmin(), { wrapper });
 
     let temporaryPassword: string | null = null;

@@ -33,7 +33,10 @@ export function N8nWorkflowCatalog() {
       setEntries(data);
       setDrafts(
         Object.fromEntries(
-          data.map((e) => [e.action, { url: e.url, timeoutMs: e.timeoutMs, maxRetries: e.maxRetries }]),
+          data.map((e) => [
+            e.action,
+            { url: e.url, timeoutMs: e.timeoutMs, maxRetries: e.maxRetries },
+          ]),
         ),
       );
     } catch (e) {
@@ -88,9 +91,9 @@ export function N8nWorkflowCatalog() {
   return (
     <>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Aquí se configuran las automatizaciones que ejecutan los flujos del asistente (por
-        ejemplo, a qué dirección web avisar cuando hay que revisar un saldo). Cambiar algo aquí
-        aplica de inmediato, sin reiniciar el sistema.
+        Aquí se configuran las automatizaciones que ejecutan los flujos del asistente (por ejemplo,
+        a qué dirección web avisar cuando hay que revisar un saldo). Cambiar algo aquí aplica de
+        inmediato, sin reiniciar el sistema.
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">

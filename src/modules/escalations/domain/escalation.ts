@@ -34,6 +34,9 @@ const ESCALATION_PRIORITY_LABELS: Record<EscalationPriority, { label: string; cl
   low: { label: "Baja", cls: "bg-foreground/5 text-muted-foreground ring-border" },
 };
 
-export function escalationPriorityLabel(priority: EscalationPriority): { label: string; cls: string } {
+export function escalationPriorityLabel(priority: EscalationPriority): {
+  label: string;
+  cls: string;
+} {
   return ESCALATION_PRIORITY_LABELS[priority] ?? ESCALATION_PRIORITY_LABELS.normal;
 }

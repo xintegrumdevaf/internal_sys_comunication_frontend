@@ -28,7 +28,11 @@ export function assignCase(
   actorAgentId: string,
   departmentId?: string | null,
 ): Promise<void> {
-  return apiPost(`/api/cases/${caseId}/assign`, { agentUserId, departmentId }, { agentId: actorAgentId });
+  return apiPost(
+    `/api/cases/${caseId}/assign`,
+    { agentUserId, departmentId },
+    { agentId: actorAgentId },
+  );
 }
 
 export function reassignCase(

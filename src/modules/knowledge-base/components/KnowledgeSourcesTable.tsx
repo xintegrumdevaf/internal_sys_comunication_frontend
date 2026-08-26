@@ -164,7 +164,9 @@ export function KnowledgeSourcesTable({
                   <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <FileText className="size-10 text-muted-foreground/40" />
-                      <p className="font-medium">No se encontraron documentos en la base de conocimiento.</p>
+                      <p className="font-medium">
+                        No se encontraron documentos en la base de conocimiento.
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         Haz clic en "Cargar Documento" para alimentar al RAG.
                       </p>
@@ -178,10 +180,15 @@ export function KnowledgeSourcesTable({
                       <div className="flex items-center gap-3">
                         {getFileIcon(doc.mimeType)}
                         <div className="min-w-0">
-                          <p className="font-semibold text-foreground truncate max-w-[280px]" title={doc.name}>
+                          <p
+                            className="font-semibold text-foreground truncate max-w-[280px]"
+                            title={doc.name}
+                          >
                             {doc.name}
                           </p>
-                          <p className="text-xs text-muted-foreground font-mono">{formatFileSize(doc.sizeBytes)}</p>
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {formatFileSize(doc.sizeBytes)}
+                          </p>
                         </div>
                       </div>
                     </td>

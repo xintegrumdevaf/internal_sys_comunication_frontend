@@ -75,7 +75,6 @@ function buildHeaders(agentId?: string | null, isFormData = false): HeadersInit 
   return headers;
 }
 
-
 export async function apiGet<T>(path: string, options?: RequestOptions): Promise<T> {
   void getApiBaseUrl(); // fail fast if unset
   const res = await fetch(buildUrl(path, options?.query), {

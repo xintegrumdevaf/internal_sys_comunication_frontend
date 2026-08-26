@@ -8,7 +8,10 @@ import type { SessionUser } from "@/modules/identity/domain/session";
  * transfer/automation), consumidas por conversations, escalations y
  * assignment - evita triplicar esta logica (DRY, docs/skills/design-patterns-frontend.md).
  */
-export function useCaseActions(session: SessionUser | null, onChanged?: () => void | Promise<void>) {
+export function useCaseActions(
+  session: SessionUser | null,
+  onChanged?: () => void | Promise<void>,
+) {
   const [busy, setBusy] = useState(false);
 
   async function run(label: string, action: () => Promise<unknown>, successMessage?: string) {
@@ -28,7 +31,11 @@ export function useCaseActions(session: SessionUser | null, onChanged?: () => vo
 
   const claim = (caseId: string) => {
     if (!session) return Promise.resolve(false);
-    return run("reclamar el caso", () => caseGateway.claimCase(caseId, session.id), "Caso reclamado");
+    return run(
+      "reclamar el caso",
+      () => caseGateway.claimCase(caseId, session.id),
+      "Caso reclamado",
+    );
   };
 
   const assign = (caseId: string, agentUserId: string, departmentId?: string | null) => {
@@ -60,7 +67,11 @@ export function useCaseActions(session: SessionUser | null, onChanged?: () => vo
 
   const cancel = (caseId: string, reason: string) => {
     if (!session) return Promise.resolve(false);
-    return run("cancelar", () => caseGateway.cancelCase(caseId, reason, session.id), "Caso cancelado");
+    return run(
+      "cancelar",
+      () => caseGateway.cancelCase(caseId, reason, session.id),
+      "Caso cancelado",
+    );
   };
 
   const transfer = (caseId: string, toDepartmentId: string, reason: string) => {

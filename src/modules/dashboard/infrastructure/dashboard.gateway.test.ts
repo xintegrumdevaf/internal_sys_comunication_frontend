@@ -12,7 +12,13 @@ describe("dashboard.gateway", () => {
   });
 
   it("getDashboard manda el userId como query param (no como header)", async () => {
-    const dto = { userId: "agent_1", openConversations: 2, myAssignedCases: 1, escalatedPending: 0, waitingUser: 0 };
+    const dto = {
+      userId: "agent_1",
+      openConversations: 2,
+      myAssignedCases: 1,
+      escalatedPending: 0,
+      waitingUser: 0,
+    };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,

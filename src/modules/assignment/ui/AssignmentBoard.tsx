@@ -27,8 +27,8 @@ export function AssignmentBoard() {
     <>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
         Aquí puedes ver cuántos casos tiene cada agente. Los casos escalados se asignan
-        automáticamente al agente con menos carga del área; si nadie está disponible, o si
-        prefieres moverlo tú mismo, puedes asignar o reasignar manualmente en cualquier momento.
+        automáticamente al agente con menos carga del área; si nadie está disponible, o si prefieres
+        moverlo tú mismo, puedes asignar o reasignar manualmente en cualquier momento.
       </div>
 
       <div className="flex items-center gap-2 animate-fade-up">
@@ -56,15 +56,17 @@ export function AssignmentBoard() {
         <StatCard label="Agentes del área" value={String(agentsInDept.length)} />
         <StatCard label="Sin asignar" value={String(unassigned.length)} tone="warning" />
         <StatCard label="Asignados" value={String(assigned.length)} tone="success" />
-        <StatCard label="Total en el área" value={String(cases.length)} hint="Casos abiertos ahora" />
+        <StatCard
+          label="Total en el área"
+          value={String(cases.length)}
+          hint="Casos abiertos ahora"
+        />
       </section>
 
       <section className="grid grid-cols-12 gap-6 animate-fade-up">
         <div className="col-span-12 lg:col-span-5 bg-card border border-border rounded-xl overflow-hidden">
           <div className="p-4 border-b border-border">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">
-              Carga por agente
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">Carga por agente</h3>
           </div>
           <div className="divide-y divide-border">
             {workload.map(({ agent, activeCases, waitingUser }) => (
@@ -130,7 +132,9 @@ export function AssignmentBoard() {
                 </div>
               ))}
               {unassigned.length === 0 && !loading && (
-                <p className="p-4 text-xs text-muted-foreground">Sin casos pendientes de asignar.</p>
+                <p className="p-4 text-xs text-muted-foreground">
+                  Sin casos pendientes de asignar.
+                </p>
               )}
             </div>
           </div>

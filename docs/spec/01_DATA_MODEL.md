@@ -9,7 +9,7 @@ export type DepartmentVisibility = "shared" | "restricted";
 
 export type DepartmentDto = {
   id: string;
-  slug: string;          // "support" | "billing" | "sales" (seed real, ver scripts/seed.ts del backend)
+  slug: string; // "support" | "billing" | "sales" (seed real, ver scripts/seed.ts del backend)
   name: string;
   visibility: DepartmentVisibility;
   active: boolean;
@@ -18,7 +18,7 @@ export type DepartmentDto = {
 export type AgentRole = "agent" | "manager" | "admin";
 
 export type AgentDto = {
-  id: string;             // UUID real, usado como agentUserId / x-agent-id
+  id: string; // UUID real, usado como agentUserId / x-agent-id
   name: string;
   email: string;
   role: AgentRole;
@@ -69,7 +69,7 @@ export type MessageDto = {
   caseId: string | null;
   direction: MessageDirection;
   author: MessageAuthor;
-  agentId: string | null;  // set en replies humanos (backend 07_QUALITY_SUPERVISION.md §6); null en inbound/ai/system
+  agentId: string | null; // set en replies humanos (backend 07_QUALITY_SUPERVISION.md §6); null en inbound/ai/system
   body: string;
   type: MessageType;
   createdAt: string;
@@ -86,17 +86,34 @@ export type MessageDto = {
 
 ```ts
 export type CaseStatus =
-  | "NEW" | "ACTIVE" | "WAITING_USER" | "PAUSED"
-  | "ESCALATED" | "HUMAN_ACTIVE"
-  | "COMPLETED" | "EXPIRED" | "CANCELLED";
+  | "NEW"
+  | "ACTIVE"
+  | "WAITING_USER"
+  | "PAUSED"
+  | "ESCALATED"
+  | "HUMAN_ACTIVE"
+  | "COMPLETED"
+  | "EXPIRED"
+  | "CANCELLED";
 
 export type WorkflowType =
-  | "SUPPORT_INTERNET" | "BILLING_BALANCE" | "SALES_PACKAGES" | "GENERAL_INQUIRY"
-  | "UNCLASSIFIED" | (string & {});   // pool de triage puede traer null/"UNCLASSIFIED"
+  | "SUPPORT_INTERNET"
+  | "BILLING_BALANCE"
+  | "SALES_PACKAGES"
+  | "GENERAL_INQUIRY"
+  | "UNCLASSIFIED"
+  | (string & {}); // pool de triage puede traer null/"UNCLASSIFIED"
 
 export type SupportInternetContext = {
   client?: { nationalId: string; fullName: string };
-  contract?: { id: string; sector: string; oltName: string; pon: string; serial: string; router: string };
+  contract?: {
+    id: string;
+    sector: string;
+    oltName: string;
+    pon: string;
+    serial: string;
+    router: string;
+  };
   balance?: { hasDebt: boolean; amount?: number };
   diagnostic?: {
     status: string;
@@ -131,7 +148,12 @@ export type BillingBalanceContext = {
   client?: { nationalId: string; fullName: string };
   invoices?: { id: string; amount: number; dueDate: string }[];
   balance?: { hasDebt: boolean; amount?: number };
-  payment?: { amount?: number; reference?: string; date?: string; status?: "PENDING" | "RECORDED" | "REJECTED" };
+  payment?: {
+    amount?: number;
+    reference?: string;
+    date?: string;
+    status?: "PENDING" | "RECORDED" | "REJECTED";
+  };
 };
 
 export type SalesPackagesContext = {
@@ -161,13 +183,13 @@ export type AutomationStateDto = {
 export type CaseDto = {
   id: string;
   conversationId: string;
-  workflowType: WorkflowType | null;   // null = pool de triage
+  workflowType: WorkflowType | null; // null = pool de triage
   status: CaseStatus;
-  departmentId: string | null;         // nullable: triage o aún no resuelto
-  assignedAgentId: string | null;      // null = sin reclamar / lo maneja el bot
+  departmentId: string | null; // nullable: triage o aún no resuelto
+  assignedAgentId: string | null; // null = sin reclamar / lo maneja el bot
   context: CaseContext;
   automation: AutomationStateDto | null;
-  currentState?: string;               // paso del workflow (solo en GET /api/cases/:id)
+  currentState?: string; // paso del workflow (solo en GET /api/cases/:id)
   createdAt: string;
   lastActivityAt: string;
   expiresAt: string | null;
@@ -175,7 +197,14 @@ export type CaseDto = {
 
 /** GET /api/cases/:id/timeline — ejecuciones + eventos, ya mezclados y ordenados por el backend. */
 export type CaseTimelineEntryDto =
-  | { kind: "execution"; action: string; status: "DISPATCHED" | "COMPLETED" | "FAILED"; at: string; output?: unknown; error?: unknown }
+  | {
+      kind: "execution";
+      action: string;
+      status: "DISPATCHED" | "COMPLETED" | "FAILED";
+      at: string;
+      output?: unknown;
+      error?: unknown;
+    }
   | { kind: "event"; action: string; status: "RECORDED"; at: string; payload?: unknown };
 
 /** GET /api/cases/:id/summary — 03_API_CONTRACT.md §D, generado determinísticamente por el backend. */
@@ -202,7 +231,7 @@ export type EscalationPriority = "low" | "normal" | "high" | "urgent";
 export type EscalationDto = {
   id: string;
   caseId: string;
-  departmentId: string | null;   // null = pool de triage
+  departmentId: string | null; // null = pool de triage
   priority: EscalationPriority;
   reason: string;
   summary: CaseSummaryDto;
@@ -257,7 +286,13 @@ export type N8nWorkflowEntryDto = {
 export type RealtimeEvent =
   | { type: "MESSAGE_RECEIVED"; conversationId: string; messageId: string }
   | { type: "MESSAGE_SENT"; conversationId: string; messageId: string; author: "ai" | "agent" }
-  | { type: "CASE_ESCALATED"; caseId: string; conversationId: string; departmentId: string | null; at: string }
+  | {
+      type: "CASE_ESCALATED";
+      caseId: string;
+      conversationId: string;
+      departmentId: string | null;
+      at: string;
+    }
   | { type: "CASE_CLAIMED"; caseId: string; agentUserId: string }
   | { type: "HUMAN_ASSIGNED"; caseId: string; agentUserId: string }
   | { type: "AUTOMATION_ENABLED"; caseId: string };
@@ -280,12 +315,7 @@ export type AgentQualityStatsDto = {
 
 export type QualityFindingSeverity = "low" | "medium" | "high";
 export type QualityFindingCategory =
-  | "aggression"
-  | "disrespect"
-  | "neglect"
-  | "misinformation"
-  | "inefficiency"
-  | "other";
+  "aggression" | "disrespect" | "neglect" | "misinformation" | "inefficiency" | "other";
 
 export type QualityFindingDto = {
   id: string;
@@ -332,19 +362,19 @@ export type QualityReviewDto = {
 ```ts
 /** Sesión activa en este navegador — id = AgentDto.id real, sin capa puente. */
 export type SessionUser = {
-  id: string;              // = AgentDto.id
+  id: string; // = AgentDto.id
   name: string;
   initials: string;
   email: string;
-  role: AgentRole;         // real, de AgentDto
+  role: AgentRole; // real, de AgentDto
   departmentId: string | null;
   departmentSlug: string | null;
-  landing: string;         // ruta de aterrizaje calculada del departamento
+  landing: string; // ruta de aterrizaje calculada del departamento
 };
 
 /** Notificación in-app derivada de eventos SSE (03_REALTIME_NOTIFICATIONS.md). */
 export type UiNotification = {
-  id: string;               // uuid generado en cliente
+  id: string; // uuid generado en cliente
   kind: "CASE_ESCALATED" | "HUMAN_ASSIGNED";
   caseId: string;
   conversationId?: string;

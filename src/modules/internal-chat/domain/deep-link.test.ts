@@ -8,9 +8,7 @@ import type { QualityReviewDto } from "@/modules/quality/domain/quality-review";
 
 describe("parseInternalChatDeepLink", () => {
   it("lee peerId y qualityReviewId desde URLSearchParams", () => {
-    const params = new URLSearchParams(
-      "peerId=agent-42&qualityReviewId=rev-9&extra=1",
-    );
+    const params = new URLSearchParams("peerId=agent-42&qualityReviewId=rev-9&extra=1");
     expect(parseInternalChatDeepLink(params)).toEqual({
       peerId: "agent-42",
       qualityReviewId: "rev-9",

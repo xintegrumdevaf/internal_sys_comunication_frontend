@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as agentDirectoryGateway from "@/modules/identity/infrastructure/agent-directory.gateway";
-import type { CreateDepartmentPayload, UpdateDepartmentPayload } from "@/modules/identity/infrastructure/agent-directory.gateway";
+import type {
+  CreateDepartmentPayload,
+  UpdateDepartmentPayload,
+} from "@/modules/identity/infrastructure/agent-directory.gateway";
 
 /**
  * Alta/edición/baja de departamentos.
@@ -34,10 +37,18 @@ export function useDepartmentsAdmin() {
     );
 
   const updateDepartment = (departmentId: string, payload: UpdateDepartmentPayload) =>
-    run("actualizar el departamento", () => agentDirectoryGateway.updateDepartment(departmentId, payload), "Departamento actualizado");
+    run(
+      "actualizar el departamento",
+      () => agentDirectoryGateway.updateDepartment(departmentId, payload),
+      "Departamento actualizado",
+    );
 
   const deactivateDepartment = (departmentId: string) =>
-    run("desactivar el departamento", () => agentDirectoryGateway.deactivateDepartment(departmentId), "Departamento desactivado");
+    run(
+      "desactivar el departamento",
+      () => agentDirectoryGateway.deactivateDepartment(departmentId),
+      "Departamento desactivado",
+    );
 
   const reactivateDepartment = (departmentId: string) =>
     run(

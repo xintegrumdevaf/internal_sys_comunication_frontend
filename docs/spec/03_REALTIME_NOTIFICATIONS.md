@@ -5,7 +5,10 @@
 `src/modules/realtime/infrastructure/realtime.gateway.ts` — wrapper sobre `EventSource`:
 
 ```ts
-export function connectRealtime(userId: string, onEvent: (event: RealtimeEvent) => void): () => void {
+export function connectRealtime(
+  userId: string,
+  onEvent: (event: RealtimeEvent) => void,
+): () => void {
   const es = new EventSource(resolveApiUrl(`/api/realtime?userId=${encodeURIComponent(userId)}`));
   es.onmessage = (ev) => {
     try {
@@ -26,14 +29,14 @@ export function connectRealtime(userId: string, onEvent: (event: RealtimeEvent) 
 
 ## 2. Catálogo de eventos → reacción UI
 
-| Evento | Quién lo recibe (filtrado por el backend) | Reacción en frontend |
-|---|---|---|
-| `MESSAGE_RECEIVED` | Agentes con visibilidad del departamento de la conversación | Si la conversación está abierta en `/bandeja`, refrescar el hilo (`GET /api/conversations/:id/messages`); si no, refrescar el badge de la lista |
-| `MESSAGE_SENT` | Igual que arriba | Igual, distinguiendo `author: "ai" | "agent"` para el tick visual |
-| `CASE_ESCALATED` | Agentes del departamento del caso, o `manager/admin` si `departmentId=null` (triage) | Toast + incremento del contador de la campana de notificaciones; refresca `/escalaciones` si está montada |
-| `CASE_CLAIMED` | Todos los que ven ese departamento | Refresca listas de casos "sin dueño" (ya no debe aparecer como reclamable) |
-| `HUMAN_ASSIGNED` | Cualquiera con visibilidad, pero con **prioridad especial si `agentUserId === session.id`** | Si es el agente asignado: toast prominente "Se te asignó el caso {id}" + entrada persistente en la campana con acceso directo a `/bandeja?conversationId=`; si es otro agente: solo refresco silencioso |
-| `AUTOMATION_ENABLED` | Agentes con esa conversación abierta | Actualiza el indicador de automatización en el panel de caso |
+| Evento               | Quién lo recibe (filtrado por el backend)                                                   | Reacción en frontend                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MESSAGE_RECEIVED`   | Agentes con visibilidad del departamento de la conversación                                 | Si la conversación está abierta en `/bandeja`, refrescar el hilo (`GET /api/conversations/:id/messages`); si no, refrescar el badge de la lista                                                         |
+| `MESSAGE_SENT`       | Igual que arriba                                                                            | Igual, distinguiendo `author: "ai"                                                                                                                                                                      | "agent"` para el tick visual |
+| `CASE_ESCALATED`     | Agentes del departamento del caso, o `manager/admin` si `departmentId=null` (triage)        | Toast + incremento del contador de la campana de notificaciones; refresca `/escalaciones` si está montada                                                                                               |
+| `CASE_CLAIMED`       | Todos los que ven ese departamento                                                          | Refresca listas de casos "sin dueño" (ya no debe aparecer como reclamable)                                                                                                                              |
+| `HUMAN_ASSIGNED`     | Cualquiera con visibilidad, pero con **prioridad especial si `agentUserId === session.id`** | Si es el agente asignado: toast prominente "Se te asignó el caso {id}" + entrada persistente en la campana con acceso directo a `/bandeja?conversationId=`; si es otro agente: solo refresco silencioso |
+| `AUTOMATION_ENABLED` | Agentes con esa conversación abierta                                                        | Actualiza el indicador de automatización en el panel de caso                                                                                                                                            |
 
 ## 3. Campana de notificaciones (AppShell)
 
@@ -44,6 +47,7 @@ export function connectRealtime(userId: string, onEvent: (event: RealtimeEvent) 
 ## 4. Ventana de resumen de escalación (satisface el requisito de "resumen cuando se hace un análisis")
 
 Componente `CaseSummaryDialog`, se abre:
+
 - Automáticamente al seleccionar en `/bandeja` o `/escalaciones` un caso en estado `ESCALATED` o `HUMAN_ACTIVE` que el agente aún no ha visto (primera vez que se abre esa conversación en la sesión).
 - Manualmente vía botón "Ver resumen" en el panel de caso, en cualquier momento.
 

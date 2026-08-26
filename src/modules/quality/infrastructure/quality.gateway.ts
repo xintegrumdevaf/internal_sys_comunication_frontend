@@ -36,9 +36,7 @@ export async function listAgentQualityStats(
       departmentId: filter.departmentId,
     },
   });
-  return (data ?? []).map((row) =>
-    normalizeAgentStats({ ...row, agentId: row.agentId ?? "" }),
-  );
+  return (data ?? []).map((row) => normalizeAgentStats({ ...row, agentId: row.agentId ?? "" }));
 }
 
 export async function listQualityReviews(
@@ -98,10 +96,12 @@ export type AnalyzeBatchResult = {
   reviews: QualityReviewDto[];
 };
 
-export async function getQualityPendingCount(filter: {
-  agentId?: string;
-  departmentId?: string;
-} = {}): Promise<number> {
+export async function getQualityPendingCount(
+  filter: {
+    agentId?: string;
+    departmentId?: string;
+  } = {},
+): Promise<number> {
   const data = await apiGet<{ pendingCount: number }>("/api/quality/pending-count", {
     query: {
       agentId: filter.agentId,

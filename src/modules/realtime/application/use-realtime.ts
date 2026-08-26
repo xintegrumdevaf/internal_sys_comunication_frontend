@@ -13,7 +13,11 @@ import {
   subscribeNotifications,
   wireNotifications,
 } from "@/modules/realtime/application/notifications.state";
-import { incrementUnreadTotal, setTotalUnread, getActiveChatId } from "@/modules/realtime/application/unread.state";
+import {
+  incrementUnreadTotal,
+  setTotalUnread,
+  getActiveChatId,
+} from "@/modules/realtime/application/unread.state";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 
 import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
@@ -50,7 +54,7 @@ let titleFlashTimer: ReturnType<typeof setInterval> | null = null;
 function flashDocumentTitle(text: string): void {
   if (typeof document === "undefined") return;
   if (titleFlashTimer) clearInterval(titleFlashTimer);
-  
+
   const originalTitle = document.title;
   let toggle = false;
   titleFlashTimer = setInterval(() => {
@@ -84,7 +88,7 @@ export async function requestDesktopNotificationPermission(): Promise<Notificati
 
 export function sendDesktopNotification(title: string, options?: NotificationOptions): void {
   if (typeof window === "undefined" || !("Notification" in window)) return;
-  
+
   if (Notification.permission === "granted") {
     try {
       const notification = new Notification(title, {
@@ -124,7 +128,9 @@ export function sendTestDesktopNotification(): void {
       body: "¡Las notificaciones del navegador están funcionando correctamente incluso al minimizar!",
       tag: "test-notification",
     });
-    toast.success("Notificación enviada. Revisa la esquina de tu pantalla o centro de notificaciones.");
+    toast.success(
+      "Notificación enviada. Revisa la esquina de tu pantalla o centro de notificaciones.",
+    );
   } else {
     void requestDesktopNotificationPermission().then((perm) => {
       if (perm === "granted") {

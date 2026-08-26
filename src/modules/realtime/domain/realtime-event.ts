@@ -1,5 +1,11 @@
 export type RealtimeEvent =
-  | { type: "MESSAGE_RECEIVED"; conversationId: string; messageId: string; bodyPreview?: string; authorName?: string; }
+  | {
+      type: "MESSAGE_RECEIVED";
+      conversationId: string;
+      messageId: string;
+      bodyPreview?: string;
+      authorName?: string;
+    }
   | { type: "MESSAGE_SENT"; conversationId: string; messageId: string; author: "ai" | "agent" }
   | {
       type: "CASE_ESCALATED";

@@ -108,9 +108,7 @@ export function QualityReviewDetail({
           {chatDeepLink && (
             <button
               type="button"
-              onClick={() =>
-                void navigate({ to: chatDeepLink.to, search: chatDeepLink.search })
-              }
+              onClick={() => void navigate({ to: chatDeepLink.to, search: chatDeepLink.search })}
               className="inline-flex items-center gap-1.5 text-[11px] px-3 py-2 rounded-md border border-border font-bold uppercase hover:bg-foreground/5"
             >
               <MessagesSquare className="size-3.5" /> Abrir chat interno
@@ -126,7 +124,7 @@ export function QualityReviewDetail({
               Marcar revisada
             </button>
           )}
-          {(review.status === "failed") && (
+          {review.status === "failed" && (
             <button
               type="button"
               disabled={busy}
@@ -168,8 +166,7 @@ export function QualityReviewDetail({
               const showDay = day !== lastRenderedDay;
               lastRenderedDay = day;
               const severity = findingSeverityForMessage(review.findings, m.id);
-              const highlight =
-                severity === "high" ? findingHighlightClass("high") : "";
+              const highlight = severity === "high" ? findingHighlightClass("high") : "";
               return (
                 <div key={m.id}>
                   {showDay && (
@@ -202,7 +199,9 @@ export function QualityReviewDetail({
                             highlight ? "text-white/80" : "opacity-75"
                           }`}
                         >
-                          {m.author === "agent" ? agentName(m.agentId ?? review.agentId) : "Asistente IA"}
+                          {m.author === "agent"
+                            ? agentName(m.agentId ?? review.agentId)
+                            : "Asistente IA"}
                         </p>
                       )}
                       <MessageMediaBody message={m} />
@@ -311,9 +310,7 @@ export function QualityReviewDetail({
           </div>
 
           <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">
-              Notas de coaching
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">Notas de coaching</h3>
             <ul className="space-y-2 max-h-36 overflow-y-auto">
               {review.notes.map((n) => (
                 <li

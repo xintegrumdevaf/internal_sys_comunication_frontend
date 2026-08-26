@@ -37,7 +37,10 @@ export function parseMentionMarkers(
   return parts;
 }
 
-export function detectAtQuery(text: string, caret: number): { start: number; query: string } | null {
+export function detectAtQuery(
+  text: string,
+  caret: number,
+): { start: number; query: string } | null {
   const before = text.slice(0, caret);
   const at = before.lastIndexOf("@");
   if (at < 0) return null;
@@ -65,8 +68,9 @@ export function insertMentionAt(
 export function resolveConversationId(mention: Mention, targets: MentionTarget[]): string | null {
   if (mention.type === "conversation") return mention.targetId;
   const hit =
-    targets.find((t) => t.type === "customer" && t.targetId === mention.targetId && t.conversationId) ??
-    targets.find((t) => t.contractId === mention.targetId && t.conversationId);
+    targets.find(
+      (t) => t.type === "customer" && t.targetId === mention.targetId && t.conversationId,
+    ) ?? targets.find((t) => t.contractId === mention.targetId && t.conversationId);
   return hit?.conversationId ?? null;
 }
 

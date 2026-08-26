@@ -38,13 +38,9 @@ export function MessageMediaBody({
     message.mimeType?.includes("sheet") ||
     message.mimeType?.includes("zip");
 
-  const isImage =
-    message.type === "image" ||
-    message.mimeType?.startsWith("image/");
+  const isImage = message.type === "image" || message.mimeType?.startsWith("image/");
 
-  const isAudio =
-    message.type === "audio" ||
-    message.mimeType?.startsWith("audio/");
+  const isAudio = message.type === "audio" || message.mimeType?.startsWith("audio/");
 
   const caption = message.caption?.trim() || "";
   const bodyText = message.body?.trim() || "";
@@ -52,7 +48,8 @@ export function MessageMediaBody({
 
   // Tarjeta de Documento / PDF estilo WhatsApp
   if (isDocument) {
-    const filename = message.filename?.trim() || caption || (isPdf ? "Comprobante.pdf" : "Documento");
+    const filename =
+      message.filename?.trim() || caption || (isPdf ? "Comprobante.pdf" : "Documento");
     const targetUrl = mediaUrl || (message.mediaId ? `/api/media/${message.mediaId}` : "#");
 
     return (
@@ -170,4 +167,3 @@ export function MessageMediaBody({
     </div>
   );
 }
-

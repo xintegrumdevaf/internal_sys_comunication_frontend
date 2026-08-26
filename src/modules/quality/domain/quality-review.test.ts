@@ -73,12 +73,8 @@ describe("buildQualityChatDeepLink", () => {
 
 describe("unprocessedChatCount / message progress", () => {
   it("cuenta cerrados sin score", () => {
-    expect(
-      unprocessedChatCount({ closedWithAgentMessages: 10, analyzedCount: 3 }),
-    ).toBe(7);
-    expect(
-      unprocessedChatCount({ closedWithAgentMessages: 2, analyzedCount: 5 }),
-    ).toBe(0);
+    expect(unprocessedChatCount({ closedWithAgentMessages: 10, analyzedCount: 3 })).toBe(7);
+    expect(unprocessedChatCount({ closedWithAgentMessages: 2, analyzedCount: 5 })).toBe(0);
   });
 
   it("etiqueta progreso de mensajes por conversación", () => {

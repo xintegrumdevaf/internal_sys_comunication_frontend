@@ -4,36 +4,36 @@ Mapeo módulo → ruta → endpoints reales, y qué pasa con cada pantalla actua
 
 ## 1. Rutas nuevas/actualizadas
 
-| Ruta | Módulo | Endpoints reales |
-|---|---|---|
-| `/login` | Login real (correo + contraseña) | `POST /api/auth/login` |
-| `/` (dashboard) | KPIs del agente | `GET /api/dashboard?userId=` |
-| `/bandeja` | Bandeja unificada de conversaciones + panel de caso | `GET /api/conversations`, `GET /api/conversations/:id/messages`, `GET /api/conversations/:id/cases`, `GET /api/conversations/:id/automation`, `POST /api/conversations/:id/reply`, `POST /api/conversations/:id/take-control`, `GET /api/cases/:id[/summary,/timeline]`, acciones de caso (§3 de `04_ASSIGNMENT_MANAGEMENT.md`) |
-| `/escalaciones` | Bandeja de escalaciones + pool de triage | `GET /api/escalations?departmentId=&status=`, `?triage=true` |
-| `/asignaciones` | Gestión/monitoreo de carga por agente | `GET /api/conversations` + `GET /api/cases/:id` agregados client-side, `POST /api/cases/:id/assign\|reassign` |
-| `/calidad` | Supervisión de calidad / eficiencia de agentes humanos | `GET /api/quality/agents`, `GET/POST /api/quality/reviews`, `GET /api/quality/reviews/:id`, `POST .../notes`, `PATCH .../:id` (`07_QUALITY_SUPERVISION.md`) |
-| `/auditoria` | Auditoría | `GET /api/audit?limit=` |
-| `/flujos` | Catálogo n8n (solo `role=admin`) | `GET/PUT/DELETE /api/admin/n8n-workflows[/:action]` |
-| `/usuarios` | Directorio de agentes: crear/editar/desactivar/restablecer contraseña | `GET/POST/PUT/DELETE /api/agents`, `POST /api/agents/:id/reset-password`, `GET /api/departments` |
-| `/chat-interno` | Chat interno 1:1 con menciones (feature local, sin backend) | Sin cambios de fondo — peers = agentes activos reales |
+| Ruta            | Módulo                                                                | Endpoints reales                                                                                                                                                                                                                                                                                                                |
+| --------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/login`        | Login real (correo + contraseña)                                      | `POST /api/auth/login`                                                                                                                                                                                                                                                                                                          |
+| `/` (dashboard) | KPIs del agente                                                       | `GET /api/dashboard?userId=`                                                                                                                                                                                                                                                                                                    |
+| `/bandeja`      | Bandeja unificada de conversaciones + panel de caso                   | `GET /api/conversations`, `GET /api/conversations/:id/messages`, `GET /api/conversations/:id/cases`, `GET /api/conversations/:id/automation`, `POST /api/conversations/:id/reply`, `POST /api/conversations/:id/take-control`, `GET /api/cases/:id[/summary,/timeline]`, acciones de caso (§3 de `04_ASSIGNMENT_MANAGEMENT.md`) |
+| `/escalaciones` | Bandeja de escalaciones + pool de triage                              | `GET /api/escalations?departmentId=&status=`, `?triage=true`                                                                                                                                                                                                                                                                    |
+| `/asignaciones` | Gestión/monitoreo de carga por agente                                 | `GET /api/conversations` + `GET /api/cases/:id` agregados client-side, `POST /api/cases/:id/assign\|reassign`                                                                                                                                                                                                                   |
+| `/calidad`      | Supervisión de calidad / eficiencia de agentes humanos                | `GET /api/quality/agents`, `GET/POST /api/quality/reviews`, `GET /api/quality/reviews/:id`, `POST .../notes`, `PATCH .../:id` (`07_QUALITY_SUPERVISION.md`)                                                                                                                                                                     |
+| `/auditoria`    | Auditoría                                                             | `GET /api/audit?limit=`                                                                                                                                                                                                                                                                                                         |
+| `/flujos`       | Catálogo n8n (solo `role=admin`)                                      | `GET/PUT/DELETE /api/admin/n8n-workflows[/:action]`                                                                                                                                                                                                                                                                             |
+| `/usuarios`     | Directorio de agentes: crear/editar/desactivar/restablecer contraseña | `GET/POST/PUT/DELETE /api/agents`, `POST /api/agents/:id/reset-password`, `GET /api/departments`                                                                                                                                                                                                                                |
+| `/chat-interno` | Chat interno 1:1 con menciones (feature local, sin backend)           | Sin cambios de fondo — peers = agentes activos reales                                                                                                                                                                                                                                                                           |
 
 ## 2. Qué pasa con cada pantalla actual
 
 Nota: tras la reestructuración hexagonal, la lógica de cada pantalla vive en `src/modules/<feature>/` (ver `docs/FOLDER_STRUCTURE.md`); las rutas de abajo son solo la cáscara delgada que arma `<AppShell>` + el componente `ui/` del módulo.
 
-| Pantalla actual | Acción |
-|---|---|
-| `src/routes/bandeja.tsx` → `modules/conversations/ui/OperationalInbox.tsx` | **Reescrita** sobre el contrato real + SSE (Etapa 2/3) |
-| `src/routes/soporte.tsx`, `cartera.tsx`, `utga.tsx` | **Eliminadas** — dependían de `PaymentCase`/`WorkOrder` (`ops-types.ts`), que no existen en el backend nuevo. Reemplazadas por `/bandeja` filtrada por departamento + `/asignaciones` |
-| `src/routes/campanas.tsx` | **Fuera de alcance** de esta entrega (no hay endpoint de campañas masivas en el backend nuevo); placeholder claramente marcado, no se borra la ruta para no romper navegación existente sin decisión explícita |
-| `src/routes/index.tsx` → `modules/dashboard/ui/DashboardOverview.tsx` | **Reescrita** sobre `DashboardDto` real (Etapa 6) |
-| `src/routes/auditoria.tsx` → `modules/audit/ui/AuditLogView.tsx` | **Adaptada** — el shape es casi idéntico (Etapa 6) |
-| `src/routes/flujos.tsx` → `modules/admin-n8n/ui/N8nWorkflowCatalog.tsx` | **Reescrita** contra `/api/admin/n8n-workflows` real (Etapa 6) |
-| `src/routes/usuarios.tsx` → `modules/identity/ui/UsersDirectoryPanel.tsx` | **CRUD real completo** (crear/editar/desactivar/restablecer contraseña, `06_BACKEND_GAPS.md` §1) |
-| `src/routes/whatsapp.tsx` + `src/components/whatsapp/*` | **Eliminadas** — sin equivalente en el backend nuevo (`/api/whatsapp/status` no existe) |
-| `src/routes/chat-interno.tsx` → `modules/internal-chat/ui/InternalChatShell.tsx` | **Se mantiene** (feature local, no depende del backend); soporta deep-link `?peerId=&qualityReviewId=` desde `/calidad` (`07_QUALITY_SUPERVISION.md` §5) |
-| `src/routes/calidad.tsx` → `modules/quality/ui/...` | **Nueva** — ranking + reviews + detalle con highlight (`07_QUALITY_SUPERVISION.md`) |
-| `src/routes/login.tsx` | **Reescrita**: login real con correo + contraseña sobre `POST /api/auth/login` (`06_BACKEND_GAPS.md` §1.b) |
+| Pantalla actual                                                                  | Acción                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/routes/bandeja.tsx` → `modules/conversations/ui/OperationalInbox.tsx`       | **Reescrita** sobre el contrato real + SSE (Etapa 2/3)                                                                                                                                                         |
+| `src/routes/soporte.tsx`, `cartera.tsx`, `utga.tsx`                              | **Eliminadas** — dependían de `PaymentCase`/`WorkOrder` (`ops-types.ts`), que no existen en el backend nuevo. Reemplazadas por `/bandeja` filtrada por departamento + `/asignaciones`                          |
+| `src/routes/campanas.tsx`                                                        | **Fuera de alcance** de esta entrega (no hay endpoint de campañas masivas en el backend nuevo); placeholder claramente marcado, no se borra la ruta para no romper navegación existente sin decisión explícita |
+| `src/routes/index.tsx` → `modules/dashboard/ui/DashboardOverview.tsx`            | **Reescrita** sobre `DashboardDto` real (Etapa 6)                                                                                                                                                              |
+| `src/routes/auditoria.tsx` → `modules/audit/ui/AuditLogView.tsx`                 | **Adaptada** — el shape es casi idéntico (Etapa 6)                                                                                                                                                             |
+| `src/routes/flujos.tsx` → `modules/admin-n8n/ui/N8nWorkflowCatalog.tsx`          | **Reescrita** contra `/api/admin/n8n-workflows` real (Etapa 6)                                                                                                                                                 |
+| `src/routes/usuarios.tsx` → `modules/identity/ui/UsersDirectoryPanel.tsx`        | **CRUD real completo** (crear/editar/desactivar/restablecer contraseña, `06_BACKEND_GAPS.md` §1)                                                                                                               |
+| `src/routes/whatsapp.tsx` + `src/components/whatsapp/*`                          | **Eliminadas** — sin equivalente en el backend nuevo (`/api/whatsapp/status` no existe)                                                                                                                        |
+| `src/routes/chat-interno.tsx` → `modules/internal-chat/ui/InternalChatShell.tsx` | **Se mantiene** (feature local, no depende del backend); soporta deep-link `?peerId=&qualityReviewId=` desde `/calidad` (`07_QUALITY_SUPERVISION.md` §5)                                                       |
+| `src/routes/calidad.tsx` → `modules/quality/ui/...`                              | **Nueva** — ranking + reviews + detalle con highlight (`07_QUALITY_SUPERVISION.md`)                                                                                                                            |
+| `src/routes/login.tsx`                                                           | **Reescrita**: login real con correo + contraseña sobre `POST /api/auth/login` (`06_BACKEND_GAPS.md` §1.b)                                                                                                     |
 
 ## 3. Navegación dinámica por departamento
 
@@ -41,11 +41,11 @@ Nota: tras la reestructuración hexagonal, la lógica de cada pantalla vive en `
 
 ## 4. Roles y accesos
 
-| Regla | Backend | Frontend |
-|---|---|---|
-| Lectura de depto `shared` | Cualquier agente | `canAccessDepartment` ya no depende de memberships locales — cualquier agente autenticado lee |
-| Lectura de depto `restricted` | Solo `agent_membership` | Requiere membership (si el backend expone memberships por agente; si no, se trata como hueco — ver `06_BACKEND_GAPS.md`) |
-| Pool de triage | Solo `manager`/`admin` | Oculto para `role=agent` |
-| Admin n8n (`/flujos`) | Solo `role=admin` | Oculto para `agent`/`manager` |
-| Calidad (`/calidad`) | Solo `role IN (manager, admin)`; manager acotado a sus deptos | Oculto para `role=agent`; empty state honesto si falta backend Etapa 10 |
-| Escribir sobre un caso | `assignedAgentId=self`, sin asignar, o `manager/admin` | Botones de acción deshabilitados según esta regla, nunca solo ocultos (para que el agente entienda por qué no puede actuar) |
+| Regla                         | Backend                                                       | Frontend                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Lectura de depto `shared`     | Cualquier agente                                              | `canAccessDepartment` ya no depende de memberships locales — cualquier agente autenticado lee                               |
+| Lectura de depto `restricted` | Solo `agent_membership`                                       | Requiere membership (si el backend expone memberships por agente; si no, se trata como hueco — ver `06_BACKEND_GAPS.md`)    |
+| Pool de triage                | Solo `manager`/`admin`                                        | Oculto para `role=agent`                                                                                                    |
+| Admin n8n (`/flujos`)         | Solo `role=admin`                                             | Oculto para `agent`/`manager`                                                                                               |
+| Calidad (`/calidad`)          | Solo `role IN (manager, admin)`; manager acotado a sus deptos | Oculto para `role=agent`; empty state honesto si falta backend Etapa 10                                                     |
+| Escribir sobre un caso        | `assignedAgentId=self`, sin asignar, o `manager/admin`        | Botones de acción deshabilitados según esta regla, nunca solo ocultos (para que el agente entienda por qué no puede actuar) |

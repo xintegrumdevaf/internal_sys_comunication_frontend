@@ -55,27 +55,27 @@ Ver `docs/FOLDER_STRUCTURE.md` y `docs/skills/frontend-hexagonal-architecture.md
 
 ## 5. Documentos de este paquete
 
-| Doc | Contenido |
-|---|---|
-| `00_OVERVIEW.md` | Este documento |
-| `01_DATA_MODEL.md` | DTOs de frontend, `CaseContext` tipado, tipos locales (sesión, notificaciones), DTOs de calidad |
-| `02_MODULES.md` | Mapeo módulo → ruta → endpoints; qué pantalla se adapta/reemplaza/elimina |
-| `03_REALTIME_NOTIFICATIONS.md` | Cliente SSE, catálogo de eventos → reacción UI, ventana de resumen de escalación |
-| `04_ASSIGNMENT_MANAGEMENT.md` | UI de gestión/monitoreo de carga y reasignación manual sobre endpoints reales |
-| `05_BUILD_PLAN.md` | Etapas de construcción, con criterios de aceptación |
-| `06_BACKEND_GAPS.md` | Huecos detectados en el backend (CRUD de agentes, algoritmo de auto-asignación, chat interno persistente) — documentados, no implementados aquí |
-| `07_QUALITY_SUPERVISION.md` | Panel `/calidad`: ranking, reviews, highlight de mensajes, coaching híbrido + deep-link chat |
+| Doc                            | Contenido                                                                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `00_OVERVIEW.md`               | Este documento                                                                                                                                  |
+| `01_DATA_MODEL.md`             | DTOs de frontend, `CaseContext` tipado, tipos locales (sesión, notificaciones), DTOs de calidad                                                 |
+| `02_MODULES.md`                | Mapeo módulo → ruta → endpoints; qué pantalla se adapta/reemplaza/elimina                                                                       |
+| `03_REALTIME_NOTIFICATIONS.md` | Cliente SSE, catálogo de eventos → reacción UI, ventana de resumen de escalación                                                                |
+| `04_ASSIGNMENT_MANAGEMENT.md`  | UI de gestión/monitoreo de carga y reasignación manual sobre endpoints reales                                                                   |
+| `05_BUILD_PLAN.md`             | Etapas de construcción, con criterios de aceptación                                                                                             |
+| `06_BACKEND_GAPS.md`           | Huecos detectados en el backend (CRUD de agentes, algoritmo de auto-asignación, chat interno persistente) — documentados, no implementados aquí |
+| `07_QUALITY_SUPERVISION.md`    | Panel `/calidad`: ranking, reviews, highlight de mensajes, coaching híbrido + deep-link chat                                                    |
 
 Fuera de `docs/spec/` (normativo del backend a consumir), este paquete agrega:
 
-| Doc | Contenido |
-|---|---|
-| `docs/FOLDER_STRUCTURE.md` | Árbol completo de `src/` por módulo hexagonal |
-| `docs/skills/frontend-hexagonal-architecture.md` | Por qué y cómo se dividen domain/application/infrastructure/ui |
-| `docs/skills/solid-principles-frontend.md` | SOLID con ejemplos reales de este repo |
-| `docs/skills/design-patterns-frontend.md` | Patrones usados (Gateway, Custom Hook as Use Case, Observer, Facade...) |
-| `docs/skills/ui-ux-design-principles.md` | Decisiones de UI/UX específicas de este producto (no genéricas) |
-| `docs/skills/testing-strategy-frontend.md` | Runner configurado (Vitest + Testing Library), qué y cómo probar por capa, criterio de aprobación por etapa |
+| Doc                                              | Contenido                                                                                                   |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `docs/FOLDER_STRUCTURE.md`                       | Árbol completo de `src/` por módulo hexagonal                                                               |
+| `docs/skills/frontend-hexagonal-architecture.md` | Por qué y cómo se dividen domain/application/infrastructure/ui                                              |
+| `docs/skills/solid-principles-frontend.md`       | SOLID con ejemplos reales de este repo                                                                      |
+| `docs/skills/design-patterns-frontend.md`        | Patrones usados (Gateway, Custom Hook as Use Case, Observer, Facade...)                                     |
+| `docs/skills/ui-ux-design-principles.md`         | Decisiones de UI/UX específicas de este producto (no genéricas)                                             |
+| `docs/skills/testing-strategy-frontend.md`       | Runner configurado (Vitest + Testing Library), qué y cómo probar por capa, criterio de aprobación por etapa |
 
 ## 6. No-negociables de este frontend
 

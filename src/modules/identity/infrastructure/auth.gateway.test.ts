@@ -30,7 +30,10 @@ describe("auth.gateway", () => {
     expect(url).toBe("http://localhost:3000/api/auth/login");
     expect(init?.method).toBe("POST");
     expect(init?.credentials).toBe("include");
-    expect(JSON.parse(init?.body as string)).toEqual({ email: "ana@isp.local", password: "secreta123" });
+    expect(JSON.parse(init?.body as string)).toEqual({
+      email: "ana@isp.local",
+      password: "secreta123",
+    });
     expect(agent.name).toBe("Ana");
   });
 
@@ -59,6 +62,9 @@ describe("auth.gateway", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
     expect(url).toBe("http://localhost:3000/api/auth/change-password");
-    expect(JSON.parse(init?.body as string)).toEqual({ currentPassword: "actual123", newPassword: "nueva12345" });
+    expect(JSON.parse(init?.body as string)).toEqual({
+      currentPassword: "actual123",
+      newPassword: "nueva12345",
+    });
   });
 });

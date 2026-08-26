@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as authGateway from "@/modules/identity/infrastructure/auth.gateway";
-import { listAgents, listDepartments } from "@/modules/identity/infrastructure/agent-directory.gateway";
+import {
+  listAgents,
+  listDepartments,
+} from "@/modules/identity/infrastructure/agent-directory.gateway";
 import { toSessionUser, type SessionUser } from "@/modules/identity/domain/session";
 
 /**

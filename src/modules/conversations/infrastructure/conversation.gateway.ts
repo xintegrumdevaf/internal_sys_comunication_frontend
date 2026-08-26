@@ -73,4 +73,3 @@ export function takeControl(conversationId: string, agentUserId: string): Promis
 export function markAsRead(conversationId: string): Promise<void> {
   return apiPost(`/api/conversations/${conversationId}/read`);
 }
-

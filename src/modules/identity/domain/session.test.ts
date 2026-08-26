@@ -67,9 +67,9 @@ describe("toSessionUser", () => {
 
   it("preserva autoAssignEnabled desde el agente", () => {
     expect(toSessionUser(makeAgent(), departments).autoAssignEnabled).toBe(false);
-    expect(toSessionUser(makeAgent({ autoAssignEnabled: true }), departments).autoAssignEnabled).toBe(
-      true,
-    );
+    expect(
+      toSessionUser(makeAgent({ autoAssignEnabled: true }), departments).autoAssignEnabled,
+    ).toBe(true);
   });
 });
 

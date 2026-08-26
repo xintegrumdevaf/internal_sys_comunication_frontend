@@ -3,7 +3,10 @@ import { AlertOctagon } from "lucide-react";
 import { StatCard } from "@/app/shell/AppShell";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
 import type { EscalationDto, EscalationStatus } from "@/modules/escalations/domain/escalation";
-import { escalationPriorityLabel, escalationStatusLabel } from "@/modules/escalations/domain/escalation";
+import {
+  escalationPriorityLabel,
+  escalationStatusLabel,
+} from "@/modules/escalations/domain/escalation";
 import { useEscalations } from "@/modules/escalations/application/use-escalations";
 import { relativeTime } from "@/shared/datetime";
 import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
@@ -48,7 +51,7 @@ export function EscalationsBoard() {
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
         Casos que el asistente no pudo resolver solo y quedaron esperando a un agente humano.
         {isSupervisor &&
-          " Los casos \"sin clasificar\" son de clientes cuya solicitud todavía no se pudo identificar a qué área pertenece — solo tú puedes revisarlos y asignarlos."}
+          ' Los casos "sin clasificar" son de clientes cuya solicitud todavía no se pudo identificar a qué área pertenece — solo tú puedes revisarlos y asignarlos.'}
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
@@ -119,11 +122,15 @@ export function EscalationsBoard() {
                 <tr key={e.id} className="hover:bg-foreground/5 transition-colors">
                   <td className="px-4 py-3 max-w-[240px] truncate">{e.reason}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded font-bold text-[10px] ring-1 ${priority.cls}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded font-bold text-[10px] ring-1 ${priority.cls}`}
+                    >
                       {priority.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-bold text-[10px]">{escalationStatusLabel(e.status)}</td>
+                  <td className="px-4 py-3 font-bold text-[10px]">
+                    {escalationStatusLabel(e.status)}
+                  </td>
                   <td className="px-4 py-3 text-[11px]">{agentName(e.assignedAgentId)}</td>
                   <td className="px-4 py-3 text-muted-foreground">{relativeTime(e.createdAt)}</td>
                   <td className="px-4 py-3">
@@ -167,7 +174,9 @@ export function EscalationsBoard() {
         summary={summary}
         timeline={timeline}
         departments={departments}
-        onClaim={summaryFor && !summaryFor.assignedAgentId ? () => void claim(summaryFor) : undefined}
+        onClaim={
+          summaryFor && !summaryFor.assignedAgentId ? () => void claim(summaryFor) : undefined
+        }
         claimDisabled={busy}
         claimLabel="Atender yo este caso"
       />

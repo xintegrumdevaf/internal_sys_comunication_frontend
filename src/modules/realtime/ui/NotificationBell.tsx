@@ -54,7 +54,8 @@ export function NotificationBell() {
                 ¿Recibir notificaciones cuando minimices el navegador?
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Tu navegador requiere tu autorización para mostrar ventanas de alerta al estar minimizado.
+                Tu navegador requiere tu autorización para mostrar ventanas de alerta al estar
+                minimizado.
               </p>
               <button
                 type="button"
