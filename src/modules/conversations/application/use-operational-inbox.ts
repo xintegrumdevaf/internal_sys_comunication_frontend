@@ -58,7 +58,6 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           userId: options.agentId,
           status: options.status ?? "open",
         });
-        setConversations(data);
 
         const prevId = selectedIdRef.current;
         const preferred = options.initialConversationId;
@@ -69,11 +68,22 @@ export function useOperationalInbox(options: InboxOptions = {}) {
               ? preferred
               : (data[0]?.id ?? null);
 
-        const total = data.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        // La conversación activa actual no debe tener conteo no leído en la UI
+        const normalizedData = data.map((c) => (c.id === nextId ? { ...c, unreadCount: 0 } : c));
+        setConversations(normalizedData);
+
+        const total = normalizedData.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
         setTotalUnread(total);
 
         setSelectedId(nextId);
-        if (!nextId) {
+        if (nextId) {
+          setActiveChatId(nextId);
+          const activeConv = data.find((c) => c.id === nextId);
+          if (activeConv && (activeConv.unreadCount ?? 0) > 0) {
+            void conversationGateway.markAsRead(nextId).catch(() => {});
+          }
+        } else {
+          setActiveChatId(null);
           setMessages([]);
           setCases([]);
         }
@@ -87,6 +97,19 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     },
     [session, options.departmentId, options.agentId, options.status, options.initialConversationId],
   );
+
+  const selectConversation = useCallback((id: string | null) => {
+    setSelectedId(id);
+    setActiveChatId(id);
+    if (id) {
+      setConversations((prev) => {
+        const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
+        setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+        return next;
+      });
+      void conversationGateway.markAsRead(id).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     void reload();
@@ -121,6 +144,13 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     setAutomationState(null);
     setActiveChatId(selectedId);
 
+    // Optimísticamente garantizar que la conversación abierta tenga 0 en el badge local
+    setConversations((prev) => {
+      const next = prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c));
+      setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+      return next;
+    });
+
     (async () => {
       try {
         const [msgs, convCases, automation] = await Promise.all([
@@ -133,11 +163,6 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           setMessages(msgs);
           setCases(convCases);
           setAutomationState(automation);
-          setConversations((prev) => {
-            const next = prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c));
-            setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
-            return next;
-          });
         }
       } catch (e) {
         if (!cancelled) {
@@ -147,7 +172,6 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     })();
     return () => {
       cancelled = true;
-      setActiveChatId(null);
     };
   }, [selectedId]);
 
@@ -168,6 +192,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT") {
         if (event.conversationId === selectedIdRef.current) {
           void loadThread(event.conversationId);
+          void conversationGateway.markAsRead(event.conversationId).catch(() => {});
         }
         void reload({ silent: true });
         return;
@@ -297,7 +322,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     conversations,
     selected,
     selectedId,
-    setSelectedId,
+    setSelectedId: selectConversation,
     messages,
     cases,
     activeCase,
