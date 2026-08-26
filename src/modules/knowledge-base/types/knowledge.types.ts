@@ -55,4 +55,5 @@ export interface RagMetrics {
   totalChunks: number;
   queriesToday: number;
   lowConfidenceRate: number; // e.g. 4.2%
+  embeddingModel?: string;
 }

@@ -33,11 +33,28 @@ export function RagPlayground() {
     {
       id: "m-1",
       sender: "bot",
-      text: "¡Hola! Soy el simulador del motor RAG. Hazme cualquier pregunta sobre soporte técnico, facturas o procedimientos para verificar qué información y vectores se recuperan en tiempo real.",
+      text: "¡Hola! Soy el simulador del asistente virtual. Hazme cualquier pregunta sobre soporte técnico, facturación o procedimientos para verificar cómo respondería a los clientes y qué documentos consulto en tiempo real.",
       timestamp: "Ahora",
     },
   ]);
   const [activeRagDetails, setActiveRagDetails] = useState<RagTestQueryResponse | null>(null);
+  const [embeddingModel, setEmbeddingModel] = useState("Cargando...");
+
+  useState(() => {
+    knowledgeService
+      .getMetrics()
+      .then((metrics) => {
+        if (metrics.embeddingModel) {
+          const parts = metrics.embeddingModel.split(":");
+          const provider = parts[0]?.toUpperCase() || "GEMINI";
+          const model = parts[1] || "embedding-2";
+          setEmbeddingModel(`${provider} ${model}`);
+        } else {
+          setEmbeddingModel("GEMINI embedding-2");
+        }
+      })
+      .catch(() => setEmbeddingModel("GEMINI embedding-2"));
+  });
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -75,7 +92,7 @@ export function RagPlayground() {
       const errorMsg: MessageItem = {
         id: `msg-err-${Date.now()}`,
         sender: "bot",
-        text: "Error al consultar el flujo query-knowledge-base de n8n. Verifica la conexión con el servidor.",
+        text: "Error al consultar el asistente. Verifica la conexión con el servidor.",
         timestamp: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -101,15 +118,14 @@ export function RagPlayground() {
               <Sparkles className="size-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Simulador de Consulta RAG</h3>
+              <h3 className="text-sm font-bold text-foreground">Simulador de Respuestas del Asistente</h3>
               <p className="text-[11px] text-muted-foreground">
-                Conectado a <code className="text-primary font-mono">query-knowledge-base</code>{" "}
-                (n8n + PGVector)
+                Prueba en vivo cómo respondería el asistente a los clientes
               </p>
             </div>
           </div>
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20">
-            Ollama qwen3-embedding
+            {embeddingModel}
           </span>
         </div>
 
@@ -154,7 +170,7 @@ export function RagPlayground() {
                       className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
                     >
                       <Layers className="size-3" />
-                      Inspeccionar Chunks ({msg.ragDetails.retrievedChunks.length})
+                      Ver fragmentos consultados ({msg.ragDetails.retrievedChunks.length})
                     </button>
                   </div>
                 )}
@@ -173,7 +189,7 @@ export function RagPlayground() {
           {loading && (
             <div className="flex gap-3 items-center text-muted-foreground text-xs p-3">
               <Loader2 className="size-4 animate-spin text-primary" />
-              <span>Consultando embeddings vectoriales en PGVector...</span>
+              <span>Buscando información en los documentos aprendidos...</span>
             </div>
           )}
         </div>
@@ -188,7 +204,7 @@ export function RagPlayground() {
               key={idx}
               type="button"
               onClick={() => setInputQuestion(q)}
-              className="text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-muted text-foreground whitespace-nowrap transition-colors border border-border/50"
+              className="text-xs px-2.5 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-primary font-medium whitespace-nowrap transition-colors border border-primary/25"
             >
               {q}
             </button>
@@ -199,7 +215,7 @@ export function RagPlayground() {
         <form onSubmit={handleSend} className="p-3 border-t border-border bg-card flex gap-2">
           <input
             type="text"
-            placeholder="Escribe una pregunta para probar la recuperación RAG..."
+            placeholder="Escribe una pregunta para probar cómo responde el asistente..."
             value={inputQuestion}
             onChange={(e) => setInputQuestion(e.target.value)}
             className="flex-1 px-4 py-2.5 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -219,17 +235,16 @@ export function RagPlayground() {
       <div className="lg:col-span-5 border border-border rounded-xl bg-card flex flex-col overflow-hidden shadow-sm">
         <div className="p-4 border-b border-border bg-muted/30 flex items-center gap-2">
           <Database className="size-4 text-primary" />
-          <h3 className="text-sm font-bold text-foreground">Inspector de Vectores y Chunks</h3>
+          <h3 className="text-sm font-bold text-foreground">Fuentes y Documentos Consultados</h3>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {!activeRagDetails ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6">
               <Layers className="size-10 text-muted-foreground/30 mb-2" />
-              <p className="font-semibold text-sm">Sin inspección activa</p>
+              <p className="font-semibold text-sm">Sin consulta activa</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Haz una pregunta en el simulador para inspeccionar exactamente qué fragmentos
-                vectoriales recuperó el RAG.
+                Haz una pregunta en el simulador para inspeccionar qué fragmentos de la documentación utilizó el asistente para responder.
               </p>
             </div>
           ) : (
@@ -237,7 +252,7 @@ export function RagPlayground() {
               {/* Resumen de Fuentes */}
               <div className="p-3 bg-muted/30 rounded-lg border border-border space-y-2">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Documentos Origen Utilizados
+                  Documentos de Referencia
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {activeRagDetails.sources.map((src, i) => (
@@ -255,7 +270,7 @@ export function RagPlayground() {
               {/* Fragmentos Recuperados */}
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  Fragmentos Vectoriales (Top-K Chunks)
+                  Párrafos y Fragmentos Relevantes
                 </p>
 
                 <div className="space-y-2">
@@ -274,7 +289,7 @@ export function RagPlayground() {
                           {chunk.sourceName}
                         </span>
                         <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
-                          {(chunk.similarityScore * 100).toFixed(1)}% Coincidencia
+                          {(chunk.similarityScore * 100).toFixed(1)}% Relevancia
                         </span>
                       </div>
 

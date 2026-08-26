@@ -57,21 +57,21 @@ export function KnowledgeSourcesTable({
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
             <CheckCircle2 className="size-3" />
-            Vectorizado
+            Aprendido
           </span>
         );
       case "processing":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/20 animate-pulse">
             <Clock className="size-3 animate-spin" />
-            Indexando...
+            Procesando...
           </span>
         );
       case "error":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/20">
             <AlertCircle className="size-3" />
-            Error Ingesta
+            Error de Lectura
           </span>
         );
       default:
@@ -93,6 +93,41 @@ export function KnowledgeSourcesTable({
     return <Globe className="size-5 text-emerald-400 shrink-0" />;
   };
 
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case "Soporte Técnico":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+            {category}
+          </span>
+        );
+      case "Cartera & Cobros":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            {category}
+          </span>
+        );
+      case "UTGA & Operaciones":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+            {category}
+          </span>
+        );
+      case "Políticas Generales":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            {category}
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+            {category}
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Action Bar */}
@@ -102,7 +137,7 @@ export function KnowledgeSourcesTable({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar documento por nombre, categoría o usuario..."
+              placeholder="Buscar documento por nombre, departamento o usuario..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -114,7 +149,7 @@ export function KnowledgeSourcesTable({
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-3 py-2 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            <option value="all">Todas las categorías</option>
+            <option value="all">Todas las áreas</option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
@@ -139,7 +174,7 @@ export function KnowledgeSourcesTable({
           className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
         >
           <Plus className="size-4" />
-          Cargar Documento PDF / URL
+          Subir Documento o Manual
         </button>
       </div>
 
@@ -150,11 +185,11 @@ export function KnowledgeSourcesTable({
             <thead className="bg-muted/40 border-b border-border text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               <tr>
                 <th className="px-4 py-3.5">Documento</th>
-                <th className="px-4 py-3.5">Categoría</th>
-                <th className="px-4 py-3.5">Estado Vectorial</th>
-                <th className="px-4 py-3.5 text-center">Chunks Vectorizados</th>
-                <th className="px-4 py-3.5">Cargado Por</th>
-                <th className="px-4 py-3.5">Fecha</th>
+                <th className="px-4 py-3.5">Departamento / Área</th>
+                <th className="px-4 py-3.5">Estado</th>
+                <th className="px-4 py-3.5 text-center">Información Extraída</th>
+                <th className="px-4 py-3.5">Subido Por</th>
+                <th className="px-4 py-3.5">Fecha de Subida</th>
                 <th className="px-4 py-3.5 text-right">Acciones</th>
               </tr>
             </thead>
@@ -168,7 +203,7 @@ export function KnowledgeSourcesTable({
                         No se encontraron documentos en la base de conocimiento.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Haz clic en "Cargar Documento" para alimentar al RAG.
+                        Haz clic en "Subir Documento o Manual" para alimentar al asistente.
                       </p>
                     </div>
                   </td>
@@ -192,15 +227,11 @@ export function KnowledgeSourcesTable({
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-medium bg-muted text-foreground border border-border">
-                        {doc.category}
-                      </span>
-                    </td>
+                    <td className="px-4 py-3.5">{getCategoryBadge(doc.category)}</td>
                     <td className="px-4 py-3.5">{getStatusBadge(doc.status)}</td>
                     <td className="px-4 py-3.5 text-center">
                       <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">
-                        {doc.chunksCount} chunks
+                        {doc.chunksCount} fragmentos
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-muted-foreground">{doc.uploadedBy}</td>
@@ -228,7 +259,7 @@ export function KnowledgeSourcesTable({
                           type="button"
                           onClick={() => onDeleteDoc(doc.id)}
                           className="p-1.5 text-muted-foreground hover:text-rose-400 rounded-md hover:bg-rose-500/10 transition-colors"
-                          title="Eliminar documento del RAG"
+                          title="Eliminar documento de la base de conocimiento"
                         >
                           <Trash2 className="size-4" />
                         </button>

@@ -46,6 +46,41 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
     }
   };
 
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case "Soporte Técnico":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+            {category}
+          </span>
+        );
+      case "Cartera & Cobros":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            {category}
+          </span>
+        );
+      case "UTGA & Operaciones":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+            {category}
+          </span>
+        );
+      case "Políticas Generales":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            {category}
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+            {category}
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -55,7 +90,7 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
             Conocimiento Directo & Preguntas Frecuentes
           </h3>
           <p className="text-xs text-muted-foreground">
-            Añade respuestas directas que el bot RAG priorizará sobre los documentos extensos.
+            Añade respuestas directas que el asistente priorizará para responder con exactitud.
           </p>
         </div>
 
@@ -106,11 +141,11 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
 
             <div className="space-y-1 md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Respuesta Canónica (RAG Prioritaria)
+                Respuesta Oficial del Asistente
               </label>
               <textarea
                 rows={3}
-                placeholder="Escribe la respuesta oficial precisa que enviará el agente de IA..."
+                placeholder="Escribe la respuesta oficial precisa que enviará el asistente..."
                 value={editingFaq.answer || ""}
                 onChange={(e) => setEditingFaq({ ...editingFaq, answer: e.target.value })}
                 required
@@ -120,7 +155,7 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
 
             <div className="space-y-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Categoría
+                Departamento / Área
               </label>
               <select
                 value={editingFaq.category || "Soporte Técnico"}
@@ -136,7 +171,7 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
 
             <div className="space-y-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Etiquetas (Separadas por comas)
+                Etiquetas / Temas Clave (Separadas por comas)
               </label>
               <input
                 type="text"
@@ -170,7 +205,7 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
               className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5"
             >
               <Check className="size-4" />
-              Guardar FAQ
+              Guardar Pregunta Frecuente
             </button>
           </div>
         </form>
@@ -185,9 +220,7 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
           >
             <div>
               <div className="flex justify-between items-start gap-2 mb-2">
-                <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                  {faq.category}
-                </span>
+                {getCategoryBadge(faq.category)}
 
                 <div className="flex items-center gap-1">
                   <button
@@ -217,11 +250,11 @@ export function FaqDirectEditor({ faqs, onSaveFaq, onDeleteFaq }: FaqDirectEdito
 
             {faq.tags.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/50">
-                <Tag className="size-3 text-muted-foreground" />
+                <Tag className="size-3 text-primary/70" />
                 {faq.tags.map((tag, idx) => (
                   <span
                     key={idx}
-                    className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded"
+                    className="inline-flex items-center text-[10px] font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full"
                   >
                     #{tag}
                   </span>
