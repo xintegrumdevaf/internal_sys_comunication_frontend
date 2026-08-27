@@ -144,33 +144,32 @@ export function UsersDirectoryPanel() {
   const canSubmit = form.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(form.email.trim());
 
   return (
-    <div className="space-y-4 animate-fade-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6 animate-fade-up">
+      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div>
-          <h2 className="text-sm font-bold">Agentes del sistema</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Agrupados por área. El switch de asignación automática indica si el agente entra al pool
-            de chats de su departamento (opt-in; por defecto desactivado).
+          <h2 className="text-sm font-bold text-foreground">Directorio de Agentes</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Gestión de usuarios y accesos agrupados por departamento. La asignación automática define si el agente entra al pool de distribución.
           </p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-md bg-foreground text-background px-3 py-2 text-[11px] font-bold uppercase hover:opacity-90"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-bold uppercase hover:bg-primary/90 transition-colors shadow-xs"
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
           Nuevo agente
         </button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+      <div className="relative max-w-md">
+        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar agente"
-          className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+          placeholder="Buscar por nombre o correo electrónico..."
+          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-xs outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
         />
       </div>
 

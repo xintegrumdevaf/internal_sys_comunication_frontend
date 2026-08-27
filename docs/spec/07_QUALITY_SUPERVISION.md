@@ -81,14 +81,19 @@ Alineado al backend (`07` §5):
 
 No inventar colores fuera del design system existente (Radix/Tailwind del repo).
 
-## 5. Deep-link al chat interno (híbrido MVP)
+## 5. Integración con Chat Interno y Objeción de Hallazgos
 
-Query params en `/chat-interno`:
+El módulo de calidad se integra bidireccionalmente con el chat interno persistente:
 
-- `peerId` (UUID del agente supervisado) — selecciona/abre el hilo 1:1 local con ese peer.
-- `qualityReviewId` (opcional) — el shell **carga la review por API** y muestra panel «Hallazgos a justificar» (medium/high con borde rojo/ámbar) + prefill pidiendo justificación por cada excerpt.
-
-El store sigue en `localStorage`. Chat persistente = etapa futura.
+1. **Acción "Objetar al agente en Chat"**:
+   - En la lista de hallazgos de `QualityReviewDetail.tsx`, cada ítem cuenta con un botón **Objetar**.
+   - Al pulsarlo, se obtiene/crea el hilo 1:1 con el agente (`internalChatApi.getOrCreateDirectThread(agentId, reviewId)`), se envía automáticamente el mensaje estructurado con `type: 'quality_quote'` y `contextData` (categoría, severidad, extracto, score, `qualityReviewId`), y se navega a `/chat-interno?threadId={thread.id}&peerId={agentId}&qualityReviewId={id}`.
+2. **Tarjeta interactiva `QualityQuoteCard`**:
+   - En `/chat-interno`, los mensajes con `type === 'quality_quote'` renderizan la tarjeta estilizada por severidad, con cita del fragmento y botón `Ver conversación auditada ↗` que redirige de vuelta al detalle de la revisión en `/calidad`.
+3. **Query params soportados en `/chat-interno`**:
+   - `threadId`: ID del hilo persistente activo.
+   - `peerId`: UUID del agente supervisado.
+   - `qualityReviewId`: ID de la auditoría asociada.
 
 ## 6. Contratos consumidos (paridad)
 

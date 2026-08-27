@@ -1,12 +1,15 @@
-export type AuditEventDto = {
-  id: string;
-  action: string;
-  actorUserId?: string | null;
-  resourceType: string;
-  resourceId: string;
-  metadata?: Record<string, string | number | boolean | null>;
-  createdAt: string;
-};
+import type {
+  AuditCategory,
+  AuditActorType,
+  AuditEvent,
+  AuditStats,
+  AuditFilterParams,
+} from "@/types/audit";
+
+export type { AuditCategory, AuditActorType, AuditEvent, AuditStats, AuditFilterParams };
+
+/** DTO compatible con la especificación anterior */
+export type AuditEventDto = AuditEvent;
 
 /**
  * Acciones reales que audita isp-customer-service-api hoy (ver
@@ -31,7 +34,27 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   AGENT_UPDATED: "Datos del agente actualizados",
   AGENT_DEACTIVATED: "Agente desactivado",
   AGENT_PASSWORD_RESET: "Contraseña de agente restablecida",
+  USER_LOGIN: "Inicio de sesión",
+  USER_LOGOUT: "Cierre de sesión",
+  AUTH_FAILED: "Intento de inicio de sesión fallido",
+  DEPARTMENT_CREATED: "Departamento creado",
+  DEPARTMENT_UPDATED: "Departamento actualizado",
+  DEPARTMENT_DEACTIVATED: "Departamento desactivado",
+  N8N_WORKFLOW_SAVED: "Flujo n8n guardado",
+  N8N_WORKFLOW_DEACTIVATED: "Flujo n8n desactivado",
 };
+
+const CATEGORY_LABELS: Record<AuditCategory, string> = {
+  security: "Seguridad",
+  operational: "Operacional",
+  data_change: "Cambio de datos",
+  system: "Sistema",
+};
+
+export function auditCategoryLabel(category?: string | null): string {
+  if (!category) return "General";
+  return CATEGORY_LABELS[category as AuditCategory] ?? humanizeAction(category);
+}
 
 function humanizeAction(action: string): string {
   return action

@@ -8,6 +8,7 @@ import { isSupervisorSession } from "@/modules/identity/application/access-contr
 import { useSession } from "@/modules/identity/application/use-session";
 
 type ChatInternoSearch = {
+  threadId?: string;
   peerId?: string;
   qualityReviewId?: string;
 };
@@ -28,9 +29,9 @@ function ChatInternoPage() {
     <AppShell title="Chat interno · Solo staff" icon={MessagesSquare}>
       <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up flex flex-wrap items-center justify-between gap-3">
         <p>
-          Conversaciones 1:1 entre agentes. Las menciones de casos son privadas:{" "}
+          Conversaciones 1:1 y de coaching entre agentes. Las observaciones y menciones son privadas:{" "}
           <span className="font-bold text-foreground">el cliente no las ve</span>.{" "}
-          <span className="italic">Solo en este navegador (localStorage).</span>
+          <span className="italic">Sincronizado en tiempo real.</span>
         </p>
         {supervisor && (
           <button
@@ -46,6 +47,7 @@ function ChatInternoPage() {
       <InternalChatShell
         mentionsOpen={mentionsOpen}
         onMentionsOpenChange={setMentionsOpen}
+        initialThreadId={deepLink.threadId}
         initialPeerId={deepLink.peerId}
         initialQualityReviewId={deepLink.qualityReviewId}
       />

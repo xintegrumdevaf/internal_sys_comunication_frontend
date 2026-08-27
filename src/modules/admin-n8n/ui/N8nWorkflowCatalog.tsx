@@ -1,4 +1,4 @@
-import { Save, Trash2 } from "lucide-react";
+import { Save, Trash2, GitBranch } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatCard } from "@/app/shell/AppShell";
 import { useSession } from "@/modules/identity/application/use-session";
@@ -89,29 +89,37 @@ export function N8nWorkflowCatalog() {
   };
 
   return (
-    <>
-      <div className="mb-4 p-3 rounded-lg border border-border bg-card text-[11px] text-muted-foreground animate-fade-up">
-        Aquí se configuran las automatizaciones que ejecutan los flujos del asistente (por ejemplo,
-        a qué dirección web avisar cuando hay que revisar un saldo). Cambiar algo aquí aplica de
-        inmediato, sin reiniciar el sistema.
+    <div className="space-y-6 animate-fade-up">
+      {/* Banner Informativo */}
+      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card text-xs sm:text-sm text-muted-foreground flex items-start gap-3 shadow-xs">
+        <GitBranch className="size-5 text-primary shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold text-foreground">Catálogo de Automatizaciones n8n</p>
+          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+            Configuración de endpoints para webhooks del asistente de IA. Cualquier cambio en las URLs
+            o límites de tiempo entra en vigencia de inmediato sin reiniciar servicios.
+          </p>
+        </div>
       </div>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
+      {/* Indicadores */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Automatizaciones" value={String(entries.length)} />
         <StatCard label="Activas" value={String(activeCount)} tone="success" />
-        <StatCard label="Dentro de un caso" value={String(caseActionCount)} />
+        <StatCard label="En casos operativos" value={String(caseActionCount)} />
         <StatCard
           label="Permiso de edición"
-          value={session?.role === "admin" ? "Sí" : "No"}
+          value={session?.role === "admin" ? "Habilitado" : "Solo lectura"}
           tone={session?.role === "admin" ? "success" : "danger"}
-          hint="Solo administradores"
+          hint="Control de administrador"
         />
       </section>
 
-      <section className="bg-card border border-border rounded-xl overflow-hidden animate-fade-up">
-        <div className="p-4 border-b border-border flex justify-between items-center">
+      {/* Lista de Flujos */}
+      <section className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+        <div className="p-4 sm:p-5 border-b border-border bg-background/60 flex justify-between items-center">
           <h3 className="text-xs font-extrabold uppercase tracking-widest">
-            {loading ? "Cargando…" : "Catálogo de automatizaciones"}
+            {loading ? "Cargando flujos…" : "Flujos Registrados"}
           </h3>
         </div>
         <div className="divide-y divide-border">
@@ -122,17 +130,17 @@ export function N8nWorkflowCatalog() {
               maxRetries: e.maxRetries,
             };
             return (
-              <div key={e.action} className="p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div key={e.action} className="p-4 sm:p-5 space-y-3 hover:bg-foreground/2 transition-colors">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
-                    <p className="font-bold text-sm">{caseStepLabel(e.action)}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {CATEGORY_LABELS[e.category] ?? e.category} · actualizado el{" "}
+                    <p className="font-bold text-sm text-foreground">{caseStepLabel(e.action)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {CATEGORY_LABELS[e.category] ?? e.category} · Actualizado:{" "}
                       {new Date(e.updatedAt).toLocaleString("es-CO")}
                     </p>
                   </div>
                   <span
-                    className={`px-2 py-0.5 rounded font-bold text-[10px] ring-1 ${
+                    className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ring-1 ${
                       e.active
                         ? "bg-primary/10 text-primary ring-primary/30"
                         : "bg-foreground/5 text-muted-foreground ring-border"
@@ -141,7 +149,8 @@ export function N8nWorkflowCatalog() {
                     {e.active ? "Activo" : "Inactivo"}
                   </span>
                 </div>
-                <div className="grid sm:grid-cols-3 gap-2">
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <input
                     value={draft.url}
                     disabled={session?.role !== "admin"}
@@ -151,8 +160,8 @@ export function N8nWorkflowCatalog() {
                         [e.action]: { ...draft, url: ev.target.value },
                       }))
                     }
-                    className="sm:col-span-2 px-2 py-1.5 text-xs border border-border rounded bg-background font-mono disabled:opacity-60"
-                    placeholder="Dirección web (https://...)"
+                    className="sm:col-span-2 px-3 py-2 text-xs border border-border rounded-lg bg-background font-mono outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                    placeholder="https://n8n.tu-dominio.com/webhook/..."
                   />
                   <input
                     type="number"
@@ -164,28 +173,29 @@ export function N8nWorkflowCatalog() {
                         [e.action]: { ...draft, timeoutMs: Number(ev.target.value) },
                       }))
                     }
-                    className="px-2 py-1.5 text-xs border border-border rounded bg-background disabled:opacity-60"
-                    placeholder="Tiempo máx. de espera (ms)"
+                    className="px-3 py-2 text-xs border border-border rounded-lg bg-background outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                    placeholder="Timeout máx. (ms)"
                   />
                 </div>
+
                 {session?.role === "admin" && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-1">
                     <button
                       type="button"
                       disabled={busyAction === e.action}
                       onClick={() => void save(e.action)}
-                      className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1.5 rounded bg-foreground text-background font-bold uppercase disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 hover:bg-primary/90 transition-colors shadow-xs"
                     >
-                      <Save className="size-3" /> Guardar
+                      <Save className="size-3.5" /> Guardar
                     </button>
                     {e.active && (
                       <button
                         type="button"
                         disabled={busyAction === e.action}
                         onClick={() => void deactivate(e.action)}
-                        className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1.5 rounded border border-danger/30 text-danger font-bold uppercase disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-lg border border-danger/30 text-danger font-bold uppercase disabled:opacity-40 hover:bg-danger/10 transition-colors"
                       >
-                        <Trash2 className="size-3" /> Desactivar
+                        <Trash2 className="size-3.5" /> Desactivar
                       </button>
                     )}
                   </div>
@@ -194,12 +204,12 @@ export function N8nWorkflowCatalog() {
             );
           })}
           {!loading && entries.length === 0 && (
-            <p className="p-6 text-center text-xs text-muted-foreground">
+            <p className="p-8 text-center text-xs text-muted-foreground">
               Todavía no hay automatizaciones configuradas.
             </p>
           )}
         </div>
       </section>
-    </>
+    </div>
   );
 }

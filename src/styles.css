@@ -10,13 +10,16 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-elevated: var(--card-elevated);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
@@ -25,61 +28,88 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-canvas: var(--canvas);
-  --color-canvas-foreground: var(--canvas-foreground);
-  --color-canvas-border: var(--canvas-border);
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-chat-out: var(--chat-out-bg);
+  --color-chat-out-fg: var(--chat-out-fg);
+  --color-chat-in: var(--chat-in-bg);
+  --color-chat-in-fg: var(--chat-in-fg);
+  --color-wa-green: #00a884;
+  --color-wa-lightgreen: #25d366;
+  --color-wa-teal: #128c7e;
+
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: hsl(210 20% 98%);
-  --foreground: hsl(215 25% 12%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(215 25% 12%);
-  --muted: hsl(215 15% 45%);
-  --muted-foreground: hsl(215 15% 45%);
-  --primary: hsl(142 70% 40%);
+  --radius: 0.75rem;
+  
+  /* WhatsApp Web Light Palette */
+  --background: hsl(210 20% 96%); /* #F0F2F5 */
+  --foreground: hsl(204 33% 10%); /* #111B21 */
+  --card: hsl(0 0% 100%); /* #FFFFFF */
+  --card-foreground: hsl(204 33% 10%);
+  --card-elevated: hsl(0 0% 98%);
+  
+  --muted: hsl(206 12% 45%); /* #667781 */
+  --muted-foreground: hsl(206 12% 45%);
+  
+  --primary: hsl(168 100% 33%); /* #00A884 Signature WhatsApp Green */
+  --primary-hover: hsl(168 100% 28%); /* #008F6F */
   --primary-foreground: hsl(0 0% 100%);
-  --danger: hsl(0 84% 55%);
+  
+  --danger: hsl(354 84% 65%); /* #F15C6D */
   --danger-foreground: hsl(0 0% 100%);
-  --warning: hsl(38 92% 50%);
-  --info: hsl(217 91% 55%);
-  --border: hsl(215 20% 12% / 0.08);
-  --input: hsl(215 20% 12% / 0.08);
-  --ring: hsl(142 70% 40%);
-  --canvas: hsl(220 26% 10%);
-  --canvas-foreground: hsl(210 20% 95%);
-  --canvas-border: hsl(220 15% 22%);
+  --warning: hsl(38 92% 50%); /* Amber #F59E0B */
+  --info: hsl(217 91% 55%); /* Blue #3B82F6 */
+  
+  --border: hsl(204 15% 91%); /* #E9EDEF */
+  --input: hsl(204 15% 91%);
+  --ring: hsl(168 100% 33%);
+  
+  /* WhatsApp Chat Bubbles Light */
+  --chat-out-bg: hsl(110 92% 91%); /* #D9FDD3 Outgoing message */
+  --chat-out-fg: hsl(204 33% 10%);
+  --chat-in-bg: hsl(0 0% 100%); /* #FFFFFF Incoming message */
+  --chat-in-fg: hsl(204 33% 10%);
 }
 
 .dark {
-  --background: hsl(220 20% 8%);
-  --foreground: hsl(210 20% 95%);
-  --card: hsl(220 18% 12%);
-  --card-foreground: hsl(210 20% 95%);
-  --muted: hsl(215 15% 55%);
-  --muted-foreground: hsl(215 15% 65%);
-  --primary: hsl(142 70% 45%);
+  /* WhatsApp Web Dark Palette */
+  --background: hsl(202 31% 7%); /* #0C1317 Ultra deep WhatsApp dark */
+  --foreground: hsl(204 20% 93%); /* #E9EDEF Crisp high contrast text */
+  --card: hsl(204 23% 16%); /* #202C33 Panels and cards */
+  --card-foreground: hsl(204 20% 93%);
+  --card-elevated: hsl(203 26% 20%); /* #2A3942 Hover & elevated cards */
+  
+  --muted: hsl(202 11% 57%); /* #8696A0 Secondary text */
+  --muted-foreground: hsl(202 11% 57%);
+  
+  --primary: hsl(168 100% 33%); /* #00A884 WhatsApp Emerald */
+  --primary-hover: hsl(168 100% 38%); /* #00C298 */
   --primary-foreground: hsl(0 0% 100%);
-  --danger: hsl(0 84% 60%);
+  
+  --danger: hsl(354 84% 65%);
   --danger-foreground: hsl(0 0% 100%);
   --warning: hsl(38 92% 55%);
-  --info: hsl(217 91% 60%);
-  --border: hsl(210 20% 95% / 0.1);
-  --input: hsl(210 20% 95% / 0.1);
-  --ring: hsl(142 70% 45%);
-  --canvas: hsl(220 26% 6%);
-  --canvas-foreground: hsl(210 20% 95%);
-  --canvas-border: hsl(220 15% 18%);
+  --info: hsl(217 91% 65%);
+  
+  --border: hsl(203 22% 21%); /* #2A3942 Clean dark borders */
+  --input: hsl(203 22% 21%);
+  --ring: hsl(168 100% 33%);
+  
+  /* WhatsApp Chat Bubbles Dark */
+  --chat-out-bg: hsl(168 100% 18%); /* #005C4B Outgoing message dark */
+  --chat-out-fg: hsl(204 20% 93%);
+  --chat-in-bg: hsl(204 23% 16%); /* #202C33 Incoming message dark */
+  --chat-in-fg: hsl(204 20% 93%);
 }
 
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -87,8 +117,21 @@
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @utility animate-fade-up {
-  animation: fadeUp 0.5s var(--ease-out-expo) both;
+  animation: fadeUp 0.35s var(--ease-out-expo) both;
+}
+
+@utility animate-fade-in {
+  animation: fadeIn 0.25s var(--ease-out-expo) both;
 }
 
 @layer base {
@@ -99,6 +142,7 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -110,5 +154,27 @@
   button:disabled,
   [role="button"][aria-disabled="true"] {
     cursor: not-allowed;
+  }
+
+  /* Custom WhatsApp style scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(206 12% 45% / 0.25);
+    border-radius: 9999px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(202 11% 57% / 0.25);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(206 12% 45% / 0.4);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(202 11% 57% / 0.4);
   }
 }

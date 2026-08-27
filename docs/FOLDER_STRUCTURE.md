@@ -23,6 +23,9 @@ src/
 ├── components/
 │   └── ui/                        ← shadcn (design system, sin lógica de negocio)
 │
+├── services/
+│   └── internalChatApi.ts         ← cliente REST para chat interno persistente (/api/internal/*)
+│
 ├── modules/                       ← todo el negocio, organizado hexagonalmente
 │   ├── identity/
 │   │   ├── domain/                agent.ts, department.ts, session.ts
@@ -53,7 +56,7 @@ src/
 │   │   └── ui/                    AssignmentBoard.tsx
 │   │
 │   ├── realtime/
-│   │   ├── domain/                realtime-event.ts, notification.ts
+│   │   ├── domain/                realtime-event.ts (incluye INTERNAL_MESSAGE_SENT/READ), notification.ts
 │   │   ├── application/           use-realtime.ts, notifications.state.ts
 │   │   ├── infrastructure/        realtime.gateway.ts (SSE), realtime-bus.ts
 │   │   └── ui/                    NotificationBell.tsx
@@ -79,12 +82,12 @@ src/
 │   │   ├── infrastructure/        quality.gateway.ts
 │   │   └── ui/                    QualityBoard.tsx, QualityReviewDetail.tsx, CordialityBadge.tsx
 │   │
-│   └── internal-chat/             feature local (sin backend, ver docs/spec/02_MODULES.md); deep-link desde /calidad
-│       ├── domain/                internal-chat.ts, mention-parser.ts
+│   └── internal-chat/             chat interno persistente con SSE y tarjetas de calidad
+│       ├── domain/                internal-chat.ts, mention-parser.ts, deep-link.ts
 │       ├── application/           use-internal-chat.ts, build-mention-targets.ts
-│       ├── infrastructure/        internal-chat.store.ts (localStorage)
-│       └── ui/                    InternalChatShell.tsx, MentionsPanel.tsx, MentionPicker.tsx,
-│                                   MessageBodyWithMentions.tsx, InboxInternalNoteComposer.tsx
+│       ├── infrastructure/        internal-chat.store.ts
+│       └── ui/                    InternalChatShell.tsx, QualityQuoteCard.tsx, MentionsPanel.tsx,
+│                                   MentionPicker.tsx, MessageBodyWithMentions.tsx, InboxInternalNoteComposer.tsx
 │
 ├── routes/                        ← TanStack Start (file-based routing, URLs en español, siempre delgadas)
 │   ├── __root.tsx

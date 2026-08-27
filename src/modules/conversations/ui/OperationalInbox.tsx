@@ -11,6 +11,7 @@ import {
   UserCheck,
   PanelRightClose,
   Info,
+  ArrowLeft,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
@@ -277,19 +278,19 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   let lastRenderedSender = "";
 
   return (
-    <div className="flex flex-col gap-2.5 h-full flex-1 min-h-0 animate-fade-up">
+    <div className="flex flex-col gap-4 h-full flex-1 min-h-0 animate-fade-up">
       {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
-      <div className="bg-card border border-border rounded-xl p-2.5 space-y-2 shrink-0">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs">
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
                 onClick={() => setStatusFilter(tab.value)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${
                   statusFilter === tab.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -297,25 +298,25 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               </button>
             ))}
           </div>
-          <div className="relative flex-1 min-w-[180px]">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por teléfono o mensaje..."
-              className="w-full pl-9 pr-3 py-1.5 bg-background border border-border rounded-md text-xs outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/60">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
             Área:
           </span>
           <button
             type="button"
             onClick={() => setDepartmentId(undefined)}
-            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
               !departmentId
                 ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                 : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
@@ -328,7 +329,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               key={d.id}
               type="button"
               onClick={() => setDepartmentId(d.id)}
-              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
                 departmentId === d.id
                   ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                   : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
@@ -344,7 +345,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           <select
             value={agentFilter}
             onChange={(e) => setAgentFilter(e.target.value)}
-            className="text-[11px] px-2 py-0.5 rounded-full bg-background ring-1 ring-border font-semibold outline-none"
+            className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">Todos los agentes</option>
             <option value="mine">Mis conversaciones</option>
@@ -359,10 +360,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
         </div>
       </div>
 
-      <section className="grid grid-cols-12 gap-2.5 flex-1 min-h-0">
+      <section className="grid grid-cols-12 gap-4 flex-1 min-h-0">
         {/* Lista de conversaciones */}
-        <div className="col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full">
-          <div className="p-3 border-b border-border bg-background/60 flex justify-between items-center shrink-0">
+        <div
+          className={`col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full shadow-xs ${
+            selectedId ? "hidden lg:flex" : "flex"
+          }`}
+        >
+          <div className="p-3 sm:p-3.5 border-b border-border bg-background/60 flex justify-between items-center shrink-0">
             <h3 className="text-xs font-bold text-muted-foreground">
               {loading ? "Cargando…" : `${filteredConversations.length} conversaciones`}
             </h3>
@@ -382,7 +387,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 <button
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className={`w-full text-left p-3 transition-colors flex gap-3 ${
+                  className={`w-full text-left p-3.5 transition-colors flex gap-3 ${
                     active
                       ? "bg-primary/5 border-l-4 border-primary"
                       : "hover:bg-foreground/5 border-l-4 border-transparent"
@@ -456,7 +461,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           )}
                         </>
                       ) : (
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 flex items-center gap-1">
+                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
                           <Bot className="size-2.5 text-emerald-500" />
                           <span>IA</span>
                         </span>
@@ -479,14 +484,22 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
 
         {/* Hilo de conversación */}
         <div
-          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full transition-[grid-column] ${
-            detailsOpen ? "lg:col-span-5" : "lg:col-span-8"
-          }`}
+          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full shadow-xs transition-[grid-column] ${
+            selectedId ? "flex" : "hidden lg:flex"
+          } ${detailsOpen ? "lg:col-span-5" : "lg:col-span-8"}`}
         >
           {selected ? (
             <>
-              <div className="p-3 border-b border-border bg-background/60 flex items-center justify-between gap-2 shrink-0">
+              <div className="p-3 sm:p-3.5 border-b border-border bg-background/60 flex items-center justify-between gap-2 shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    className="lg:hidden p-1.5 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 shrink-0"
+                    aria-label="Volver a la lista de conversaciones"
+                  >
+                    <ArrowLeft className="size-4" />
+                  </button>
                   <div className="relative shrink-0">
                     <ConversationAvatar conversation={selected} size="size-9" />
                     {isAutomationActive && (
@@ -617,18 +630,18 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           <MessageAvatar author={m.author} conversation={selected} />
                         )}
                         <div
-                          className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                          className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
                             fromCustomer
-                              ? "bg-card border border-border rounded-bl-sm"
-                              : "bg-primary text-primary-foreground rounded-br-sm"
+                              ? "bg-[var(--chat-in-bg)] text-[var(--chat-in-fg)] border border-border/70 rounded-bl-xs"
+                              : "bg-[var(--chat-out-bg)] text-[var(--chat-out-fg)] rounded-br-xs"
                           }`}
                         >
                           {showSenderLabel && (
                             <p
-                              className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${
+                              className={`text-[9px] font-extrabold uppercase tracking-widest mb-1 ${
                                 fromCustomer
-                                  ? "text-muted-foreground"
-                                  : "text-primary-foreground/75"
+                                  ? "text-primary"
+                                  : "text-emerald-700 dark:text-emerald-300 font-bold"
                               }`}
                             >
                               {fromCustomer
@@ -640,14 +653,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           )}
                           <MessageMediaBody message={m} />
                           <div
-                            className={`flex items-center justify-end gap-1 mt-1 ${
-                              fromCustomer ? "text-muted-foreground" : "text-primary-foreground/80"
+                            className={`flex items-center justify-end gap-1 mt-1 text-[10px] tabular-nums ${
+                              fromCustomer ? "text-muted-foreground" : "text-emerald-800/80 dark:text-emerald-200/80"
                             }`}
                           >
-                            <span className="text-[10px] tabular-nums">
+                            <span>
                               {messageClock(m.createdAt)}
                             </span>
-                            {!fromCustomer && <CheckCheck className="size-3.5 opacity-80" />}
+                            {!fromCustomer && <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />}
                           </div>
                         </div>
                         {!fromCustomer && (

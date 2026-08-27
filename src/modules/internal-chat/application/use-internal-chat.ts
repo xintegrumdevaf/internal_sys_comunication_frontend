@@ -1,100 +1,175 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession, useDirectoryUsers } from "@/modules/identity/application/use-session";
 import type { Mention } from "@/modules/internal-chat/domain/internal-chat";
 import {
-  getInternalChatSnapshot,
-  getOrCreateThread,
-  lastMessagePreview,
-  listMessages,
-  listRecentMentionsByAuthor,
-  listThreadsForUser,
-  peerIdOfThread,
-  sendInternalMessage,
-  subscribeInternalChat,
-} from "@/modules/internal-chat/infrastructure/internal-chat.store";
+  internalChatApi,
+  type InternalMessage,
+  type InternalThread,
+} from "@/services/internalChatApi";
+import { subscribeRealtimeEvents } from "@/modules/realtime/infrastructure/realtime-bus";
 import { toast } from "sonner";
 
-const EMPTY_STATE = { threads: [], messages: [] };
+export interface ThreadViewItem {
+  thread: InternalThread;
+  peerId: string;
+  peerName: string;
+  peerInitials: string;
+  preview: string;
+  unreadCount: number;
+}
 
-export function useInternalChat() {
+export function useInternalChat(initialThreadId?: string) {
   const session = useSession();
   const directory = useDirectoryUsers();
-  const state = useSyncExternalStore(
-    subscribeInternalChat,
-    getInternalChatSnapshot,
-    () => EMPTY_STATE,
-  );
 
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [rawThreads, setRawThreads] = useState<InternalThread[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(initialThreadId ?? null);
+  const [messages, setMessages] = useState<InternalMessage[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const loadThreads = useCallback(async () => {
+    if (!session) return;
+    try {
+      setLoadingThreads(true);
+      const data = await internalChatApi.getThreads();
+      setRawThreads(data ?? []);
+    } catch {
+      // Silencioso
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, [session]);
+
+  const loadMessages = useCallback(async (threadId: string) => {
+    try {
+      setLoadingMessages(true);
+      const result = await internalChatApi.getMessages(threadId);
+      setMessages(result.messages ?? []);
+    } catch {
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  // Carga inicial de hilos
+  useEffect(() => {
+    void loadThreads();
+  }, [loadThreads]);
+
+  // Si cambia el thread seleccionado, cargar mensajes y marcar como leído
+  useEffect(() => {
+    if (!selectedThreadId) {
+      setMessages([]);
+      return;
+    }
+    void loadMessages(selectedThreadId);
+    void internalChatApi
+      .markAsRead(selectedThreadId)
+      .then(() => {
+        void loadThreads();
+      })
+      .catch(() => {});
+  }, [selectedThreadId, loadMessages, loadThreads]);
+
+  // Escuchar eventos en tiempo real (SSE)
+  useEffect(() => {
+    return subscribeRealtimeEvents((event) => {
+      if (event.type === "INTERNAL_MESSAGE_SENT") {
+        if (selectedThreadId && event.threadId === selectedThreadId) {
+          void loadMessages(selectedThreadId);
+          void internalChatApi.markAsRead(selectedThreadId).catch(() => {});
+        }
+        void loadThreads();
+      }
+
+      if (event.type === "INTERNAL_THREAD_READ") {
+        void loadThreads();
+      }
+    });
+  }, [selectedThreadId, loadMessages, loadThreads]);
 
   const peers = useMemo(
     () => directory.filter((u) => u.active && u.id !== session?.id),
     [directory, session?.id],
   );
 
-  const threads = useMemo(() => {
+  const threads: ThreadViewItem[] = useMemo(() => {
     if (!session) return [];
-    return listThreadsForUser(session.id).map((t) => {
-      const peerId = peerIdOfThread(t, session.id);
-      const peer = directory.find((u) => u.id === peerId);
+    return rawThreads.map((t) => {
+      const otherParticipant = t.participants?.find((p) => p.agentId !== session.id);
+      const peerId = otherParticipant?.agentId ?? t.referenceId ?? "unknown";
+      const peerUser = directory.find((u) => u.id === peerId);
+      const peerName = otherParticipant?.agentName ?? peerUser?.name ?? peerId;
+      const peerInitials = peerUser?.initials ?? (peerName.slice(0, 2).toUpperCase() || "?");
+
+      let preview = "Iniciar conversación";
+      if (t.lastMessage) {
+        if (t.lastMessage.type === "quality_quote") {
+          preview = `Observación de calidad: ${t.lastMessage.body || "Revisión"}`;
+        } else {
+          preview = t.lastMessage.body;
+        }
+      }
+
       return {
         thread: t,
         peerId,
-        peerName: peer?.name ?? peerId,
-        peerInitials: peer?.initials ?? "?",
-        preview: lastMessagePreview(t.id),
+        peerName,
+        peerInitials,
+        preview,
+        unreadCount: t.unreadCount ?? 0,
       };
     });
-    // `state` fuerza el recalculo cuando el store local cambia (no se lee directo aca).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, state, directory]);
-
-  const messages = useMemo(() => {
-    if (!selectedThreadId) return [];
-    return listMessages(selectedThreadId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedThreadId, state]);
-
-  const recentMentions = useMemo(() => {
-    if (!session) return [];
-    return listRecentMentionsByAuthor(session.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, state]);
+  }, [session, rawThreads, directory]);
 
   const openThreadWith = useCallback(
-    (peerId: string) => {
+    async (peerAgentId: string, referenceId?: string) => {
       if (!session) return null;
       try {
-        const thread = getOrCreateThread(session.id, peerId);
+        const thread = await internalChatApi.getOrCreateDirectThread(peerAgentId, referenceId);
         setSelectedThreadId(thread.id);
+        await loadThreads();
+        await loadMessages(thread.id);
         return thread;
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "No se pudo abrir el chat");
         return null;
       }
     },
-    [session],
+    [session, loadThreads, loadMessages],
   );
 
   const send = useCallback(
-    (body: string, mentions: Mention[]) => {
+    async (
+      body: string,
+      _mentions?: Mention[],
+      type?: "text" | "quality_quote" | "conversation_excerpt",
+      contextData?: Record<string, unknown>,
+    ) => {
       if (!session || !selectedThreadId) return false;
       const trimmed = body.trim();
-      if (!trimmed) return false;
+      if (!trimmed && type !== "quality_quote") return false;
+
       try {
-        sendInternalMessage({
-          threadId: selectedThreadId,
-          authorId: session.id,
+        const newMsg = await internalChatApi.sendMessage(selectedThreadId, {
           body: trimmed,
-          mentions,
+          type: type ?? "text",
+          contextData,
         });
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+        void loadThreads();
         return true;
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "No se pudo enviar");
         return false;
       }
     },
-    [session, selectedThreadId],
+    [session, selectedThreadId, loadThreads],
   );
 
   const selectedThread = threads.find((t) => t.thread.id === selectedThreadId) ?? null;
@@ -104,12 +179,16 @@ export function useInternalChat() {
     directory,
     peers,
     threads,
+    rawThreads,
     selectedThreadId,
     setSelectedThreadId,
     selectedThread,
     messages,
-    recentMentions,
+    loadingThreads,
+    loadingMessages,
     openThreadWith,
     send,
+    refreshThreads: loadThreads,
+    refreshMessages: () => (selectedThreadId ? loadMessages(selectedThreadId) : Promise.resolve()),
   };
 }

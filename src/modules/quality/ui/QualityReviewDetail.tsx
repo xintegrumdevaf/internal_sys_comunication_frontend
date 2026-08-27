@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, MessagesSquare, RefreshCcw } from "lucide-react";
+import { ArrowLeft, Loader2, MessageSquare, MessagesSquare, RefreshCcw } from "lucide-react";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { dayLabel, messageClock } from "@/shared/datetime";
 import {
@@ -10,9 +10,12 @@ import {
   qualityFindingSeverityLabel,
   qualityReviewStatusLabel,
   qualityReviewTriggerLabel,
+  type QualityFindingDto,
 } from "@/modules/quality/domain/quality-review";
 import { useQualityReviewDetail } from "@/modules/quality/application/use-quality-review-detail";
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
+import { internalChatApi } from "@/services/internalChatApi";
+import { toast } from "sonner";
 
 /**
  * Detalle de review: timeline con highlight de findings + panel lateral.
@@ -49,6 +52,36 @@ export function QualityReviewDetail({
 
   const scrollToMessage = (messageId: string) => {
     messageRefs.current[messageId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const handleObjectInChat = async (agentId: string, revId: string, finding: QualityFindingDto) => {
+    try {
+      // 1. Obtiene o crea el hilo 1:1 con el agente
+      const thread = await internalChatApi.getOrCreateDirectThread(agentId, revId);
+
+      // 2. Envía la observación estructurada
+      await internalChatApi.sendMessage(thread.id, {
+        body: "Observación sobre el caso: por favor justificar o corregir este fragmento.",
+        type: "quality_quote",
+        contextData: {
+          qualityReviewId: revId,
+          originalMessageId: finding.messageId,
+          category: finding.category,
+          severity: finding.severity,
+          excerpt: finding.excerpt,
+          cordialityScore: review?.cordialityScore ?? undefined,
+        },
+      });
+
+      // 3. Redirige al chat interno
+      void navigate({
+        to: "/chat-interno",
+        search: { threadId: thread.id, peerId: agentId, qualityReviewId: revId },
+      });
+      toast.success("Observación enviada al chat interno");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al objetar en chat");
+    }
   };
 
   if (backendUnavailable) {
@@ -95,23 +128,23 @@ export function QualityReviewDetail({
   let lastRenderedDay = "";
 
   return (
-    <div className="space-y-4 animate-fade-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6 animate-fade-up">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl border border-border bg-card shadow-xs">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="size-3.5" /> Volver al ranking
+          <ArrowLeft className="size-4" /> Volver al ranking
         </button>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2.5">
           {chatDeepLink && (
             <button
               type="button"
               onClick={() => void navigate({ to: chatDeepLink.to, search: chatDeepLink.search })}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-2 rounded-md border border-border font-bold uppercase hover:bg-foreground/5"
+              className="inline-flex items-center gap-2 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 transition-colors"
             >
-              <MessagesSquare className="size-3.5" /> Abrir chat interno
+              <MessagesSquare className="size-4" /> Abrir chat interno
             </button>
           )}
           {review.status === "ready" && (
@@ -119,7 +152,7 @@ export function QualityReviewDetail({
               type="button"
               disabled={busy}
               onClick={() => void markReviewed()}
-              className="text-[11px] px-3 py-2 rounded-md bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40"
+              className="text-xs px-3.5 py-2 rounded-lg bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 hover:bg-primary/90 transition-colors shadow-xs"
             >
               Marcar revisada
             </button>
@@ -135,17 +168,17 @@ export function QualityReviewDetail({
                   }
                 })
               }
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-2 rounded-md border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40"
+              className="inline-flex items-center gap-2 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40 transition-colors"
             >
-              <RefreshCcw className="size-3.5" /> Reintentar análisis
+              <RefreshCcw className="size-4" /> Reintentar análisis
             </button>
           )}
         </div>
       </div>
 
-      <section className="grid grid-cols-12 gap-6 min-h-[560px]">
-        <div className="col-span-12 lg:col-span-7 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-[480px]">
-          <div className="p-4 border-b border-border bg-background/60">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[560px]">
+        <div className="col-span-1 lg:col-span-7 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-[480px] shadow-xs">
+          <div className="p-4 sm:p-5 border-b border-border bg-background/60">
             <h3 className="text-xs font-extrabold uppercase tracking-widest">
               Timeline · {review.customerLabel || "Cliente"}
             </h3>
@@ -278,27 +311,41 @@ export function QualityReviewDetail({
                 Hallazgos ({review.findings.length})
               </h3>
             </div>
-            <ul className="divide-y divide-border max-h-56 overflow-y-auto">
+            <ul className="divide-y divide-border max-h-64 overflow-y-auto">
               {review.findings.map((f) => (
-                <li key={f.id}>
-                  <button
-                    type="button"
-                    onClick={() => scrollToMessage(f.messageId)}
-                    className="w-full text-left p-3 hover:bg-foreground/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold uppercase">
-                        {qualityFindingSeverityLabel(f.severity)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {qualityFindingCategoryLabel(f.category)}
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-medium line-clamp-2">{f.excerpt}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-                      {f.rationale}
-                    </p>
-                  </button>
+                <li key={f.id} className="p-3 hover:bg-foreground/5 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => scrollToMessage(f.messageId)}
+                      className="text-left flex-1 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold uppercase">
+                          {qualityFindingSeverityLabel(f.severity)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {qualityFindingCategoryLabel(f.category)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-medium line-clamp-2">{f.excerpt}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                        {f.rationale}
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleObjectInChat(review.agentId, review.id, f);
+                      }}
+                      title="Objetar al agente en Chat"
+                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border border-border bg-background hover:bg-muted shrink-0 text-foreground transition-colors cursor-pointer"
+                    >
+                      <MessageSquare className="size-3" />
+                      Objetar
+                    </button>
+                  </div>
                 </li>
               ))}
               {review.findings.length === 0 && (

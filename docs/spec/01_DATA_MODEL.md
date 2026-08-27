@@ -284,7 +284,7 @@ export type N8nWorkflowEntryDto = {
 
 ```ts
 export type RealtimeEvent =
-  | { type: "MESSAGE_RECEIVED"; conversationId: string; messageId: string }
+  | { type: "MESSAGE_RECEIVED"; conversationId: string; messageId: string; bodyPreview?: string; authorName?: string }
   | { type: "MESSAGE_SENT"; conversationId: string; messageId: string; author: "ai" | "agent" }
   | {
       type: "CASE_ESCALATED";
@@ -295,7 +295,24 @@ export type RealtimeEvent =
     }
   | { type: "CASE_CLAIMED"; caseId: string; agentUserId: string }
   | { type: "HUMAN_ASSIGNED"; caseId: string; agentUserId: string }
-  | { type: "AUTOMATION_ENABLED"; caseId: string };
+  | { type: "AUTOMATION_ENABLED"; caseId: string }
+  | { type: "AUTOMATION_DISABLED"; caseId: string }
+  | {
+      type: "INTERNAL_MESSAGE_SENT";
+      threadId: string;
+      messageId?: string;
+      senderAgentId?: string;
+      senderAgentName?: string;
+      body?: string;
+      messageType?: string;
+      [key: string]: unknown;
+    }
+  | {
+      type: "INTERNAL_THREAD_READ";
+      threadId: string;
+      agentId?: string;
+      [key: string]: unknown;
+    };
 ```
 
 ## 8. Calidad de atención humana (backend Etapa 10 / `07_QUALITY_SUPERVISION.md`)
@@ -382,4 +399,55 @@ export type UiNotification = {
   createdAt: string;
   read: boolean;
 };
+```
+
+## 10. Chat interno persistente (`src/services/internalChatApi.ts`)
+
+Modelos para mensajería interna entre agentes y coaching de calidad sincronizado por backend.
+
+```ts
+export interface InternalParticipant {
+  agentId: string;
+  agentName: string;
+  agentEmail: string;
+  agentRole: "agent" | "manager" | "admin";
+  lastReadAt: string;
+}
+
+export interface InternalThread {
+  id: string;
+  type: "direct" | "group" | "quality_coaching";
+  referenceId: string | null;
+  participants: InternalParticipant[];
+  unreadCount: number;
+  lastMessage: {
+    id: string;
+    senderAgentId: string;
+    senderAgentName: string;
+    type: "text" | "quality_quote" | "conversation_excerpt";
+    body: string;
+    createdAt: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InternalMessage {
+  id: string;
+  threadId: string;
+  senderAgentId: string;
+  senderAgentName: string;
+  type: "text" | "quality_quote" | "conversation_excerpt";
+  body: string;
+  contextData: {
+    qualityReviewId?: string;
+    originalMessageId?: string;
+    category?: string;
+    severity?: "low" | "medium" | "high";
+    excerpt?: string;
+    cordialityScore?: number;
+    [key: string]: unknown;
+  };
+  createdAt: string;
+}
 ```

@@ -17,6 +17,7 @@ describe("audit.gateway", () => {
       status: 200,
       statusText: "",
       text: () => Promise.resolve(JSON.stringify({ data: [] })),
+      json: () => Promise.resolve({ data: [] }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -32,6 +33,7 @@ describe("audit.gateway", () => {
       status: 200,
       statusText: "",
       text: () => Promise.resolve(JSON.stringify({ data: [] })),
+      json: () => Promise.resolve({ data: [] }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
