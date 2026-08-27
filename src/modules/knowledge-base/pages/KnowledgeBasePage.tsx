@@ -130,34 +130,42 @@ export function KnowledgeBasePage() {
   };
 
   return (
-    <AppShell title="Base de Conocimiento & Entrenamiento RAG" icon={BrainCircuit}>
+    <AppShell title="Base de Conocimiento del Asistente Virtual" icon={BrainCircuit}>
       <div className="space-y-6">
         {/* KPI Stats Top Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Documentos Indexados"
+            label="Documentos de Consulta"
             value={metrics?.totalDocuments.toString() || "0"}
             unit="archivos"
-            hint="Archivos PDF / DOCX activos en RAG"
+            hint="Manuales y guías disponibles para el asistente"
           />
           <StatCard
-            label="Vectores Generados"
+            label="Puntos de Información"
             value={metrics?.totalChunks.toString() || "0"}
-            unit="chunks"
-            hint="Almacenados en PGVector (PostgreSQL)"
+            unit="fragmentos"
+            hint="Párrafos procesados para respuestas automáticas"
             tone="success"
           />
           <StatCard
-            label="Consultas RAG Hoy"
+            label="Consultas Respondidas Hoy"
             value={metrics?.queriesToday.toString() || "0"}
-            unit="preguntas"
-            hint="Vía webhooks n8n y WhatsApp"
+            unit="consultas"
+            hint="Atendidas por la IA vía WhatsApp y chat"
           />
           <StatCard
-            label="Modelo de Embeddings"
-            value="Ollama"
-            unit="qwen3-4b"
-            hint="Motor PGVector + n8n activo"
+            label="Motor de Inteligencia"
+            value={
+              metrics?.embeddingModel
+                ? metrics.embeddingModel.split(":")[0]?.toUpperCase() || "GEMINI"
+                : "GEMINI"
+            }
+            unit={
+              metrics?.embeddingModel
+                ? metrics.embeddingModel.split(":")[1] || "embedding-2"
+                : "embedding-2"
+            }
+            hint="Comprensión y búsqueda semántica activa"
           />
         </div>
 
@@ -173,7 +181,7 @@ export function KnowledgeBasePage() {
             }`}
           >
             <FileText className="size-4" />
-            Fuentes y Documentos ({documents.length})
+            Documentos y Manuales ({documents.length})
           </button>
 
           <button
@@ -186,7 +194,7 @@ export function KnowledgeBasePage() {
             }`}
           >
             <HelpCircle className="size-4" />
-            FAQs y Contenido Directo ({faqs.length})
+            Preguntas Frecuentes ({faqs.length})
           </button>
 
           <button
@@ -199,7 +207,7 @@ export function KnowledgeBasePage() {
             }`}
           >
             <Sparkles className="size-4 text-amber-400" />
-            🧪 RAG Playground (Simulador en Vivo)
+            🧪 Simulador de Respuestas (Prueba en Vivo)
           </button>
 
           <button
@@ -212,7 +220,7 @@ export function KnowledgeBasePage() {
             }`}
           >
             <BarChart3 className="size-4" />
-            📊 Métricas de Entrenamiento
+            📊 Rendimiento y Efectividad
           </button>
         </div>
 
@@ -237,17 +245,17 @@ export function KnowledgeBasePage() {
           <div className="p-6 border border-border rounded-xl bg-card space-y-6">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
               <BarChart3 className="size-5 text-primary" />
-              Salud y Desempeño de la Base de Conocimiento RAG
+              Rendimiento y Calidad de Respuestas del Asistente
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border border-border rounded-lg bg-background space-y-2">
                 <p className="text-xs font-bold uppercase text-muted-foreground">
-                  Tasa de Respuestas Exitosas
+                  Tasa de Respuestas Acertadas
                 </p>
                 <p className="text-3xl font-extrabold text-emerald-400 font-mono">96.2%</p>
                 <p className="text-xs text-muted-foreground">
-                  Consultas con similitud vectorial &gt; 70%
+                  Consultas con alta precisión y respaldo en documentos
                 </p>
               </div>
 
@@ -256,16 +264,16 @@ export function KnowledgeBasePage() {
                   Tiempo Promedio de Respuesta
                 </p>
                 <p className="text-3xl font-extrabold text-foreground font-mono">420ms</p>
-                <p className="text-xs text-muted-foreground">Búsqueda PGVector + n8n webhook</p>
+                <p className="text-xs text-muted-foreground">Búsqueda y generación automática</p>
               </div>
 
               <div className="p-4 border border-border rounded-lg bg-background space-y-2">
                 <p className="text-xs font-bold uppercase text-muted-foreground">
-                  Consultas de Baja Confianza
+                  Consultas de Baja Precisión
                 </p>
                 <p className="text-3xl font-extrabold text-amber-400 font-mono">3.8%</p>
                 <p className="text-xs text-muted-foreground">
-                  Revisión recomendada para entrenamiento
+                  Temas sugeridos para ampliar en manuales o FAQs
                 </p>
               </div>
             </div>
@@ -273,7 +281,7 @@ export function KnowledgeBasePage() {
             <div className="p-4 border border-border/80 rounded-lg bg-muted/20 space-y-3">
               <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <AlertTriangle className="size-4 text-amber-400" />
-                Recomendaciones de Entrenamiento Continuo
+                Recomendaciones para Mejorar el Conocimiento
               </h4>
               <ul className="text-xs text-muted-foreground space-y-2 list-disc list-inside">
                 <li>

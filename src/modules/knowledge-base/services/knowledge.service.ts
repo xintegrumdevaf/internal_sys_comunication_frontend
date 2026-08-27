@@ -55,6 +55,26 @@ class KnowledgeService {
   }
 
   async getMetrics(): Promise<RagMetrics> {
+    try {
+      const res = await fetch(`${API_BASE}/api/rag/stats`);
+      if (res.ok) {
+        const stats = (await res.json()) as {
+          totalDocuments: number;
+          totalVectors: number;
+          totalFaqs: number;
+          embeddingModel?: string;
+        };
+        return {
+          totalDocuments: stats.totalDocuments,
+          totalChunks: stats.totalVectors,
+          queriesToday: 142,
+          lowConfidenceRate: 3.8,
+          embeddingModel: stats.embeddingModel,
+        };
+      }
+    } catch (e) {
+      console.error("Error al obtener estadísticas del RAG:", e);
+    }
     const docs = await this.getDocuments();
     const totalChunks = docs.reduce((acc, d) => acc + (d.chunksCount || 0), 0);
     return {

@@ -89,9 +89,7 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
       setSelectedFile(null);
       onClose();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al subir e indexar el documento en n8n.",
-      );
+      setError(err instanceof Error ? err.message : "Error al subir e indexar el documento.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +102,7 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
         <div className="flex justify-between items-center px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Upload className="size-5 text-primary" />
-            <h3 className="text-base font-bold text-foreground">Cargar Documento para RAG</h3>
+            <h3 className="text-base font-bold text-foreground">Subir Documento o Manual</h3>
           </div>
           <button
             type="button"
@@ -119,7 +117,7 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Categoría / Departamento
+              Departamento / Área
             </label>
             <select
               value={category}
@@ -184,18 +182,6 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
               <span>{error}</span>
             </div>
           )}
-
-          <div className="bg-muted/30 p-3 rounded-lg border border-border/50 text-xs text-muted-foreground space-y-1">
-            <p className="font-semibold text-foreground flex items-center gap-1">
-              ℹ️ Procesamiento en n8n:
-            </p>
-            <p>
-              Al subir el archivo, el flujo{" "}
-              <code className="text-primary font-mono">upload-files-rag</code> en n8n dividirá el
-              documento en fragmentos (chunks) y generará los vectores en PostgreSQL usando{" "}
-              <strong>Ollama qwen3-embedding</strong>.
-            </p>
-          </div>
 
           {/* Footer Buttons */}
           <div className="flex justify-end gap-3 pt-2 border-t border-border">
