@@ -11,6 +11,7 @@ import {
 } from "@/modules/quality/domain/quality-review";
 
 export type InternalChatDeepLink = {
+  threadId?: string;
   peerId?: string;
   qualityReviewId?: string;
 };
@@ -28,6 +29,7 @@ export function parseInternalChatDeepLink(
   };
 
   return {
+    threadId: get("threadId"),
     peerId: get("peerId"),
     qualityReviewId: get("qualityReviewId"),
   };

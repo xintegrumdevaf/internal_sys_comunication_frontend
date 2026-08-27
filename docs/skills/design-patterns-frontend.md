@@ -12,13 +12,12 @@ Patrones concretos usados en este frontend, con el archivo real donde viven — 
 
 ## Store con `useSyncExternalStore` (Observer)
 
-Tres estados viven fuera de React (para sobrevivir a remounts de ruta y no depender de un provider):
+Dos estados globales viven fuera de React (para sobrevivir a remounts de ruta y no depender de un provider):
 
-- `modules/realtime/infrastructure/realtime-bus.ts` — conexión SSE única.
+- `modules/realtime/infrastructure/realtime-bus.ts` — conexión SSE única compartida.
 - `modules/realtime/application/notifications.state.ts` — notificaciones in-app.
-- `modules/internal-chat/infrastructure/internal-chat.store.ts` — chat interno (localStorage).
 
-Los tres siguen el mismo patrón: estado module-level + `Set` de listeners + `subscribe`/`snapshot`, consumidos con `useSyncExternalStore`. Es el patrón Observer clásico, sin librería externa (no se agregó Zustand/Redux para 3 stores pequeños — YAGNI).
+Ambos siguen el mismo patrón: estado module-level + `Set` de listeners + `subscribe`/`snapshot`, consumidos con `useSyncExternalStore`. El chat interno (`src/services/internalChatApi.ts` + `useInternalChat.ts`) se sincroniza directamente con el backend persistente (`/api/internal/*`) y reacciona a los eventos en tiempo real recibidos por el bus SSE (`INTERNAL_MESSAGE_SENT`, `INTERNAL_THREAD_READ`).
 
 ## Composition Root
 

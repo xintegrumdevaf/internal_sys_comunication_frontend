@@ -38,7 +38,7 @@ Regla dura: **un componente de `ui/` nunca importa un `gateway.ts` directamente*
 | `audit`         | Auditoría                                                       | `identity` (conteos por depto)                                       |
 | `admin-n8n`     | Catálogo n8n (solo admin)                                       | `identity`                                                           |
 | `dashboard`     | KPIs del agente (compone otros módulos en la UI)                | `conversations`, `audit`, `identity`                                 |
-| `internal-chat` | Chat interno 1:1 con menciones (feature local, sin backend)     | `identity`, `conversations` (solo para construir targets de mención) |
+| `internal-chat` | Chat interno 1:1 persistente, menciones y coaching con SSE      | `identity`, `conversations` (para targets), `quality` (deep-link)    |
 
 **Nunca** debe existir un ciclo (ej. `cases` importando algo de `conversations`). Si un módulo "de más abajo" necesita algo de "más arriba", es señal de que el límite está mal puesto — se resuelve subiendo la lógica compartida a un módulo común o a `shared/`, no importando en el sentido incorrecto.
 

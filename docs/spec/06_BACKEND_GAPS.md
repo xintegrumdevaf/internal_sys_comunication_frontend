@@ -110,15 +110,18 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 
 **Estado**: nombre — resuelto. Foto — cerrado permanentemente, documentado para no volver a investigarlo.
 
-## 6. Chat interno staff persistente — pendiente (etapa futura)
+## 6. Chat interno staff persistente — resuelto
 
-**Problema**: `/chat-interno` persiste solo en `localStorage` del navegador. No sincroniza entre dispositivos, no audita en servidor y no sirve como canal formal de coaching entre supervisor y agente.
+**Problema (histórico)**: `/chat-interno` persistía solo en `localStorage` del navegador. No sincronizaba entre dispositivos, no auditaba en servidor y no servía como canal formal de coaching entre supervisor y agente.
 
-**Contexto de producto**: el panel de calidad (`07_QUALITY_SUPERVISION.md`) usa coaching híbrido MVP — notas estructuradas en API (`quality_coaching_note`) + deep-link al chat local. El chat persistente queda explícitamente **fuera** del MVP de calidad (backend Etapa 10 / front Etapa 9).
+**Solución implementada**:
+- **Endpoints REST**: `GET /api/internal/threads`, `POST /api/internal/threads/direct`, `GET/POST /api/internal/threads/:id/messages`, `POST /api/internal/threads/:id/read`.
+- **Servicio y tipos**: `src/services/internalChatApi.ts` (`InternalThread`, `InternalParticipant`, `InternalMessage`).
+- **Sincronización en tiempo real**: Eventos SSE `INTERNAL_MESSAGE_SENT` e `INTERNAL_THREAD_READ` actualizan el feed activo, refrescan badges de no leídos en sidebar y emiten alertas.
+- **Tarjetas de calidad**: Componente `QualityQuoteCard` para mensajes con `type: 'quality_quote'` y `contextData` (severidad, extracto, cordialidad, enlace a auditoría).
+- **Acción desde calidad**: Botón "Objetar" en cada hallazgo de `/calidad` (`QualityReviewDetail.tsx`) que abre o crea el hilo 1:1, envía la observación estructurada y navega a `/chat-interno?threadId=...`.
 
-**Propuesta (cuando se priorice)**: tablas `internal_thread` / `internal_message`, REST + realtime, deep-link desde `/calidad` abriendo hilo real con contexto `qualityReviewId`. Normativo backend: `07_QUALITY_SUPERVISION.md` §8.
-
-**Estado**: pendiente — no bloquea Etapa 9 del frontend ni Etapa 10 del backend de calidad.
+**Estado**: resuelto.
 
 ## 7. Endpoints de supervisión de calidad — contrato documentado (implementar en backend Etapa 10)
 
@@ -140,6 +143,7 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 | 2026-08-11 | Nombre de perfil de WhatsApp (§5) — **resuelto**; foto de perfil — limitación permanente de Meta, no implementable              | Evitar mostrar solo el teléfono crudo en la bandeja; investigado a fondo antes de implementar para no prometer algo que la API de WhatsApp no permite |
 | 2026-08-12 | Chat interno persistente (§6) + endpoints quality (§7)                                                                          | Requisito de supervisión de calidad / coaching; MVP usa notes API + chat local                                                                        |
 | 2026-08-20 | CRUD de departamentos (§9)                                                                                                      | Requisito de administración para gestionar áreas dinámicamente desde el frontend                                                                      |
+| 2026-08-27 | Chat interno persistente (§6) — **resuelto**                                                                                   | Migrado a backend persistente `/api/internal/*` + SSE + tarjetas de calidad `QualityQuoteCard` y acción de objeción desde `/calidad`                   |
 
 ## 9. CRUD de departamentos (`POST` / `PUT` / `DELETE /api/departments`) — pendiente
 

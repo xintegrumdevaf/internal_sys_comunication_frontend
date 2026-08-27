@@ -241,6 +241,25 @@ export function useRealtimeSession(userId: string | null): void {
             renotify: true,
           });
         }
+      } else if (event.type === "INTERNAL_MESSAGE_SENT") {
+        if (event.senderAgentId && event.senderAgentId !== userId) {
+          playNotificationSound();
+          const author = (event.senderAgentName as string) || "Compañero";
+          const isQualityQuote = event.messageType === "quality_quote";
+          const title = isQualityQuote
+            ? `Observación de calidad de ${author}`
+            : `Mensaje interno de ${author}`;
+          const body = (event.body as string) || (event.bodyPreview as string) || "Nuevo mensaje en chat interno";
+          toast.info(title, { description: body });
+          if (isAppInBackground()) {
+            flashDocumentTitle(title);
+            sendDesktopNotification(title, {
+              body,
+              tag: `internal-msg-${event.threadId}-${Date.now()}`,
+              renotify: true,
+            });
+          }
+        }
       }
     });
   }, [userId]);

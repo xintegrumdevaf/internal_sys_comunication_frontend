@@ -98,33 +98,32 @@ export function DepartmentsDirectoryPanel() {
   const canSubmit = form.name.trim().length >= 2 && form.slug.trim().length >= 2;
 
   return (
-    <div className="space-y-4 animate-fade-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6 animate-fade-up">
+      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div>
-          <h2 className="text-sm font-bold">Departamentos</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Áreas o equipos dentro del sistema. La visibilidad indica si los casos asignados aquí
-            pueden ser vistos por agentes de otros departamentos.
+          <h2 className="text-sm font-bold text-foreground">Departamentos y Áreas</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Estructura operativa de la organización. La visibilidad determina si los casos son compartidos o restringidos al área.
           </p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-md bg-foreground text-background px-3 py-2 text-[11px] font-bold uppercase hover:opacity-90"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-bold uppercase hover:bg-primary/90 transition-colors shadow-xs"
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
           Nuevo departamento
         </button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+      <div className="relative max-w-md">
+        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar departamento"
-          className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+          placeholder="Buscar departamento por nombre o slug..."
+          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-xs outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
         />
       </div>
 
