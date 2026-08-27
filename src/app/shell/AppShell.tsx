@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Building2,
   BrainCircuit,
+  LayoutTemplate,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -45,6 +46,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/departamentos": Building2,
   "/flujos": GitBranch,
   "/campanas": Megaphone,
+  "/plantillas": LayoutTemplate,
   "/auditoria": ShieldCheck,
   "/conocimiento": BrainCircuit,
 };
