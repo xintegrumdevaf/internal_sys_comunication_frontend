@@ -118,7 +118,9 @@ export function RagPlayground() {
               <Sparkles className="size-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Simulador de Respuestas del Asistente</h3>
+              <h3 className="text-sm font-bold text-foreground">
+                Simulador de Respuestas del Asistente
+              </h3>
               <p className="text-[11px] text-muted-foreground">
                 Prueba en vivo cómo respondería el asistente a los clientes
               </p>
@@ -244,7 +246,8 @@ export function RagPlayground() {
               <Layers className="size-10 text-muted-foreground/30 mb-2" />
               <p className="font-semibold text-sm">Sin consulta activa</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Haz una pregunta en el simulador para inspeccionar qué fragmentos de la documentación utilizó el asistente para responder.
+                Haz una pregunta en el simulador para inspeccionar qué fragmentos de la
+                documentación utilizó el asistente para responder.
               </p>
             </div>
           ) : (
