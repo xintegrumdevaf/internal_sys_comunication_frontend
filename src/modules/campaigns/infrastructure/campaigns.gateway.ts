@@ -1,158 +1,163 @@
-import { apiGet, apiPost } from "@/shared/http/http-client";
-import type { CampaignRecipient, WhatsAppCampaign } from "../domain/campaign";
+import { apiGet, apiPost, apiDelete } from '@/shared/http/http-client';
+import { Campaign, CreateCampaignPayload } from '../domain/campaign';
 
-export type CreateCampaignPayload = {
-  name: string;
-  templateId: string;
-  area?: string;
-  recipients: CampaignRecipient[];
-};
-
-const INITIAL_CAMPAIGNS_SEED: WhatsAppCampaign[] = [
+let localCampaignsStore: Campaign[] = [
   {
-    id: "camp_1",
-    name: "recordatorio_pago_v3",
-    templateId: "tpl_1",
-    templateName: "recordatorio_pago_v3",
-    area: "Cartera",
-    status: "in_progress",
-    totalRecipients: 4820,
-    sentCount: 4820,
-    deliveredCount: 4732,
-    failedCount: 88,
-    progress: 98,
-    createdAt: "2026-08-26T08:00:00Z",
-    recipients: [
-      {
-        phone: "+573001234567",
-        variables: { "1": "Carlos", "2": "$45.000" },
-        status: "delivered",
-        sentAt: "08:01 AM",
-      },
-      {
-        phone: "+573009876543",
-        variables: { "1": "Ana", "2": "$120.000" },
-        status: "delivered",
-        sentAt: "08:02 AM",
-      },
-      {
-        phone: "+573105554433",
-        variables: { "1": "Pedro", "2": "$65.000" },
-        status: "failed",
-        errorMessage: "Número de WhatsApp no válido o fuera de cobertura",
-        sentAt: "08:03 AM",
-      },
-      {
-        phone: "+573204443322",
-        variables: { "1": "Sofía", "2": "$89.000" },
-        status: "failed",
-        errorMessage: "Usuario ha marcado Opt-out / Bloqueado",
-        sentAt: "08:04 AM",
-      },
-    ],
+    id: 'camp-1',
+    name: 'Promoción Fibra Óptica 300MB',
+    status: 'COMPLETED',
+    quickMode: true,
+    intervalSeconds: 45,
+    messageText: 'Hola {{name}}, aprovecha el 50% de descuento en tu plan de Internet este mes.',
+    sentCount: 48,
+    totalRecipients: 48,
+    createdAt: '2026-08-20T10:00:00Z',
+    updatedAt: '2026-08-20T11:30:00Z',
+    routingConfig: {
+      chatStatus: 'closed',
+      departmentName: 'Ventas',
+      assignedUserName: '',
+      keepAssigned: false,
+      delegateToBot: true,
+      forceChatUpdate: false,
+    },
+    contactConfig: {
+      tags: ['Clientes VIP'],
+      customFields: [],
+      forceContactUpdate: false,
+    },
   },
   {
-    id: "camp_2",
-    name: "corte_programado_v2",
-    templateId: "tpl_2",
-    templateName: "corte_programado_v2",
-    area: "Soporte",
-    status: "completed",
-    totalRecipients: 2140,
-    sentCount: 2140,
-    deliveredCount: 2098,
-    failedCount: 42,
-    progress: 100,
-    createdAt: "2026-08-25T14:00:00Z",
-    recipients: [
-      {
-        phone: "+573112223344",
-        variables: { "1": "Mateo", "2": "Norte" },
-        status: "delivered",
-        sentAt: "14:01 PM",
-      },
-      {
-        phone: "+573007778899",
-        variables: { "1": "Laura", "2": "Centro" },
-        status: "failed",
-        errorMessage: "Error temporal de entrega en Meta Cloud",
-        sentAt: "14:02 PM",
-      },
-    ],
-  },
-  {
-    id: "camp_3",
-    name: "confirmacion_visita_v4",
-    templateId: "tpl_2",
-    templateName: "corte_programado_v2",
-    area: "UTGA",
-    status: "completed",
-    totalRecipients: 148,
-    sentCount: 148,
-    deliveredCount: 141,
-    failedCount: 7,
-    progress: 100,
-    createdAt: "2026-08-24T10:30:00Z",
+    id: 'camp-2',
+    name: 'Recordatorio Pago Factura Vencida',
+    status: 'SUSPENDED',
+    quickMode: false,
+    intervalSeconds: 60,
+    messageText: 'Estimado cliente {{name}}, tu factura vence en 2 días.',
+    sentCount: 2,
+    totalRecipients: 50,
+    createdAt: '2026-08-27T08:00:00Z',
+    updatedAt: '2026-08-27T09:15:00Z',
+    routingConfig: {
+      chatStatus: 'pending',
+      departmentName: 'Cobranzas',
+      assignedUserName: 'Juan Pérez',
+      keepAssigned: true,
+      delegateToBot: false,
+      forceChatUpdate: true,
+    },
+    contactConfig: {
+      tags: ['Cobranzas'],
+      customFields: [{ key: 'prioridad', value: 'alta' }],
+      forceContactUpdate: true,
+    },
   },
 ];
 
-let localCampaignsStore: WhatsAppCampaign[] = [...INITIAL_CAMPAIGNS_SEED];
-
-export async function fetchCampaigns(): Promise<WhatsAppCampaign[]> {
-  try {
-    const remote = await apiGet<WhatsAppCampaign[]>("/api/campaigns");
-    if (Array.isArray(remote) && remote.length > 0) {
-      localCampaignsStore = remote;
-      return remote;
+export const campaignsGateway = {
+  async listCampaigns(): Promise<Campaign[]> {
+    try {
+      const res = await apiGet<Campaign[]>('/api/campaigns');
+      if (res && Array.isArray(res)) return res;
+    } catch {
+      // Fallback local store
     }
-  } catch {
-    // Usar store local enriquecido si el backend aún no responde
-  }
-  return localCampaignsStore;
-}
+    return localCampaignsStore;
+  },
 
-export async function fetchCampaignById(id: string): Promise<WhatsAppCampaign | null> {
-  try {
-    const remote = await apiGet<WhatsAppCampaign>(`/api/campaigns/${id}`);
-    if (remote) return remote;
-  } catch {
-    // Fallback
-  }
-  return localCampaignsStore.find((c) => c.id === id) || null;
-}
-
-export async function sendCampaign(payload: CreateCampaignPayload): Promise<WhatsAppCampaign> {
-  const newCampaign: WhatsAppCampaign = {
-    id: `camp_${Date.now()}`,
-    name: payload.name,
-    templateId: payload.templateId,
-    templateName: payload.name,
-    area: payload.area || "Administración",
-    status: "in_progress",
-    totalRecipients: payload.recipients.length,
-    sentCount: Math.floor(payload.recipients.length * 0.4),
-    deliveredCount: Math.floor(payload.recipients.length * 0.38),
-    failedCount: Math.floor(payload.recipients.length * 0.02),
-    progress: 40,
-    createdAt: new Date().toISOString(),
-    recipients: payload.recipients.map((r, idx) => ({
-      ...r,
-      status: idx % 10 === 0 ? "failed" : idx % 2 === 0 ? "delivered" : "sent",
-      errorMessage: idx % 10 === 0 ? "Teléfono sin cuenta de WhatsApp activa" : undefined,
-      sentAt: new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
-    })),
-  };
-
-  try {
-    const created = await apiPost<WhatsAppCampaign>("/api/campaigns", payload);
-    if (created && created.id) {
-      localCampaignsStore = [created, ...localCampaignsStore];
-      return created;
+  async getCampaignById(id: string): Promise<Campaign | null> {
+    try {
+      const res = await apiGet<Campaign>(`/api/campaigns/${id}`);
+      if (res) return res;
+    } catch {
+      // Fallback local store
     }
-  } catch {
-    // Fallback
-  }
+    return localCampaignsStore.find((c) => c.id === id) || null;
+  },
 
-  localCampaignsStore = [newCampaign, ...localCampaignsStore];
-  return newCampaign;
-}
+  async createCampaign(payload: CreateCampaignPayload): Promise<Campaign> {
+    try {
+      const created = await apiPost<Campaign>('/api/campaigns', payload);
+      if (created) return created;
+    } catch {
+      // Fallback local store
+    }
+    const newCamp: Campaign = {
+      id: `camp-${Date.now()}`,
+      name: payload.name,
+      status: 'DRAFT',
+      quickMode: payload.quickMode,
+      intervalSeconds: payload.intervalSeconds,
+      messageText: payload.messageText,
+      sentCount: 0,
+      totalRecipients: payload.recipients?.length || 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      routingConfig: payload.routingConfig,
+      contactConfig: payload.contactConfig,
+      recipients: payload.recipients || [],
+    };
+    localCampaignsStore = [newCamp, ...localCampaignsStore];
+    return newCamp;
+  },
+
+  async importCampaignRecipients(campaignId: string, file: File): Promise<{ count: number }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiPost<{ count: number }>(`/api/campaigns/${campaignId}/recipients/import`, formData);
+      if (res) return res;
+    } catch {
+      // Fallback
+    }
+    return { count: 10 };
+  },
+
+  async startCampaign(id: string): Promise<Campaign> {
+    try {
+      const res = await apiPost<Campaign>(`/api/campaigns/${id}/start`, {});
+      if (res) return res;
+    } catch {
+      // Fallback
+    }
+    localCampaignsStore = localCampaignsStore.map((c) =>
+      c.id === id ? { ...c, status: 'RUNNING', updatedAt: new Date().toISOString() } : c
+    );
+    return localCampaignsStore.find((c) => c.id === id)!;
+  },
+
+  async suspendCampaign(id: string): Promise<Campaign> {
+    try {
+      const res = await apiPost<Campaign>(`/api/campaigns/${id}/suspend`, {});
+      if (res) return res;
+    } catch {
+      // Fallback
+    }
+    localCampaignsStore = localCampaignsStore.map((c) =>
+      c.id === id ? { ...c, status: 'SUSPENDED', updatedAt: new Date().toISOString() } : c
+    );
+    return localCampaignsStore.find((c) => c.id === id)!;
+  },
+
+  async resumeCampaign(id: string): Promise<Campaign> {
+    try {
+      const res = await apiPost<Campaign>(`/api/campaigns/${id}/resume`, {});
+      if (res) return res;
+    } catch {
+      // Fallback
+    }
+    localCampaignsStore = localCampaignsStore.map((c) =>
+      c.id === id ? { ...c, status: 'RUNNING', updatedAt: new Date().toISOString() } : c
+    );
+    return localCampaignsStore.find((c) => c.id === id)!;
+  },
+
+  async deleteCampaign(id: string): Promise<void> {
+    try {
+      await apiDelete(`/api/campaigns/${id}`);
+    } catch {
+      // Fallback
+    }
+    localCampaignsStore = localCampaignsStore.filter((c) => c.id !== id);
+  },
+};
