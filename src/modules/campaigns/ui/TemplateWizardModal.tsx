@@ -78,13 +78,17 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
 
   // Actualizar sampleVars cuando cambien las variables detectadas
   useEffect(() => {
-    const updated: Record<string, string> = { ...sampleVars };
-    detectedVariables.forEach((v) => {
-      if (!updated[v]) {
-        updated[v] = v === "1" ? "Carlos" : v === "2" ? "$50,000" : `Valor_${v}`;
-      }
+    setSampleVars((prev) => {
+      const updated: Record<string, string> = { ...prev };
+      let changed = false;
+      detectedVariables.forEach((v) => {
+        if (!updated[v]) {
+          updated[v] = v === "1" ? "Carlos" : v === "2" ? "$50,000" : `Valor_${v}`;
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
     });
-    setSampleVars(updated);
   }, [detectedVariables]);
 
   const nameValidation = useMemo(() => validateMetaTemplateName(name), [name]);

@@ -73,7 +73,7 @@ export function InternalChatShell({
     return () => {
       cancelled = true;
     };
-  }, [session?.id]);
+  }, [session]);
 
   // Deep-link calidad → abrir o crear hilo y opcionalmente enviar mensaje de briefing
   useEffect(() => {
@@ -188,7 +188,9 @@ export function InternalChatShell({
                   type="button"
                   onClick={() => void openThreadWith(peer.id)}
                   className={`w-full text-left p-4 hover:bg-foreground/5 transition-colors ${
-                    active ? "bg-primary/5 border-l-4 border-primary" : "border-l-4 border-transparent"
+                    active
+                      ? "bg-primary/5 border-l-4 border-primary"
+                      : "border-l-4 border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -284,11 +286,7 @@ export function InternalChatShell({
                             : "bg-[var(--chat-in-bg)] text-[var(--chat-in-fg)] border border-border/70 rounded-bl-xs"
                     }`}
                   >
-                    {!mine && (
-                      <p className="text-[10px] font-bold mb-1 opacity-70">
-                        {senderName}
-                      </p>
-                    )}
+                    {!mine && <p className="text-[10px] font-bold mb-1 opacity-70">{senderName}</p>}
 
                     {isQualityQuote ? (
                       <QualityQuoteCard
