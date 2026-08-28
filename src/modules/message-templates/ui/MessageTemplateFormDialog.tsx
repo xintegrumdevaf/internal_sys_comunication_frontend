@@ -63,6 +63,28 @@ export function MessageTemplateFormDialog({
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const resetForm = () => {
+    setCategory("MARKETING");
+    setName("");
+    setLanguage("pt_BR");
+    setHeaderType("NONE");
+    setHeaderText("");
+    setBody("");
+    setFooter("");
+    setShowEmojiPicker(false);
+    if (connections.length > 0) {
+      setConnectionId(connections[0].id);
+    } else {
+      setConnectionId("");
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (
       isOpen &&
@@ -152,7 +174,10 @@ export function MessageTemplateFormDialog({
       footer: footer.trim() ? footer : undefined,
     };
 
-    await onSubmit(payload);
+    const success = await onSubmit(payload);
+    if (success) {
+      resetForm();
+    }
   };
 
   return (

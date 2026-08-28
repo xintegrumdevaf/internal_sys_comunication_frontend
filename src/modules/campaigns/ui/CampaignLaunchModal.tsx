@@ -37,6 +37,22 @@ export function CampaignLaunchModal({ isOpen, onClose, approvedTemplates, onSubm
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setCampaignName("");
+      setSelectedTemplateId("");
+      setArea("Cartera");
+      setInputMode("csv");
+      setCsvContent("");
+      setCsvHeaders([]);
+      setCsvRows([]);
+      setPhoneColumn("");
+      setColumnMapping({});
+      setManualInput("");
+      setShowConfirmation(false);
+    }
+  }, [isOpen]);
+
   const selectedTemplate = useMemo(() => {
     return approvedTemplates.find((t) => t.id === selectedTemplateId) || null;
   }, [approvedTemplates, selectedTemplateId]);
