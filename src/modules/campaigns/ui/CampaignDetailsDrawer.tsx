@@ -137,9 +137,7 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
                       className="p-3 text-xs space-y-1 hover:bg-card/50 transition-colors"
                     >
                       <div className="flex items-center justify-between font-mono">
-                        <span className="font-bold text-foreground">
-                          {rec.phone || rec.number}
-                        </span>
+                        <span className="font-bold text-foreground">{rec.phone || rec.number}</span>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             rec.status === "delivered"
@@ -195,4 +193,3 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
     </div>
   );
 }
-

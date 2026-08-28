@@ -127,9 +127,7 @@ export function useCampaigns() {
     const entregados = campaigns.reduce((acc, c) => acc + (c.deliveredCount || 0), 0);
     const totalEnviadosYEntregados = enviadosHoy + fallidos;
     const entregabilidad =
-      totalEnviadosYEntregados > 0
-        ? Math.round((entregados / totalEnviadosYEntregados) * 100)
-        : 98;
+      totalEnviadosYEntregados > 0 ? Math.round((entregados / totalEnviadosYEntregados) * 100) : 98;
     const optOut = 0.8;
 
     return {
@@ -155,4 +153,3 @@ export function useCampaigns() {
     refetch,
   };
 }
-

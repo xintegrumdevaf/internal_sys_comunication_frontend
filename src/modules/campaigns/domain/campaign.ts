@@ -1,11 +1,5 @@
 export type CampaignStatus =
-  | "DRAFT"
-  | "RUNNING"
-  | "SUSPENDED"
-  | "COMPLETED"
-  | "in_progress"
-  | "completed"
-  | "draft";
+  "DRAFT" | "RUNNING" | "SUSPENDED" | "COMPLETED" | "in_progress" | "completed" | "draft";
 
 export type CampaignRecipient = {
   id?: string;
@@ -132,7 +126,8 @@ export function buildCampaignRecipients(
   let invalidRows = 0;
 
   for (const row of rows) {
-    const rawNumber = row[phoneColumn] || row.phone || row.number || row.telefono || row.celular || "";
+    const rawNumber =
+      row[phoneColumn] || row.phone || row.number || row.telefono || row.celular || "";
     const normalized = normalizePhoneNumber(rawNumber);
 
     if (!normalized || normalized.length < 8) {
@@ -250,4 +245,3 @@ export function campaignStatusMeta(status: CampaignStatus | string): {
       };
   }
 }
-
