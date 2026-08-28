@@ -1,75 +1,80 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildCampaignRecipients,
-  estimateCampaignCost,
-  normalizePhoneNumber,
+  validateCampaignName,
+  validateCampaignMessage,
   parseCsvText,
+  buildCampaignRecipientsFromRows,
+  formatRoutingBehaviorSummary,
+  campaignStatusMeta,
 } from "./campaign";
 
-describe("WhatsApp Campaign Domain", () => {
-  describe("parseCsvText", () => {
-    it("debe parsear un CSV separado por comas", () => {
-      const csv = `telefono,nombre,monto\n+573001234567,Juan,$50.000\n+573009876543,Maria,$120.000`;
-      const { headers, rows } = parseCsvText(csv);
-      expect(headers).toEqual(["telefono", "nombre", "monto"]);
-      expect(rows).toHaveLength(2);
-      expect(rows[0]).toEqual({
-        telefono: "+573001234567",
-        nombre: "Juan",
-        monto: "$50.000",
-      });
+describe("Campaign Domain", () => {
+  describe("validateCampaignName", () => {
+    it("fails when empty", () => {
+      expect(validateCampaignName("").valid).toBe(false);
+      expect(validateCampaignName("   ").valid).toBe(false);
     });
 
-    it("debe parsear un CSV separado por punto y coma", () => {
-      const csv = `telefono;nombre;monto\n+573001234567;Pedro;$80.000`;
-      const { headers, rows } = parseCsvText(csv);
-      expect(headers).toEqual(["telefono", "nombre", "monto"]);
-      expect(rows[0].nombre).toBe("Pedro");
+    it("fails when over 50 chars", () => {
+      const longName = "a".repeat(51);
+      expect(validateCampaignName(longName).valid).toBe(false);
+    });
+
+    it("passes when valid", () => {
+      expect(validateCampaignName("Campaña Promocional Septiembre").valid).toBe(true);
     });
   });
 
-  describe("normalizePhoneNumber", () => {
-    it("debe limpiar espacios y caracteres no numéricos excepto el signo +", () => {
-      expect(normalizePhoneNumber("+57 300 123-4567")).toBe("+573001234567");
-      expect(normalizePhoneNumber("300 (123) 4567")).toBe("3001234567");
+  describe("validateCampaignMessage", () => {
+    it("fails when empty", () => {
+      expect(validateCampaignMessage("").valid).toBe(false);
+    });
+
+    it("passes when non-empty", () => {
+      expect(validateCampaignMessage("Hola {{name}}, recordatorio de pago.").valid).toBe(true);
     });
   });
 
-  describe("buildCampaignRecipients", () => {
-    it("debe mapear correctamente las columnas CSV a las variables de plantilla", () => {
-      const rows = [
-        { telefono: "+573001234567", cliente: "Carlos", deuda: "45,000" },
-        { telefono: "+573009876543", cliente: "Lucía", deuda: "90,000" },
-      ];
-      const mapping = { "1": "cliente", "2": "deuda" };
+  describe("parseCsvText & buildCampaignRecipientsFromRows", () => {
+    it("parses CSV correctly and extracts recipients", () => {
+      const csv =
+        "number,name,custom_city\n+573001234567,Carlos,Bogotá\n+573009876543,Ana,Medellén\ninvalid,Short,Cali";
+      const rows = parseCsvText(csv);
+      expect(rows.length).toBe(3);
 
-      const { recipients, invalidRows } = buildCampaignRecipients(rows, "telefono", mapping);
-      expect(invalidRows).toBe(0);
-      expect(recipients).toHaveLength(2);
-      expect(recipients[0]).toEqual({
-        phone: "+573001234567",
-        variables: { "1": "Carlos", "2": "45,000" },
-        status: "pending",
-      });
-    });
-
-    it("debe omitir filas sin número de teléfono", () => {
-      const rows = [
-        { telefono: "", cliente: "Sin Telefono", deuda: "10,000" },
-        { telefono: "+573001112233", cliente: "Válido", deuda: "20,000" },
-      ];
-      const { recipients, invalidRows } = buildCampaignRecipients(rows, "telefono", {
-        "1": "cliente",
-      });
-      expect(invalidRows).toBe(1);
-      expect(recipients).toHaveLength(1);
+      const { validRecipients, invalidCount } = buildCampaignRecipientsFromRows(rows);
+      expect(validRecipients.length).toBe(2);
+      expect(invalidCount).toBe(1);
+      expect(validRecipients[0].number).toBe("+573001234567");
+      expect(validRecipients[0].name).toBe("Carlos");
+      expect(validRecipients[0].variables?.custom_city).toBe("Bogotá");
     });
   });
 
-  describe("estimateCampaignCost", () => {
-    it("debe calcular el costo estimado correctamente", () => {
-      expect(estimateCampaignCost(100, 0.05)).toBe(5.0);
-      expect(estimateCampaignCost(2500, 0.05)).toBe(125.0);
+  describe("formatRoutingBehaviorSummary", () => {
+    it("returns default when missing", () => {
+      expect(formatRoutingBehaviorSummary(undefined)).toBe("Cerrado · Sin departamento");
+    });
+
+    it("formats summary with dept and bot", () => {
+      const summary = formatRoutingBehaviorSummary({
+        chatStatus: "open",
+        departmentName: "Ventas",
+        assignedUserName: "Juan",
+        keepAssigned: true,
+        delegateToBot: true,
+        forceChatUpdate: false,
+      });
+      expect(summary).toBe("Abierto · Ventas · Asignado: Juan · Delegado a bot");
+    });
+  });
+
+  describe("campaignStatusMeta", () => {
+    it("returns correct badge classes for status", () => {
+      expect(campaignStatusMeta("FINISHED").label).toBe("Terminado");
+      expect(campaignStatusMeta("SUSPENDED").label).toBe("Suspendido");
+      expect(campaignStatusMeta("IN_PROGRESS").label).toBe("En curso");
+      expect(campaignStatusMeta("DRAFT").label).toBe("Borrador");
     });
   });
 });
