@@ -1,6 +1,8 @@
 import { apiGet, apiPost, apiDelete } from "@/shared/http/http-client";
 import { Campaign, CreateCampaignPayload } from "../domain/campaign";
 
+export type { CreateCampaignPayload };
+
 let localCampaignsStore: Campaign[] = [
   {
     id: "camp-1",
@@ -10,7 +12,10 @@ let localCampaignsStore: Campaign[] = [
     intervalSeconds: 45,
     messageText: "Hola {{name}}, aprovecha el 50% de descuento en tu plan de Internet este mes.",
     sentCount: 48,
+    deliveredCount: 46,
+    failedCount: 2,
     totalRecipients: 48,
+    progress: 100,
     createdAt: "2026-08-20T10:00:00Z",
     updatedAt: "2026-08-20T11:30:00Z",
     routingConfig: {
@@ -35,14 +40,16 @@ let localCampaignsStore: Campaign[] = [
     intervalSeconds: 60,
     messageText: "Estimado cliente {{name}}, tu factura vence en 2 dias.",
     sentCount: 12,
+    deliveredCount: 10,
+    failedCount: 2,
     totalRecipients: 50,
+    progress: 24,
     createdAt: "2026-08-27T08:00:00Z",
     updatedAt: "2026-08-27T09:15:00Z",
     routingConfig: {
       chatStatus: "pending",
       departmentName: "Cobranzas",
       assignedUserName: "Juan Perez",
-      yeepAssigned: true,
       keepAssigned: true,
       delegateToBot: false,
       forceChatUpdate: true,

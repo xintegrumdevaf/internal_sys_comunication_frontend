@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Campaign, CreateCampaignPayload } from "../domain/campaign";
 import { campaignsGateway } from "../infrastructure/campaigns.gateway";
 
@@ -97,7 +97,7 @@ export function useCampaignActions() {
   };
 }
 
-export function useCampaignDetails(campaignId?: string) {
+export function useCampaignDetails(campaignId?: string | null) {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -115,3 +115,44 @@ export function useCampaignDetails(campaignId?: string) {
 
   return { campaign, loading };
 }
+
+export function useCampaigns() {
+  const { campaigns, isLoading: loading, refetch } = useCampaignsList();
+  const { createCampaign } = useCreateCampaign();
+
+  const stats = useMemo(() => {
+    const totalCampanas = campaigns.length;
+    const enviadosHoy = campaigns.reduce((acc, c) => acc + (c.sentCount || 0), 0);
+    const fallidos = campaigns.reduce((acc, c) => acc + (c.failedCount || 0), 0);
+    const entregados = campaigns.reduce((acc, c) => acc + (c.deliveredCount || 0), 0);
+    const totalEnviadosYEntregados = enviadosHoy + fallidos;
+    const entregabilidad =
+      totalEnviadosYEntregados > 0
+        ? Math.round((entregados / totalEnviadosYEntregados) * 100)
+        : 98;
+    const optOut = 0.8;
+
+    return {
+      totalCampanas,
+      enviadosHoy,
+      entregabilidad,
+      fallidos,
+      optOut,
+    };
+  }, [campaigns]);
+
+  const sendCampaign = async (payload: CreateCampaignPayload) => {
+    const created = await createCampaign(payload);
+    await refetch();
+    return created;
+  };
+
+  return {
+    campaigns,
+    loading,
+    stats,
+    sendCampaign,
+    refetch,
+  };
+}
+

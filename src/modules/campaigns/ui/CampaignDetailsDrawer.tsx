@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, CheckCircle2, AlertTriangle, Clock, RefreshCw } from "lucide-react";
-import type { WhatsAppCampaign } from "../domain/campaign";
+import type { Campaign } from "../domain/campaign";
 import { useCampaignDetails } from "../application/use-campaigns";
 
 type Props = {
@@ -18,6 +18,10 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
     if (filterStatus === "all") return true;
     return r.status === filterStatus;
   });
+
+  const deliveredCount = campaign?.deliveredCount ?? 0;
+  const failedCount = campaign?.failedCount ?? 0;
+  const progress = campaign?.progress ?? 0;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end p-0 animate-fade-in">
@@ -66,7 +70,7 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
                   <CheckCircle2 className="size-3" /> Entregados
                 </p>
                 <p className="text-base font-extrabold font-mono mt-0.5 text-emerald-400">
-                  {campaign.deliveredCount}
+                  {deliveredCount}
                 </p>
               </div>
               <div className="p-3 bg-danger/10 border border-danger/20 rounded-xl">
@@ -74,7 +78,7 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
                   <AlertTriangle className="size-3" /> Fallidos
                 </p>
                 <p className="text-base font-extrabold font-mono mt-0.5 text-danger font-bold">
-                  {campaign.failedCount}
+                  {failedCount}
                 </p>
               </div>
             </div>
@@ -83,12 +87,12 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
             <div className="bg-background border border-border p-3 rounded-xl space-y-1.5">
               <div className="flex justify-between items-center text-xs font-mono">
                 <span className="text-muted-foreground">Avance global del envío:</span>
-                <span className="font-bold text-primary">{campaign.progress}%</span>
+                <span className="font-bold text-primary">{progress}%</span>
               </div>
               <div className="w-full bg-muted/40 h-2.5 rounded-full overflow-hidden border border-border">
                 <div
                   className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${campaign.progress}%` }}
+                  style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
@@ -120,7 +124,7 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
                         : "border-border text-danger"
                     }`}
                   >
-                    Fallidos ({campaign.failedCount})
+                    Fallidos ({failedCount})
                   </button>
                 </div>
               </div>
@@ -133,7 +137,9 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
                       className="p-3 text-xs space-y-1 hover:bg-card/50 transition-colors"
                     >
                       <div className="flex items-center justify-between font-mono">
-                        <span className="font-bold text-foreground">{rec.phone}</span>
+                        <span className="font-bold text-foreground">
+                          {rec.phone || rec.number}
+                        </span>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             rec.status === "delivered"
@@ -143,14 +149,14 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
                                 : "bg-info/10 text-info"
                           }`}
                         >
-                          {rec.status}
+                          {rec.status || "pendiente"}
                         </span>
                       </div>
 
                       {/* Variables utilizadas */}
-                      {Object.keys(rec.variables || {}).length > 0 && (
+                      {rec.variables && Object.keys(rec.variables).length > 0 && (
                         <div className="text-[10px] font-mono text-muted-foreground flex flex-wrap gap-1 pt-0.5">
-                          {Object.entries(rec.variables).map(([k, v]) => (
+                          {Object.entries(rec.variables ?? {}).map(([k, v]) => (
                             <span
                               key={k}
                               className="px-1.5 py-0.5 rounded bg-card border border-border"
@@ -189,3 +195,4 @@ export function CampaignDetailsDrawer({ campaignId, onClose }: Props) {
     </div>
   );
 }
+

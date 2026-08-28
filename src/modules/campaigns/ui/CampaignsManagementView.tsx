@@ -69,12 +69,12 @@ export function CampaignsManagementView() {
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up mb-5">
         <StatCard
           label="Enviados hoy"
-          value={stats.enviadosHoy}
+          value={String(stats.enviadosHoy)}
           hint={`${stats.totalCampanas} campañas creadas`}
         />
         <StatCard
           label="Entregabilidad"
-          value={stats.entregabilidad}
+          value={String(stats.entregabilidad)}
           unit="%"
           hint="Meta ≥ 95%"
           tone="success"
@@ -87,7 +87,7 @@ export function CampaignsManagementView() {
         />
         <StatCard
           label="Opt-out"
-          value={stats.optOut}
+          value={String(stats.optOut)}
           unit="%"
           hint="Bajo la norma Meta"
           tone="success"
@@ -168,72 +168,78 @@ export function CampaignsManagementView() {
                 </button>
               </div>
             ) : (
-              campaigns.map((c) => (
-                <div
-                  key={c.id}
-                  onClick={() => setSelectedCampaignIdForDetails(c.id)}
-                  className="bg-card border border-border rounded-xl p-5 hover:border-primary/50 transition-all cursor-pointer shadow-sm group"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-mono font-bold text-sm group-hover:text-primary transition-colors">
-                        {c.name}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5 font-mono">
-                        Área · {c.area || "Administración"}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2.5 py-0.5 rounded font-bold text-[10px] ring-1 uppercase font-mono ${
-                        c.status === "in_progress"
-                          ? "bg-info/10 text-info ring-info/30 animate-pulse"
-                          : c.status === "completed"
-                            ? "bg-emerald-500/10 text-emerald-500 ring-emerald-500/30"
-                            : "bg-warning/10 text-warning ring-warning/30"
-                      }`}
-                    >
-                      {c.status === "in_progress"
-                        ? "En curso"
-                        : c.status === "completed"
-                          ? "Completada"
-                          : c.status}
-                    </span>
-                  </div>
+              campaigns.map((c) => {
+                const delivered = c.deliveredCount ?? 0;
+                const failed = c.failedCount ?? 0;
+                const progress = c.progress ?? 0;
 
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex-1 bg-background border border-border h-2 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-500"
-                        style={{ width: `${c.progress}%` }}
-                      />
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedCampaignIdForDetails(c.id)}
+                    className="bg-card border border-border rounded-xl p-5 hover:border-primary/50 transition-all cursor-pointer shadow-sm group"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-mono font-bold text-sm group-hover:text-primary transition-colors">
+                          {c.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5 font-mono">
+                          Área · {c.area || "Administración"}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2.5 py-0.5 rounded font-bold text-[10px] ring-1 uppercase font-mono ${
+                          c.status === "in_progress" || c.status === "RUNNING"
+                            ? "bg-info/10 text-info ring-info/30 animate-pulse"
+                            : c.status === "completed" || c.status === "COMPLETED"
+                              ? "bg-emerald-500/10 text-emerald-500 ring-emerald-500/30"
+                              : "bg-warning/10 text-warning ring-warning/30"
+                        }`}
+                      >
+                        {c.status === "in_progress" || c.status === "RUNNING"
+                          ? "En curso"
+                          : c.status === "completed" || c.status === "COMPLETED"
+                            ? "Completada"
+                            : c.status}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-bold font-mono text-primary">
-                      {c.progress}%
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-3">
-                    <div className="p-2 bg-background rounded border border-border">
-                      <p className="text-muted-foreground text-[9px] uppercase">Enviados</p>
-                      <p className="font-bold text-xs">{c.sentCount.toLocaleString("es-CO")}</p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex-1 bg-background border border-border h-2 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold font-mono text-primary">
+                        {progress}%
+                      </span>
                     </div>
-                    <div className="p-2 bg-background rounded border border-border">
-                      <p className="text-muted-foreground text-[9px] uppercase flex items-center gap-1">
-                        <CheckCircle2 className="size-3 text-emerald-400" /> Entregados
-                      </p>
-                      <p className="font-bold text-xs text-emerald-400">
-                        {c.deliveredCount.toLocaleString("es-CO")}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-background rounded border border-border">
-                      <p className="text-muted-foreground text-[9px] uppercase flex items-center gap-1">
-                        <AlertTriangle className="size-3 text-danger" /> Fallidos
-                      </p>
-                      <p className="font-bold text-xs text-danger">{c.failedCount}</p>
+
+                    <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-3">
+                      <div className="p-2 bg-background rounded border border-border">
+                        <p className="text-muted-foreground text-[9px] uppercase">Enviados</p>
+                        <p className="font-bold text-xs">{c.sentCount.toLocaleString("es-CO")}</p>
+                      </div>
+                      <div className="p-2 bg-background rounded border border-border">
+                        <p className="text-muted-foreground text-[9px] uppercase flex items-center gap-1">
+                          <CheckCircle2 className="size-3 text-emerald-400" /> Entregados
+                        </p>
+                        <p className="font-bold text-xs text-emerald-400">
+                          {delivered.toLocaleString("es-CO")}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-background rounded border border-border">
+                        <p className="text-muted-foreground text-[9px] uppercase flex items-center gap-1">
+                          <AlertTriangle className="size-3 text-danger" /> Fallidos
+                        </p>
+                        <p className="font-bold text-xs text-danger">{failed}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

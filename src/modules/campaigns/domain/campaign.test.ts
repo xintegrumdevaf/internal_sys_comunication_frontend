@@ -39,7 +39,7 @@ describe("Campaign Domain", () => {
     it("parses CSV correctly and extracts recipients", () => {
       const csv =
         "number,name,custom_city\n+573001234567,Carlos,Bogotá\n+573009876543,Ana,Medellén\ninvalid,Short,Cali";
-      const rows = parseCsvText(csv);
+      const { rows } = parseCsvText(csv);
       expect(rows.length).toBe(3);
 
       const { validRecipients, invalidCount } = buildCampaignRecipientsFromRows(rows);

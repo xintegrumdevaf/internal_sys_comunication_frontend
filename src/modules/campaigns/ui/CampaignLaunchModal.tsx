@@ -3,9 +3,8 @@ import { X, Upload, Send, DollarSign, Users, AlertCircle, FileSpreadsheet } from
 import { toast } from "sonner";
 import type { WhatsAppTemplate } from "../domain/template";
 import { extractTemplateVariables } from "../domain/template";
-import { buildCampaignRecipients, estimateCampaignCost, parseCsvText } from "../domain/campaign";
+import { buildCampaignRecipients, estimateCampaignCost, parseCsvText, CreateCampaignPayload } from "../domain/campaign";
 import { WhatsAppBubblePreview } from "./WhatsAppBubblePreview";
-import type { CreateCampaignPayload } from "../infrastructure/campaigns.gateway";
 
 type Props = {
   isOpen: boolean;

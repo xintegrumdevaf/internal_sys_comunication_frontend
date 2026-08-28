@@ -1,11 +1,22 @@
-export type CampaignStatus = "DRAFT" | "RUNNING" | "SUSPENDED" | "COMPLETED";
+export type CampaignStatus =
+  | "DRAFT"
+  | "RUNNING"
+  | "SUSPENDED"
+  | "COMPLETED"
+  | "in_progress"
+  | "completed"
+  | "draft";
 
 export type CampaignRecipient = {
   id?: string;
   number: string;
+  phone?: string;
   name?: string;
   body?: string;
   variables?: Record<string, string>;
+  status?: "pending" | "sent" | "delivered" | "failed" | string;
+  errorMessage?: string;
+  sentAt?: string;
 };
 
 export type ChatRoutingConfig = {
@@ -31,27 +42,36 @@ export type ContactEnrichmentConfig = {
 export type Campaign = {
   id: string;
   name: string;
-  status: CampaignStatus;
-  quickMode: boolean;
-  intervalSeconds: number;
-  messageText: string;
+  area?: string;
+  templateId?: string;
+  status: CampaignStatus | string;
+  quickMode?: boolean;
+  intervalSeconds?: number;
+  messageText?: string;
   sentCount: number;
+  deliveredCount?: number;
+  failedCount?: number;
   totalRecipients: number;
+  progress?: number;
   createdAt: string;
   updatedAt: string;
-  routingConfig: ChatRoutingConfig;
-  contactConfig: ContactEnrichmentConfig;
+  routingConfig?: ChatRoutingConfig;
+  contactConfig?: ContactEnrichmentConfig;
   recipients?: CampaignRecipient[];
 };
 
+export type WhatsAppCampaign = Campaign;
+
 export type CreateCampaignPayload = {
   name: string;
-  messageText: string;
-  quickMode: boolean;
-  intervalSeconds: number;
+  templateId?: string;
+  area?: string;
+  messageText?: string;
+  quickMode?: boolean;
+  intervalSeconds?: number;
   recipients?: CampaignRecipient[];
-  routingConfig: ChatRoutingConfig;
-  contactConfig: ContactEnrichmentConfig;
+  routingConfig?: ChatRoutingConfig;
+  contactConfig?: ContactEnrichmentConfig;
 };
 
 export function validateCampaignName(name: string): { valid: boolean; error?: string } {
@@ -67,7 +87,7 @@ export function validateCampaignName(name: string): { valid: boolean; error?: st
 
 export function validateCampaignMessage(message: string): { valid: boolean; error?: string } {
   if (!message.trim()) {
-    return { valid: false, error: "El mensaje de la campaña no puede estar vacéo." };
+    return { valid: false, error: "El mensaje de la campaña no puede estar vacío." };
   }
   return { valid: true };
 }
@@ -78,15 +98,18 @@ export function normalizePhoneNumber(phone: string): string {
   return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
 }
 
-export function parseCsvText(csvText: string): Array<Record<string, string>> {
+export function parseCsvText(csvText: string): {
+  headers: string[];
+  rows: Array<Record<string, string>>;
+} {
   const lines = csvText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (lines.length < 2) return [];
+  if (lines.length < 2) return { headers: [], rows: [] };
 
   const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-  const results: Array<Record<string, string>> = [];
+  const rows: Array<Record<string, string>> = [];
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
@@ -94,10 +117,46 @@ export function parseCsvText(csvText: string): Array<Record<string, string>> {
     headers.forEach((h, idx) => {
       row[h] = values[idx] || "";
     });
-    results.push(row);
+    rows.push(row);
   }
 
-  return results;
+  return { headers, rows };
+}
+
+export function buildCampaignRecipients(
+  rows: Array<Record<string, string>>,
+  phoneColumn: string,
+  columnMapping: Record<string, string>,
+): { recipients: CampaignRecipient[]; invalidRows: number } {
+  const recipients: CampaignRecipient[] = [];
+  let invalidRows = 0;
+
+  for (const row of rows) {
+    const rawNumber = row[phoneColumn] || row.phone || row.number || row.telefono || row.celular || "";
+    const normalized = normalizePhoneNumber(rawNumber);
+
+    if (!normalized || normalized.length < 8) {
+      invalidRows++;
+      continue;
+    }
+
+    const variables: Record<string, string> = {};
+    Object.entries(columnMapping).forEach(([varKey, colHeader]) => {
+      if (colHeader && row[colHeader] !== undefined) {
+        variables[varKey] = row[colHeader];
+      }
+    });
+
+    recipients.push({
+      number: normalized,
+      phone: normalized,
+      name: row.name || row.nombre || "",
+      variables,
+      status: "pending",
+    });
+  }
+
+  return { recipients, invalidRows };
 }
 
 export function buildCampaignRecipientsFromRows(rows: Array<Record<string, string>>): {
@@ -129,13 +188,19 @@ export function buildCampaignRecipientsFromRows(rows: Array<Record<string, strin
 
     validRecipients.push({
       number: normalized,
+      phone: normalized,
       name: row.name || row.nombre || "",
       body: row.body || row.mensaje || "",
       variables,
+      status: "pending",
     });
   }
 
   return { validRecipients, invalidCount };
+}
+
+export function estimateCampaignCost(recipientCount: number): number {
+  return recipientCount * 0.05;
 }
 
 export function formatRoutingBehaviorSummary(config?: ChatRoutingConfig): string {
@@ -152,13 +217,14 @@ export function formatRoutingBehaviorSummary(config?: ChatRoutingConfig): string
   return `${statusLabel} · ${dept}${assigned}${bot}`;
 }
 
-export function campaignStatusMeta(status: CampaignStatus | "FINISHED" | "IN_PROGRESS"): {
+export function campaignStatusMeta(status: CampaignStatus | string): {
   label: string;
   badgeClass: string;
 } {
   switch (status) {
     case "COMPLETED":
     case "FINISHED":
+    case "completed":
       return {
         label: "Terminado",
         badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -170,11 +236,13 @@ export function campaignStatusMeta(status: CampaignStatus | "FINISHED" | "IN_PRO
       };
     case "RUNNING":
     case "IN_PROGRESS":
+    case "in_progress":
       return {
         label: "En curso",
         badgeClass: "bg-blue-500/10 text-blue-500 border-blue-500/20",
       };
     case "DRAFT":
+    case "draft":
     default:
       return {
         label: "Borrador",
@@ -182,3 +250,4 @@ export function campaignStatusMeta(status: CampaignStatus | "FINISHED" | "IN_PRO
       };
   }
 }
+
