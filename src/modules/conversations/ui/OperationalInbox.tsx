@@ -654,13 +654,15 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           <MessageMediaBody message={m} />
                           <div
                             className={`flex items-center justify-end gap-1 mt-1 text-[10px] tabular-nums ${
-                              fromCustomer ? "text-muted-foreground" : "text-emerald-800/80 dark:text-emerald-200/80"
+                              fromCustomer
+                                ? "text-muted-foreground"
+                                : "text-emerald-800/80 dark:text-emerald-200/80"
                             }`}
                           >
-                            <span>
-                              {messageClock(m.createdAt)}
-                            </span>
-                            {!fromCustomer && <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />}
+                            <span>{messageClock(m.createdAt)}</span>
+                            {!fromCustomer && (
+                              <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
+                            )}
                           </div>
                         </div>
                         {!fromCustomer && (

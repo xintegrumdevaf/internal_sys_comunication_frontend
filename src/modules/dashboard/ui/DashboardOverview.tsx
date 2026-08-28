@@ -36,11 +36,11 @@ export function DashboardOverview() {
             <Sparkles className="size-4" />
           </div>
           <div>
-            <p className="font-semibold text-foreground">
-              ¡Hola, {session?.name}!
-            </p>
+            <p className="font-semibold text-foreground">¡Hola, {session?.name}!</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Este es tu resumen operativo del día como <span className="font-medium text-foreground">{session?.roleLabel}</span>. Datos actualizados en tiempo real.
+              Este es tu resumen operativo del día como{" "}
+              <span className="font-medium text-foreground">{session?.roleLabel}</span>. Datos
+              actualizados en tiempo real.
             </p>
           </div>
         </div>
@@ -138,7 +138,9 @@ export function DashboardOverview() {
               </div>
             ))}
             {departments.length === 0 && (
-              <p className="p-4 text-xs text-center text-muted-foreground">No hay departamentos cargados.</p>
+              <p className="p-4 text-xs text-center text-muted-foreground">
+                No hay departamentos cargados.
+              </p>
             )}
           </div>
         </div>
@@ -162,7 +164,9 @@ export function DashboardOverview() {
                 </span>
               </div>
             ))}
-            {audit.length === 0 && <p className="text-xs text-muted-foreground">Sin eventos registrados.</p>}
+            {audit.length === 0 && (
+              <p className="text-xs text-muted-foreground">Sin eventos registrados.</p>
+            )}
           </div>
         </div>
       </section>

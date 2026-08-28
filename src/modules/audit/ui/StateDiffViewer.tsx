@@ -7,12 +7,14 @@ interface Props {
 
 export const StateDiffViewer: React.FC<Props> = ({ before, after }) => {
   if (!before && !after) {
-    return <span className="text-muted-foreground text-xs italic">Sin cambios de estado registrados</span>;
+    return (
+      <span className="text-muted-foreground text-xs italic">
+        Sin cambios de estado registrados
+      </span>
+    );
   }
 
-  const allKeys = Array.from(
-    new Set([...Object.keys(before || {}), ...Object.keys(after || {})]),
-  );
+  const allKeys = Array.from(new Set([...Object.keys(before || {}), ...Object.keys(after || {})]));
 
   return (
     <div className="bg-slate-950/90 dark:bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono overflow-hidden shadow-xs">
@@ -22,8 +24,10 @@ export const StateDiffViewer: React.FC<Props> = ({ before, after }) => {
       </div>
       <div className="divide-y divide-slate-800/60 mt-2">
         {allKeys.map((key) => {
-          const prevVal = before && before[key] !== undefined ? JSON.stringify(before[key], null, 1) : undefined;
-          const nextVal = after && after[key] !== undefined ? JSON.stringify(after[key], null, 1) : undefined;
+          const prevVal =
+            before && before[key] !== undefined ? JSON.stringify(before[key], null, 1) : undefined;
+          const nextVal =
+            after && after[key] !== undefined ? JSON.stringify(after[key], null, 1) : undefined;
           const isChanged = prevVal !== nextVal;
 
           return (
@@ -33,11 +37,21 @@ export const StateDiffViewer: React.FC<Props> = ({ before, after }) => {
                 isChanged ? "bg-amber-500/10 dark:bg-amber-500/5" : ""
               }`}
             >
-              <div className={prevVal !== undefined ? "text-red-400 break-all" : "text-slate-500 italic"}>
+              <div
+                className={
+                  prevVal !== undefined ? "text-red-400 break-all" : "text-slate-500 italic"
+                }
+              >
                 <span className="text-slate-400 font-semibold">{key}: </span>
                 {prevVal ?? "undefined"}
               </div>
-              <div className={nextVal !== undefined ? "text-emerald-400 font-medium break-all" : "text-slate-500 italic"}>
+              <div
+                className={
+                  nextVal !== undefined
+                    ? "text-emerald-400 font-medium break-all"
+                    : "text-slate-500 italic"
+                }
+              >
                 <span className="text-slate-400 font-semibold">{key}: </span>
                 {nextVal ?? "undefined"}
               </div>

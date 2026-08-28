@@ -54,7 +54,8 @@ export function EscalationsBoard() {
         <div>
           <p className="font-semibold text-foreground">Bandeja de Escalaciones</p>
           <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-            Casos que el asistente no pudo resolver automáticamente y quedaron esperando a un agente humano.
+            Casos que el asistente no pudo resolver automáticamente y quedaron esperando a un agente
+            humano.
             {isSupervisor &&
               ' Los casos "sin clasificar" pertenecen a clientes cuya solicitud todavía no se pudo identificar a qué área pertenece — puedes revisarlos y asignarlos.'}
           </p>
@@ -64,8 +65,18 @@ export function EscalationsBoard() {
       {/* Métricas */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total escalaciones" value={String(escalations.length)} />
-        <StatCard label="Sin atender" value={String(pending)} tone="warning" hint="Requieren acción inmediata" />
-        <StatCard label="Ya asignados" value={String(assigned)} tone="success" hint="En seguimiento activo" />
+        <StatCard
+          label="Sin atender"
+          value={String(pending)}
+          tone="warning"
+          hint="Requieren acción inmediata"
+        />
+        <StatCard
+          label="Ya asignados"
+          value={String(assigned)}
+          tone="success"
+          hint="En seguimiento activo"
+        />
         <StatCard label="Modo actual" value={triage ? "Sin clasificar" : "Por área"} />
       </section>
 

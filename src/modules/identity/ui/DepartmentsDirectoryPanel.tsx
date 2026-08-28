@@ -103,7 +103,8 @@ export function DepartmentsDirectoryPanel() {
         <div>
           <h2 className="text-sm font-bold text-foreground">Departamentos y Áreas</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Estructura operativa de la organización. La visibilidad determina si los casos son compartidos o restringidos al área.
+            Estructura operativa de la organización. La visibilidad determina si los casos son
+            compartidos o restringidos al área.
           </p>
         </div>
         <button

@@ -10,7 +10,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
@@ -28,7 +28,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  
+
   --color-chat-out: var(--chat-out-bg);
   --color-chat-out-fg: var(--chat-out-fg);
   --color-chat-in: var(--chat-in-bg);
@@ -37,37 +37,38 @@
   --color-wa-lightgreen: #25d366;
   --color-wa-teal: #128c7e;
 
-  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
   --radius: 0.75rem;
-  
+
   /* WhatsApp Web Light Palette */
   --background: hsl(210 20% 96%); /* #F0F2F5 */
   --foreground: hsl(204 33% 10%); /* #111B21 */
   --card: hsl(0 0% 100%); /* #FFFFFF */
   --card-foreground: hsl(204 33% 10%);
   --card-elevated: hsl(0 0% 98%);
-  
+
   --muted: hsl(206 12% 45%); /* #667781 */
   --muted-foreground: hsl(206 12% 45%);
-  
+
   --primary: hsl(168 100% 33%); /* #00A884 Signature WhatsApp Green */
   --primary-hover: hsl(168 100% 28%); /* #008F6F */
   --primary-foreground: hsl(0 0% 100%);
-  
+
   --danger: hsl(354 84% 65%); /* #F15C6D */
   --danger-foreground: hsl(0 0% 100%);
   --warning: hsl(38 92% 50%); /* Amber #F59E0B */
   --info: hsl(217 91% 55%); /* Blue #3B82F6 */
-  
+
   --border: hsl(204 15% 91%); /* #E9EDEF */
   --input: hsl(204 15% 91%);
   --ring: hsl(168 100% 33%);
-  
+
   /* WhatsApp Chat Bubbles Light */
   --chat-out-bg: hsl(110 92% 91%); /* #D9FDD3 Outgoing message */
   --chat-out-fg: hsl(204 33% 10%);
@@ -82,23 +83,23 @@
   --card: hsl(204 23% 16%); /* #202C33 Panels and cards */
   --card-foreground: hsl(204 20% 93%);
   --card-elevated: hsl(203 26% 20%); /* #2A3942 Hover & elevated cards */
-  
+
   --muted: hsl(202 11% 57%); /* #8696A0 Secondary text */
   --muted-foreground: hsl(202 11% 57%);
-  
+
   --primary: hsl(168 100% 33%); /* #00A884 WhatsApp Emerald */
   --primary-hover: hsl(168 100% 38%); /* #00C298 */
   --primary-foreground: hsl(0 0% 100%);
-  
+
   --danger: hsl(354 84% 65%);
   --danger-foreground: hsl(0 0% 100%);
   --warning: hsl(38 92% 55%);
   --info: hsl(217 91% 65%);
-  
+
   --border: hsl(203 22% 21%); /* #2A3942 Clean dark borders */
   --input: hsl(203 22% 21%);
   --ring: hsl(168 100% 33%);
-  
+
   /* WhatsApp Chat Bubbles Dark */
   --chat-out-bg: hsl(168 100% 18%); /* #005C4B Outgoing message dark */
   --chat-out-fg: hsl(204 20% 93%);
@@ -142,7 +143,9 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    transition: background-color 0.25s ease, color 0.25s ease;
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

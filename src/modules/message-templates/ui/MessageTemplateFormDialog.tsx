@@ -64,7 +64,11 @@ export function MessageTemplateFormDialog({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    if (isOpen && connections.length > 0 && (!connectionId || !connections.some((c) => c.id === connectionId))) {
+    if (
+      isOpen &&
+      connections.length > 0 &&
+      (!connectionId || !connections.some((c) => c.id === connectionId))
+    ) {
       setConnectionId(connections[0].id);
     }
   }, [isOpen, connections, connectionId]);
@@ -79,8 +83,7 @@ export function MessageTemplateFormDialog({
 
   if (!isOpen) return null;
 
-  const currentLanguageLabel =
-    LANGUAGES.find((l) => l.code === language)?.label || language;
+  const currentLanguageLabel = LANGUAGES.find((l) => l.code === language)?.label || language;
   const currentConnectionName =
     connections.find((c) => c.id === connectionId)?.name ||
     connections[0]?.name ||
@@ -109,7 +112,10 @@ export function MessageTemplateFormDialog({
 
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + prefix.length, start + prefix.length + (selected.length || 5));
+      textarea.setSelectionRange(
+        start + prefix.length,
+        start + prefix.length + (selected.length || 5),
+      );
     }, 0);
   };
 
@@ -175,7 +181,10 @@ export function MessageTemplateFormDialog({
         </div>
 
         {/* Content columns (Form + Live Preview) */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12"
+        >
           {/* Left Column: Form (7 cols) */}
           <div className="lg:col-span-7 p-5 space-y-4 border-r border-border/40 overflow-y-auto">
             {/* Categoría (Segmented control) */}
@@ -185,7 +194,11 @@ export function MessageTemplateFormDialog({
               </label>
               <div className="grid grid-cols-3 gap-1 bg-[#131922] p-1 rounded-xl border border-border/50">
                 {(["MARKETING", "UTILITY", "AUTHENTICATION"] as TemplateCategory[]).map((cat) => {
-                  const labelMap = { MARKETING: "Marketing", UTILITY: "Utilidad", AUTHENTICATION: "Autenticación" };
+                  const labelMap = {
+                    MARKETING: "Marketing",
+                    UTILITY: "Utilidad",
+                    AUTHENTICATION: "Autenticación",
+                  };
                   const isSelected = category === cat;
                   return (
                     <button
@@ -306,7 +319,7 @@ export function MessageTemplateFormDialog({
                   ref={textareaRef}
                   rows={4}
                   maxLength={1024}
-                  placeholder="Escribe tu mensaje. Toca &quot;Agregar variable&quot; para insertar campos como {{1}}, {{2}}..."
+                  placeholder='Escribe tu mensaje. Toca "Agregar variable" para insertar campos como {{1}}, {{2}}...'
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   className="w-full p-3 text-xs font-sans text-slate-100 bg-transparent outline-none resize-none leading-relaxed placeholder:text-muted-foreground/60"
@@ -461,9 +474,7 @@ export function MessageTemplateFormDialog({
                       )}
                     </div>
 
-                    {footer && (
-                      <div className="text-[10px] text-emerald-200/70">{footer}</div>
-                    )}
+                    {footer && <div className="text-[10px] text-emerald-200/70">{footer}</div>}
 
                     <div className="flex justify-end items-center gap-1 text-[9px] text-emerald-200/60 font-mono pt-0.5">
                       <span>11:40</span>
@@ -475,7 +486,8 @@ export function MessageTemplateFormDialog({
             </div>
 
             <p className="text-[10px] text-center text-slate-400 leading-normal">
-              Las variables aparecen como marcadores; el valor real se sustituye en el momento del envío.
+              Las variables aparecen como marcadores; el valor real se sustituye en el momento del
+              envío.
             </p>
           </div>
 

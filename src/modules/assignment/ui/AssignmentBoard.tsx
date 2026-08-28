@@ -31,8 +31,9 @@ export function AssignmentBoard() {
         <div>
           <p className="font-semibold text-foreground">Gestión y Distribución de Carga</p>
           <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-            Monitorea la carga de trabajo en tiempo real por departamento. Los casos escalados se auto-asignan
-            al agente con menor carga. Puedes intervenir y reasignar casos manualmente cuando lo requieras.
+            Monitorea la carga de trabajo en tiempo real por departamento. Los casos escalados se
+            auto-asignan al agente con menor carga. Puedes intervenir y reasignar casos manualmente
+            cuando lo requieras.
           </p>
         </div>
       </div>
@@ -70,8 +71,18 @@ export function AssignmentBoard() {
       {/* Indicadores */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Agentes en área" value={String(agentsInDept.length)} hint="Disponibles" />
-        <StatCard label="Sin asignar" value={String(unassigned.length)} tone="warning" hint="Pendientes de asignación" />
-        <StatCard label="Asignados" value={String(assigned.length)} tone="success" hint="En curso" />
+        <StatCard
+          label="Sin asignar"
+          value={String(unassigned.length)}
+          tone="warning"
+          hint="Pendientes de asignación"
+        />
+        <StatCard
+          label="Asignados"
+          value={String(assigned.length)}
+          tone="success"
+          hint="En curso"
+        />
         <StatCard
           label="Total en el área"
           value={String(cases.length)}
@@ -85,13 +96,14 @@ export function AssignmentBoard() {
         <div className="col-span-1 lg:col-span-5 bg-card border border-border rounded-xl flex flex-col overflow-hidden shadow-xs">
           <div className="p-4 sm:p-5 border-b border-border bg-background/60 flex items-center gap-2.5">
             <UserCheck className="size-4 text-primary" />
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">
-              Carga por Agente
-            </h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">Carga por Agente</h3>
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-border">
             {workload.map(({ agent, activeCases, waitingUser }) => (
-              <div key={agent.id} className="p-4 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors">
+              <div
+                key={agent.id}
+                className="p-4 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="size-9 rounded-full bg-primary/15 text-primary grid place-items-center text-xs font-bold shrink-0">
                     {agent.initials}
@@ -131,9 +143,14 @@ export function AssignmentBoard() {
             </div>
             <div className="divide-y divide-border max-h-[260px] overflow-y-auto">
               {unassigned.map((c) => (
-                <div key={c.id} className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-foreground/5 transition-colors">
+                <div
+                  key={c.id}
+                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-foreground/5 transition-colors"
+                >
                   <div className="min-w-0">
-                    <p className="text-xs font-bold truncate">{customerNameByCaseId[c.id] ?? "Cliente"}</p>
+                    <p className="text-xs font-bold truncate">
+                      {customerNameByCaseId[c.id] ?? "Cliente"}
+                    </p>
                     <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                       {workflowLabel(c.workflowType).label} · {caseStatusLabel(c.status)}
                     </p>
@@ -174,9 +191,14 @@ export function AssignmentBoard() {
             </div>
             <div className="divide-y divide-border max-h-[260px] overflow-y-auto">
               {assigned.map((c) => (
-                <div key={c.id} className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-foreground/5 transition-colors">
+                <div
+                  key={c.id}
+                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-foreground/5 transition-colors"
+                >
                   <div className="min-w-0">
-                    <p className="text-xs font-bold truncate">{customerNameByCaseId[c.id] ?? "Cliente"}</p>
+                    <p className="text-xs font-bold truncate">
+                      {customerNameByCaseId[c.id] ?? "Cliente"}
+                    </p>
                     <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                       {workflowLabel(c.workflowType).label} · Atiende:{" "}
                       <span className="font-semibold text-foreground">

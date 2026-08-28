@@ -149,7 +149,8 @@ export function UsersDirectoryPanel() {
         <div>
           <h2 className="text-sm font-bold text-foreground">Directorio de Agentes</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Gestión de usuarios y accesos agrupados por departamento. La asignación automática define si el agente entra al pool de distribución.
+            Gestión de usuarios y accesos agrupados por departamento. La asignación automática
+            define si el agente entra al pool de distribución.
           </p>
         </div>
         <button

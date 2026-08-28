@@ -28,9 +28,7 @@ export function MessageTemplateDetailModal({ template, isOpen, onClose }: Props)
               WA
             </div>
             <div>
-              <h3 className="text-sm font-extrabold flex items-center gap-2">
-                {template.name}
-              </h3>
+              <h3 className="text-sm font-extrabold flex items-center gap-2">{template.name}</h3>
               <p className="text-[11px] text-muted-foreground">
                 Detalle de Plantilla · Meta WhatsApp Business API
               </p>
@@ -75,7 +73,9 @@ export function MessageTemplateDetailModal({ template, isOpen, onClose }: Props)
               <span className="text-[10px] text-muted-foreground uppercase block font-sans">
                 Estado Meta
               </span>
-              <span className={`inline-flex items-center gap-1.5 font-bold ${statusMeta.badgeClass} px-2 py-0.5 rounded-full text-[11px] border`}>
+              <span
+                className={`inline-flex items-center gap-1.5 font-bold ${statusMeta.badgeClass} px-2 py-0.5 rounded-full text-[11px] border`}
+              >
                 <span className={`size-1.5 rounded-full ${statusMeta.dotClass}`} />
                 {statusMeta.label}
               </span>
@@ -114,9 +114,7 @@ export function MessageTemplateDetailModal({ template, isOpen, onClose }: Props)
                   {renderedBody}
                 </div>
                 {template.footer && (
-                  <div className="text-[10px] text-emerald-200/70 pt-1">
-                    {template.footer}
-                  </div>
+                  <div className="text-[10px] text-emerald-200/70 pt-1">{template.footer}</div>
                 )}
                 <div className="flex justify-end items-center gap-1 text-[9px] text-emerald-200/60 font-mono">
                   <span>11:40 AM</span>

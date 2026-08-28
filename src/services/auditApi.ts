@@ -19,8 +19,7 @@ export const auditApi = {
       credentials: "include",
     });
     if (!res.ok) throw new Error("Error al cargar eventos de auditoría");
-    const json =
-      typeof res.json === "function" ? await res.json() : JSON.parse(await res.text());
+    const json = typeof res.json === "function" ? await res.json() : JSON.parse(await res.text());
     return { data: json.data ?? [], nextCursor: json.pagination?.nextCursor ?? null };
   },
 
@@ -39,8 +38,7 @@ export const auditApi = {
       credentials: "include",
     });
     if (!res.ok) throw new Error("Error al cargar métricas de auditoría");
-    const json =
-      typeof res.json === "function" ? await res.json() : JSON.parse(await res.text());
+    const json = typeof res.json === "function" ? await res.json() : JSON.parse(await res.text());
     return json.data;
   },
 };

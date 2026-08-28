@@ -20,24 +20,13 @@ import { useEffect, useState, useMemo } from "react";
 import { StatCard } from "@/app/shell/AppShell";
 import { StateDiffViewer } from "@/modules/audit/ui/StateDiffViewer";
 import { auditApi } from "@/services/auditApi";
-import type {
-  AuditEvent,
-  AuditStats,
-  AuditCategory,
-  AuditFilterParams,
-} from "@/types/audit";
-import {
-  auditActionLabel,
-  auditCategoryLabel,
-} from "@/modules/audit/domain/audit-event";
+import type { AuditEvent, AuditStats, AuditCategory, AuditFilterParams } from "@/types/audit";
+import { auditActionLabel, auditCategoryLabel } from "@/modules/audit/domain/audit-event";
 import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { relativeTime } from "@/shared/datetime";
 import { toast } from "sonner";
 
-const categoryStyles: Record<
-  AuditCategory,
-  { badge: string; dot: string; label: string }
-> = {
+const categoryStyles: Record<AuditCategory, { badge: string; dot: string; label: string }> = {
   security: {
     badge: "bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500/30",
     dot: "bg-red-500",
@@ -94,7 +83,13 @@ export function AuditLogView() {
 
       const [eventsRes, statsRes] = await Promise.all([
         auditApi.listEvents(params),
-        !append ? auditApi.getStats({ from: fromDate || undefined, to: toDate || undefined, departmentId: selectedDepartment || undefined }) : Promise.resolve(null),
+        !append
+          ? auditApi.getStats({
+              from: fromDate || undefined,
+              to: toDate || undefined,
+              departmentId: selectedDepartment || undefined,
+            })
+          : Promise.resolve(null),
       ]);
 
       if (append) {
@@ -138,9 +133,12 @@ export function AuditLogView() {
       <div className="p-4 sm:p-5 rounded-xl border border-border bg-card text-xs sm:text-sm text-muted-foreground flex items-start gap-3.5 shadow-xs">
         <ShieldCheck className="size-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-foreground">Sistema de Auditoría Empresarial y Forense</p>
+          <p className="font-semibold text-foreground">
+            Sistema de Auditoría Empresarial y Forense
+          </p>
           <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-            Registro inmutable de trazabilidad completa con análisis de seguridad, cambios de estado estructurados (diffs), origen de red y correlación de eventos del sistema.
+            Registro inmutable de trazabilidad completa con análisis de seguridad, cambios de estado
+            estructurados (diffs), origen de red y correlación de eventos del sistema.
           </p>
         </div>
       </div>
@@ -327,7 +325,11 @@ export function AuditLogView() {
                         <div className="w-48 shrink-0 min-w-0 pr-2">
                           <div className="flex items-center gap-2">
                             <div className="size-6 rounded-full bg-primary/10 text-primary grid place-items-center text-[10px] font-bold shrink-0">
-                              {e.actor?.name ? e.actor.name.charAt(0).toUpperCase() : <User className="size-3" />}
+                              {e.actor?.name ? (
+                                e.actor.name.charAt(0).toUpperCase()
+                              ) : (
+                                <User className="size-3" />
+                              )}
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-xs truncate">
@@ -380,7 +382,8 @@ export function AuditLogView() {
                                 Identificadores
                               </span>
                               <p className="text-foreground text-[11px]">
-                                Recurso: <span className="font-bold">{e.resourceType}</span> / {e.resourceId}
+                                Recurso: <span className="font-bold">{e.resourceType}</span> /{" "}
+                                {e.resourceId}
                               </p>
                               {e.correlationId && (
                                 <p className="text-muted-foreground text-[10px] mt-1 truncate">
@@ -394,7 +397,8 @@ export function AuditLogView() {
                                 Trazabilidad de Actor
                               </span>
                               <p className="text-foreground text-[11px]">
-                                Rol: <span className="font-bold">{e.actor?.role || "N/A"}</span> ({e.actor?.type})
+                                Rol: <span className="font-bold">{e.actor?.role || "N/A"}</span> (
+                                {e.actor?.type})
                               </p>
                               <p className="text-muted-foreground text-[10px] mt-1 truncate">
                                 ID: {e.actor?.id || "N/A"}
@@ -408,7 +412,10 @@ export function AuditLogView() {
                               <p className="text-foreground text-[11px] truncate">
                                 IP: {e.ipAddress || "Local / System"}
                               </p>
-                              <p className="text-muted-foreground text-[10px] mt-1 truncate" title={e.userAgent || ""}>
+                              <p
+                                className="text-muted-foreground text-[10px] mt-1 truncate"
+                                title={e.userAgent || ""}
+                              >
                                 UA: {e.userAgent || "N/A"}
                               </p>
                             </div>

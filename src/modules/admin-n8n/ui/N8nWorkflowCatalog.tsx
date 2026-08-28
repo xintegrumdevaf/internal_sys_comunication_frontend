@@ -96,8 +96,8 @@ export function N8nWorkflowCatalog() {
         <div>
           <p className="font-semibold text-foreground">Catálogo de Automatizaciones n8n</p>
           <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-            Configuración de endpoints para webhooks del asistente de IA. Cualquier cambio en las URLs
-            o límites de tiempo entra en vigencia de inmediato sin reiniciar servicios.
+            Configuración de endpoints para webhooks del asistente de IA. Cualquier cambio en las
+            URLs o límites de tiempo entra en vigencia de inmediato sin reiniciar servicios.
           </p>
         </div>
       </div>
@@ -130,7 +130,10 @@ export function N8nWorkflowCatalog() {
               maxRetries: e.maxRetries,
             };
             return (
-              <div key={e.action} className="p-4 sm:p-5 space-y-3 hover:bg-foreground/2 transition-colors">
+              <div
+                key={e.action}
+                className="p-4 sm:p-5 space-y-3 hover:bg-foreground/2 transition-colors"
+              >
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <p className="font-bold text-sm text-foreground">{caseStepLabel(e.action)}</p>

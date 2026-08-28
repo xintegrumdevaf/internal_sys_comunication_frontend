@@ -138,7 +138,11 @@ export function AppShell({
   const renderNavContent = () => (
     <>
       <div className="p-4 border-b border-border flex items-center justify-between bg-card shrink-0">
-        <Link to={session.landing} className="flex items-center gap-2.5 min-w-0 group" onClick={() => setMobileMenuOpen(false)}>
+        <Link
+          to={session.landing}
+          className="flex items-center gap-2.5 min-w-0 group"
+          onClick={() => setMobileMenuOpen(false)}
+        >
           <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-black tracking-tight shadow-xs group-hover:scale-105 transition-transform">
             N
           </div>
@@ -163,7 +167,12 @@ export function AppShell({
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {moduleNav.map((m) => (
-          <NavLink key={m.to} item={m} pathname={pathname} onSelect={() => setMobileMenuOpen(false)} />
+          <NavLink
+            key={m.to}
+            item={m}
+            pathname={pathname}
+            onSelect={() => setMobileMenuOpen(false)}
+          />
         ))}
       </nav>
 
@@ -210,7 +219,9 @@ export function AppShell({
               <div className="size-8 rounded-full bg-primary/15 text-primary grid place-items-center text-xs font-bold ring-1 ring-primary/30">
                 {session.initials}
               </div>
-              <span className={`absolute bottom-0 right-0 size-2.5 rounded-full ring-2 ring-card ${connected ? "bg-emerald-500" : "bg-amber-500"}`} />
+              <span
+                className={`absolute bottom-0 right-0 size-2.5 rounded-full ring-2 ring-card ${connected ? "bg-emerald-500" : "bg-amber-500"}`}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-foreground truncate">{session.name}</p>
@@ -266,7 +277,9 @@ export function AppShell({
               <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Icon className="size-4" />
               </div>
-              <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground truncate">{title}</h2>
+              <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground truncate">
+                {title}
+              </h2>
             </div>
           </div>
 
@@ -385,7 +398,9 @@ function NavLink({
       }`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <item.icon className={`size-4 shrink-0 transition-transform ${active ? "scale-110 text-primary" : ""}`} />
+        <item.icon
+          className={`size-4 shrink-0 transition-transform ${active ? "scale-110 text-primary" : ""}`}
+        />
         <span className="truncate">{item.label}</span>
       </div>
       {showBadge && (
@@ -442,17 +457,28 @@ export function StatCard({
   }[tone];
 
   return (
-    <div className={`relative p-4 sm:p-5 border rounded-2xl shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 overflow-hidden ${toneMap.wrap}`}>
+    <div
+      className={`relative p-4 sm:p-5 border rounded-2xl shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 overflow-hidden ${toneMap.wrap}`}
+    >
       <div className={`absolute top-0 left-0 right-0 h-1 ${toneMap.accent}`} />
-      <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${toneMap.label}`}>
+      <p
+        className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${toneMap.label}`}
+      >
         {label}
       </p>
-      <p className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 tracking-tight ${toneMap.value}`}>
+      <p
+        className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 tracking-tight ${toneMap.value}`}
+      >
         {value}
-        {unit && <span className="text-xs sm:text-sm ml-1.5 font-sans font-normal text-muted-foreground">{unit}</span>}
+        {unit && (
+          <span className="text-xs sm:text-sm ml-1.5 font-sans font-normal text-muted-foreground">
+            {unit}
+          </span>
+        )}
       </p>
-      {hint && <p className={`text-[10px] sm:text-[11px] mt-1.5 truncate ${toneMap.hint}`}>{hint}</p>}
+      {hint && (
+        <p className={`text-[10px] sm:text-[11px] mt-1.5 truncate ${toneMap.hint}`}>{hint}</p>
+      )}
     </div>
   );
 }
-

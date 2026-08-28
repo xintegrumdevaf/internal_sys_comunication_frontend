@@ -95,7 +95,13 @@ describe("message-template.gateway", () => {
       header: { type: "TEXT" as const, text: "Aviso de Pago" },
       body: "Estimado {{1}}, su factura de {{2}} está disponible.",
       footer: "Soporte ISP",
-      buttons: [{ type: "CALL_TO_ACTION" as const, text: "Ver Factura", url: "https://isp.example.com/pay" }],
+      buttons: [
+        {
+          type: "CALL_TO_ACTION" as const,
+          text: "Ver Factura",
+          url: "https://isp.example.com/pay",
+        },
+      ],
     };
 
     const res = await createMessageTemplate(payload, "user_1");
@@ -114,7 +120,14 @@ describe("message-template.gateway", () => {
       headerContent: "Aviso de Pago",
       bodyText: "Estimado {{1}}, su factura de {{2}} está disponible.",
       footerText: "Soporte ISP",
-      buttons: [{ type: "URL", text: "Ver Factura", url: "https://isp.example.com/pay", phoneNumber: undefined }],
+      buttons: [
+        {
+          type: "URL",
+          text: "Ver Factura",
+          url: "https://isp.example.com/pay",
+          phoneNumber: undefined,
+        },
+      ],
     });
 
     expect(res.id).toBe("tpl_new");

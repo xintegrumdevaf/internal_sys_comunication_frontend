@@ -234,7 +234,9 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
         await reload({ silent: true });
         return true;
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Error al guardar la plantilla en el backend.");
+        toast.error(
+          e instanceof Error ? e.message : "Error al guardar la plantilla en el backend.",
+        );
         return false;
       } finally {
         setSubmitting(false);

@@ -27,18 +27,18 @@ Regla dura: **un componente de `ui/` nunca importa un `gateway.ts` directamente*
 
 ## 3. Módulos de este proyecto y sus límites
 
-| Módulo          | Dueño de                                                        | Depende de                                                           |
-| --------------- | --------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `identity`      | Sesión, agentes, departamentos, control de acceso               | — (módulo base)                                                      |
-| `conversations` | Conversación, mensajes, hilo de chat                            | `cases` (para acciones de caso), `identity`                          |
-| `cases`         | Caso, contexto tipado por workflow, acciones (claim/assign/...) | `identity`                                                           |
-| `escalations`   | Bandeja de escalaciones/triage                                  | `cases`, `identity`                                                  |
-| `assignment`    | Gestión de carga/reasignación manual                            | `cases`, `conversations`, `identity`                                 |
-| `realtime`      | Conexión SSE única + notificaciones in-app                      | `identity` (solo para saber qué userId conectar)                     |
-| `audit`         | Auditoría                                                       | `identity` (conteos por depto)                                       |
-| `admin-n8n`     | Catálogo n8n (solo admin)                                       | `identity`                                                           |
-| `dashboard`     | KPIs del agente (compone otros módulos en la UI)                | `conversations`, `audit`, `identity`                                 |
-| `internal-chat` | Chat interno 1:1 persistente, menciones y coaching con SSE      | `identity`, `conversations` (para targets), `quality` (deep-link)    |
+| Módulo          | Dueño de                                                        | Depende de                                                        |
+| --------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `identity`      | Sesión, agentes, departamentos, control de acceso               | — (módulo base)                                                   |
+| `conversations` | Conversación, mensajes, hilo de chat                            | `cases` (para acciones de caso), `identity`                       |
+| `cases`         | Caso, contexto tipado por workflow, acciones (claim/assign/...) | `identity`                                                        |
+| `escalations`   | Bandeja de escalaciones/triage                                  | `cases`, `identity`                                               |
+| `assignment`    | Gestión de carga/reasignación manual                            | `cases`, `conversations`, `identity`                              |
+| `realtime`      | Conexión SSE única + notificaciones in-app                      | `identity` (solo para saber qué userId conectar)                  |
+| `audit`         | Auditoría                                                       | `identity` (conteos por depto)                                    |
+| `admin-n8n`     | Catálogo n8n (solo admin)                                       | `identity`                                                        |
+| `dashboard`     | KPIs del agente (compone otros módulos en la UI)                | `conversations`, `audit`, `identity`                              |
+| `internal-chat` | Chat interno 1:1 persistente, menciones y coaching con SSE      | `identity`, `conversations` (para targets), `quality` (deep-link) |
 
 **Nunca** debe existir un ciclo (ej. `cases` importando algo de `conversations`). Si un módulo "de más abajo" necesita algo de "más arriba", es señal de que el límite está mal puesto — se resuelve subiendo la lógica compartida a un módulo común o a `shared/`, no importando en el sentido incorrecto.
 

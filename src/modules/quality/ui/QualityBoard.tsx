@@ -95,8 +95,9 @@ export function QualityBoard({
         <div>
           <p className="font-semibold text-foreground">Supervisión y Auditoría de Calidad</p>
           <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-            Cada caso cerrado equivale a 1 conversación auditada. La IA analiza por tramos hasta cubrir
-            todos los mensajes, generando la valoración de cordialidad y resaltando posibles hallazgos críticos.
+            Cada caso cerrado equivale a 1 conversación auditada. La IA analiza por tramos hasta
+            cubrir todos los mensajes, generando la valoración de cordialidad y resaltando posibles
+            hallazgos críticos.
           </p>
         </div>
       </div>
@@ -105,14 +106,16 @@ export function QualityBoard({
         <div className="flex items-center gap-2.5 p-3.5 sm:p-4 rounded-xl border border-primary/30 bg-primary/5 text-xs text-foreground shadow-xs animate-fade-up">
           <Loader2 className="size-4 animate-spin shrink-0 text-primary" />
           <span>
-            Analizando tramos en segundo plano… ({pendingCount} conversación(es) en cola). La lista se actualiza automáticamente.
+            Analizando tramos en segundo plano… ({pendingCount} conversación(es) en cola). La lista
+            se actualiza automáticamente.
           </span>
         </div>
       )}
 
       {failedCount > 0 && pendingCount === 0 && (
         <div className="p-3.5 sm:p-4 rounded-xl border border-danger/30 bg-danger/5 text-xs text-danger shadow-xs animate-fade-up">
-          {failedCount} análisis fallido(s). Pulsa «Reintentar» en la fila o ejecuta «{analyzeBtnLabel}».
+          {failedCount} análisis fallido(s). Pulsa «Reintentar» en la fila o ejecuta «
+          {analyzeBtnLabel}».
         </div>
       )}
 
@@ -150,7 +153,9 @@ export function QualityBoard({
           </select>
 
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
-            <span className="text-[10px] font-bold uppercase text-muted-foreground shrink-0">Desde:</span>
+            <span className="text-[10px] font-bold uppercase text-muted-foreground shrink-0">
+              Desde:
+            </span>
             <input
               type="date"
               value={filters.from}
@@ -160,7 +165,9 @@ export function QualityBoard({
           </div>
 
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
-            <span className="text-[10px] font-bold uppercase text-muted-foreground shrink-0">Hasta:</span>
+            <span className="text-[10px] font-bold uppercase text-muted-foreground shrink-0">
+              Hasta:
+            </span>
             <input
               type="date"
               value={filters.to}

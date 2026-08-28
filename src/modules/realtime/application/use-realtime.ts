@@ -249,7 +249,10 @@ export function useRealtimeSession(userId: string | null): void {
           const title = isQualityQuote
             ? `Observación de calidad de ${author}`
             : `Mensaje interno de ${author}`;
-          const body = (event.body as string) || (event.bodyPreview as string) || "Nuevo mensaje en chat interno";
+          const body =
+            (event.body as string) ||
+            (event.bodyPreview as string) ||
+            "Nuevo mensaje en chat interno";
           toast.info(title, { description: body });
           if (isAppInBackground()) {
             flashDocumentTitle(title);

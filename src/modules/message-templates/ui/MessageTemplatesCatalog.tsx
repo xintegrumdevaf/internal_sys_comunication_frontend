@@ -127,7 +127,10 @@ export function MessageTemplatesCatalog() {
           <select
             value={filters.status}
             onChange={(e) =>
-              setFilters((f) => ({ ...f, status: e.target.value as MessageTemplate["status"] | "" }))
+              setFilters((f) => ({
+                ...f,
+                status: e.target.value as MessageTemplate["status"] | "",
+              }))
             }
             className="px-3 py-1.5 text-xs rounded-xl border border-border bg-background font-semibold text-foreground outline-none cursor-pointer"
           >
@@ -217,10 +220,7 @@ export function MessageTemplatesCatalog() {
                 {templates.map((tpl) => {
                   const statusMeta = templateStatusMeta(tpl.status);
                   return (
-                    <tr
-                      key={tpl.id}
-                      className="hover:bg-foreground/[0.02] transition-colors group"
-                    >
+                    <tr key={tpl.id} className="hover:bg-foreground/[0.02] transition-colors group">
                       {/* Nombre */}
                       <td className="py-3.5 px-4 font-mono font-bold text-foreground truncate max-w-[160px]">
                         {tpl.name}
@@ -241,7 +241,9 @@ export function MessageTemplatesCatalog() {
 
                       {/* Estado con dot indicador */}
                       <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${statusMeta.badgeClass} px-2.5 py-0.5 rounded-full border`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs font-bold ${statusMeta.badgeClass} px-2.5 py-0.5 rounded-full border`}
+                        >
                           <span className={`size-1.5 rounded-full ${statusMeta.dotClass}`} />
                           {statusMeta.label}
                         </span>
@@ -300,7 +302,9 @@ export function MessageTemplatesCatalog() {
                     <span className="font-mono font-bold text-xs text-foreground truncate">
                       {tpl.name}
                     </span>
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${statusMeta.badgeClass} px-2 py-0.5 rounded-full border`}>
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] font-bold ${statusMeta.badgeClass} px-2 py-0.5 rounded-full border`}
+                    >
                       <span className={`size-1.5 rounded-full ${statusMeta.dotClass}`} />
                       {statusMeta.label}
                     </span>

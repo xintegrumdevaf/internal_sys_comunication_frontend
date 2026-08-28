@@ -62,6 +62,8 @@ describe("QualityQuoteCard", () => {
 
     expect(screen.getByText(/Observación de Calidad \(inefficiency\)/i)).toBeInTheDocument();
     expect(screen.getByText("medium")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Ver conversación auditada/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Ver conversación auditada/i }),
+    ).not.toBeInTheDocument();
   });
 });
