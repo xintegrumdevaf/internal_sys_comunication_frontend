@@ -1,62 +1,54 @@
-import { apiGet, apiPost, apiDelete } from "@/shared/http/http-client";
-import { Campaign, CreateCampaignPayload } from "../domain/campaign";
-
-export type { CreateCampaignPayload };
+import { apiGet, apiPost, apiDelete } from '@/shared/http/http-client';
+import { Campaign, CreateCampaignPayload } from '../domain/campaign';
 
 let localCampaignsStore: Campaign[] = [
   {
-    id: "camp-1",
-    name: "Promocion Fibra Optica 300MB",
-    status: "COMPLETED",
+    id: 'camp-1',
+    name: 'Promoción Fibra Óptica 300MB',
+    status: 'COMPLETED',
     quickMode: true,
     intervalSeconds: 45,
-    messageText: "Hola {{name}}, aprovecha el 50% de descuento en tu plan de Internet este mes.",
+    messageText: 'Hola {{name}}, aprovecha el 50% de descuento en tu plan de Internet este mes.',
     sentCount: 48,
-    deliveredCount: 46,
-    failedCount: 2,
     totalRecipients: 48,
-    progress: 100,
-    createdAt: "2026-08-20T10:00:00Z",
-    updatedAt: "2026-08-20T11:30:00Z",
+    createdAt: '2026-08-20T10:00:00Z',
+    updatedAt: '2026-08-20T11:30:00Z',
     routingConfig: {
-      chatStatus: "closed",
-      departmentName: "Ventas",
-      assignedUserName: "",
+      chatStatus: 'closed',
+      departmentName: 'Ventas',
+      assignedUserName: '',
       keepAssigned: false,
       delegateToBot: true,
       forceChatUpdate: false,
     },
     contactConfig: {
-      tags: ["Clientes VIP"],
+      tags: ['Clientes VIP'],
       customFields: [],
       forceContactUpdate: false,
     },
   },
   {
-    id: "camp-2",
-    name: "Recordatorio Pago Factura Vencida",
-    status: "RUNNING",
+    id: 'camp-2',
+    name: 'Recordatorio Pago Factura Vencida',
+    status: 'SUSPENDED',
     quickMode: false,
     intervalSeconds: 60,
-    messageText: "Estimado cliente {{name}}, tu factura vence en 2 dias.",
-    sentCount: 12,
-    deliveredCount: 10,
-    failedCount: 2,
+    messageText: 'Estimado cliente {{name}}, tu factura vence en 2 días.',
+    sentCount: 2,
     totalRecipients: 50,
-    progress: 24,
-    createdAt: "2026-08-27T08:00:00Z",
-    updatedAt: "2026-08-27T09:15:00Z",
+    createdAt: '2026-08-27T08:00:00Z',
+    updatedAt: '2026-08-27T09:15:00Z',
     routingConfig: {
-      chatStatus: "pending",
-      departmentName: "Cobranzas",
-      assignedUserName: "Juan Perez",
+      chatStatus: 'pending',
+      departmentName: 'Cobranzas',
+      assignedUserName: 'Juan Pérez',
       keepAssigned: true,
       delegateToBot: false,
       forceChatUpdate: true,
     },
     contactConfig: {
-      tags: ["Cobranzas"],
-      customFields: [{ key: "prioridad", value: "alta" }],
+      tags: ['Cobranzas'],
+      customFields: [{ key: 'prioridad', value: 'alta' }],
       forceContactUpdate: true,
     },
   },
@@ -65,33 +57,35 @@ let localCampaignsStore: Campaign[] = [
 export const campaignsGateway = {
   async listCampaigns(): Promise<Campaign[]> {
     try {
-      const res = await apiGet<Campaign[]>("/api/campaigns");
+      const res = await apiGet<Campaign[]>('/api/campaigns');
       if (res && Array.isArray(res)) return res;
     } catch {
-      // Fallback
+      // Fallback local store
     }
     return localCampaignsStore;
   },
 
   async getCampaignById(id: string): Promise<Campaign | null> {
     try {
-      return await apiGet<Campaign>(`/api/campaigns/${id}`);
+      const res = await apiGet<Campaign>(`/api/campaigns/${id}`);
+      if (res) return res;
     } catch {
-      return localCampaignsStore.find((c) => c.id === id) || null;
+      // Fallback local store
     }
+    return localCampaignsStore.find((c) => c.id === id) || null;
   },
 
   async createCampaign(payload: CreateCampaignPayload): Promise<Campaign> {
     try {
-      const created = await apiPost<Campaign>("/api/campaigns", payload);
+      const created = await apiPost<Campaign>('/api/campaigns', payload);
       if (created) return created;
     } catch {
-      // Fallback
+      // Fallback local store
     }
     const newCamp: Campaign = {
       id: `camp-${Date.now()}`,
       name: payload.name,
-      status: "DRAFT",
+      status: 'DRAFT',
       quickMode: payload.quickMode,
       intervalSeconds: payload.intervalSeconds,
       messageText: payload.messageText,
@@ -110,11 +104,8 @@ export const campaignsGateway = {
   async importCampaignRecipients(campaignId: string, file: File): Promise<{ count: number }> {
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      const res = await apiPost<{ count: number }>(
-        `/api/campaigns/${campaignId}/recipients/import`,
-        formData,
-      );
+      formData.append('file', file);
+      const res = await apiPost<{ count: number }>(`/api/campaigns/${campaignId}/recipients/import`, formData);
       if (res) return res;
     } catch {
       // Fallback
@@ -130,7 +121,7 @@ export const campaignsGateway = {
       // Fallback
     }
     localCampaignsStore = localCampaignsStore.map((c) =>
-      c.id === id ? { ...c, status: "RUNNING", updatedAt: new Date().toISOString() } : c,
+      c.id === id ? { ...c, status: 'RUNNING', updatedAt: new Date().toISOString() } : c
     );
     return localCampaignsStore.find((c) => c.id === id)!;
   },
@@ -143,7 +134,7 @@ export const campaignsGateway = {
       // Fallback
     }
     localCampaignsStore = localCampaignsStore.map((c) =>
-      c.id === id ? { ...c, status: "SUSPENDED", updatedAt: new Date().toISOString() } : c,
+      c.id === id ? { ...c, status: 'SUSPENDED', updatedAt: new Date().toISOString() } : c
     );
     return localCampaignsStore.find((c) => c.id === id)!;
   },
@@ -156,7 +147,7 @@ export const campaignsGateway = {
       // Fallback
     }
     localCampaignsStore = localCampaignsStore.map((c) =>
-      c.id === id ? { ...c, status: "RUNNING", updatedAt: new Date().toISOString() } : c,
+      c.id === id ? { ...c, status: 'RUNNING', updatedAt: new Date().toISOString() } : c
     );
     return localCampaignsStore.find((c) => c.id === id)!;
   },
