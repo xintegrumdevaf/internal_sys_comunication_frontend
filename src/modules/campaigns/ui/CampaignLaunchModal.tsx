@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { X, Upload, Send, DollarSign, Users, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import type { WhatsAppTemplate } from "../domain/template";
