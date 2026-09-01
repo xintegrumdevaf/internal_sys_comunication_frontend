@@ -26,6 +26,39 @@ export function useCampaignsList() {
   return { campaigns, isLoading, refetch: fetchCampaigns };
 }
 
+export function useCampaignDetails(campaignId: string | null) {
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!campaignId) {
+      setCampaign(null);
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+
+    campaignsGateway
+      .getCampaign(campaignId)
+      .then((data) => {
+        if (isMounted) setCampaign(data);
+      })
+      .catch((err) => {
+        console.error('Error fetching campaign details:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [campaignId]);
+
+  return { campaign, loading };
+}
+
 export function useCreateCampaign() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 

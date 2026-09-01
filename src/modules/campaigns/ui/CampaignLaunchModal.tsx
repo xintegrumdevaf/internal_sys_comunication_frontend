@@ -11,6 +11,8 @@ import {
 } from "../domain/campaign";
 import { WhatsAppBubblePreview } from "./WhatsAppBubblePreview";
 
+import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +21,7 @@ type Props = {
 };
 
 export function CampaignLaunchModal({ isOpen, onClose, approvedTemplates, onSubmit }: Props) {
+  const { data: realDepartments } = useDepartmentsQuery();
   const [campaignName, setCampaignName] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [area, setArea] = useState("Cartera");
@@ -78,7 +81,7 @@ export function CampaignLaunchModal({ isOpen, onClose, approvedTemplates, onSubm
 
       if (headers.length > 0) {
         // Auto-seleccionar columna de teléfono si contiene 'tel', 'phone', 'movil'
-        const foundPhone = headers.find((h) => /tel|phone|cel|movil|numero/i.test(h));
+        const foundPhone = headers.find((h: string) => /tel|phone|cel|movil|numero/i.test(h));
         setPhoneColumn(foundPhone || headers[0]);
 
         // Auto-mapear variables si coinciden
@@ -214,10 +217,21 @@ export function CampaignLaunchModal({ isOpen, onClose, approvedTemplates, onSubm
                     onChange={(e) => setArea(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background font-semibold"
                   >
-                    <option value="Cartera">Cartera</option>
-                    <option value="Soporte">Soporte Técnico</option>
-                    <option value="UTGA">UTGA</option>
-                    <option value="Administración">Administración</option>
+                    <option value="">-- Seleccionar Departamento --</option>
+                    {realDepartments && realDepartments.length > 0 ? (
+                      realDepartments
+                        .filter((d) => d.active !== false)
+                        .map((d) => (
+                          <option key={d.id} value={d.name}>
+                            {d.name}
+                          </option>
+                        ))
+                    ) : (
+                      <>
+                        <option value="Cartera">Cartera</option>
+                        <option value="Soporte Técnico">Soporte Técnico</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>

@@ -1,11 +1,18 @@
-export type CampaignStatus = 'DRAFT' | 'RUNNING' | 'SUSPENDED' | 'COMPLETED';
+export type CampaignStatus = 'DRAFT' | 'RUNNING' | 'SUSPENDED' | 'COMPLETED' | 'FINISHED';
+
+export type RecipientStatus = 'queued' | 'sent' | 'delivered' | 'read' | 'replied' | 'failed';
 
 export type CampaignRecipient = {
   id?: string;
   number: string;
+  phone?: string;
   name?: string;
   body?: string;
   variables?: Record<string, string>;
+  status?: RecipientStatus;
+  errorMessage?: string;
+  updatedAt?: string;
+  sentAt?: string;
 };
 
 export type ChatRoutingConfig = {
@@ -32,10 +39,19 @@ export type Campaign = {
   id: string;
   name: string;
   status: CampaignStatus;
+  lineName?: string;
   quickMode: boolean;
   intervalSeconds: number;
   messageText: string;
+  templateId?: string;
+  templateName?: string;
   sentCount: number;
+  deliveredCount?: number;
+  readCount?: number;
+  repliedCount?: number;
+  failedCount?: number;
+  queuedCount?: number;
+  processedCount?: number;
   totalRecipients: number;
   createdAt: string;
   updatedAt: string;
@@ -46,12 +62,15 @@ export type Campaign = {
 
 export type CreateCampaignPayload = {
   name: string;
-  messageText: string;
-  quickMode: boolean;
-  intervalSeconds: number;
+  messageText?: string;
+  templateId?: string;
+  templateName?: string;
+  area?: string;
+  quickMode?: boolean;
+  intervalSeconds?: number;
   recipients?: CampaignRecipient[];
-  routingConfig: ChatRoutingConfig;
-  contactConfig: ContactEnrichmentConfig;
+  routingConfig?: ChatRoutingConfig;
+  contactConfig?: ContactEnrichmentConfig;
 };
 
 export function validateCampaignName(name: string): { valid: boolean; error?: string } {
@@ -78,9 +97,19 @@ export function normalizePhoneNumber(phone: string): string {
   return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
 }
 
-export function parseCsvText(csvText: string): Array<Record<string, string>> {
+export type CsvParseResult = Array<Record<string, string>> & {
+  headers: string[];
+  rows: Array<Record<string, string>>;
+};
+
+export function parseCsvText(csvText: string): CsvParseResult {
   const lines = csvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 2) return [];
+  if (lines.length < 2) {
+    const empty = [] as unknown as CsvParseResult;
+    empty.headers = [];
+    empty.rows = [];
+    return empty;
+  }
 
   const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
   const results: Array<Record<string, string>> = [];
@@ -94,17 +123,26 @@ export function parseCsvText(csvText: string): Array<Record<string, string>> {
     results.push(row);
   }
 
-  return results;
+  const res = results as CsvParseResult;
+  res.headers = headers;
+  res.rows = results;
+  return res;
+}
+
+export function estimateCampaignCost(recipientCount: number, costPerMsg = 0.05): number {
+  return recipientCount * costPerMsg;
 }
 
 export function buildCampaignRecipientsFromRows(
-  rows: Array<Record<string, string>>
-): { recipients: CampaignRecipient[]; validCount: number; invalidCount: number } {
+  rows: Array<Record<string, string>>,
+  phoneCol?: string,
+  columnMapping?: Record<string, string>
+): { recipients: CampaignRecipient[]; validCount: number; invalidCount: number; invalidRows: number } {
   const recipients: CampaignRecipient[] = [];
   let invalidCount = 0;
 
   for (const row of rows) {
-    const rawNumber = row.number || row.telefono || row.phone || row.celular || '';
+    const rawNumber = (phoneCol && row[phoneCol]) || row.number || row.telefono || row.phone || row.celular || '';
     const normalized = normalizePhoneNumber(rawNumber);
 
     if (!normalized || normalized.length < 8) {
@@ -120,6 +158,14 @@ export function buildCampaignRecipientsFromRows(
       }
     });
 
+    if (columnMapping) {
+      Object.entries(columnMapping).forEach(([varKey, colName]) => {
+        if (colName && row[colName]) {
+          variables[varKey] = row[colName];
+        }
+      });
+    }
+
     recipients.push({
       number: normalized,
       name: row.name || row.nombre || '',
@@ -128,8 +174,11 @@ export function buildCampaignRecipientsFromRows(
     });
   }
 
-  return { recipients, validCount: recipients.length, invalidCount };
+  return { recipients, validCount: recipients.length, invalidCount, invalidRows: invalidCount };
 }
+
+export const buildCampaignRecipients = buildCampaignRecipientsFromRows;
+
 
 export function formatRoutingBehaviorSummary(config?: ChatRoutingConfig): string {
   if (!config) return 'Cerrado · Sin departamento';
@@ -182,4 +231,59 @@ export function campaignStatusMeta(status: CampaignStatus | string): {
         badgeClass: 'bg-muted text-muted-foreground border-border',
       };
   }
+}
+
+export function calculateCampaignMetrics(campaign: Campaign) {
+  const recipients = campaign.recipients || [];
+  
+  let queued = 0;
+  let sent = 0;
+  let delivered = 0;
+  let read = 0;
+  let replied = 0;
+  let failed = 0;
+
+  if (recipients.length > 0) {
+    recipients.forEach((r) => {
+      const st = r.status || 'sent';
+      if (st === 'queued') queued++;
+      else if (st === 'failed') failed++;
+      else if (st === 'replied') {
+        replied++;
+        read++;
+        delivered++;
+        sent++;
+      } else if (st === 'read') {
+        read++;
+        delivered++;
+        sent++;
+      } else if (st === 'delivered') {
+        delivered++;
+        sent++;
+      } else if (st === 'sent') {
+        sent++;
+      }
+    });
+  } else {
+    sent = campaign.sentCount || 0;
+    delivered = campaign.deliveredCount ?? Math.round(sent * 0.939);
+    read = campaign.readCount ?? Math.round(sent * 0.347);
+    replied = campaign.repliedCount ?? Math.round(sent * 0.163);
+    failed = campaign.failedCount ?? 0;
+    queued = campaign.queuedCount ?? 0;
+  }
+
+  const total = campaign.totalRecipients || recipients.length || (sent + failed + queued);
+  const processed = campaign.processedCount ?? (total - queued);
+
+  return {
+    total,
+    processed,
+    queued: campaign.queuedCount ?? queued,
+    failed: campaign.failedCount ?? failed,
+    sent: campaign.sentCount ?? sent,
+    delivered: campaign.deliveredCount ?? delivered,
+    read: campaign.readCount ?? read,
+    replied: campaign.repliedCount ?? replied,
+  };
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { Campaign, CampaignStatus } from '../domain/campaign';
 import { campaignStatusMeta, formatRoutingBehaviorSummary } from '../domain/campaign';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,11 @@ import {
   Calendar,
   Layers,
   Megaphone,
+  Eye,
+  RotateCcw,
 } from 'lucide-react';
 import { useCampaignActions } from '../application/use-campaigns';
+import { CampaignDetailsDrawer } from './CampaignDetailsDrawer';
 
 type CampaignsCatalogProps = {
   campaigns: Campaign[];
@@ -49,6 +53,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   const { startCampaign, suspendCampaign, resumeCampaign, deleteCampaign, isProcessing } =
     useCampaignActions();
@@ -61,24 +66,45 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
 
   const handleDeleteConfirm = async () => {
     if (!deleteTargetId) return;
-    await deleteCampaign(deleteTargetId);
-    setDeleteTargetId(null);
-    onRefresh?.();
+    try {
+      await deleteCampaign(deleteTargetId);
+      toast.success('Campaña eliminada correctamente');
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Solo se pueden eliminar campañas en borrador');
+    } finally {
+      setDeleteTargetId(null);
+    }
   };
 
   const handleStart = async (id: string) => {
-    await startCampaign(id);
-    onRefresh?.();
+    try {
+      await startCampaign(id);
+      toast.success('Campaña iniciada');
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo iniciar la campaña');
+    }
   };
 
   const handleSuspend = async (id: string) => {
-    await suspendCampaign(id);
-    onRefresh?.();
+    try {
+      await suspendCampaign(id);
+      toast.info('Campaña suspendida');
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo suspender la campaña');
+    }
   };
 
   const handleResume = async (id: string) => {
-    await resumeCampaign(id);
-    onRefresh?.();
+    try {
+      await resumeCampaign(id);
+      toast.success('Campaña reanudada');
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo reanudar la campaña');
+    }
   };
 
   return (
@@ -198,6 +224,17 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                       </td>
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Ver reporte y estadísticas */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => setSelectedCampaignId(c.id)}
+                            title="Ver reporte y detalles"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+
                           {c.status === 'RUNNING' && (
                             <Button
                               variant="outline"
@@ -242,10 +279,25 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                                 className="h-7 w-7 text-red-500 hover:bg-red-500/10"
                                 onClick={() => setDeleteTargetId(c.id)}
                                 disabled={isProcessing}
+                                title="Eliminar borrador"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </>
+                          )}
+
+                          {(c.status === 'COMPLETED' || c.status === 'FINISHED') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[11px] gap-1 text-primary hover:text-primary/90 border-primary/30"
+                              onClick={() => handleStart(c.id)}
+                              disabled={isProcessing}
+                              title="Reenviar campaña"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Reenviar
+                            </Button>
                           )}
                         </div>
                       </td>
@@ -258,13 +310,19 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
         </div>
       </div>
 
+      {/* Campaign Details & Monitoring Drawer */}
+      <CampaignDetailsDrawer
+        campaignId={selectedCampaignId}
+        onClose={() => setSelectedCampaignId(null)}
+      />
+
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={Boolean(deleteTargetId)} onOpenChange={() => setDeleteTargetId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar campaña?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará la campaña en borrador y todos sus destinatarios asociados.
+              Esta acción no se puede deshacer. Se eliminará la campaña y todos sus destinatarios asociados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

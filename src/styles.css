@@ -18,6 +18,8 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-card-elevated: var(--card-elevated);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
@@ -52,6 +54,8 @@
   --card: hsl(0 0% 100%); /* #FFFFFF */
   --card-foreground: hsl(204 33% 10%);
   --card-elevated: hsl(0 0% 98%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(204 33% 10%);
 
   --muted: hsl(206 12% 45%); /* #667781 */
   --muted-foreground: hsl(206 12% 45%);
@@ -83,6 +87,8 @@
   --card: hsl(204 23% 16%); /* #202C33 Panels and cards */
   --card-foreground: hsl(204 20% 93%);
   --card-elevated: hsl(203 26% 20%); /* #2A3942 Hover & elevated cards */
+  --popover: hsl(204 23% 16%);
+  --popover-foreground: hsl(204 20% 93%);
 
   --muted: hsl(202 11% 57%); /* #8696A0 Secondary text */
   --muted-foreground: hsl(202 11% 57%);

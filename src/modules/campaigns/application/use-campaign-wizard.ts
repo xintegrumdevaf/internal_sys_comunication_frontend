@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
+import type { MessageTemplate } from '@/modules/message-templates/domain/message-template';
 import {
   ChatRoutingConfig,
-  ContactCustomField,
   CampaignRecipient,
   validateCampaignName,
   validateCampaignMessage,
@@ -12,13 +12,15 @@ import {
 export function useCampaignWizard() {
   const [activeStep, setActiveStep] = useState<number>(1);
 
-  // Step 1 state: Mensaje
+  // Step 1 state: Mensaje & Plantilla Meta
   const [name, setName] = useState('');
   const [quickMode, setQuickMode] = useState(true);
   const [intervalSeconds, setIntervalSeconds] = useState(45);
   const [messageText, setMessageText] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
+  const [templateVariableValues, setTemplateVariableValues] = useState<Record<string, string>>({});
 
-  // Step 2 state: Destinatarios
+  // Step 2 state: Destinatarios (CSV/Excel)
   const [importedRecipients, setImportedRecipients] = useState<CampaignRecipient[]>([]);
   const [importedFile, setImportedFile] = useState<File | null>(null);
   const [previewRows, setPreviewRows] = useState<Array<Record<string, string>>>([]);
@@ -34,11 +36,6 @@ export function useCampaignWizard() {
     forceChatUpdate: false,
   });
 
-  // Step 4 state: Contacto
-  const [tags, setTags] = useState<string[]>([]);
-  const [customFields, setCustomFields] = useState<ContactCustomField[]>([]);
-  const [forceContactUpdate, setForceContactUpdate] = useState(false);
-
   // Validations & Pending Indicators
   const nameValidation = useMemo(() => validateCampaignName(name), [name]);
   const messageValidation = useMemo(() => validateCampaignMessage(messageText), [messageText]);
@@ -47,6 +44,34 @@ export function useCampaignWizard() {
   const step2Pending = importedRecipients.length === 0 && !importedFile;
 
   const canSubmit = !step1Pending && !step2Pending;
+
+  const handleSelectTemplate = (template: MessageTemplate | null) => {
+    setSelectedTemplate(template);
+    if (template) {
+      setMessageText(template.body);
+      const initialVars: Record<string, string> = {};
+      if (template.variables && template.variables.length > 0) {
+        template.variables.forEach((v) => {
+          initialVars[v] = '';
+        });
+      }
+      setTemplateVariableValues(initialVars);
+    } else {
+      setTemplateVariableValues({});
+    }
+  };
+
+  const handleUpdateVariableValue = (key: string, value: string) => {
+    setTemplateVariableValues((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleClearTemplate = () => {
+    setSelectedTemplate(null);
+    setTemplateVariableValues({});
+  };
 
   const handleProcessFile = async (file: File) => {
     setImportedFile(file);
@@ -62,28 +87,14 @@ export function useCampaignWizard() {
     });
   };
 
-  const handleAddCustomField = () => {
-    setCustomFields((prev) => [...prev, { key: '', value: '' }]);
-  };
-
-  const handleUpdateCustomField = (index: number, key: string, value: string) => {
-    setCustomFields((prev) => {
-      const next = [...prev];
-      next[index] = { key, value };
-      return next;
-    });
-  };
-
-  const handleRemoveCustomField = (index: number) => {
-    setCustomFields((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const resetWizard = () => {
     setActiveStep(1);
     setName('');
     setQuickMode(true);
     setIntervalSeconds(45);
     setMessageText('');
+    setSelectedTemplate(null);
+    setTemplateVariableValues({});
     setImportedRecipients([]);
     setImportedFile(null);
     setPreviewRows([]);
@@ -96,9 +107,6 @@ export function useCampaignWizard() {
       delegateToBot: false,
       forceChatUpdate: false,
     });
-    setTags([]);
-    setCustomFields([]);
-    setForceContactUpdate(false);
   };
 
   return {
@@ -112,6 +120,13 @@ export function useCampaignWizard() {
     setIntervalSeconds,
     messageText,
     setMessageText,
+    selectedTemplate,
+    setSelectedTemplate,
+    templateVariableValues,
+    setTemplateVariableValues,
+    handleSelectTemplate,
+    handleUpdateVariableValue,
+    handleClearTemplate,
     importedRecipients,
     importedFile,
     previewRows,
@@ -119,14 +134,6 @@ export function useCampaignWizard() {
     handleProcessFile,
     routingConfig,
     setRoutingConfig,
-    tags,
-    setTags,
-    customFields,
-    handleAddCustomField,
-    handleUpdateCustomField,
-    handleRemoveCustomField,
-    forceContactUpdate,
-    setForceContactUpdate,
     nameValidation,
     messageValidation,
     step1Pending,

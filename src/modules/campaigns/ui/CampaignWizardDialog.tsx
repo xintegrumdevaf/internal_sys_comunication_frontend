@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,10 +34,15 @@ import {
   FileSpreadsheet,
   Braces,
   X,
+  LayoutTemplate,
+  Sparkles,
 } from 'lucide-react';
 import { CampaignPreviewPanel } from './CampaignPreviewPanel';
 import { useCampaignWizard } from '../application/use-campaign-wizard';
 import { useCreateCampaign } from '../application/use-campaigns';
+import { useMessageTemplates } from '@/modules/message-templates/application/use-message-templates';
+import { templateCategoryLabel } from '@/modules/message-templates/domain/message-template';
+import { useDepartmentsQuery, useDirectoryUsers } from '@/modules/identity/application/use-session';
 
 type CampaignWizardDialogProps = {
   open: boolean;
@@ -52,23 +57,32 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 }) => {
   const wizard = useCampaignWizard();
   const { createCampaign, isSubmitting } = useCreateCampaign();
-  const [tagInput, setTagInput] = useState('');
+  const { templates: availableTemplates, loading: loadingTemplates } = useMessageTemplates();
+  const { data: realDepartments, isLoading: loadingDepts } = useDepartmentsQuery();
+  const realDirectoryUsers = useDirectoryUsers();
+
+  const approvedTemplates = useMemo(() => {
+    return availableTemplates.filter((t) => t.status === 'APPROVED');
+  }, [availableTemplates]);
 
   const handleFormSubmit = async () => {
     if (!wizard.canSubmit) return;
+
     try {
       await createCampaign(
         {
           name: wizard.name,
           messageText: wizard.messageText,
+          templateId: wizard.selectedTemplate?.id,
+          templateName: wizard.selectedTemplate?.name,
           quickMode: wizard.quickMode,
           intervalSeconds: wizard.intervalSeconds,
           recipients: wizard.importedRecipients,
           routingConfig: wizard.routingConfig,
           contactConfig: {
-            tags: wizard.tags,
-            customFields: wizard.customFields.filter((f) => f.key.trim() !== ''),
-            forceContactUpdate: wizard.forceContactUpdate,
+            tags: [],
+            customFields: [],
+            forceContactUpdate: false,
           },
         },
         wizard.importedFile
@@ -103,18 +117,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 
   const emojis = ['😀', '😁', '😊', '👍', '🙏', '👉', '🔥', '🎉', '💡', '📢', '✅', '⭐'];
 
-  const handleAddTag = () => {
-    const trimmed = tagInput.trim();
-    if (trimmed && !wizard.tags.includes(trimmed)) {
-      wizard.setTags([...wizard.tags, trimmed]);
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    wizard.setTags(wizard.tags.filter((t) => t !== tagToRemove));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl p-0 gap-0 overflow-hidden bg-card border-border shadow-2xl">
@@ -124,7 +126,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             Nueva campaña
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configura el mensaje, el enrutamiento de los chats e importa tus contactos.
+            Configura el mensaje, los destinatarios y el enrutamiento de los chats.
           </p>
         </DialogHeader>
 
@@ -188,25 +190,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                 <span className="text-[9px] uppercase tracking-wider opacity-70 ml-6">AVANZADO</span>
               </div>
             </button>
-
-            <button
-              type="button"
-              className={cx(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left',
-                wizard.activeStep === 4
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                  : 'hover:bg-muted/80 text-muted-foreground'
-              )}
-              onClick={() => wizard.setActiveStep(4)}
-            >
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  Contacto
-                </div>
-                <span className="text-[9px] uppercase tracking-wider opacity-70 ml-6">AVANZADO</span>
-              </div>
-            </button>
           </div>
 
           {/* Step Body */}
@@ -233,6 +216,133 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                     />
                     {!wizard.nameValidation.valid && wizard.name && (
                       <p className="text-[11px] text-red-500 mt-1">{wizard.nameValidation.error}</p>
+                    )}
+                  </div>
+
+                  {/* Selector de Plantilla Aprobada Meta */}
+                  <div className="p-3.5 rounded-xl border border-border bg-muted/10 space-y-3 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 truncate">
+                          <LayoutTemplate className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="truncate">Plantilla de WhatsApp (Meta)</span>
+                        </label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Selecciona una plantilla creada y aprobada en el módulo de Plantillas.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {wizard.selectedTemplate && (
+                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 shrink-0 whitespace-nowrap px-2 py-0.5">
+                          <CheckCircle2 className="w-3 h-3 shrink-0" /> Aprobada por Meta
+                        </Badge>
+                      )}
+                    </div>
+
+                    <Select
+                      value={wizard.selectedTemplate?.id || 'none'}
+                      onValueChange={(val) => {
+                        if (val === 'none') {
+                          wizard.handleClearTemplate();
+                        } else {
+                          const found = availableTemplates.find((t) => t.id === val);
+                          if (found) wizard.handleSelectTemplate(found);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full text-xs h-9 bg-background min-w-0">
+                        <SelectValue placeholder={loadingTemplates ? "Cargando plantillas..." : "Seleccionar plantilla..."} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80 w-[var(--radix-select-trigger-width)]">
+                        <SelectItem value="none" className="cursor-pointer">
+                          <span className="text-muted-foreground italic truncate">Redactar mensaje personalizado (Sin plantilla)</span>
+                        </SelectItem>
+                        {approvedTemplates.length > 0 && (
+                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded my-1">
+                            Plantillas Aprobadas por Meta
+                          </div>
+                        )}
+                        {approvedTemplates.map((tpl) => (
+                          <SelectItem key={tpl.id} value={tpl.id} className="text-xs cursor-pointer py-2">
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="font-mono text-primary font-bold truncate">{tpl.name}</span>
+                              <span className="text-[10px] text-muted-foreground truncate shrink-0">
+                                ({templateCategoryLabel(tpl.category)})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {availableTemplates.filter((t) => t.status !== 'APPROVED').length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/60 rounded my-1">
+                              Otras plantillas
+                            </div>
+                            {availableTemplates
+                              .filter((t) => t.status !== 'APPROVED')
+                              .map((tpl) => (
+                                <SelectItem key={tpl.id} value={tpl.id} className="text-xs cursor-pointer py-2">
+                                  <div className="flex items-center gap-2 truncate">
+                                    <span className="font-mono text-muted-foreground truncate">{tpl.name}</span>
+                                    <span className="text-[10px] opacity-75 shrink-0">({tpl.status})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Card de plantilla seleccionada & edición de variables */}
+                    {wizard.selectedTemplate && (
+                      <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-2.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2 min-w-0 truncate">
+                            <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <span className="font-bold text-foreground font-mono truncate">{wizard.selectedTemplate.name}</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 border-0 shrink-0">
+                              {templateCategoryLabel(wizard.selectedTemplate.category)}
+                            </Badge>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => wizard.handleClearTemplate()}
+                            className="h-6 text-[10px] text-muted-foreground hover:text-red-500 px-1.5 shrink-0 whitespace-nowrap"
+                          >
+                            <X className="w-3 h-3 mr-1 shrink-0" /> Desvincular
+                          </Button>
+                        </div>
+
+                        {wizard.selectedTemplate.variables && wizard.selectedTemplate.variables.length > 0 && (
+                          <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+                            <label className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 block">
+                              Valores de muestra para variables de plantilla:
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {wizard.selectedTemplate.variables.map((varKey) => (
+                                <div key={varKey} className="flex items-center gap-1.5">
+                                  <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold w-12 shrink-0">
+                                    {'{{' + varKey + '}}'}:
+                                  </span>
+                                  <Input
+                                    placeholder={`Ej. Valor variable ${varKey}...`}
+                                    value={wizard.templateVariableValues[varKey] || ''}
+                                    onChange={(e) => wizard.handleUpdateVariableValue(varKey, e.target.value)}
+                                    className="h-7 text-xs bg-background/80"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -433,7 +543,12 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 
                 {/* Right Live Preview Panel */}
                 <div className="h-full min-h-[340px]">
-                  <CampaignPreviewPanel messageText={wizard.messageText} name={wizard.name} />
+                  <CampaignPreviewPanel
+                    messageText={wizard.messageText}
+                    name={wizard.name}
+                    selectedTemplate={wizard.selectedTemplate}
+                    variableValues={wizard.templateVariableValues}
+                  />
                 </div>
               </div>
             )}
@@ -537,7 +652,12 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 
                 {/* Right Live Preview Panel */}
                 <div className="h-full min-h-[340px]">
-                  <CampaignPreviewPanel messageText={wizard.messageText} name={wizard.name} />
+                  <CampaignPreviewPanel
+                    messageText={wizard.messageText}
+                    name={wizard.name}
+                    selectedTemplate={wizard.selectedTemplate}
+                    variableValues={wizard.templateVariableValues}
+                  />
                 </div>
               </div>
             )}
@@ -621,14 +741,23 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       }
                     >
                       <SelectTrigger className="w-full text-xs">
-                        <SelectValue placeholder="Selecciona departamento" />
+                        <SelectValue placeholder={loadingDepts ? "Cargando departamentos..." : "Selecciona departamento"} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ninguno">Ninguno</SelectItem>
-                        <SelectItem value="Soporte Técnico">Soporte Técnico</SelectItem>
-                        <SelectItem value="Ventas">Ventas</SelectItem>
-                        <SelectItem value="Cobranzas">Cobranzas</SelectItem>
-                        <SelectItem value="Facturación">Facturación</SelectItem>
+                      <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80">
+                        <SelectItem value="Ninguno" className="cursor-pointer">
+                          <span className="text-muted-foreground italic">Ninguno</span>
+                        </SelectItem>
+                        {realDepartments && realDepartments.length > 0 ? (
+                          realDepartments
+                            .filter((d) => d.active !== false)
+                            .map((dept) => (
+                              <SelectItem key={dept.id} value={dept.name} className="text-xs cursor-pointer py-2">
+                                <span className="font-semibold">{dept.name}</span>
+                              </SelectItem>
+                            ))
+                        ) : (
+                          <div className="px-2 py-1 text-xs text-muted-foreground italic">Sin departamentos configurados</div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -650,11 +779,24 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       <SelectTrigger className="w-full text-xs">
                         <SelectValue placeholder="Buscar usuario..." />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ninguno">Ninguno</SelectItem>
-                        <SelectItem value="Juan Pérez">Juan Pérez</SelectItem>
-                        <SelectItem value="María Gómez">María Gómez</SelectItem>
-                        <SelectItem value="Carlos Rodríguez">Carlos Rodríguez</SelectItem>
+                      <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80">
+                        <SelectItem value="Ninguno" className="cursor-pointer">
+                          <span className="text-muted-foreground italic">Ninguno</span>
+                        </SelectItem>
+                        {realDirectoryUsers && realDirectoryUsers.length > 0 ? (
+                          realDirectoryUsers.map((user) => (
+                            <SelectItem key={user.id} value={user.name} className="text-xs cursor-pointer py-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold">{user.name}</span>
+                                {user.departmentName && (
+                                  <span className="text-[10px] text-muted-foreground">({user.departmentName})</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1 text-xs text-muted-foreground italic">Sin usuarios registrados</div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -722,156 +864,12 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 
                 {/* Right Live Preview Panel */}
                 <div className="h-full min-h-[340px]">
-                  <CampaignPreviewPanel messageText={wizard.messageText} name={wizard.name} />
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: CONTACTO (AVANZADO) */}
-            {wizard.activeStep === 4 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-                <div className="space-y-4">
-                  <p className="text-xs text-muted-foreground">
-                    Opcional. Enriquece el registro de todos los contactos importados.
-                  </p>
-
-                  {/* Etiquetas */}
-                  <div>
-                    <label className="text-xs font-semibold text-foreground block mb-1.5">
-                      Etiquetas
-                    </label>
-                    <div className="flex gap-2 mb-2">
-                      <Input
-                        placeholder="Escribe una etiqueta y presiona Agregar..."
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddTag();
-                          }
-                        }}
-                        className="text-xs"
-                      />
-                      <Button type="button" size="sm" onClick={handleAddTag} className="text-xs gap-1">
-                        <Plus className="w-3.5 h-3.5" />
-                        Agregar
-                      </Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-lg border border-border bg-muted/10">
-                      {wizard.tags.length === 0 ? (
-                        <span className="text-[11px] text-muted-foreground italic">
-                          Sin etiquetas asignadas.
-                        </span>
-                      ) : (
-                        wizard.tags.map((tag) => (
-                          <Badge
-                            key={tag}
-                            variant="secondary"
-                            className="text-xs gap-1 py-0.5 px-2 bg-primary/10 text-primary border-primary/20"
-                          >
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveTag(tag)}
-                              className="hover:text-red-500 ml-0.5"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Información adicional (Custom Key-Value) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-semibold text-foreground">
-                        Información adicional (Campos personalizados)
-                      </label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={wizard.handleAddCustomField}
-                        className="h-7 text-xs gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Agregar campo
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {wizard.customFields.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground italic">
-                          No hay campos adicionales agregados.
-                        </p>
-                      ) : (
-                        wizard.customFields.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Input
-                              placeholder="Clave (ej. ciudad)"
-                              value={item.key}
-                              onChange={(e) =>
-                                wizard.handleUpdateCustomField(idx, e.target.value, item.value)
-                              }
-                              className="h-8 text-xs"
-                            />
-                            <Input
-                              placeholder="Valor (ej. Bogotá)"
-                              value={item.value}
-                              onChange={(e) =>
-                                wizard.handleUpdateCustomField(idx, item.key, e.target.value)
-                              }
-                              className="h-8 text-xs"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-500 hover:bg-red-500/10 shrink-0"
-                              onClick={() => wizard.handleRemoveCustomField(idx)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Forzar actualización de datos */}
-                  <div className="p-3.5 rounded-xl border border-border bg-muted/10 flex items-center justify-between">
-                    <div className="space-y-0.5 pr-4">
-                      <div className="flex items-center gap-1">
-                        <div className="text-xs font-semibold">Forzar actualización de los datos</div>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              Sobrescribe los datos del contacto existente con los de la importación.
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Sobrescribe lo que ya existe en el registro del contacto.
-                      </div>
-                    </div>
-                    <Switch
-                      checked={wizard.forceContactUpdate}
-                      onCheckedChange={wizard.setForceContactUpdate}
-                    />
-                  </div>
-                </div>
-
-                {/* Right Live Preview Panel */}
-                <div className="h-full min-h-[340px]">
-                  <CampaignPreviewPanel messageText={wizard.messageText} name={wizard.name} />
+                  <CampaignPreviewPanel
+                    messageText={wizard.messageText}
+                    name={wizard.name}
+                    selectedTemplate={wizard.selectedTemplate}
+                    variableValues={wizard.templateVariableValues}
+                  />
                 </div>
               </div>
             )}

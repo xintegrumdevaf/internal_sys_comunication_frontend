@@ -27,25 +27,42 @@ describe('useCampaignWizard', () => {
     expect(result.current.step1Pending).toBe(false);
   });
 
-  it('should allow adding and removing custom contact fields', () => {
+  it('should handle selecting, updating variables, and clearing a template', () => {
     const { result } = renderHook(() => useCampaignWizard());
 
+    const mockTemplate = {
+      id: 'tpl_test',
+      name: 'aviso_cobro',
+      category: 'UTILITY' as const,
+      language: 'es',
+      connectionId: 'default',
+      connectionName: 'Línea Oficial WhatsApp',
+      status: 'APPROVED' as const,
+      body: 'Estimado {{1}}, su factura {{2}} vence hoy.',
+      variables: ['1', '2'],
+      createdAt: '2026-08-30T10:00:00Z',
+    };
+
     act(() => {
-      result.current.handleAddCustomField();
+      result.current.handleSelectTemplate(mockTemplate);
     });
 
-    expect(result.current.customFields.length).toBe(1);
+    expect(result.current.selectedTemplate).toEqual(mockTemplate);
+    expect(result.current.messageText).toBe('Estimado {{1}}, su factura {{2}} vence hoy.');
+    expect(result.current.templateVariableValues).toEqual({ '1': '', '2': '' });
 
     act(() => {
-      result.current.handleUpdateCustomField(0, 'codigo', '12345');
+      result.current.handleUpdateVariableValue('1', 'Juan');
+      result.current.handleUpdateVariableValue('2', '#9988');
     });
 
-    expect(result.current.customFields[0]).toEqual({ key: 'codigo', value: '12345' });
+    expect(result.current.templateVariableValues).toEqual({ '1': 'Juan', '2': '#9988' });
 
     act(() => {
-      result.current.handleRemoveCustomField(0);
+      result.current.handleClearTemplate();
     });
 
-    expect(result.current.customFields.length).toBe(0);
+    expect(result.current.selectedTemplate).toBeNull();
+    expect(result.current.templateVariableValues).toEqual({});
   });
 });
