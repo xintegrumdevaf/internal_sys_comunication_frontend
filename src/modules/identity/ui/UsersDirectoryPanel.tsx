@@ -18,10 +18,19 @@ type FormState = {
   name: string;
   email: string;
   primaryDepartmentId: string;
+  departmentIds: string[];
   role: AgentRole;
+  autoAssignEnabled: boolean;
 };
 
-const emptyForm: FormState = { name: "", email: "", primaryDepartmentId: "", role: "agent" };
+const emptyForm: FormState = {
+  name: "",
+  email: "",
+  primaryDepartmentId: "",
+  departmentIds: [],
+  role: "agent",
+  autoAssignEnabled: false,
+};
 
 function roleText(role: AgentRole): string {
   if (role === "admin") return "Administrador";
@@ -79,7 +88,14 @@ export function UsersDirectoryPanel() {
       name: user.name,
       email: user.email,
       primaryDepartmentId: user.primaryDepartmentId ?? "",
+      departmentIds:
+        user.departmentIds && user.departmentIds.length > 0
+          ? user.departmentIds
+          : user.primaryDepartmentId
+            ? [user.primaryDepartmentId]
+            : [],
       role: user.role,
+      autoAssignEnabled: user.autoAssignEnabled,
     });
     setFormOpen(true);
   };
@@ -90,18 +106,31 @@ export function UsersDirectoryPanel() {
   };
 
   const handleSubmit = async () => {
+    const deptIds = Array.from(
+      new Set([
+        ...(form.primaryDepartmentId ? [form.primaryDepartmentId] : []),
+        ...form.departmentIds,
+      ]),
+    );
+
     const payload = {
       name: form.name.trim(),
       email: form.email.trim(),
       role: form.role,
       primaryDepartmentId: form.primaryDepartmentId || null,
+      departmentIds: deptIds,
     };
+
     if (editingId) {
       const ok = await updateAgent(editingId, payload);
       if (ok) closeForm();
       return;
     }
-    const temporaryPassword = await createAgent(payload);
+
+    const temporaryPassword = await createAgent({
+      ...payload,
+      autoAssignEnabled: form.autoAssignEnabled,
+    });
     if (temporaryPassword) {
       closeForm();
       setTemporaryPasswordFor({ name: payload.name, password: temporaryPassword });
@@ -244,7 +273,16 @@ export function UsersDirectoryPanel() {
               </span>
               <select
                 value={form.primaryDepartmentId}
-                onChange={(e) => setForm((f) => ({ ...f, primaryDepartmentId: e.target.value }))}
+                onChange={(e) => {
+                  const newPrimary = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    primaryDepartmentId: newPrimary,
+                    departmentIds: newPrimary
+                      ? Array.from(new Set([...f.departmentIds, newPrimary]))
+                      : f.departmentIds,
+                  }));
+                }}
                 className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
               >
                 <option value="">Sin área asignada</option>
@@ -269,12 +307,81 @@ export function UsersDirectoryPanel() {
                 <option value="admin">Administrador — acceso total al sistema</option>
               </select>
             </label>
+
+            {/* Selector Multidepartamento */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground block">
+                Departamentos adicionales asignados (Multidepartamento)
+              </span>
+              {departments.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No hay departamentos activos configurados.</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-border bg-background">
+                  {departments.map((d) => {
+                    const isSelected = form.departmentIds.includes(d.id);
+                    const isPrimary = form.primaryDepartmentId === d.id;
+                    return (
+                      <label
+                        key={d.id}
+                        className={`flex items-center gap-2 p-2 rounded-md border text-xs cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-primary/10 border-primary/40 text-foreground font-semibold"
+                            : "border-border hover:bg-muted/50 text-muted-foreground"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setForm((f) => ({
+                                ...f,
+                                departmentIds: Array.from(new Set([...f.departmentIds, d.id])),
+                              }));
+                            } else {
+                              setForm((f) => ({
+                                ...f,
+                                departmentIds: f.departmentIds.filter((id) => id !== d.id),
+                                primaryDepartmentId:
+                                  f.primaryDepartmentId === d.id ? "" : f.primaryDepartmentId,
+                              }));
+                            }
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary/20 size-3.5"
+                        />
+                        <span className="truncate">{d.name}</span>
+                        {isPrimary && (
+                          <span className="ml-auto text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-primary text-primary-foreground">
+                            Principal
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {!editingId && (
+              <div className="sm:col-span-2 flex items-center justify-between p-3 rounded-lg border border-border bg-background">
+                <div>
+                  <p className="text-xs font-bold text-foreground">Asignación automática inicial</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Define si el agente estará inmediatamente disponible para recibir conversaciones distribuidas.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.autoAssignEnabled}
+                  onCheckedChange={(checked) => setForm((f) => ({ ...f, autoAssignEnabled: checked }))}
+                  aria-label="Asignación automática inicial"
+                />
+              </div>
+            )}
           </div>
           {!editingId && (
             <p className="text-[11px] text-muted-foreground bg-background rounded-md px-3 py-2">
               El sistema genera una contraseña temporal automáticamente al crear el agente — la
-              verás una sola vez justo después de guardar. La asignación automática queda
-              desactivada hasta que la actives en la lista.
+              verás una sola vez justo después de guardar.
             </p>
           )}
           <div className="flex gap-2">
@@ -325,6 +432,7 @@ export function UsersDirectoryPanel() {
                       <th className="px-4 py-3 font-extrabold">Nombre</th>
                       <th className="px-4 py-3 font-extrabold">Correo</th>
                       <th className="px-4 py-3 font-extrabold">Acceso</th>
+                      <th className="px-4 py-3 font-extrabold">Departamentos</th>
                       <th className="px-4 py-3 font-extrabold">Estado</th>
                       <th className="px-4 py-3 font-extrabold">Asignación automática</th>
                       <th className="px-4 py-3 font-extrabold text-right">Acciones</th>
@@ -346,6 +454,33 @@ export function UsersDirectoryPanel() {
                           </td>
                           <td className="px-4 py-3">{u.email}</td>
                           <td className="px-4 py-3">{roleText(u.role)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {u.departmentIds && u.departmentIds.length > 0 ? (
+                                u.departmentIds.map((deptId) => {
+                                  const dept = departments.find((d) => d.id === deptId);
+                                  const isPrimary = u.primaryDepartmentId === deptId;
+                                  return (
+                                    <span
+                                      key={deptId}
+                                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                        isPrimary
+                                          ? "bg-primary/15 text-primary border border-primary/30"
+                                          : "bg-muted text-muted-foreground border border-border"
+                                      }`}
+                                    >
+                                      {dept?.name ?? deptId}
+                                      {isPrimary && " ★"}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground italic">
+                                  Sin departamentos
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-4 py-3">
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${

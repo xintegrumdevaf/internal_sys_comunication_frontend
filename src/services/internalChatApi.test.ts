@@ -21,7 +21,10 @@ describe("internalChatApi", () => {
     ];
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
-      json: async () => ({ data: mockThreads }),
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ data: mockThreads }),
     } as Response);
 
     const result = await internalChatApi.getThreads();
@@ -41,7 +44,10 @@ describe("internalChatApi", () => {
     };
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
-      json: async () => ({ data: mockThread }),
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ data: mockThread }),
     } as Response);
 
     const result = await internalChatApi.getOrCreateDirectThread("agent_2", "rev_1");
@@ -70,7 +76,11 @@ describe("internalChatApi", () => {
     ];
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
-      json: async () => ({ data: mockMessages, pagination: { nextCursor: "cursor_2" } }),
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () =>
+        JSON.stringify({ data: mockMessages, pagination: { nextCursor: "cursor_2" } }),
     } as Response);
 
     const result = await internalChatApi.getMessages("ith_1", { limit: 20, cursor: "cursor_1" });
@@ -91,7 +101,10 @@ describe("internalChatApi", () => {
     };
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
-      json: async () => ({ data: mockMsg }),
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => JSON.stringify({ data: mockMsg }),
     } as Response);
 
     const result = await internalChatApi.sendMessage("ith_1", {
@@ -110,7 +123,12 @@ describe("internalChatApi", () => {
   });
 
   it("markAsRead sends POST to read endpoint", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({} as Response);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      statusText: "No Content",
+      text: async () => "",
+    } as Response);
 
     await internalChatApi.markAsRead("ith_1");
     expect(fetchSpy).toHaveBeenCalledWith(

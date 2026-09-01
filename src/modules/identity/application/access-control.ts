@@ -30,7 +30,14 @@ const ADMIN_ONLY_PATHS = new Set([
   "/campanas",
   "/plantillas",
 ]);
-const SUPERVISOR_PATHS = new Set(["/escalaciones", "/asignaciones", "/calidad", "/conocimiento"]);
+const SUPERVISOR_PATHS = new Set([
+  "/escalaciones",
+  "/asignaciones",
+  "/calidad",
+  "/conocimiento",
+  "/analytics",
+  "/dashboard-gerencial",
+]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno"]);
 
 export function canAccessPath(session: SessionUser | null | undefined, pathname: string): boolean {
@@ -53,6 +60,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   ];
   if (isSupervisor(session)) {
     base.push(
+      { label: "Analíticas", to: "/analytics" },
       { label: "Casos escalados", to: "/escalaciones" },
       { label: "Carga de trabajo", to: "/asignaciones" },
       { label: "Calidad", to: "/calidad" },
@@ -70,3 +78,4 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   }
   return base;
 }
+

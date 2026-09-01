@@ -34,10 +34,12 @@ const session: SessionUser = {
   role: "agent",
   active: true,
   primaryDepartmentId: "dept_support",
+  departmentIds: ["dept_support"],
   departmentSlug: "support",
   departmentName: "Soporte técnico",
   roleLabel: "Agente · Soporte técnico",
   autoAssignEnabled: false,
+  mustChangePassword: false,
   landing: "/bandeja",
 };
 

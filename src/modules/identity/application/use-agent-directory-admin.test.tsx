@@ -124,4 +124,46 @@ describe("useAgentDirectoryAdmin", () => {
 
     expect(result.current.busy).toBe(false);
   });
+
+  it("createAgent y updateAgent propagan departmentIds y autoAssignEnabled", async () => {
+    createAgentMock.mockResolvedValueOnce({
+      agent: { id: "a1", departmentIds: ["d1", "d2"], autoAssignEnabled: true },
+      temporaryPassword: "temp-pass",
+    });
+    updateAgentMock.mockResolvedValueOnce({
+      id: "a1",
+      departmentIds: ["d1", "d2"],
+    });
+
+    const { result } = renderHook(() => useAgentDirectoryAdmin(), { wrapper });
+
+    await act(async () => {
+      await result.current.createAgent({
+        name: "Carlos",
+        email: "carlos@isp.local",
+        primaryDepartmentId: "d1",
+        departmentIds: ["d1", "d2"],
+        autoAssignEnabled: true,
+      });
+    });
+
+    expect(createAgentMock).toHaveBeenCalledWith({
+      name: "Carlos",
+      email: "carlos@isp.local",
+      primaryDepartmentId: "d1",
+      departmentIds: ["d1", "d2"],
+      autoAssignEnabled: true,
+    });
+
+    await act(async () => {
+      await result.current.updateAgent("a1", {
+        departmentIds: ["d1", "d2"],
+      });
+    });
+
+    expect(updateAgentMock).toHaveBeenCalledWith("a1", {
+      departmentIds: ["d1", "d2"],
+    });
+  });
 });
+

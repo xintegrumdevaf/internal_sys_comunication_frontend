@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type { AgentDto } from "@/modules/identity/domain/agent";
 import * as authGateway from "@/modules/identity/infrastructure/auth.gateway";
 import {
   listAgents,
@@ -107,3 +109,67 @@ export function useAuth() {
     loginError: loginMutation.error instanceof Error ? loginMutation.error.message : null,
   };
 }
+
+/**
+ * Hook para alternar la disponibilidad del agente actual (`autoAssignEnabled`)
+ * conectándose a `PATCH /api/auth/me/availability` y manteniendo sincronizado
+ * el estado global de la sesión y el directorio de agentes.
+ */
+export function useMyAvailability() {
+  const queryClient = useQueryClient();
+  const session = useSession();
+
+  const mutation = useMutation({
+    mutationFn: (autoAssignEnabled: boolean) => authGateway.updateMyAvailability(autoAssignEnabled),
+    onSuccess: (updatedAgent) => {
+      queryClient.setQueryData<AgentDto | null>(["session", "me"], updatedAgent);
+      void queryClient.invalidateQueries({ queryKey: ["agents"] });
+      toast.success(
+        updatedAgent.autoAssignEnabled
+          ? "Disponible para asignación"
+          : "En pausa / Desconectado",
+      );
+    },
+    onError: (err) => {
+      const msg =
+        err instanceof Error && err.message !== "Failed to fetch"
+          ? err.message
+          : "No se pudo actualizar la disponibilidad (verifica la conexión con el backend).";
+      toast.error(msg);
+    },
+  });
+
+  return {
+    autoAssignEnabled: session?.autoAssignEnabled ?? false,
+    setAvailability: (enabled: boolean) => mutation.mutateAsync(enabled),
+    toggleAvailability: () => mutation.mutateAsync(!session?.autoAssignEnabled),
+    updating: mutation.isPending,
+  };
+}
+
+/**
+ * Hook para cambio de contraseña (tanto voluntario como obligatorio por primer login).
+ * Al completarse exitosamente, desactiva la bandera `mustChangePassword` en la sesión local.
+ */
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: ({ current, next }: { current: string; next: string }) =>
+      authGateway.changePassword(current, next),
+    onSuccess: () => {
+      queryClient.setQueryData<AgentDto | null>(["session", "me"], (old) => {
+        if (!old) return old;
+        return { ...old, mustChangePassword: false };
+      });
+      void queryClient.invalidateQueries({ queryKey: ["session", "me"] });
+    },
+  });
+
+  return {
+    changePassword: (current: string, next: string) =>
+      mutation.mutateAsync({ current, next }),
+    changing: mutation.isPending,
+  };
+}
+

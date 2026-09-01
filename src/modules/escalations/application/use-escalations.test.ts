@@ -33,10 +33,12 @@ const session: SessionUser = {
   role: "manager",
   active: true,
   primaryDepartmentId: "dept_support",
+  departmentIds: ["dept_support"],
   departmentSlug: "support",
   departmentName: "Soporte técnico",
   roleLabel: "Jefe de área · Soporte técnico",
   autoAssignEnabled: false,
+  mustChangePassword: false,
   landing: "/",
 };
 

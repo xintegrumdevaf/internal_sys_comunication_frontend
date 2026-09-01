@@ -15,11 +15,15 @@ export type SessionUser = {
   role: AgentRole;
   active: boolean;
   primaryDepartmentId: string | null;
+  /** Departamentos a los que pertenece el agente. */
+  departmentIds: string[];
   departmentSlug: string | null;
   departmentName: string | null;
   roleLabel: string;
   /** Opt-in al pool de auto-asignación de su área principal. */
   autoAssignEnabled: boolean;
+  /** Requiere cambio obligatorio de contraseña (primer login). */
+  mustChangePassword: boolean;
   /** Ruta de aterrizaje segun el rol real del agente. */
   landing: string;
 };
@@ -45,6 +49,14 @@ function roleLabel(role: AgentRole, departmentName: string | null): string {
 
 export function toSessionUser(agent: AgentDto, departments: DepartmentDto[]): SessionUser {
   const department = departments.find((d) => d.id === agent.primaryDepartmentId) ?? null;
+  const rawDepartmentIds = Array.isArray(agent.departmentIds) ? agent.departmentIds : [];
+  const departmentIds =
+    rawDepartmentIds.length > 0
+      ? rawDepartmentIds
+      : agent.primaryDepartmentId
+        ? [agent.primaryDepartmentId]
+        : [];
+
   return {
     id: agent.id,
     name: agent.name,
@@ -53,10 +65,12 @@ export function toSessionUser(agent: AgentDto, departments: DepartmentDto[]): Se
     role: agent.role,
     active: agent.active,
     primaryDepartmentId: agent.primaryDepartmentId,
+    departmentIds,
     departmentSlug: department?.slug ?? null,
     departmentName: department?.name ?? null,
     roleLabel: roleLabel(agent.role, department?.name ?? null),
     autoAssignEnabled: Boolean(agent.autoAssignEnabled),
+    mustChangePassword: Boolean(agent.mustChangePassword),
     landing: agent.role === "agent" ? "/bandeja" : "/",
   };
 }

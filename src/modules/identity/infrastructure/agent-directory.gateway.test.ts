@@ -158,4 +158,68 @@ describe("agent-directory.gateway", () => {
     expect(init?.method).toBe("POST");
     expect(result.temporaryPassword).toBe("xyz789");
   });
+
+  it("createAgent envía departmentIds y autoAssignEnabled en el payload", async () => {
+    const fetchMock = mockFetchOnce({
+      agent: {
+        id: "a1",
+        name: "Carlos Gomez",
+        email: "carlos@isp.local",
+        role: "agent",
+        primaryDepartmentId: "uuid-soporte",
+        departmentIds: ["uuid-soporte", "uuid-ventas"],
+        autoAssignEnabled: true,
+        mustChangePassword: true,
+        active: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      temporaryPassword: "temp123",
+    });
+
+    const result = await createAgent({
+      name: "Carlos Gomez",
+      email: "carlos@isp.local",
+      role: "agent",
+      primaryDepartmentId: "uuid-soporte",
+      departmentIds: ["uuid-soporte", "uuid-ventas"],
+      autoAssignEnabled: true,
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
+    expect(JSON.parse(init?.body as string)).toEqual({
+      name: "Carlos Gomez",
+      email: "carlos@isp.local",
+      role: "agent",
+      primaryDepartmentId: "uuid-soporte",
+      departmentIds: ["uuid-soporte", "uuid-ventas"],
+      autoAssignEnabled: true,
+    });
+    expect(result.agent.departmentIds).toEqual(["uuid-soporte", "uuid-ventas"]);
+    expect(result.agent.autoAssignEnabled).toBe(true);
+  });
+
+  it("updateAgent envía departmentIds en el payload", async () => {
+    const fetchMock = mockFetchOnce({
+      id: "a1",
+      name: "Carlos Gomez",
+      email: "carlos@isp.local",
+      role: "agent",
+      primaryDepartmentId: "uuid-soporte",
+      departmentIds: ["uuid-soporte", "uuid-ventas"],
+      active: true,
+      autoAssignEnabled: true,
+      mustChangePassword: false,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    const result = await updateAgent("a1", {
+      departmentIds: ["uuid-soporte", "uuid-ventas"],
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
+    expect(JSON.parse(init?.body as string)).toEqual({
+      departmentIds: ["uuid-soporte", "uuid-ventas"],
+    });
+    expect(result.departmentIds).toEqual(["uuid-soporte", "uuid-ventas"]);
+  });
 });

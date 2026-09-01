@@ -10,10 +10,12 @@ function user(overrides: Partial<SessionUser> & { id: string; name: string }): S
     role: "agent",
     active: true,
     primaryDepartmentId: null,
+    departmentIds: [],
     departmentSlug: null,
     departmentName: null,
     roleLabel: "Agente",
     autoAssignEnabled: false,
+    mustChangePassword: false,
     landing: "/bandeja",
     ...overrides,
   };

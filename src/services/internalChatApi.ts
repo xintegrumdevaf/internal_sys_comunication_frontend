@@ -1,4 +1,4 @@
-import { resolveApiUrl } from "@/shared/http/api-base";
+import { apiGet, apiPost } from "@/shared/http/http-client";
 
 export interface InternalParticipant {
   agentId: string;
@@ -48,8 +48,7 @@ export interface InternalMessage {
 export const internalChatApi = {
   // Listar hilos del agente
   getThreads: async (): Promise<InternalThread[]> => {
-    const res = await fetch(resolveApiUrl("/api/internal/threads"), { credentials: "include" });
-    const { data } = await res.json();
+    const data = await apiGet<InternalThread[]>("/api/internal/threads");
     return data ?? [];
   },
 
@@ -58,14 +57,7 @@ export const internalChatApi = {
     peerAgentId: string,
     referenceId?: string,
   ): Promise<InternalThread> => {
-    const res = await fetch(resolveApiUrl("/api/internal/threads/direct"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ peerAgentId, referenceId }),
-    });
-    const { data } = await res.json();
-    return data;
+    return apiPost<InternalThread>("/api/internal/threads/direct", { peerAgentId, referenceId });
   },
 
   // Obtener mensajes de un hilo
@@ -73,17 +65,17 @@ export const internalChatApi = {
     threadId: string,
     options?: { limit?: number; cursor?: string },
   ): Promise<{ messages: InternalMessage[]; nextCursor: string | null }> => {
-    const params = new URLSearchParams();
-    if (options?.limit) params.set("limit", String(options.limit));
-    if (options?.cursor) params.set("cursor", options.cursor);
-
-    const queryString = params.toString() ? `?${params.toString()}` : "";
-    const res = await fetch(
-      resolveApiUrl(`/api/internal/threads/${threadId}/messages${queryString}`),
-      { credentials: "include" },
+    const raw = await apiGet<{ data: InternalMessage[]; pagination?: { nextCursor?: string | null } }>(
+      `/api/internal/threads/${threadId}/messages`,
+      {
+        query: {
+          limit: options?.limit,
+          cursor: options?.cursor,
+        },
+        raw: true,
+      },
     );
-    const json = await res.json();
-    return { messages: json.data ?? [], nextCursor: json.pagination?.nextCursor ?? null };
+    return { messages: raw.data ?? [], nextCursor: raw.pagination?.nextCursor ?? null };
   },
 
   // Enviar mensaje (texto normal o quality_quote)
@@ -91,21 +83,11 @@ export const internalChatApi = {
     threadId: string,
     payload: { body: string; type?: string; contextData?: Record<string, unknown> },
   ): Promise<InternalMessage> => {
-    const res = await fetch(resolveApiUrl(`/api/internal/threads/${threadId}/messages`), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-    const { data } = await res.json();
-    return data;
+    return apiPost<InternalMessage>(`/api/internal/threads/${threadId}/messages`, payload);
   },
 
   // Marcar como leído
   markAsRead: async (threadId: string): Promise<void> => {
-    await fetch(resolveApiUrl(`/api/internal/threads/${threadId}/read`), {
-      method: "POST",
-      credentials: "include",
-    });
+    await apiPost<void>(`/api/internal/threads/${threadId}/read`);
   },
 };
