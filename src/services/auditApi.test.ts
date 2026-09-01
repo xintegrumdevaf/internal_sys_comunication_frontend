@@ -44,7 +44,8 @@ describe("auditApi", () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve(mockResponse),
+        statusText: "OK",
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
       vi.stubGlobal("fetch", fetchMock);
 
@@ -85,7 +86,8 @@ describe("auditApi", () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ data: mockStats }),
+        statusText: "OK",
+        text: () => Promise.resolve(JSON.stringify({ data: mockStats })),
       });
       vi.stubGlobal("fetch", fetchMock);
 

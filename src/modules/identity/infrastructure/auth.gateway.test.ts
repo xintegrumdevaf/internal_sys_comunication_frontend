@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { changePassword, fetchCurrentAgent, login, logout } from "./auth.gateway";
+import {
+  changePassword,
+  fetchCurrentAgent,
+  login,
+  logout,
+  updateMyAvailability,
+} from "./auth.gateway";
 
 function mockFetchOnce(status: number, body: unknown) {
   const fetchMock = vi.fn().mockResolvedValue({
@@ -67,4 +73,19 @@ describe("auth.gateway", () => {
       newPassword: "nueva12345",
     });
   });
+
+  it("updateMyAvailability hace PATCH a /api/auth/me/availability", async () => {
+    const fetchMock = mockFetchOnce(200, { id: "a1", name: "Ana", autoAssignEnabled: true });
+    const agent = await updateMyAvailability(true);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit | undefined];
+    expect(url).toBe("http://localhost:3000/api/auth/me/availability");
+    expect(init?.method).toBe("PATCH");
+    expect(init?.credentials).toBe("include");
+    expect(JSON.parse(init?.body as string)).toEqual({
+      autoAssignEnabled: true,
+    });
+    expect(agent.autoAssignEnabled).toBe(true);
+  });
 });
+

@@ -8,6 +8,8 @@ export type CreateAgentPayload = {
   email: string;
   role?: AgentRole;
   primaryDepartmentId?: string | null;
+  departmentIds?: string[];
+  autoAssignEnabled?: boolean;
 };
 
 export type CreateDepartmentPayload = {
@@ -23,6 +25,7 @@ export type UpdateDepartmentPayload = Partial<CreateDepartmentPayload> & {
 export type UpdateAgentPayload = Partial<CreateAgentPayload> & {
   active?: boolean;
   autoAssignEnabled?: boolean;
+  departmentIds?: string[];
 };
 
 /**

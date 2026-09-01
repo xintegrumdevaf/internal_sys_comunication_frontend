@@ -34,7 +34,7 @@ function buildUrl(path: string, query?: Record<string, string | number | undefin
   return url.toString();
 }
 
-async function parseEnvelope<T>(res: Response): Promise<T> {
+async function parseEnvelope<T>(res: Response, raw = false): Promise<T> {
   if (res.status === 204) {
     return undefined as T;
   }
@@ -50,6 +50,9 @@ async function parseEnvelope<T>(res: Response): Promise<T> {
     const message = errorBody?.error?.message || res.statusText || `Error HTTP ${res.status}`;
     throw new ApiError(message, res.status, errorBody?.error?.type);
   }
+  if (raw) {
+    return json as T;
+  }
   const body = json as { data?: T } | undefined;
   return (body?.data ?? (json as T)) as T;
 }
@@ -58,13 +61,9 @@ export type RequestOptions = {
   query?: Record<string, string | number | undefined>;
   /** Identidad del agente actor — se envía como header x-agent-id cuando el contrato lo exige. */
   agentId?: string | null;
+  /** Si es true, retorna el payload JSON completo sin desenvolver data. */
+  raw?: boolean;
 };
-
-// function buildHeaders(agentId?: string | null): HeadersInit {
-//   const headers: Record<string, string> = { "Content-Type": "application/json" };
-//   if (agentId) headers["x-agent-id"] = agentId;
-//   return headers;
-// }
 
 function buildHeaders(agentId?: string | null, isFormData = false): HeadersInit {
   const headers: Record<string, string> = {};
@@ -81,7 +80,7 @@ export async function apiGet<T>(path: string, options?: RequestOptions): Promise
     headers: buildHeaders(options?.agentId),
     credentials: "include",
   });
-  return parseEnvelope<T>(res);
+  return parseEnvelope<T>(res, options?.raw);
 }
 
 export async function apiPost<T>(
@@ -97,23 +96,8 @@ export async function apiPost<T>(
     body: isFormData ? (body as FormData) : body === undefined ? undefined : JSON.stringify(body),
     credentials: "include",
   });
-  return parseEnvelope<T>(res);
+  return parseEnvelope<T>(res, options?.raw);
 }
-
-// export async function apiPost<T>(
-//   path: string,
-//   body?: unknown,
-//   options?: RequestOptions,
-// ): Promise<T> {
-//   void getApiBaseUrl();
-//   const res = await fetch(resolveApiUrl(path), {
-//     method: "POST",
-//     headers: buildHeaders(options?.agentId),
-//     body: body === undefined ? undefined : JSON.stringify(body),
-//     credentials: "include",
-//   });
-//   return parseEnvelope<T>(res);
-// }
 
 export async function apiPut<T>(
   path: string,
@@ -127,7 +111,7 @@ export async function apiPut<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "include",
   });
-  return parseEnvelope<T>(res);
+  return parseEnvelope<T>(res, options?.raw);
 }
 
 export async function apiPatch<T>(
@@ -142,7 +126,7 @@ export async function apiPatch<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "include",
   });
-  return parseEnvelope<T>(res);
+  return parseEnvelope<T>(res, options?.raw);
 }
 
 export async function apiDelete<T>(path: string, options?: RequestOptions): Promise<T> {
@@ -152,5 +136,5 @@ export async function apiDelete<T>(path: string, options?: RequestOptions): Prom
     headers: buildHeaders(options?.agentId),
     credentials: "include",
   });
-  return parseEnvelope<T>(res);
+  return parseEnvelope<T>(res, options?.raw);
 }

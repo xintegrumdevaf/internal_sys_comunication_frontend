@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AsignacionesRouteImport } from './routes/asignaciones'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as BandejaRouteImport } from './routes/bandeja'
@@ -17,6 +18,7 @@ import { Route as CalidadRouteImport } from './routes/calidad'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as ChatInternoRouteImport } from './routes/chat-interno'
 import { Route as ConocimientoRouteImport } from './routes/conocimiento'
+import { Route as DashboardGerencialRouteImport } from './routes/dashboard-gerencial'
 import { Route as DepartamentosRouteImport } from './routes/departamentos'
 import { Route as EscalacionesRouteImport } from './routes/escalaciones'
 import { Route as FlujosRouteImport } from './routes/flujos'
@@ -27,6 +29,11 @@ import { Route as UsuariosRouteImport } from './routes/usuarios'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AsignacionesRoute = AsignacionesRouteImport.update({
@@ -64,6 +71,11 @@ const ConocimientoRoute = ConocimientoRouteImport.update({
   path: '/conocimiento',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardGerencialRoute = DashboardGerencialRouteImport.update({
+  id: '/dashboard-gerencial',
+  path: '/dashboard-gerencial',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DepartamentosRoute = DepartamentosRouteImport.update({
   id: '/departamentos',
   path: '/departamentos',
@@ -97,6 +109,7 @@ const UsuariosRoute = UsuariosRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
@@ -104,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/conocimiento': typeof ConocimientoRoute
+  '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
@@ -113,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
@@ -120,6 +135,7 @@ export interface FileRoutesByTo {
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/conocimiento': typeof ConocimientoRoute
+  '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
@@ -130,6 +146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/asignaciones': typeof AsignacionesRoute
   '/auditoria': typeof AuditoriaRoute
   '/bandeja': typeof BandejaRoute
@@ -137,6 +154,7 @@ export interface FileRoutesById {
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/conocimiento': typeof ConocimientoRoute
+  '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
   '/flujos': typeof FlujosRoute
@@ -148,6 +166,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analytics'
     | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
@@ -155,6 +174,7 @@ export interface FileRouteTypes {
     | '/campanas'
     | '/chat-interno'
     | '/conocimiento'
+    | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
     | '/flujos'
@@ -164,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analytics'
     | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
@@ -171,6 +192,7 @@ export interface FileRouteTypes {
     | '/campanas'
     | '/chat-interno'
     | '/conocimiento'
+    | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
     | '/flujos'
@@ -180,6 +202,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/analytics'
     | '/asignaciones'
     | '/auditoria'
     | '/bandeja'
@@ -187,6 +210,7 @@ export interface FileRouteTypes {
     | '/campanas'
     | '/chat-interno'
     | '/conocimiento'
+    | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
     | '/flujos'
@@ -197,6 +221,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   AsignacionesRoute: typeof AsignacionesRoute
   AuditoriaRoute: typeof AuditoriaRoute
   BandejaRoute: typeof BandejaRoute
@@ -204,6 +229,7 @@ export interface RootRouteChildren {
   CampanasRoute: typeof CampanasRoute
   ChatInternoRoute: typeof ChatInternoRoute
   ConocimientoRoute: typeof ConocimientoRoute
+  DashboardGerencialRoute: typeof DashboardGerencialRoute
   DepartamentosRoute: typeof DepartamentosRoute
   EscalacionesRoute: typeof EscalacionesRoute
   FlujosRoute: typeof FlujosRoute
@@ -219,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/asignaciones': {
@@ -270,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConocimientoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard-gerencial': {
+      id: '/dashboard-gerencial'
+      path: '/dashboard-gerencial'
+      fullPath: '/dashboard-gerencial'
+      preLoaderRoute: typeof DashboardGerencialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/departamentos': {
       id: '/departamentos'
       path: '/departamentos'
@@ -317,6 +357,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
   AsignacionesRoute: AsignacionesRoute,
   AuditoriaRoute: AuditoriaRoute,
   BandejaRoute: BandejaRoute,
@@ -324,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampanasRoute: CampanasRoute,
   ChatInternoRoute: ChatInternoRoute,
   ConocimientoRoute: ConocimientoRoute,
+  DashboardGerencialRoute: DashboardGerencialRoute,
   DepartamentosRoute: DepartamentosRoute,
   EscalacionesRoute: EscalacionesRoute,
   FlujosRoute: FlujosRoute,

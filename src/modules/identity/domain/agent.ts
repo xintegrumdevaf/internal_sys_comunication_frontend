@@ -7,8 +7,13 @@ export type AgentDto = {
   email: string;
   role: AgentRole;
   primaryDepartmentId: string | null;
+  /** Departamentos a los que pertenece el agente (multidepartamento). */
+  departmentIds: string[];
   active: boolean;
   /** Opt-in al pool de auto-asignación de su área principal. Default false. */
   autoAssignEnabled: boolean;
+  /** Requiere cambio obligatorio de contraseña en el próximo inicio de sesión. */
+  mustChangePassword: boolean;
   createdAt: string;
 };
+

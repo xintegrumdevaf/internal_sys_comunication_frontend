@@ -57,8 +57,8 @@
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(204 33% 10%);
 
-  --muted: hsl(206 12% 45%); /* #667781 */
-  --muted-foreground: hsl(206 12% 45%);
+  --muted: hsl(210 20% 93%); /* #E5E9EC Superficie tenue para badges y elementos muted */
+  --muted-foreground: hsl(206 12% 45%); /* #667781 Texto secundario */
 
   --primary: hsl(168 100% 33%); /* #00A884 Signature WhatsApp Green */
   --primary-hover: hsl(168 100% 28%); /* #008F6F */
@@ -90,8 +90,8 @@
   --popover: hsl(204 23% 16%);
   --popover-foreground: hsl(204 20% 93%);
 
-  --muted: hsl(202 11% 57%); /* #8696A0 Secondary text */
-  --muted-foreground: hsl(202 11% 57%);
+  --muted: hsl(203 26% 20%); /* #2A3942 Superficie oscura tenue para elementos muted */
+  --muted-foreground: hsl(202 11% 57%); /* #8696A0 Texto secundario */
 
   --primary: hsl(168 100% 33%); /* #00A884 WhatsApp Emerald */
   --primary-hover: hsl(168 100% 38%); /* #00C298 */

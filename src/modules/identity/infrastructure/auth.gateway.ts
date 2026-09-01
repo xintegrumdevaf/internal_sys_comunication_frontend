@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "@/shared/http/http-client";
+import { apiGet, apiPatch, apiPost } from "@/shared/http/http-client";
 import type { AgentDto } from "@/modules/identity/domain/agent";
 import { normalizeAgent } from "@/modules/identity/infrastructure/normalize-agent";
 
@@ -30,3 +30,13 @@ export async function fetchCurrentAgent(): Promise<AgentDto | null> {
 export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   return apiPost<void>("/api/auth/change-password", { currentPassword, newPassword });
 }
+
+/**
+ * Actualiza la disponibilidad del agente actual para entrar o salir del pool de auto-asignación.
+ * `PATCH /api/auth/me/availability` con `{ autoAssignEnabled: boolean }`.
+ */
+export async function updateMyAvailability(autoAssignEnabled: boolean): Promise<AgentDto> {
+  const agent = await apiPatch<AgentDto>("/api/auth/me/availability", { autoAssignEnabled });
+  return normalizeAgent(agent);
+}
+

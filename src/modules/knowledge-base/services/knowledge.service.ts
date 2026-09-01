@@ -1,5 +1,4 @@
 import { apiGet, apiPost, apiDelete } from "@/shared/http/http-client";
-import { getApiBaseUrl } from "@/shared/http/api-base";
 import type {
   KnowledgeDocument,
   FaqItem,
@@ -57,15 +56,13 @@ class KnowledgeService {
 
   async getMetrics(): Promise<RagMetrics> {
     try {
-      const API_BASE = getApiBaseUrl();
-      const res = await fetch(`${API_BASE}/api/rag/stats`);
-      if (res.ok) {
-        const stats = (await res.json()) as {
-          totalDocuments: number;
-          totalVectors: number;
-          totalFaqs: number;
-          embeddingModel?: string;
-        };
+      const stats = await apiGet<{
+        totalDocuments: number;
+        totalVectors: number;
+        totalFaqs: number;
+        embeddingModel?: string;
+      }>("/api/rag/stats");
+      if (stats) {
         return {
           totalDocuments: stats.totalDocuments,
           totalChunks: stats.totalVectors,

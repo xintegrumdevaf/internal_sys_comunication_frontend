@@ -23,10 +23,12 @@ const mockSession: SessionUser = {
   role: "admin",
   active: true,
   primaryDepartmentId: "dept_admin",
+  departmentIds: ["dept_admin"],
   departmentSlug: "admin",
   departmentName: "Administración",
   roleLabel: "Administrador General",
   autoAssignEnabled: false,
+  mustChangePassword: false,
   landing: "/",
 };
 

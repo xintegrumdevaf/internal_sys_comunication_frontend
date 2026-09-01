@@ -16,15 +16,24 @@ import {
   Building2,
   BrainCircuit,
   LayoutTemplate,
+  BarChart3,
   Menu,
   X,
   Sparkles,
+  Power,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { canAccessPath, modulesForSession } from "@/modules/identity/application/access-control";
-import { useAuth, useSession, useSessionLoading } from "@/modules/identity/application/use-session";
+import {
+  useAuth,
+  useMyAvailability,
+  useSession,
+  useSessionLoading,
+} from "@/modules/identity/application/use-session";
+import { MustChangePasswordModal } from "@/modules/identity/ui/MustChangePasswordModal";
+import { Switch } from "@/components/ui/switch";
 import { changePassword } from "@/modules/identity/infrastructure/auth.gateway";
 import {
   useRealtimeConnected,
@@ -42,6 +51,8 @@ type NavItem = {
 
 const moduleIcons: Record<string, LucideIcon> = {
   "/": LayoutDashboard,
+  "/analytics": BarChart3,
+  "/dashboard-gerencial": BarChart3,
   "/bandeja": Inbox,
   "/chat-interno": MessagesSquare,
   "/escalaciones": ArrowRightLeft,
@@ -73,6 +84,12 @@ export function AppShell({
   const session = useSession();
   const sessionLoading = useSessionLoading();
   const { logout } = useAuth();
+  const {
+    autoAssignEnabled,
+    setAvailability,
+    toggleAvailability,
+    updating: updatingAvailability,
+  } = useMyAvailability();
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -179,6 +196,24 @@ export function AppShell({
       <div className="p-3 border-t border-border bg-card relative shrink-0">
         {menuOpen && !changePasswordOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-30 animate-fade-up">
+            <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/30 border-b border-border">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`size-2 rounded-full ${
+                    autoAssignEnabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                  }`}
+                />
+                <span className="text-xs font-semibold text-foreground">
+                  {autoAssignEnabled ? "Disponible para asignación" : "En pausa / Desconectado"}
+                </span>
+              </div>
+              <Switch
+                checked={autoAssignEnabled}
+                disabled={updatingAvailability}
+                onCheckedChange={(checked) => void setAvailability(checked)}
+                aria-label="Disponibilidad para asignación automática"
+              />
+            </div>
             <button
               type="button"
               onClick={() => setChangePasswordOpen(true)}
@@ -240,6 +275,9 @@ export function AppShell({
 
   return (
     <div className="h-screen w-screen bg-background text-foreground font-sans flex overflow-hidden">
+      {/* Modal bloqueante obligatorio si mustChangePassword está activo */}
+      {session.mustChangePassword && <MustChangePasswordModal isOpen={true} />}
+
       {/* Sidebar Desktop */}
       <aside className="hidden lg:flex w-64 border-r border-border flex-col bg-card shrink-0 select-none">
         {renderNavContent()}
@@ -284,7 +322,34 @@ export function AppShell({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-[11px] text-muted-foreground font-medium">
+            {/* Toggle de Disponibilidad / Asignación en Header */}
+            <button
+              type="button"
+              disabled={updatingAvailability}
+              onClick={() => void toggleAvailability()}
+              title={
+                autoAssignEnabled
+                  ? "Disponible para asignación automática (clic para pausar)"
+                  : "En pausa / Desconectado de asignación (clic para activar)"
+              }
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold transition-all shadow-xs cursor-pointer ${
+                autoAssignEnabled
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                  : "bg-background border-border text-foreground/80 hover:bg-foreground/5 hover:text-foreground"
+              }`}
+            >
+              <span
+                className={`size-2 rounded-full ${
+                  autoAssignEnabled ? "bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20" : "bg-amber-500"
+                }`}
+              />
+              <span className="hidden sm:inline font-bold">
+                {autoAssignEnabled ? "Disponible" : "En pausa"}
+              </span>
+              <Power className="size-3 ml-0.5 text-muted-foreground" />
+            </button>
+
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-[11px] text-muted-foreground font-medium">
               {connected ? (
                 <>
                   <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -308,7 +373,7 @@ export function AppShell({
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-6 lg:p-8 flex flex-col">
           <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
         </div>
       </main>

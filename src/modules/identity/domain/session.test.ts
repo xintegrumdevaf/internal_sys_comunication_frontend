@@ -21,8 +21,10 @@ function makeAgent(overrides: Partial<AgentDto> = {}): AgentDto {
     email: "laura@isp.local",
     role: "agent",
     primaryDepartmentId: "dept_support",
+    departmentIds: ["dept_support"],
     active: true,
     autoAssignEnabled: false,
+    mustChangePassword: false,
     createdAt: new Date().toISOString(),
     ...overrides,
   };
@@ -50,8 +52,9 @@ describe("toSessionUser", () => {
   });
 
   it("no rompe si el agente no tiene departamento asignado (pool de triage)", () => {
-    const session = toSessionUser(makeAgent({ primaryDepartmentId: null }), departments);
+    const session = toSessionUser(makeAgent({ primaryDepartmentId: null, departmentIds: [] }), departments);
     expect(session.departmentSlug).toBeNull();
+    expect(session.departmentIds).toEqual([]);
   });
 
   it("el id de sesión es el agent.id real, sin transformación", () => {
@@ -70,6 +73,27 @@ describe("toSessionUser", () => {
     expect(
       toSessionUser(makeAgent({ autoAssignEnabled: true }), departments).autoAssignEnabled,
     ).toBe(true);
+  });
+
+  it("preserva mustChangePassword desde el agente", () => {
+    expect(toSessionUser(makeAgent(), departments).mustChangePassword).toBe(false);
+    expect(
+      toSessionUser(makeAgent({ mustChangePassword: true }), departments).mustChangePassword,
+    ).toBe(true);
+  });
+
+  it("normaliza departmentIds con fallback a primaryDepartmentId", () => {
+    const user = toSessionUser(
+      makeAgent({ primaryDepartmentId: "dept_support", departmentIds: [] }),
+      departments,
+    );
+    expect(user.departmentIds).toEqual(["dept_support"]);
+
+    const multiUser = toSessionUser(
+      makeAgent({ primaryDepartmentId: "dept_support", departmentIds: ["dept_support", "dept_sales"] }),
+      departments,
+    );
+    expect(multiUser.departmentIds).toEqual(["dept_support", "dept_sales"]);
   });
 });
 
