@@ -14,6 +14,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInternalNoteComposer";
 import { CasePanel } from "@/modules/cases/ui/CasePanel";
@@ -183,8 +184,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   // cambiar de conversacion para que el comportamiento automatico siga
   // siendo predecible.
   const [detailsOverride, setDetailsOverride] = useState<boolean | null>(null);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   useEffect(() => {
     setDetailsOverride(null);
+    setMobileDetailsOpen(false);
   }, [selectedId]);
   const detailsOpen = detailsOverride ?? Boolean(activeCase);
 
@@ -280,7 +283,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   return (
     <div className="flex flex-col gap-4 h-full flex-1 min-h-0 animate-fade-up">
       {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
-      <div className="bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs">
+      <div
+        className={`bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs ${
+          selectedId ? "hidden lg:block" : "block"
+        }`}
+      >
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1">
             {STATUS_TABS.map((tab) => (
@@ -490,8 +497,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
         >
           {selected ? (
             <>
-              <div className="p-3 sm:p-3.5 border-b border-border bg-background/60 flex items-center justify-between gap-2 shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2.5 sm:p-3.5 border-b border-border bg-background/60 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}
@@ -501,38 +508,39 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                     <ArrowLeft className="size-4" />
                   </button>
                   <div className="relative shrink-0">
-                    <ConversationAvatar conversation={selected} size="size-9" />
+                    <ConversationAvatar conversation={selected} size="size-8 sm:size-9" />
                     {isAutomationActive && (
                       <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.5 ring-2 ring-background">
-                        <Bot className="size-2.5" />
+                        <Bot className="size-2 sm:size-2.5" />
                       </span>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-bold truncate">
                       {conversationDisplayName(selected)}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
                       {selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}
                       {activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}
                       {activeCase ? ` · ${workflowLabel(activeCase.workflowType).label}` : ""}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   {isAutomationActive || activeCase?.status !== "HUMAN_ACTIVE" ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
-                      <Bot className="size-3.5 text-emerald-500 animate-pulse shrink-0" />
-                      <span>Asistente IA</span>
+                    <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                      <Bot className="size-3 sm:size-3.5 text-emerald-500 animate-pulse shrink-0" />
+                      <span className="hidden sm:inline">Asistente IA</span>
+                      <span className="sm:hidden">IA</span>
                       {assignedAgentName && (
-                        <span className="text-emerald-700/70 dark:text-emerald-300/70 font-normal">
-                          · Asignado a {isAssignedToMe ? "ti" : assignedAgentName}
+                        <span className="hidden md:inline text-emerald-700/70 dark:text-emerald-300/70 font-normal">
+                          · {isAssignedToMe ? "Tú" : assignedAgentName}
                         </span>
                       )}
                     </span>
                   ) : (
                     <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
                         isAssignedToMe
                           ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                           : "bg-foreground/5 text-muted-foreground ring-1 ring-border"
@@ -540,15 +548,20 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       title={isAssignedToOther ? "Solo esta persona puede responder" : undefined}
                     >
                       {isAssignedToMe ? (
-                        <UserCheck className="size-3.5" />
+                        <UserCheck className="size-3 sm:size-3.5" />
                       ) : (
-                        <Lock className="size-3" />
+                        <Lock className="size-2.5 sm:size-3" />
                       )}
-                      {isAssignedToMe
-                        ? "Atención Humana (Tú)"
-                        : assignedAgentName
-                          ? `Atendido por ${assignedAgentName}`
-                          : "Atención Manual"}
+                      <span className="hidden sm:inline">
+                        {isAssignedToMe
+                          ? "Atención Humana (Tú)"
+                          : assignedAgentName
+                            ? `Atendido por ${assignedAgentName}`
+                            : "Atención Manual"}
+                      </span>
+                      <span className="sm:hidden">
+                        {isAssignedToMe ? "Tú" : "Humano"}
+                      </span>
                     </span>
                   )}
                   {showClaim && (
@@ -556,10 +569,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       type="button"
                       disabled={busy}
                       onClick={() => void claim()}
-                      className="inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full bg-warning text-white font-bold shadow-sm hover:brightness-95 transition disabled:opacity-40"
+                      className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-warning text-white font-bold shadow-sm hover:brightness-95 transition disabled:opacity-40"
                     >
-                      <ShieldCheck className="size-3.5" />
-                      Reclamar caso
+                      <ShieldCheck className="size-3 sm:size-3.5" />
+                      <span className="hidden sm:inline">Reclamar caso</span>
+                      <span className="sm:hidden">Reclamar</span>
                     </button>
                   )}
                   {showTakeControl && (
@@ -567,33 +581,40 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       type="button"
                       disabled={busy}
                       onClick={() => void takeControl()}
-                      className="inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
+                      className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
                     >
-                      <UserCheck className="size-3.5" />
-                      Tomar control
+                      <UserCheck className="size-3 sm:size-3.5" />
+                      <span className="hidden sm:inline">Tomar control</span>
+                      <span className="sm:hidden">Control</span>
                     </button>
                   )}
                   <button
                     type="button"
-                    onClick={() => setDetailsOverride(!detailsOpen)}
+                    onClick={() => {
+                      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                        setMobileDetailsOpen((v) => !v);
+                      } else {
+                        setDetailsOverride(!detailsOpen);
+                      }
+                    }}
                     title={
-                      detailsOpen
+                      detailsOpen || mobileDetailsOpen
                         ? "Ocultar los datos del cliente y del caso"
                         : "Ver los datos del cliente y del caso"
                     }
-                    className={`inline-flex items-center gap-1.5 text-[11px] px-3.5 py-1.5 rounded-full font-bold transition ${
-                      detailsOpen
+                    className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-bold transition ${
+                      detailsOpen || mobileDetailsOpen
                         ? "bg-primary text-primary-foreground shadow-sm hover:brightness-95"
                         : "border border-border hover:bg-foreground/5"
                     }`}
                   >
                     {detailsOpen ? (
-                      <PanelRightClose className="size-3.5" />
+                      <PanelRightClose className="size-3 sm:size-3.5" />
                     ) : (
-                      <Info className="size-3.5" />
+                      <Info className="size-3 sm:size-3.5" />
                     )}
-                    Detalles
-                    {!detailsOpen && activeCase && (
+                    <span className="hidden xs:inline">Detalles</span>
+                    {activeCase && (
                       <span className="size-1.5 rounded-full bg-primary" />
                     )}
                   </button>
@@ -767,9 +788,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           )}
         </div>
 
-        {/* Panel de detalles del cliente/caso: pestaña colapsable, como un sidebar */}
+        {/* Panel de detalles del cliente/caso: en desktop como sidebar inline */}
         {detailsOpen ? (
-          <div className="col-span-12 lg:col-span-3 min-h-0 h-full flex flex-col gap-2">
+          <div className="hidden lg:flex lg:col-span-3 min-h-0 h-full flex-col gap-2">
             <div className="bg-card border border-border rounded-xl px-3 py-2 flex items-center justify-between shrink-0">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Detalles
@@ -806,6 +827,40 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           </div>
         ) : null}
       </section>
+
+      {/* Drawer para detalles en dispositivos móviles (no apila ni desplaza el chat) */}
+      <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[85vh] p-0 flex flex-col rounded-t-2xl sm:max-w-none border-t border-border z-50 bg-card"
+        >
+          <div className="p-3.5 border-b border-border flex items-center justify-between shrink-0 bg-muted/30">
+            <SheetTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Detalles del Caso y Cliente
+            </SheetTitle>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+            <CasePanel
+              caseDto={activeCase}
+              customerName={selected ? conversationDisplayName(selected) : undefined}
+              customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
+              busy={busy}
+              canWrite={canWriteCase}
+              departments={departments}
+              assignedAgentName={assignedAgentName}
+              onOpenSummary={() => {
+                if (activeCase) void loadCaseSummary(activeCase.id);
+                setSummaryOpen(true);
+              }}
+              onComplete={(note) => void complete(note)}
+              onCancel={(reason) => void cancel(reason)}
+              onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
+              onDisableAutomation={(reason) => void disableAutomation(reason)}
+              onReactivateAutomation={() => void reactivateAutomation()}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <CaseSummaryDialog
         open={summaryOpen}

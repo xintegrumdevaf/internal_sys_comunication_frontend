@@ -373,7 +373,7 @@ export function AppShell({
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-6 lg:p-8 flex flex-col">
           <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
         </div>
       </main>

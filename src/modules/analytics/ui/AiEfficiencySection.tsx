@@ -1,3 +1,4 @@
+import { formatWorkflow, formatEscalationReason, formatStep } from "../domain/analytics-translations";
 import { useMemo } from "react";
 import {
   ResponsiveContainer,
@@ -46,7 +47,8 @@ export function AiEfficiencySection({
   const workflowData = useMemo(() => {
     return (
       distribution?.byWorkflow.map((item) => ({
-        name: item.workflowType.replace(/_/g, " "),
+        id: item.workflowType,
+        name: formatWorkflow(item.workflowType),
         count: item.count,
         percentage: item.percentage,
       })) ?? []
@@ -56,7 +58,8 @@ export function AiEfficiencySection({
   const escalationData = useMemo(() => {
     return (
       distribution?.topEscalationReasons.slice(0, 5).map((item) => ({
-        name: item.reason,
+        id: item.reason,
+        name: formatEscalationReason(item.reason),
         count: item.count,
         percentage: item.percentage,
       })) ?? []
@@ -144,9 +147,14 @@ export function AiEfficiencySection({
             {escalationData.map((item, idx) => (
               <div key={idx} className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-foreground truncate max-w-[70%]">
-                    {item.name}
-                  </span>
+                  <div className="max-w-[70%] truncate">
+                    <span className="font-semibold text-foreground block truncate">
+                      {item.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-mono font-normal block truncate">
+                      {item.id}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2 font-mono text-[11px]">
                     <span className="text-muted-foreground">{item.count} casos</span>
                     <span className="font-bold text-rose-600 dark:text-rose-400">
@@ -218,14 +226,14 @@ export function AiEfficiencySection({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {step.workflowType.replace(/_/g, " ")}
+                    {formatWorkflow(step.workflowType)}
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 font-mono text-[10px] font-bold">
                     {step.percentage.toFixed(1)}% fricción
                   </span>
                 </div>
                 <h4 className="text-xs font-bold text-foreground truncate">
-                  Paso: <span className="font-mono text-primary">{step.state}</span>
+                  Paso: <span className="font-mono text-primary">{formatStep(step.state)}</span> <span className="text-[10px] text-muted-foreground font-normal">({step.state})</span>
                 </h4>
               </div>
 
