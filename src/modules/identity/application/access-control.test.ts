@@ -86,11 +86,13 @@ describe("canAccessPath", () => {
     expect(canAccessPath(session, "/calidad")).toBe(false);
   });
 
-  it("un manager sí ve escalaciones/asignaciones/calidad pero no admin-only", () => {
+  it("un manager sí ve escalaciones/asignaciones/calidad/campañas pero no admin-only", () => {
     const session = makeSession({ role: "manager" });
     expect(canAccessPath(session, "/escalaciones")).toBe(true);
     expect(canAccessPath(session, "/asignaciones")).toBe(true);
     expect(canAccessPath(session, "/calidad")).toBe(true);
+    expect(canAccessPath(session, "/campanas")).toBe(true);
+    expect(canAccessPath(session, "/plantillas")).toBe(true);
     expect(canAccessPath(session, "/usuarios")).toBe(false);
   });
 
@@ -100,6 +102,7 @@ describe("canAccessPath", () => {
     expect(canAccessPath(session, "/flujos")).toBe(true);
     expect(canAccessPath(session, "/escalaciones")).toBe(true);
     expect(canAccessPath(session, "/calidad")).toBe(true);
+    expect(canAccessPath(session, "/campanas")).toBe(true);
   });
 
   it("bandeja/chat-interno/dashboard son accesibles para cualquier rol autenticado", () => {
@@ -116,11 +119,13 @@ describe("modulesForSession", () => {
     expect(items).toEqual(["/", "/bandeja", "/chat-interno"]);
   });
 
-  it("manager suma escalaciones, asignaciones y calidad", () => {
+  it("manager suma escalaciones, asignaciones, calidad y campañas masivas", () => {
     const items = modulesForSession(makeSession({ role: "manager" })).map((m) => m.to);
     expect(items).toContain("/escalaciones");
     expect(items).toContain("/asignaciones");
     expect(items).toContain("/calidad");
+    expect(items).toContain("/campanas");
+    expect(items).toContain("/plantillas");
     expect(items).not.toContain("/usuarios");
   });
 

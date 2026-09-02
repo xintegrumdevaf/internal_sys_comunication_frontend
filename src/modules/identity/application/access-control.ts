@@ -27,8 +27,6 @@ const ADMIN_ONLY_PATHS = new Set([
   "/departamentos",
   "/flujos",
   "/auditoria",
-  "/campanas",
-  "/plantillas",
 ]);
 const SUPERVISOR_PATHS = new Set([
   "/escalaciones",
@@ -37,6 +35,8 @@ const SUPERVISOR_PATHS = new Set([
   "/conocimiento",
   "/analytics",
   "/dashboard-gerencial",
+  "/campanas",
+  "/plantillas",
 ]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno"]);
 
@@ -65,6 +65,8 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
       { label: "Carga de trabajo", to: "/asignaciones" },
       { label: "Calidad", to: "/calidad" },
       { label: "Base de Conocimiento", to: "/conocimiento" },
+      { label: "Campañas masivas", to: "/campanas" },
+      { label: "Plantillas Meta", to: "/plantillas" },
     );
   }
   if (session.role === "admin") {
@@ -72,8 +74,6 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
       { label: "Agentes", to: "/usuarios", adminOnly: true },
       { label: "Departamentos", to: "/departamentos", adminOnly: true },
       { label: "Automatizaciones", to: "/flujos", adminOnly: true },
-      { label: "Campañas masivas", to: "/campanas", adminOnly: true },
-      { label: "Plantillas Meta", to: "/plantillas", adminOnly: true },
       { label: "Auditoría", to: "/auditoria", adminOnly: true },
     );
   }
