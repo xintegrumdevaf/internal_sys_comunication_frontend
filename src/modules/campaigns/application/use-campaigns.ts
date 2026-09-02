@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Campaign, CreateCampaignPayload } from '../domain/campaign';
-import { campaignsGateway } from '../infrastructure/campaigns.gateway';
+import { useState, useEffect, useCallback } from "react";
+import { Campaign, CreateCampaignPayload } from "../domain/campaign";
+import { campaignsGateway } from "../infrastructure/campaigns.gateway";
 
 export function useCampaignsList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -11,7 +11,7 @@ export function useCampaignsList() {
       const data = await campaignsGateway.listCampaigns();
       setCampaigns(data);
     } catch (err) {
-      console.error('Error fetching campaigns:', err);
+      console.error("Error fetching campaigns:", err);
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +45,7 @@ export function useCampaignDetails(campaignId: string | null) {
         if (isMounted) setCampaign(data);
       })
       .catch((err) => {
-        console.error('Error fetching campaign details:', err);
+        console.error("Error fetching campaign details:", err);
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -71,7 +71,7 @@ export function useCreateCampaign() {
       }
       return campaign;
     } catch (err) {
-      console.error('Error creating campaign:', err);
+      console.error("Error creating campaign:", err);
       throw err;
     } finally {
       setIsSubmitting(false);

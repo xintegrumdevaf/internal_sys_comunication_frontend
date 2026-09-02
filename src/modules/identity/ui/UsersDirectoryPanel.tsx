@@ -314,7 +314,9 @@ export function UsersDirectoryPanel() {
                 Departamentos adicionales asignados (Multidepartamento)
               </span>
               {departments.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No hay departamentos activos configurados.</p>
+                <p className="text-xs text-muted-foreground italic">
+                  No hay departamentos activos configurados.
+                </p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg border border-border bg-background">
                   {departments.map((d) => {
@@ -367,12 +369,15 @@ export function UsersDirectoryPanel() {
                 <div>
                   <p className="text-xs font-bold text-foreground">Asignación automática inicial</p>
                   <p className="text-[11px] text-muted-foreground">
-                    Define si el agente estará inmediatamente disponible para recibir conversaciones distribuidas.
+                    Define si el agente estará inmediatamente disponible para recibir conversaciones
+                    distribuidas.
                   </p>
                 </div>
                 <Switch
                   checked={form.autoAssignEnabled}
-                  onCheckedChange={(checked) => setForm((f) => ({ ...f, autoAssignEnabled: checked }))}
+                  onCheckedChange={(checked) =>
+                    setForm((f) => ({ ...f, autoAssignEnabled: checked }))
+                  }
                   aria-label="Asignación automática inicial"
                 />
               </div>

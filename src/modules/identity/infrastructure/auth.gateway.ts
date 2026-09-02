@@ -39,4 +39,3 @@ export async function updateMyAvailability(autoAssignEnabled: boolean): Promise<
   const agent = await apiPatch<AgentDto>("/api/auth/me/availability", { autoAssignEnabled });
   return normalizeAgent(agent);
 }
-

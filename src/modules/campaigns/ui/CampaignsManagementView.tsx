@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { CampaignsCatalog } from './CampaignsCatalog';
-import { CampaignWizardDialog } from './CampaignWizardDialog';
-import { useCampaignsList } from '../application/use-campaigns';
+import React, { useState } from "react";
+import { CampaignsCatalog } from "./CampaignsCatalog";
+import { CampaignWizardDialog } from "./CampaignWizardDialog";
+import { useCampaignsList } from "../application/use-campaigns";
 
 export const CampaignsManagementView: React.FC = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);

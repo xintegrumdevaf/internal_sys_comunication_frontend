@@ -154,10 +154,7 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
           </thead>
           <tbody className="divide-y divide-border">
             {agents.map((agent) => (
-              <tr
-                key={agent.agentId}
-                className="hover:bg-foreground/5 transition-colors group"
-              >
+              <tr key={agent.agentId} className="hover:bg-foreground/5 transition-colors group">
                 {/* Nombre y departamento */}
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2.5 min-w-0">

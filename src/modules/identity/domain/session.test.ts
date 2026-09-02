@@ -52,7 +52,10 @@ describe("toSessionUser", () => {
   });
 
   it("no rompe si el agente no tiene departamento asignado (pool de triage)", () => {
-    const session = toSessionUser(makeAgent({ primaryDepartmentId: null, departmentIds: [] }), departments);
+    const session = toSessionUser(
+      makeAgent({ primaryDepartmentId: null, departmentIds: [] }),
+      departments,
+    );
     expect(session.departmentSlug).toBeNull();
     expect(session.departmentIds).toEqual([]);
   });
@@ -90,7 +93,10 @@ describe("toSessionUser", () => {
     expect(user.departmentIds).toEqual(["dept_support"]);
 
     const multiUser = toSessionUser(
-      makeAgent({ primaryDepartmentId: "dept_support", departmentIds: ["dept_support", "dept_sales"] }),
+      makeAgent({
+        primaryDepartmentId: "dept_support",
+        departmentIds: ["dept_support", "dept_sales"],
+      }),
       departments,
     );
     expect(multiUser.departmentIds).toEqual(["dept_support", "dept_sales"]);

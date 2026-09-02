@@ -16,7 +16,7 @@ describe("MessageTemplateFormDialog", () => {
         onSubmit={vi.fn()}
         connections={mockConnections}
         submitting={false}
-      />
+      />,
     );
 
     expect(screen.queryByText("Crear plantilla")).toBeNull();
@@ -30,12 +30,12 @@ describe("MessageTemplateFormDialog", () => {
         onSubmit={vi.fn()}
         connections={mockConnections}
         submitting={false}
-      />
+      />,
     );
 
     const nameInput = screen.getByPlaceholderText("pedido_confirmado") as HTMLInputElement;
     const bodyTextarea = screen.getByPlaceholderText(
-      'Escribe tu mensaje. Toca "Agregar variable" para insertar campos como {{1}}, {{2}}...'
+      'Escribe tu mensaje. Toca "Agregar variable" para insertar campos como {{1}}, {{2}}...',
     ) as HTMLTextAreaElement;
 
     // Simular escritura de usuario
@@ -53,7 +53,7 @@ describe("MessageTemplateFormDialog", () => {
         onSubmit={vi.fn()}
         connections={mockConnections}
         submitting={false}
-      />
+      />,
     );
 
     // Reabrir modal (isOpen = true)
@@ -64,12 +64,12 @@ describe("MessageTemplateFormDialog", () => {
         onSubmit={vi.fn()}
         connections={mockConnections}
         submitting={false}
-      />
+      />,
     );
 
     const newNameInput = screen.getByPlaceholderText("pedido_confirmado") as HTMLInputElement;
     const newBodyTextarea = screen.getByPlaceholderText(
-      'Escribe tu mensaje. Toca "Agregar variable" para insertar campos como {{1}}, {{2}}...'
+      'Escribe tu mensaje. Toca "Agregar variable" para insertar campos como {{1}}, {{2}}...',
     ) as HTMLTextAreaElement;
 
     expect(newNameInput.value).toBe("");

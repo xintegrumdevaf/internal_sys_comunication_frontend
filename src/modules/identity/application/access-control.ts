@@ -22,12 +22,7 @@ export function canAccessDepartment(
   return session.primaryDepartmentId === department.id;
 }
 
-const ADMIN_ONLY_PATHS = new Set([
-  "/usuarios",
-  "/departamentos",
-  "/flujos",
-  "/auditoria",
-]);
+const ADMIN_ONLY_PATHS = new Set(["/usuarios", "/departamentos", "/flujos", "/auditoria"]);
 const SUPERVISOR_PATHS = new Set([
   "/escalaciones",
   "/asignaciones",
@@ -79,4 +74,3 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   }
   return base;
 }
-

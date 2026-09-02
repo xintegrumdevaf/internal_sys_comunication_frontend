@@ -16,4 +16,3 @@ export type AgentDto = {
   mustChangePassword: boolean;
   createdAt: string;
 };
-

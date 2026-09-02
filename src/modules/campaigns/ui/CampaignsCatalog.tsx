@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { toast } from 'sonner';
-import { Campaign, CampaignStatus } from '../domain/campaign';
-import { campaignStatusMeta, formatRoutingBehaviorSummary } from '../domain/campaign';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from "react";
+import { toast } from "sonner";
+import { Campaign, CampaignStatus } from "../domain/campaign";
+import { campaignStatusMeta, formatRoutingBehaviorSummary } from "../domain/campaign";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Search,
   Plus,
@@ -33,9 +33,9 @@ import {
   Megaphone,
   Eye,
   RotateCcw,
-} from 'lucide-react';
-import { useCampaignActions } from '../application/use-campaigns';
-import { CampaignDetailsDrawer } from './CampaignDetailsDrawer';
+} from "lucide-react";
+import { useCampaignActions } from "../application/use-campaigns";
+import { CampaignDetailsDrawer } from "./CampaignDetailsDrawer";
 
 type CampaignsCatalogProps = {
   campaigns: Campaign[];
@@ -50,8 +50,8 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   onNewCampaignClick,
   onRefresh,
 }) => {
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
@@ -60,7 +60,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
 
   const filteredCampaigns = campaigns.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+    const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -68,10 +68,12 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
     if (!deleteTargetId) return;
     try {
       await deleteCampaign(deleteTargetId);
-      toast.success('Campaña eliminada correctamente');
+      toast.success("Campaña eliminada correctamente");
       onRefresh?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Solo se pueden eliminar campañas en borrador');
+      toast.error(
+        err instanceof Error ? err.message : "Solo se pueden eliminar campañas en borrador",
+      );
     } finally {
       setDeleteTargetId(null);
     }
@@ -80,30 +82,30 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   const handleStart = async (id: string) => {
     try {
       await startCampaign(id);
-      toast.success('Campaña iniciada');
+      toast.success("Campaña iniciada");
       onRefresh?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'No se pudo iniciar la campaña');
+      toast.error(err instanceof Error ? err.message : "No se pudo iniciar la campaña");
     }
   };
 
   const handleSuspend = async (id: string) => {
     try {
       await suspendCampaign(id);
-      toast.info('Campaña suspendida');
+      toast.info("Campaña suspendida");
       onRefresh?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'No se pudo suspender la campaña');
+      toast.error(err instanceof Error ? err.message : "No se pudo suspender la campaña");
     }
   };
 
   const handleResume = async (id: string) => {
     try {
       await resumeCampaign(id);
-      toast.success('Campaña reanudada');
+      toast.success("Campaña reanudada");
       onRefresh?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'No se pudo reanudar la campaña');
+      toast.error(err instanceof Error ? err.message : "No se pudo reanudar la campaña");
     }
   };
 
@@ -120,7 +122,10 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
             Envía mensajes masivos a tus contactos y sigue el progreso de cada campaña.
           </p>
         </div>
-        <Button onClick={onNewCampaignClick} className="gap-2 w-full sm:w-auto font-bold text-xs shadow-sm">
+        <Button
+          onClick={onNewCampaignClick}
+          className="gap-2 w-full sm:w-auto font-bold text-xs shadow-sm"
+        >
           <Plus className="w-4 h-4" />
           Nueva campaña
         </Button>
@@ -185,12 +190,12 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                   const meta = campaignStatusMeta(c.status);
                   const behavior = formatRoutingBehaviorSummary(c.routingConfig);
                   const progressStr = `${c.sentCount}/${c.totalRecipients || 0}`;
-                  const createdDateStr = new Date(c.createdAt).toLocaleDateString('es-CO', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
+                  const createdDateStr = new Date(c.createdAt).toLocaleDateString("es-CO", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   });
 
                   return (
@@ -235,7 +240,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                             <Eye className="w-3.5 h-3.5" />
                           </Button>
 
-                          {c.status === 'RUNNING' && (
+                          {c.status === "RUNNING" && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -248,7 +253,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                             </Button>
                           )}
 
-                          {c.status === 'SUSPENDED' && (
+                          {c.status === "SUSPENDED" && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -261,7 +266,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                             </Button>
                           )}
 
-                          {c.status === 'DRAFT' && (
+                          {c.status === "DRAFT" && (
                             <>
                               <Button
                                 variant="outline"
@@ -286,7 +291,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
                             </>
                           )}
 
-                          {(c.status === 'COMPLETED' || c.status === 'FINISHED') && (
+                          {(c.status === "COMPLETED" || c.status === "FINISHED") && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -322,12 +327,16 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar campaña?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará la campaña y todos sus destinatarios asociados.
+              Esta acción no se puede deshacer. Se eliminará la campaña y todos sus destinatarios
+              asociados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-500 hover:bg-red-600"
+            >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

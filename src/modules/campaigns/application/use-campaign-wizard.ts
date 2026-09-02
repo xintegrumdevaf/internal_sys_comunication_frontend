@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import type { MessageTemplate } from '@/modules/message-templates/domain/message-template';
+import { useState, useMemo } from "react";
+import type { MessageTemplate } from "@/modules/message-templates/domain/message-template";
 import {
   ChatRoutingConfig,
   CampaignRecipient,
@@ -7,16 +7,16 @@ import {
   validateCampaignMessage,
   parseCsvText,
   buildCampaignRecipientsFromRows,
-} from '../domain/campaign';
+} from "../domain/campaign";
 
 export function useCampaignWizard() {
   const [activeStep, setActiveStep] = useState<number>(1);
 
   // Step 1 state: Mensaje & Plantilla Meta
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [quickMode, setQuickMode] = useState(true);
   const [intervalSeconds, setIntervalSeconds] = useState(45);
-  const [messageText, setMessageText] = useState('');
+  const [messageText, setMessageText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
   const [templateVariableValues, setTemplateVariableValues] = useState<Record<string, string>>({});
 
@@ -28,9 +28,9 @@ export function useCampaignWizard() {
 
   // Step 3 state: Enrutamiento del chat
   const [routingConfig, setRoutingConfig] = useState<ChatRoutingConfig>({
-    chatStatus: 'closed',
-    departmentName: '',
-    assignedUserName: '',
+    chatStatus: "closed",
+    departmentName: "",
+    assignedUserName: "",
     keepAssigned: false,
     delegateToBot: false,
     forceChatUpdate: false,
@@ -52,7 +52,7 @@ export function useCampaignWizard() {
       const initialVars: Record<string, string> = {};
       if (template.variables && template.variables.length > 0) {
         template.variables.forEach((v) => {
-          initialVars[v] = '';
+          initialVars[v] = "";
         });
       }
       setTemplateVariableValues(initialVars);
@@ -89,10 +89,10 @@ export function useCampaignWizard() {
 
   const resetWizard = () => {
     setActiveStep(1);
-    setName('');
+    setName("");
     setQuickMode(true);
     setIntervalSeconds(45);
-    setMessageText('');
+    setMessageText("");
     setSelectedTemplate(null);
     setTemplateVariableValues({});
     setImportedRecipients([]);
@@ -100,9 +100,9 @@ export function useCampaignWizard() {
     setPreviewRows([]);
     setImportSummary({ total: 0, valid: 0, invalid: 0 });
     setRoutingConfig({
-      chatStatus: 'closed',
-      departmentName: '',
-      assignedUserName: '',
+      chatStatus: "closed",
+      departmentName: "",
+      assignedUserName: "",
       keepAssigned: false,
       delegateToBot: false,
       forceChatUpdate: false,

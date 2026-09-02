@@ -559,9 +559,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                             ? `Atendido por ${assignedAgentName}`
                             : "Atención Manual"}
                       </span>
-                      <span className="sm:hidden">
-                        {isAssignedToMe ? "Tú" : "Humano"}
-                      </span>
+                      <span className="sm:hidden">{isAssignedToMe ? "Tú" : "Humano"}</span>
                     </span>
                   )}
                   {showClaim && (
@@ -614,9 +612,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       <Info className="size-3 sm:size-3.5" />
                     )}
                     <span className="hidden xs:inline">Detalles</span>
-                    {activeCase && (
-                      <span className="size-1.5 rounded-full bg-primary" />
-                    )}
+                    {activeCase && <span className="size-1.5 rounded-full bg-primary" />}
                   </button>
                 </div>
               </div>

@@ -1,19 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   MessageSquare,
   Users,
@@ -36,13 +42,13 @@ import {
   X,
   LayoutTemplate,
   Sparkles,
-} from 'lucide-react';
-import { CampaignPreviewPanel } from './CampaignPreviewPanel';
-import { useCampaignWizard } from '../application/use-campaign-wizard';
-import { useCreateCampaign } from '../application/use-campaigns';
-import { useMessageTemplates } from '@/modules/message-templates/application/use-message-templates';
-import { templateCategoryLabel } from '@/modules/message-templates/domain/message-template';
-import { useDepartmentsQuery, useDirectoryUsers } from '@/modules/identity/application/use-session';
+} from "lucide-react";
+import { CampaignPreviewPanel } from "./CampaignPreviewPanel";
+import { useCampaignWizard } from "../application/use-campaign-wizard";
+import { useCreateCampaign } from "../application/use-campaigns";
+import { useMessageTemplates } from "@/modules/message-templates/application/use-message-templates";
+import { templateCategoryLabel } from "@/modules/message-templates/domain/message-template";
+import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
 
 type CampaignWizardDialogProps = {
   open: boolean;
@@ -62,7 +68,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
   const realDirectoryUsers = useDirectoryUsers();
 
   const approvedTemplates = useMemo(() => {
-    return availableTemplates.filter((t) => t.status === 'APPROVED');
+    return availableTemplates.filter((t) => t.status === "APPROVED");
   }, [availableTemplates]);
 
   const handleFormSubmit = async () => {
@@ -85,24 +91,24 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             forceContactUpdate: false,
           },
         },
-        wizard.importedFile
+        wizard.importedFile,
       );
       wizard.resetWizard();
       onOpenChange(false);
       onCampaignCreated?.();
     } catch (err) {
-      console.error('Error creating campaign:', err);
+      console.error("Error creating campaign:", err);
     }
   };
 
   const handleDownloadExample = () => {
     const csvContent =
-      'number,name,body,city\n+573001234567,Carlos Pérez,Hola Carlos,Bogotá\n+573009876543,Ana Gómez,Hola Ana,Medellín\n';
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      "number,name,body,city\n+573001234567,Carlos Pérez,Hola Carlos,Bogotá\n+573009876543,Ana Gómez,Hola Ana,Medellín\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'destinatarios_ejemplo.csv';
+    a.download = "destinatarios_ejemplo.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -115,7 +121,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
     wizard.setMessageText((prev) => `${prev}{{${variableName}}}`);
   };
 
-  const emojis = ['😀', '😁', '😊', '👍', '🙏', '👉', '🔥', '🎉', '💡', '📢', '✅', '⭐'];
+  const emojis = ["😀", "😁", "😊", "👍", "🙏", "👉", "🔥", "🎉", "💡", "📢", "✅", "⭐"];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,10 +143,10 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             <button
               type="button"
               className={cx(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left',
+                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left",
                 wizard.activeStep === 1
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                  : 'hover:bg-muted/80 text-muted-foreground'
+                  ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                  : "hover:bg-muted/80 text-muted-foreground",
               )}
               onClick={() => wizard.setActiveStep(1)}
             >
@@ -156,10 +162,10 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             <button
               type="button"
               className={cx(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left',
+                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left",
                 wizard.activeStep === 2
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                  : 'hover:bg-muted/80 text-muted-foreground'
+                  ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                  : "hover:bg-muted/80 text-muted-foreground",
               )}
               onClick={() => wizard.setActiveStep(2)}
             >
@@ -175,10 +181,10 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             <button
               type="button"
               className={cx(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left',
+                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left",
                 wizard.activeStep === 3
-                  ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                  : 'hover:bg-muted/80 text-muted-foreground'
+                  ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                  : "hover:bg-muted/80 text-muted-foreground",
               )}
               onClick={() => wizard.setActiveStep(3)}
             >
@@ -187,7 +193,9 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                   <GitBranch className="w-4 h-4" />
                   Enrutamiento
                 </div>
-                <span className="text-[9px] uppercase tracking-wider opacity-70 ml-6">AVANZADO</span>
+                <span className="text-[9px] uppercase tracking-wider opacity-70 ml-6">
+                  AVANZADO
+                </span>
               </div>
             </button>
           </div>
@@ -239,16 +247,19 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                         </TooltipProvider>
                       </div>
                       {wizard.selectedTemplate && (
-                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 shrink-0 whitespace-nowrap px-2 py-0.5">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 shrink-0 whitespace-nowrap px-2 py-0.5"
+                        >
                           <CheckCircle2 className="w-3 h-3 shrink-0" /> Aprobada por Meta
                         </Badge>
                       )}
                     </div>
 
                     <Select
-                      value={wizard.selectedTemplate?.id || 'none'}
+                      value={wizard.selectedTemplate?.id || "none"}
                       onValueChange={(val) => {
-                        if (val === 'none') {
+                        if (val === "none") {
                           wizard.handleClearTemplate();
                         } else {
                           const found = availableTemplates.find((t) => t.id === val);
@@ -257,11 +268,17 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       }}
                     >
                       <SelectTrigger className="w-full text-xs h-9 bg-background min-w-0">
-                        <SelectValue placeholder={loadingTemplates ? "Cargando plantillas..." : "Seleccionar plantilla..."} />
+                        <SelectValue
+                          placeholder={
+                            loadingTemplates ? "Cargando plantillas..." : "Seleccionar plantilla..."
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80 w-[var(--radix-select-trigger-width)]">
                         <SelectItem value="none" className="cursor-pointer">
-                          <span className="text-muted-foreground italic truncate">Redactar mensaje personalizado (Sin plantilla)</span>
+                          <span className="text-muted-foreground italic truncate">
+                            Redactar mensaje personalizado (Sin plantilla)
+                          </span>
                         </SelectItem>
                         {approvedTemplates.length > 0 && (
                           <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded my-1">
@@ -269,27 +286,41 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                           </div>
                         )}
                         {approvedTemplates.map((tpl) => (
-                          <SelectItem key={tpl.id} value={tpl.id} className="text-xs cursor-pointer py-2">
+                          <SelectItem
+                            key={tpl.id}
+                            value={tpl.id}
+                            className="text-xs cursor-pointer py-2"
+                          >
                             <div className="flex items-center gap-2 truncate">
-                              <span className="font-mono text-primary font-bold truncate">{tpl.name}</span>
+                              <span className="font-mono text-primary font-bold truncate">
+                                {tpl.name}
+                              </span>
                               <span className="text-[10px] text-muted-foreground truncate shrink-0">
                                 ({templateCategoryLabel(tpl.category)})
                               </span>
                             </div>
                           </SelectItem>
                         ))}
-                        {availableTemplates.filter((t) => t.status !== 'APPROVED').length > 0 && (
+                        {availableTemplates.filter((t) => t.status !== "APPROVED").length > 0 && (
                           <>
                             <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/60 rounded my-1">
                               Otras plantillas
                             </div>
                             {availableTemplates
-                              .filter((t) => t.status !== 'APPROVED')
+                              .filter((t) => t.status !== "APPROVED")
                               .map((tpl) => (
-                                <SelectItem key={tpl.id} value={tpl.id} className="text-xs cursor-pointer py-2">
+                                <SelectItem
+                                  key={tpl.id}
+                                  value={tpl.id}
+                                  className="text-xs cursor-pointer py-2"
+                                >
                                   <div className="flex items-center gap-2 truncate">
-                                    <span className="font-mono text-muted-foreground truncate">{tpl.name}</span>
-                                    <span className="text-[10px] opacity-75 shrink-0">({tpl.status})</span>
+                                    <span className="font-mono text-muted-foreground truncate">
+                                      {tpl.name}
+                                    </span>
+                                    <span className="text-[10px] opacity-75 shrink-0">
+                                      ({tpl.status})
+                                    </span>
                                   </div>
                                 </SelectItem>
                               ))}
@@ -304,8 +335,13 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                         <div className="flex items-center justify-between gap-2 text-xs">
                           <div className="flex items-center gap-2 min-w-0 truncate">
                             <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
-                            <span className="font-bold text-foreground font-mono truncate">{wizard.selectedTemplate.name}</span>
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 border-0 shrink-0">
+                            <span className="font-bold text-foreground font-mono truncate">
+                              {wizard.selectedTemplate.name}
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] px-1.5 py-0 bg-emerald-500/15 text-emerald-600 border-0 shrink-0"
+                            >
                               {templateCategoryLabel(wizard.selectedTemplate.category)}
                             </Badge>
                           </div>
@@ -320,28 +356,31 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                           </Button>
                         </div>
 
-                        {wizard.selectedTemplate.variables && wizard.selectedTemplate.variables.length > 0 && (
-                          <div className="pt-2 border-t border-emerald-500/20 space-y-2">
-                            <label className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 block">
-                              Valores de muestra para variables de plantilla:
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {wizard.selectedTemplate.variables.map((varKey) => (
-                                <div key={varKey} className="flex items-center gap-1.5">
-                                  <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold w-12 shrink-0">
-                                    {'{{' + varKey + '}}'}:
-                                  </span>
-                                  <Input
-                                    placeholder={`Ej. Valor variable ${varKey}...`}
-                                    value={wizard.templateVariableValues[varKey] || ''}
-                                    onChange={(e) => wizard.handleUpdateVariableValue(varKey, e.target.value)}
-                                    className="h-7 text-xs bg-background/80"
-                                  />
-                                </div>
-                              ))}
+                        {wizard.selectedTemplate.variables &&
+                          wizard.selectedTemplate.variables.length > 0 && (
+                            <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+                              <label className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 block">
+                                Valores de muestra para variables de plantilla:
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {wizard.selectedTemplate.variables.map((varKey) => (
+                                  <div key={varKey} className="flex items-center gap-1.5">
+                                    <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold w-12 shrink-0">
+                                      {"{{" + varKey + "}}"}:
+                                    </span>
+                                    <Input
+                                      placeholder={`Ej. Valor variable ${varKey}...`}
+                                      value={wizard.templateVariableValues[varKey] || ""}
+                                      onChange={(e) =>
+                                        wizard.handleUpdateVariableValue(varKey, e.target.value)
+                                      }
+                                      className="h-7 text-xs bg-background/80"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     )}
                   </div>
@@ -357,7 +396,8 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                               <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Envía los mensajes de manera continua manteniendo el intervalo especificado.
+                              Envía los mensajes de manera continua manteniendo el intervalo
+                              especificado.
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -367,7 +407,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                     <p className="text-[11px] text-muted-foreground">
                       {wizard.quickMode
                         ? `Envía un mensaje cada ${wizard.intervalSeconds} segundos.`
-                        : 'Modo pausado manual activado.'}
+                        : "Modo pausado manual activado."}
                     </p>
 
                     {wizard.quickMode && (
@@ -400,7 +440,8 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                               <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Puedes usar formato WhatsApp (*negrita*, _cursiva_, ~tachado~) y variables tipo {'{{name}}'}.
+                              Puedes usar formato WhatsApp (*negrita*, _cursiva_, ~tachado~) y
+                              variables tipo {"{{name}}"}.
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -424,7 +465,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => insertFormatText('*')}
+                            onClick={() => insertFormatText("*")}
                             title="Negrita (*texto*)"
                           >
                             <Bold className="w-3.5 h-3.5" />
@@ -434,7 +475,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => insertFormatText('_')}
+                            onClick={() => insertFormatText("_")}
                             title="Cursiva (_texto_)"
                           >
                             <Italic className="w-3.5 h-3.5" />
@@ -444,7 +485,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => insertFormatText('~')}
+                            onClick={() => insertFormatText("~")}
                             title="Tachado (~texto~)"
                           >
                             <Strikethrough className="w-3.5 h-3.5" />
@@ -486,7 +527,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
                             title="Adjuntar archivo"
-                            onClick={() => alert('Adjuntar archivo opcional')}
+                            onClick={() => alert("Adjuntar archivo opcional")}
                           >
                             <Paperclip className="w-3.5 h-3.5" />
                           </Button>
@@ -509,24 +550,24 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             <div className="space-y-0.5">
                               <button
                                 type="button"
-                                onClick={() => insertVariable('name')}
+                                onClick={() => insertVariable("name")}
                                 className="w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted font-mono"
                               >
-                                {'{{name}}'} - Nombre
+                                {"{{name}}"} - Nombre
                               </button>
                               <button
                                 type="button"
-                                onClick={() => insertVariable('number')}
+                                onClick={() => insertVariable("number")}
                                 className="w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted font-mono"
                               >
-                                {'{{number}}'} - Teléfono
+                                {"{{number}}"} - Teléfono
                               </button>
                               <button
                                 type="button"
-                                onClick={() => insertVariable('body')}
+                                onClick={() => insertVariable("body")}
                                 className="w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted font-mono"
                               >
-                                {'{{body}}'} - Mensaje custom
+                                {"{{body}}"} - Mensaje custom
                               </button>
                             </div>
                           </PopoverContent>
@@ -559,9 +600,14 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                 <div className="space-y-4">
                   <div className="p-6 border-2 border-dashed border-border rounded-xl bg-muted/10 text-center hover:bg-muted/20 transition-colors flex flex-col items-center justify-center min-h-[220px]">
                     <FileSpreadsheet className="w-10 h-10 text-primary mb-2 opacity-80" />
-                    <h3 className="text-sm font-bold text-foreground">Importa la planilla de contactos</h3>
+                    <h3 className="text-sm font-bold text-foreground">
+                      Importa la planilla de contactos
+                    </h3>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                      Archivo .xlsx o .csv con las columnas <code className="font-mono text-primary">number</code> (requerida), <code className="font-mono text-muted-foreground">name</code> y <code className="font-mono text-muted-foreground">body</code> (opcionales).
+                      Archivo .xlsx o .csv con las columnas{" "}
+                      <code className="font-mono text-primary">number</code> (requerida),{" "}
+                      <code className="font-mono text-muted-foreground">name</code> y{" "}
+                      <code className="font-mono text-muted-foreground">body</code> (opcionales).
                     </p>
 
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
@@ -621,7 +667,9 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                   {/* Preview Table of First Rows */}
                   {wizard.previewRows.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-bold mb-2 text-foreground">Vista previa de contactos (primeras filas)</h4>
+                      <h4 className="text-xs font-bold mb-2 text-foreground">
+                        Vista previa de contactos (primeras filas)
+                      </h4>
                       <div className="rounded-lg border border-border overflow-hidden">
                         <table className="w-full text-xs text-left">
                           <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px]">
@@ -635,11 +683,11 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             {wizard.previewRows.map((r, i) => (
                               <tr key={i} className="hover:bg-muted/10">
                                 <td className="p-2 font-mono text-[11px]">
-                                  {r.number || r.telefono || r.phone || '—'}
+                                  {r.number || r.telefono || r.phone || "—"}
                                 </td>
-                                <td className="p-2 font-medium">{r.name || r.nombre || '—'}</td>
+                                <td className="p-2 font-medium">{r.name || r.nombre || "—"}</td>
                                 <td className="p-2 text-muted-foreground truncate max-w-[150px]">
-                                  {r.body || r.mensaje || '—'}
+                                  {r.body || r.mensaje || "—"}
                                 </td>
                               </tr>
                             ))}
@@ -679,13 +727,13 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: 'open' }))
+                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: "open" }))
                         }
                         className={cx(
-                          'py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5',
-                          wizard.routingConfig.chatStatus === 'open'
-                            ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                            : 'text-muted-foreground hover:bg-muted'
+                          "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5",
+                          wizard.routingConfig.chatStatus === "open"
+                            ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
+                            : "text-muted-foreground hover:bg-muted",
                         )}
                       >
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -695,13 +743,13 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: 'pending' }))
+                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: "pending" }))
                         }
                         className={cx(
-                          'py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5',
-                          wizard.routingConfig.chatStatus === 'pending'
-                            ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                            : 'text-muted-foreground hover:bg-muted'
+                          "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5",
+                          wizard.routingConfig.chatStatus === "pending"
+                            ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                            : "text-muted-foreground hover:bg-muted",
                         )}
                       >
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
@@ -711,13 +759,13 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: 'closed' }))
+                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: "closed" }))
                         }
                         className={cx(
-                          'py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5',
-                          wizard.routingConfig.chatStatus === 'closed'
-                            ? 'bg-primary/15 text-primary border border-primary/30'
-                            : 'text-muted-foreground hover:bg-muted'
+                          "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5",
+                          wizard.routingConfig.chatStatus === "closed"
+                            ? "bg-primary/15 text-primary border border-primary/30"
+                            : "text-muted-foreground hover:bg-muted",
                         )}
                       >
                         <span className="w-2 h-2 rounded-full bg-primary" />
@@ -732,16 +780,20 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       Departamento
                     </label>
                     <Select
-                      value={wizard.routingConfig.departmentName || 'Ninguno'}
+                      value={wizard.routingConfig.departmentName || "Ninguno"}
                       onValueChange={(val) =>
                         wizard.setRoutingConfig((prev) => ({
                           ...prev,
-                          departmentName: val === 'Ninguno' ? '' : val,
+                          departmentName: val === "Ninguno" ? "" : val,
                         }))
                       }
                     >
                       <SelectTrigger className="w-full text-xs">
-                        <SelectValue placeholder={loadingDepts ? "Cargando departamentos..." : "Selecciona departamento"} />
+                        <SelectValue
+                          placeholder={
+                            loadingDepts ? "Cargando departamentos..." : "Selecciona departamento"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80">
                         <SelectItem value="Ninguno" className="cursor-pointer">
@@ -751,12 +803,18 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                           realDepartments
                             .filter((d) => d.active !== false)
                             .map((dept) => (
-                              <SelectItem key={dept.id} value={dept.name} className="text-xs cursor-pointer py-2">
+                              <SelectItem
+                                key={dept.id}
+                                value={dept.name}
+                                className="text-xs cursor-pointer py-2"
+                              >
                                 <span className="font-semibold">{dept.name}</span>
                               </SelectItem>
                             ))
                         ) : (
-                          <div className="px-2 py-1 text-xs text-muted-foreground italic">Sin departamentos configurados</div>
+                          <div className="px-2 py-1 text-xs text-muted-foreground italic">
+                            Sin departamentos configurados
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
@@ -768,11 +826,11 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       Usuario asignado
                     </label>
                     <Select
-                      value={wizard.routingConfig.assignedUserName || 'Ninguno'}
+                      value={wizard.routingConfig.assignedUserName || "Ninguno"}
                       onValueChange={(val) =>
                         wizard.setRoutingConfig((prev) => ({
                           ...prev,
-                          assignedUserName: val === 'Ninguno' ? '' : val,
+                          assignedUserName: val === "Ninguno" ? "" : val,
                         }))
                       }
                     >
@@ -785,17 +843,25 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                         </SelectItem>
                         {realDirectoryUsers && realDirectoryUsers.length > 0 ? (
                           realDirectoryUsers.map((user) => (
-                            <SelectItem key={user.id} value={user.name} className="text-xs cursor-pointer py-2">
+                            <SelectItem
+                              key={user.id}
+                              value={user.name}
+                              className="text-xs cursor-pointer py-2"
+                            >
                               <div className="flex items-center gap-2">
                                 <span className="font-bold">{user.name}</span>
                                 {user.departmentName && (
-                                  <span className="text-[10px] text-muted-foreground">({user.departmentName})</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    ({user.departmentName})
+                                  </span>
                                 )}
                               </div>
                             </SelectItem>
                           ))
                         ) : (
-                          <div className="px-2 py-1 text-xs text-muted-foreground italic">Sin usuarios registrados</div>
+                          <div className="px-2 py-1 text-xs text-muted-foreground italic">
+                            Sin usuarios registrados
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
@@ -807,7 +873,8 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       <div className="space-y-0.5 pr-4">
                         <div className="text-xs font-semibold">Mantener asignado al usuario</div>
                         <div className="text-[11px] text-muted-foreground">
-                          Devuelve el chat directamente a la bandeja del usuario cuando el contacto responda, omitiendo el chatbot.
+                          Devuelve el chat directamente a la bandeja del usuario cuando el contacto
+                          responda, omitiendo el chatbot.
                         </div>
                       </div>
                       <Switch
@@ -820,9 +887,12 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 
                     <div className="flex items-center justify-between pt-3 border-t border-border">
                       <div className="space-y-0.5 pr-4">
-                        <div className="text-xs font-semibold">Delegar a motor de IA (NetOps AI)</div>
+                        <div className="text-xs font-semibold">
+                          Delegar a motor de IA (NetOps AI)
+                        </div>
                         <div className="text-[11px] text-muted-foreground">
-                          El chat será atendido por el motor de automatización e IA cuando el contacto responda.
+                          El chat será atendido por el motor de automatización e IA cuando el
+                          contacto responda.
                         </div>
                       </div>
                       <Switch
@@ -843,7 +913,8 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                                 <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs text-xs">
-                                Reclona el enrutamiento incluso en chats que ya existían previamente.
+                                Reclona el enrutamiento incluso en chats que ya existían
+                                previamente.
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -896,7 +967,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             onClick={handleFormSubmit}
             className="text-xs font-bold px-6 shadow-sm gap-2"
           >
-            {isSubmitting ? 'Creando campaña...' : 'Crear campaña'}
+            {isSubmitting ? "Creando campaña..." : "Crear campaña"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -905,5 +976,5 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
 };
 
 function cx(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
+  return classes.filter(Boolean).join(" ");
 }

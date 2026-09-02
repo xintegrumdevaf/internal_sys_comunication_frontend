@@ -1,11 +1,4 @@
-import {
-  Inbox,
-  Activity,
-  Bot,
-  Clock,
-  Timer,
-  AlertCircle,
-} from "lucide-react";
+import { Inbox, Activity, Bot, Clock, Timer, AlertCircle } from "lucide-react";
 import type { AnalyticsOverviewDto } from "../domain/analytics.types";
 
 interface MacroKpiCardsProps {

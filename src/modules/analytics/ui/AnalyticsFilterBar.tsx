@@ -159,7 +159,9 @@ export function AnalyticsFilterBar({
               title="Actualizar métricas"
               className="p-2 rounded-xl border border-border bg-background hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+              <RefreshCw
+                className={`size-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`}
+              />
             </button>
           )}
         </div>

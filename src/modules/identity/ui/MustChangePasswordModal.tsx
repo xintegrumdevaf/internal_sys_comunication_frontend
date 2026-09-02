@@ -32,11 +32,15 @@ export function MustChangePasswordModal({
   const isMinLength = newPassword.length >= 8;
   const isMatch = newPassword.length > 0 && newPassword === confirmPassword;
   const isDifferentFromCurrent =
-    Boolean(currentPassword.trim()) && Boolean(newPassword.trim()) && newPassword !== currentPassword;
+    Boolean(currentPassword.trim()) &&
+    Boolean(newPassword.trim()) &&
+    newPassword !== currentPassword;
   const isSameAsCurrent = Boolean(currentPassword.trim()) && newPassword === currentPassword;
 
   // Habilitar el botón cuando los campos tengan valor para dar feedback explícito si algo falla
-  const canSubmit = Boolean(currentPassword.trim() && newPassword.length >= 1 && confirmPassword.length >= 1);
+  const canSubmit = Boolean(
+    currentPassword.trim() && newPassword.length >= 1 && confirmPassword.length >= 1,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +67,9 @@ export function MustChangePasswordModal({
       onSuccess?.();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Error al cambiar la contraseña. Verifica tu clave actual.",
+        err instanceof Error
+          ? err.message
+          : "Error al cambiar la contraseña. Verifica tu clave actual.",
       );
     }
   };
@@ -81,7 +87,10 @@ export function MustChangePasswordModal({
             <ShieldAlert className="size-6" />
           </div>
           <div>
-            <h2 id="must-change-password-title" className="text-base sm:text-lg font-extrabold tracking-tight text-foreground">
+            <h2
+              id="must-change-password-title"
+              className="text-base sm:text-lg font-extrabold tracking-tight text-foreground"
+            >
               Cambio de contraseña requerido
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -181,11 +190,15 @@ export function MustChangePasswordModal({
           </div>
 
           <div className="p-3.5 bg-background border border-border rounded-xl space-y-2 text-[11px]">
-            <div className={`flex items-center gap-2 ${isMinLength ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}`}>
+            <div
+              className={`flex items-center gap-2 ${isMinLength ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}`}
+            >
               <CheckCircle2 className="size-3.5" />
               <span>Mínimo 8 caracteres</span>
             </div>
-            <div className={`flex items-center gap-2 ${isMatch ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}`}>
+            <div
+              className={`flex items-center gap-2 ${isMatch ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}`}
+            >
               <CheckCircle2 className="size-3.5" />
               <span>Ambas contraseñas coinciden</span>
             </div>
@@ -226,5 +239,3 @@ export function MustChangePasswordModal({
     </div>
   );
 }
-
-

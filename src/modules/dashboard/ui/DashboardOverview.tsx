@@ -18,7 +18,11 @@ import {
   ChevronRight,
   TrendingUp,
 } from "lucide-react";
-import { useSession, useDepartmentsQuery, useAgentsQuery } from "@/modules/identity/application/use-session";
+import {
+  useSession,
+  useDepartmentsQuery,
+  useAgentsQuery,
+} from "@/modules/identity/application/use-session";
 import { getDashboard } from "@/modules/dashboard/infrastructure/dashboard.gateway";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 import type { DashboardDto } from "@/modules/dashboard/domain/dashboard";
@@ -36,7 +40,7 @@ import { InfrastructureAlertBanner } from "@/modules/analytics/ui/Infrastructure
 
 export function DashboardOverview() {
   const session = useSession();
-  const isAdminOrSupervisor = session?.role === "admin" || session?.role === "supervisor";
+  const isAdminOrSupervisor = session?.role === "admin" || session?.role === "manager";
 
   // Fechas del preset de hoy para las analíticas operativas
   const todayFilter = useMemo(() => calculatePresetDates("today"), []);
@@ -59,8 +63,7 @@ export function DashboardOverview() {
     Promise.all([
       getDashboard(session.id).then(setDashboard),
       listConversations({ status: "open" }).then(setConversations),
-    ])
-      .catch((err) => console.error("Error cargando dashboard operativo:", err));
+    ]).catch((err) => console.error("Error cargando dashboard operativo:", err));
   }, [session?.id]);
 
   const overview = overviewQuery.data;
@@ -70,13 +73,16 @@ export function DashboardOverview() {
   // Mapeo de casos activos por departamento
   const deptCasesMap = useMemo(() => {
     const map = new Map<string, number>();
-    if (distribution?.byDepartment) {
-      for (const d of distribution.byDepartment) {
+    const byDept = (
+      distribution as unknown as { byDepartment?: Array<{ departmentId?: string; count: number }> }
+    )?.byDepartment;
+    if (byDept) {
+      for (const d of byDept) {
         if (d.departmentId) map.set(d.departmentId, d.count);
       }
     }
     return map;
-  }, [distribution?.byDepartment]);
+  }, [distribution]);
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -125,9 +131,7 @@ export function DashboardOverview() {
       </section>
 
       {/* Banner de Alertas de Red / Infraestructura (si hay cortes o anomalías) */}
-      {isAdminOrSupervisor && alerts.length > 0 && (
-        <InfrastructureAlertBanner alerts={alerts} />
-      )}
+      {isAdminOrSupervisor && alerts.length > 0 && <InfrastructureAlertBanner alerts={alerts} />}
 
       {/* --- VISTA PARA ADMIN Y SUPERVISOR --- */}
       {isAdminOrSupervisor ? (
@@ -174,9 +178,11 @@ export function DashboardOverview() {
                   <p className="text-3xl font-extrabold font-mono text-foreground">
                     {overviewQuery.isLoading ? "—" : `${overview?.botContainmentRate ?? 0}%`}
                   </p>
-                  {(overview?.botCompletedCases ?? 0) > 0 && (
+                  {((overview as unknown as { botCompletedCases?: number })?.botCompletedCases ??
+                    0) > 0 && (
                     <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
-                      ({overview?.botCompletedCases} resueltos)
+                      ({(overview as unknown as { botCompletedCases?: number })?.botCompletedCases}{" "}
+                      resueltos)
                     </span>
                   )}
                 </div>
@@ -196,15 +202,15 @@ export function DashboardOverview() {
                 </div>
                 <div className="flex items-baseline gap-2 mt-2">
                   <p className="text-3xl font-extrabold font-mono text-foreground">
-                    {overviewQuery.isLoading ? "—" : (overview?.escalatedCases ?? 0)}
+                    {overviewQuery.isLoading
+                      ? "—"
+                      : ((overview as unknown as { escalatedCases?: number })?.escalatedCases ?? 0)}
                   </p>
                   <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold font-mono">
                     ({overview?.escalationRate ?? 0}%)
                   </span>
                 </div>
-                <p className="text-[11px] mt-1 text-muted-foreground">
-                  Derivados al equipo humano
-                </p>
+                <p className="text-[11px] mt-1 text-muted-foreground">Derivados al equipo humano</p>
               </div>
 
               {/* Espera en Cola */}
@@ -219,12 +225,24 @@ export function DashboardOverview() {
                 <p className="text-3xl font-extrabold font-mono mt-2 text-foreground">
                   {overviewQuery.isLoading
                     ? "—"
-                    : overview?.avgQueueWaitSec != null && overview.avgQueueWaitSec > 0
-                      ? `${Math.round(overview.avgQueueWaitSec)} seg`
-                      : "0 seg"}
+                    : (() => {
+                        const waitSec =
+                          overview?.avgQueueWaitTimeSeconds ??
+                          (overview as unknown as { avgQueueWaitSec?: number })?.avgQueueWaitSec;
+                        return waitSec != null && waitSec > 0
+                          ? `${Math.round(waitSec)} seg`
+                          : "0 seg";
+                      })()}
                 </p>
                 <p className="text-[11px] mt-1 text-muted-foreground">
-                  Resolución media: {(overview?.avgResolutionMinutes ?? 0).toFixed(1)} min
+                  Resolución media:{" "}
+                  {(
+                    overview?.avgResolutionTimeMinutes ??
+                    (overview as unknown as { avgResolutionMinutes?: number })
+                      ?.avgResolutionMinutes ??
+                    0
+                  ).toFixed(1)}{" "}
+                  min
                 </p>
               </div>
             </div>
@@ -307,7 +325,8 @@ export function DashboardOverview() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">
-                  Distribución de incidentes atendidos por el asistente y derivados según tipificación.
+                  Distribución de incidentes atendidos por el asistente y derivados según
+                  tipificación.
                 </p>
 
                 <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
@@ -401,7 +420,7 @@ export function DashboardOverview() {
                   <Users className="size-4 text-primary" /> Disponibilidad del Equipo
                 </h3>
                 <Link
-                  to="/agentes"
+                  to="/usuarios"
                   className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-1"
                 >
                   <span>Ver todos</span>
@@ -422,7 +441,9 @@ export function DashboardOverview() {
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-foreground truncate">{a.name}</p>
                         <p className="text-[10px] text-muted-foreground truncate">
-                          {a.role.toUpperCase()} • {a.departmentSlug ?? "General"}
+                          {a.role.toUpperCase()} •{" "}
+                          {(a as unknown as { departmentSlug?: string }).departmentSlug ??
+                            "General"}
                         </p>
                       </div>
                     </div>
@@ -612,7 +633,8 @@ export function DashboardOverview() {
               <div className="mt-6 p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
                 <p className="font-semibold text-primary mb-0.5">Consejo operativo</p>
                 <p className="text-[11px]">
-                  Recuerda cerrar los casos resueltos para mantener tus métricas de tiempo de atención (AHT) y resolución optimizadas.
+                  Recuerda cerrar los casos resueltos para mantener tus métricas de tiempo de
+                  atención (AHT) y resolución optimizadas.
                 </p>
               </div>
             </div>

@@ -125,9 +125,7 @@ export function useMyAvailability() {
       queryClient.setQueryData<AgentDto | null>(["session", "me"], updatedAgent);
       void queryClient.invalidateQueries({ queryKey: ["agents"] });
       toast.success(
-        updatedAgent.autoAssignEnabled
-          ? "Disponible para asignación"
-          : "En pausa / Desconectado",
+        updatedAgent.autoAssignEnabled ? "Disponible para asignación" : "En pausa / Desconectado",
       );
     },
     onError: (err) => {
@@ -167,9 +165,7 @@ export function useChangePassword() {
   });
 
   return {
-    changePassword: (current: string, next: string) =>
-      mutation.mutateAsync({ current, next }),
+    changePassword: (current: string, next: string) => mutation.mutateAsync({ current, next }),
     changing: mutation.isPending,
   };
 }
-

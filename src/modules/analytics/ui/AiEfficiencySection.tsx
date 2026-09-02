@@ -1,4 +1,8 @@
-import { formatWorkflow, formatEscalationReason, formatStep } from "../domain/analytics-translations";
+import {
+  formatWorkflow,
+  formatEscalationReason,
+  formatStep,
+} from "../domain/analytics-translations";
 import { useMemo } from "react";
 import {
   ResponsiveContainer,
@@ -35,15 +39,6 @@ export function AiEfficiencySection({
   aiEfficiency,
   isLoading,
 }: AiEfficiencySectionProps) {
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="h-80 rounded-2xl border border-border bg-card/60 animate-pulse" />
-        <div className="h-80 rounded-2xl border border-border bg-card/60 animate-pulse" />
-      </div>
-    );
-  }
-
   const workflowData = useMemo(() => {
     return (
       distribution?.byWorkflow.map((item) => ({
@@ -70,6 +65,15 @@ export function AiEfficiencySection({
     return aiEfficiency?.funnelDropOff ?? [];
   }, [aiEfficiency]);
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="h-80 rounded-2xl border border-border bg-card/60 animate-pulse" />
+        <div className="h-80 rounded-2xl border border-border bg-card/60 animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -94,7 +98,10 @@ export function AiEfficiencySection({
           <div className="h-64 w-full">
             {workflowData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={workflowData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                <BarChart
+                  data={workflowData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
+                >
                   <XAxis
                     dataKey="name"
                     tick={{ fontSize: 10, fill: "var(--muted-foreground, #888)" }}
@@ -233,7 +240,10 @@ export function AiEfficiencySection({
                   </span>
                 </div>
                 <h4 className="text-xs font-bold text-foreground truncate">
-                  Paso: <span className="font-mono text-primary">{formatStep(step.state)}</span> <span className="text-[10px] text-muted-foreground font-normal">({step.state})</span>
+                  Paso: <span className="font-mono text-primary">{formatStep(step.state)}</span>{" "}
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    ({step.state})
+                  </span>
                 </h4>
               </div>
 

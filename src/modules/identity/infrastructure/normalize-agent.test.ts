@@ -33,8 +33,12 @@ describe("normalizeAgent", () => {
 
   it("normaliza departmentIds con fallback a primaryDepartmentId", () => {
     expect(normalizeAgent(base).departmentIds).toEqual(["d1"]);
-    expect(normalizeAgent({ ...base, departmentIds: ["d1", "d2"] }).departmentIds).toEqual(["d1", "d2"]);
-    expect(normalizeAgent({ ...base, primaryDepartmentId: null, departmentIds: null }).departmentIds).toEqual([]);
+    expect(normalizeAgent({ ...base, departmentIds: ["d1", "d2"] }).departmentIds).toEqual([
+      "d1",
+      "d2",
+    ]);
+    expect(
+      normalizeAgent({ ...base, primaryDepartmentId: null, departmentIds: null }).departmentIds,
+    ).toEqual([]);
   });
 });
-

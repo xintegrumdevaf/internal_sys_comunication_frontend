@@ -340,7 +340,9 @@ export function AppShell({
             >
               <span
                 className={`size-2 rounded-full ${
-                  autoAssignEnabled ? "bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20" : "bg-amber-500"
+                  autoAssignEnabled
+                    ? "bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20"
+                    : "bg-amber-500"
                 }`}
               />
               <span className="hidden sm:inline font-bold">

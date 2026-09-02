@@ -65,16 +65,16 @@ export const internalChatApi = {
     threadId: string,
     options?: { limit?: number; cursor?: string },
   ): Promise<{ messages: InternalMessage[]; nextCursor: string | null }> => {
-    const raw = await apiGet<{ data: InternalMessage[]; pagination?: { nextCursor?: string | null } }>(
-      `/api/internal/threads/${threadId}/messages`,
-      {
-        query: {
-          limit: options?.limit,
-          cursor: options?.cursor,
-        },
-        raw: true,
+    const raw = await apiGet<{
+      data: InternalMessage[];
+      pagination?: { nextCursor?: string | null };
+    }>(`/api/internal/threads/${threadId}/messages`, {
+      query: {
+        limit: options?.limit,
+        cursor: options?.cursor,
       },
-    );
+      raw: true,
+    });
     return { messages: raw.data ?? [], nextCursor: raw.pagination?.nextCursor ?? null };
   },
 

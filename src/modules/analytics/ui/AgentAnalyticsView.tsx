@@ -224,8 +224,8 @@ export function AgentAnalyticsView() {
                   ✓
                 </span>
                 <span>
-                  <strong>Tono Cordial:</strong> Utiliza siempre el saludo inicial y cierre formal de
-                  la empresa evitando respuestas cortantes.
+                  <strong>Tono Cordial:</strong> Utiliza siempre el saludo inicial y cierre formal
+                  de la empresa evitando respuestas cortantes.
                 </span>
               </li>
             </ul>

@@ -42,7 +42,11 @@ export function formatWorkflow(val?: string | null): string {
 export function formatEscalationReason(val?: string | null): string {
   if (!val) return "Sin especificar";
   const key = val.trim();
-  return ESCALATION_REASON_LABELS[key] ?? ESCALATION_REASON_LABELS[key.toUpperCase()] ?? val.replace(/_/g, " ");
+  return (
+    ESCALATION_REASON_LABELS[key] ??
+    ESCALATION_REASON_LABELS[key.toUpperCase()] ??
+    val.replace(/_/g, " ")
+  );
 }
 
 export function formatStep(val?: string | null): string {

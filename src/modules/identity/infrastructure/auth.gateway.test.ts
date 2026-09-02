@@ -88,4 +88,3 @@ describe("auth.gateway", () => {
     expect(agent.autoAssignEnabled).toBe(true);
   });
 });
-

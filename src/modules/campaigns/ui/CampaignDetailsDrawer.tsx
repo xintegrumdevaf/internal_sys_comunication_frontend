@@ -114,8 +114,8 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
         (r) =>
           `"${r.number || r.phone}","${r.name || ""}","${(r.errorMessage || r.body || "").replace(
             /"/g,
-            '""'
-          )}","${r.updatedAt || ""}"`
+            '""',
+          )}","${r.updatedAt || ""}"`,
       )
       .join("\n");
 
@@ -137,7 +137,9 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
     toast.success(`Se reprogramaron ${metrics.failed} mensajes fallidos en la cola de envío.`);
   };
 
-  const statusMeta = campaign ? campaignStatusMeta(campaign.status) : { label: "Cargando...", badgeClass: "" };
+  const statusMeta = campaign
+    ? campaignStatusMeta(campaign.status)
+    : { label: "Cargando...", badgeClass: "" };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 animate-fade-in">
@@ -150,7 +152,9 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold text-foreground tracking-tight">{campaign?.name || "Campaña"}</h2>
+                <h2 className="text-lg font-bold text-foreground tracking-tight">
+                  {campaign?.name || "Campaña"}
+                </h2>
                 <Badge variant="outline" className={`text-xs ${statusMeta.badgeClass}`}>
                   {statusMeta.label}
                 </Badge>
@@ -190,8 +194,12 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
             {/* KPI Header Stats */}
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-baseline">
-                <span className="text-3xl font-extrabold text-foreground tracking-tight">{metrics.total}</span>
-                <span className="text-muted-foreground text-sm font-medium ml-2.5">contactos en la campaña</span>
+                <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                  {metrics.total}
+                </span>
+                <span className="text-muted-foreground text-sm font-medium ml-2.5">
+                  contactos en la campaña
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -257,7 +265,9 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                   />
                 </div>
                 <div className="flex items-baseline justify-end w-28 shrink-0 pl-3">
-                  <span className="font-extrabold text-foreground text-xs mr-1">{metrics.sent}</span>
+                  <span className="font-extrabold text-foreground text-xs mr-1">
+                    {metrics.sent}
+                  </span>
                   <span className="text-[11px] text-muted-foreground font-medium">base 100%</span>
                 </div>
               </div>
@@ -281,8 +291,12 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                   />
                 </div>
                 <div className="flex items-baseline justify-end w-28 shrink-0 pl-3">
-                  <span className="font-extrabold text-foreground text-xs mr-1">{metrics.delivered}</span>
-                  <span className="text-[11px] text-muted-foreground font-medium">{deliveredPct}%</span>
+                  <span className="font-extrabold text-foreground text-xs mr-1">
+                    {metrics.delivered}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    {deliveredPct}%
+                  </span>
                 </div>
               </div>
 
@@ -305,7 +319,9 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                   />
                 </div>
                 <div className="flex items-baseline justify-end w-28 shrink-0 pl-3">
-                  <span className="font-extrabold text-foreground text-xs mr-1">{metrics.read}</span>
+                  <span className="font-extrabold text-foreground text-xs mr-1">
+                    {metrics.read}
+                  </span>
                   <span className="text-[11px] text-muted-foreground font-medium">{readPct}%</span>
                 </div>
               </div>
@@ -329,8 +345,12 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                   />
                 </div>
                 <div className="flex items-baseline justify-end w-28 shrink-0 pl-3">
-                  <span className="font-extrabold text-foreground text-xs mr-1">{metrics.replied}</span>
-                  <span className="text-[11px] text-muted-foreground font-medium">{repliedPct}%</span>
+                  <span className="font-extrabold text-foreground text-xs mr-1">
+                    {metrics.replied}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    {repliedPct}%
+                  </span>
                 </div>
               </div>
 
@@ -338,7 +358,8 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1">
                 <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span>
-                  Tasas sobre las enviadas. Los niveles son acumulativos — haz clic en uno para filtrar la lista.
+                  Tasas sobre las enviadas. Los niveles son acumulativos — haz clic en uno para
+                  filtrar la lista.
                 </span>
               </div>
             </div>
@@ -385,7 +406,10 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                   <tbody className="divide-y divide-border">
                     {filteredRecipients.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-muted-foreground text-xs italic">
+                        <td
+                          colSpan={5}
+                          className="py-8 text-center text-muted-foreground text-xs italic"
+                        >
                           No se encontraron contactos para el filtro aplicado.
                         </td>
                       </tr>
@@ -412,7 +436,9 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                             <td className="py-3 px-4 max-w-xs">
                               {isFailed ? (
                                 <span className="text-danger font-semibold text-xs line-clamp-2">
-                                  {r.errorMessage || r.body || "Meta API 131026 error: Message Undeliverable."}
+                                  {r.errorMessage ||
+                                    r.body ||
+                                    "Meta API 131026 error: Message Undeliverable."}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground text-xs line-clamp-1">
@@ -462,7 +488,9 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                                 variant="ghost"
                                 size="icon"
                                 title="Abrir en chat"
-                                onClick={() => toast.info(`Abriendo chat con ${r.number || r.phone}`)}
+                                onClick={() =>
+                                  toast.info(`Abriendo chat con ${r.number || r.phone}`)
+                                }
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
