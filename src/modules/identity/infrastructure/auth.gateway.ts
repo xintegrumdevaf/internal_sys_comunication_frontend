@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "@/shared/http/http-client";
+import { apiGet, apiPatch, apiPost, ApiError } from "@/shared/http/http-client";
 import type { AgentDto } from "@/modules/identity/domain/agent";
 import { normalizeAgent } from "@/modules/identity/infrastructure/normalize-agent";
 
@@ -22,8 +22,13 @@ export async function fetchCurrentAgent(): Promise<AgentDto | null> {
   try {
     const agent = await apiGet<AgentDto>("/api/auth/me");
     return normalizeAgent(agent);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      return null;
+    }
+    // Si fue un error de red o error de servidor (500), relanzamos el error
+    // para que React Query conserve la sesión activa en caché y no desconecte al usuario.
+    throw error;
   }
 }
 

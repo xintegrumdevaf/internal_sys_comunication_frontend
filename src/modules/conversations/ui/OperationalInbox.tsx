@@ -19,6 +19,8 @@ import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInternalNoteComposer";
 import { CasePanel } from "@/modules/cases/ui/CasePanel";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
+import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
+
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
 import {
   conversationDisplayName,
@@ -314,7 +316,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
+          <ZernioSyncControl />
         </div>
+
 
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/60">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">

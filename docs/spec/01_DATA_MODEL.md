@@ -6,14 +6,66 @@ DTOs de frontend, calcados 1:1 del contrato real del backend (`isp-customer-serv
 
 ```ts
 export type DepartmentVisibility = "shared" | "restricted";
+export type DepartmentHandlingMode = "ai_assisted" | "human_direct";
+
+export interface DepartmentCase {
+  id?: string;
+  departmentId?: string;
+  label: string; // Ej: "Cancelación de Contrato"
+  description: string; // Ej: "cuando el cliente pide cancelar el contrato o darse de baja"
+  intentKey?: string; // Opcional: auto-generado por el backend
+  handlingMode: DepartmentHandlingMode; // 'ai_assisted' | 'human_direct'
+  workflowType?: string; // Opcional: por defecto 'GENERAL_INQUIRY'
+  active?: boolean;
+}
 
 export type DepartmentDto = {
   id: string;
   slug: string; // "support" | "billing" | "sales" (seed real, ver scripts/seed.ts del backend)
   name: string;
+  description?: string | null;
   visibility: DepartmentVisibility;
   active: boolean;
+  cases?: DepartmentCase[];
+  createdAt?: string;
 };
+
+export interface CreateDepartmentPayload {
+  name: string;
+  slug: string;
+  description?: string;
+  visibility?: "shared" | "restricted";
+  cases?: Array<{
+    label: string;
+    description: string;
+    handlingMode?: DepartmentHandlingMode;
+    workflowType?: string;
+  }>;
+}
+
+export interface UpdateDepartmentPayload {
+  name?: string;
+  slug?: string;
+  description?: string;
+  visibility?: "shared" | "restricted";
+  active?: boolean;
+  cases?: Array<{
+    id?: string;
+    label: string;
+    description: string;
+    handlingMode?: DepartmentHandlingMode;
+    workflowType?: string;
+    active?: boolean;
+  }>;
+}
+
+export interface ZernioSyncStatus {
+  status: "idle" | "running" | "completed" | "failed";
+  totalMessagesSynced: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  lastError: string | null;
+}
 
 export type AgentRole = "agent" | "manager" | "admin";
 
@@ -25,6 +77,7 @@ export type AgentDto = {
   primaryDepartmentId: string | null;
   active: boolean;
 };
+
 ```
 
 ## 2. Conversaciones y mensajes

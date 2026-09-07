@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import * as agentDirectoryGateway from "@/modules/identity/infrastructure/agent-directory.gateway";
 import type {
   CreateDepartmentPayload,
+  DepartmentCase,
   UpdateDepartmentPayload,
 } from "@/modules/identity/infrastructure/agent-directory.gateway";
 
@@ -57,5 +58,32 @@ export function useDepartmentsAdmin() {
       "Departamento reactivado",
     );
 
-  return { busy, createDepartment, updateDepartment, deactivateDepartment, reactivateDepartment };
+  const getDepartmentCases = (departmentId: string): Promise<DepartmentCase[]> =>
+    agentDirectoryGateway.getDepartmentCases(departmentId);
+
+  const addDepartmentCase = (departmentId: string, caseData: Partial<DepartmentCase>) =>
+    run(
+      "agregar motivo/caso",
+      () => agentDirectoryGateway.addDepartmentCase(departmentId, caseData),
+      "Caso agregado",
+    );
+
+  const deleteDepartmentCase = (caseId: string) =>
+    run(
+      "eliminar motivo/caso",
+      () => agentDirectoryGateway.deleteDepartmentCase(caseId),
+      "Caso eliminado",
+    );
+
+  return {
+    busy,
+    createDepartment,
+    updateDepartment,
+    deactivateDepartment,
+    reactivateDepartment,
+    getDepartmentCases,
+    addDepartmentCase,
+    deleteDepartmentCase,
+  };
 }
+

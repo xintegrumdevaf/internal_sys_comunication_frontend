@@ -8,6 +8,7 @@ import {
   listDepartments,
 } from "@/modules/identity/infrastructure/agent-directory.gateway";
 import { toSessionUser, type SessionUser } from "@/modules/identity/domain/session";
+import { ApiError } from "@/shared/http/http-client";
 
 /**
  * Sesion real sobre isp-customer-service-api (docs/spec/06_BACKEND_GAPS.md
@@ -21,8 +22,8 @@ export function useAgentsQuery() {
   return useQuery({
     queryKey: ["agents"],
     queryFn: listAgents,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
     retry: false, // sin sesion, esto falla (403) a proposito — no tiene sentido reintentar
   });
 }
@@ -31,8 +32,8 @@ export function useDepartmentsQuery() {
   return useQuery({
     queryKey: ["departments"],
     queryFn: listDepartments,
-    staleTime: 60_000,
-    retry: false,
+    staleTime: 5 * 60_000,
+    retry: 1,
   });
 }
 
@@ -40,8 +41,13 @@ function useCurrentAgentQuery() {
   return useQuery({
     queryKey: ["session", "me"],
     queryFn: authGateway.fetchCurrentAgent,
-    staleTime: 30_000,
-    retry: false,
+    staleTime: 5 * 60_000,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 }
 
@@ -50,9 +56,9 @@ export function useDirectoryUsers(): SessionUser[] {
   const { data: agents } = useAgentsQuery();
   const { data: departments } = useDepartmentsQuery();
   return useMemo(() => {
-    if (!agents || !departments) return [];
+    if (!agents) return [];
     return agents
-      .map((a) => toSessionUser(a, departments))
+      .map((a) => toSessionUser(a, departments ?? []))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [agents, departments]);
 }
@@ -62,8 +68,8 @@ export function useSession(): SessionUser | null {
   const { data: agent } = useCurrentAgentQuery();
   const { data: departments } = useDepartmentsQuery();
   return useMemo(() => {
-    if (!agent || !departments) return null;
-    return toSessionUser(agent, departments);
+    if (!agent) return null;
+    return toSessionUser(agent, departments ?? []);
   }, [agent, departments]);
 }
 

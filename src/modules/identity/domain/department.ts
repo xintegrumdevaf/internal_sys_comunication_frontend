@@ -1,14 +1,23 @@
+import type {
+  Department,
+  DepartmentCase,
+  DepartmentHandlingMode,
+  CreateDepartmentPayload,
+  UpdateDepartmentPayload,
+} from "@/types/department";
+
+export type {
+  Department,
+  DepartmentCase,
+  DepartmentHandlingMode,
+  CreateDepartmentPayload,
+  UpdateDepartmentPayload,
+};
+
 /** Entidad Department real del backend (isp-customer-service-api). */
 export type DepartmentVisibility = "shared" | "restricted";
 
-export type DepartmentDto = {
-  id: string;
-  slug: string; // "support" | "billing" | "sales" (seed real, ver scripts/seed.ts del backend)
-  name: string;
-  visibility: DepartmentVisibility;
-  active: boolean;
-  createdAt: string;
-};
+export type DepartmentDto = Department;
 
 /**
  * Explicacion en lenguaje simple de la visibilidad del departamento — nunca
@@ -19,3 +28,13 @@ export function departmentVisibilityLabel(visibility: DepartmentVisibility): str
     ? "Solo agentes de esta área"
     : "Visible para todos los agentes";
 }
+
+/**
+ * Etiqueta amigable del modo de atención del caso.
+ */
+export function departmentHandlingModeLabel(mode: DepartmentHandlingMode): string {
+  return mode === "human_direct"
+    ? "Transferencia Directa a Humano"
+    : "Asistido por IA";
+}
+

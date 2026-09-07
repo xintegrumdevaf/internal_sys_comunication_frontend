@@ -6,6 +6,8 @@ import type {
   MessageDto,
 } from "@/modules/conversations/domain/conversation";
 import type { CaseDto } from "@/modules/cases/domain/case";
+import type { ZernioSyncStatus } from "@/types/department";
+
 
 /**
  * Puerto de infraestructura del modulo conversations: unico punto que conoce
@@ -71,5 +73,20 @@ export function takeControl(conversationId: string, agentUserId: string): Promis
 }
 
 export function markAsRead(conversationId: string): Promise<void> {
+
   return apiPost(`/api/conversations/${conversationId}/read`);
 }
+
+export function startZernioHistorySync(
+  days: number = 30,
+): Promise<{ message: string; jobId: string }> {
+  return apiPost<{ message: string; jobId: string }>("/api/conversations/sync-history", {
+    days,
+    limit: 100,
+  });
+}
+
+export function getZernioHistorySyncStatus(): Promise<ZernioSyncStatus> {
+  return apiGet<ZernioSyncStatus>("/api/conversations/sync-history/status");
+}
+

@@ -12,15 +12,14 @@ export type CreateAgentPayload = {
   autoAssignEnabled?: boolean;
 };
 
-export type CreateDepartmentPayload = {
-  name: string;
-  slug: string;
-  visibility: "shared" | "restricted";
-};
+import type {
+  CreateDepartmentPayload,
+  DepartmentCase,
+  UpdateDepartmentPayload,
+} from "@/types/department";
 
-export type UpdateDepartmentPayload = Partial<CreateDepartmentPayload> & {
-  active?: boolean;
-};
+export type { CreateDepartmentPayload, DepartmentCase, UpdateDepartmentPayload };
+
 
 export type UpdateAgentPayload = Partial<CreateAgentPayload> & {
   active?: boolean;
@@ -87,3 +86,19 @@ export async function updateDepartment(
 export async function deactivateDepartment(departmentId: string): Promise<DepartmentDto> {
   return apiDelete<DepartmentDto>(`/api/departments/${departmentId}`);
 }
+
+export async function getDepartmentCases(departmentId: string): Promise<DepartmentCase[]> {
+  return apiGet<DepartmentCase[]>(`/api/departments/${departmentId}/cases`);
+}
+
+export async function addDepartmentCase(
+  departmentId: string,
+  caseData: Partial<DepartmentCase>,
+): Promise<DepartmentCase> {
+  return apiPost<DepartmentCase>(`/api/departments/${departmentId}/cases`, caseData);
+}
+
+export async function deleteDepartmentCase(caseId: string): Promise<void> {
+  return apiDelete<void>(`/api/departments/cases/${caseId}`);
+}
+

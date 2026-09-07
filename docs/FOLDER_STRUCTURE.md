@@ -20,24 +20,31 @@ src/
 ├── lib/                           ← ÚNICA excepción: convenciones externas de shadcn CLI
 │   └── utils.ts                   ← cn(), shadcn siempre genera imports a "@/lib/utils"
 │
+├── types/
+│   ├── audit.ts                   ← tipos de eventos de auditoría
+│   └── department.ts              ← Department, DepartmentCase, handlingMode, payloads, ZernioSyncStatus
+│
 ├── components/
 │   └── ui/                        ← shadcn (design system, sin lógica de negocio)
 │
 ├── services/
-│   └── internalChatApi.ts         ← cliente REST para chat interno persistente (/api/internal/*)
+│   ├── internalChatApi.ts         ← cliente REST para chat interno persistente (/api/internal/*)
+│   ├── department.service.ts      ← cliente REST para departamentos y casos/motivos de IA
+│   └── conversation.service.ts    ← cliente REST para conversaciones y sincronización histórica Zernio
 │
 ├── modules/                       ← todo el negocio, organizado hexagonalmente
 │   ├── identity/
 │   │   ├── domain/                agent.ts, department.ts, session.ts
-│   │   ├── application/           use-session.ts, access-control.ts
+│   │   ├── application/           use-session.ts, access-control.ts, use-departments-admin.ts
 │   │   ├── infrastructure/        agent-directory.gateway.ts
-│   │   └── ui/                    UsersDirectoryPanel.tsx
+│   │   └── ui/                    UsersDirectoryPanel.tsx, DepartmentsDirectoryPanel.tsx
 │   │
 │   ├── conversations/
 │   │   ├── domain/                conversation.ts
 │   │   ├── application/           use-operational-inbox.ts
 │   │   ├── infrastructure/        conversation.gateway.ts
-│   │   └── ui/                    OperationalInbox.tsx, MessageMediaBody.tsx
+│   │   └── ui/                    OperationalInbox.tsx, MessageMediaBody.tsx, ZernioSyncControl.tsx
+
 │   │
 │   ├── cases/
 │   │   ├── domain/                case.ts (CaseContext tipado por workflow)

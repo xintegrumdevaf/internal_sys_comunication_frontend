@@ -62,6 +62,17 @@ describe("auth.gateway", () => {
     expect(agent).toBeNull();
   });
 
+  it("fetchCurrentAgent devuelve null cuando la sesion expiro (401)", async () => {
+    mockFetchOnce(401, { type: "UNAUTHENTICATED", message: "No autenticado" });
+    const agent = await fetchCurrentAgent();
+    expect(agent).toBeNull();
+  });
+
+  it("fetchCurrentAgent relanza el error si es un 500 para proteger la sesion en cache", async () => {
+    mockFetchOnce(500, { type: "SERVER_ERROR", message: "Error interno" });
+    await expect(fetchCurrentAgent()).rejects.toThrow();
+  });
+
   it("changePassword hace POST a /api/auth/change-password", async () => {
     const fetchMock = mockFetchOnce(204, undefined);
     await changePassword("actual123", "nueva12345");

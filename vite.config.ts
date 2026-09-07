@@ -22,6 +22,16 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 8080,
     allowedHosts: true,
+    watch: {
+      ignored: [
+        "**/.tanstack/**",
+        "**/.nitro/**",
+        "**/.output/**",
+        "**/dist/**",
+        "**/docs/**",
+        "**/.git/**",
+      ],
+    },
   },
   preview: {
     host: "0.0.0.0",

@@ -146,28 +146,42 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 | 2026-08-20 | CRUD de departamentos (§9)                                                                                                      | Requisito de administración para gestionar áreas dinámicamente desde el frontend                                                                      |
 | 2026-08-27 | Chat interno persistente (§6) — **resuelto**                                                                                    | Migrado a backend persistente `/api/internal/*` + SSE + tarjetas de calidad `QualityQuoteCard` y acción de objeción desde `/calidad`                  |
 
-## 9. CRUD de departamentos (`POST` / `PUT` / `DELETE /api/departments`) — pendiente
+## 9. CRUD de departamentos con Casos/Motivos de IA y Sincronización Zernio — integrado en frontend
 
-**Problema**: El frontend ahora cuenta con la interfaz (`/departamentos`) para gestionar la creación, edición y desactivación de departamentos. Sin embargo, el backend actualmente solo expone `GET /api/departments`.
+**Estado en Frontend**: Totalmente implementado con interfaces TypeScript, servicios dedicados (`department.service.ts` y `conversation.service.ts`), formulario interactivo de casos/motivos de atención, badges en tabla de departamentos, vista expandible rápida y control de sincronización histórica de WhatsApp con Zernio (`ZernioSyncControl.tsx`).
 
-**Solución requerida en backend**:
-Implementar los siguientes endpoints exigiendo `role=admin`:
+**Contrato de endpoints**:
 
 ```http
 POST /api/departments
-{ "name": "Soporte Técnico", "slug": "soporte-tecnico", "visibility": "shared" | "restricted" }
-→ 201 { "data": DepartmentDto }
+{
+  "name": "Soporte Técnico",
+  "slug": "soporte-tecnico",
+  "description": "Área de incidencias y fibra",
+  "visibility": "shared" | "restricted",
+  "cases": [{ "label": "...", "description": "...", "handlingMode": "ai_assisted" | "human_direct" }]
+}
+→ 201 { "data": Department }
 
 PUT /api/departments/:id
-{ "name"?, "slug"?, "visibility"?, "active"? }
-→ 200 { "data": DepartmentDto }
+{ "name"?, "slug"?, "description"?, "visibility"?, "active"?, "cases"? }
+→ 200 { "data": Department }
 
-DELETE /api/departments/:id
-→ 200 { "data": DepartmentDto } (Soft delete: active = false)
+GET /api/departments/:id/cases
+→ 200 { "data": DepartmentCase[] }
+
+POST /api/departments/:id/cases
+{ "label": "...", "description": "...", "handlingMode": "ai_assisted" | "human_direct" }
+→ 201 { "data": DepartmentCase }
+
+DELETE /api/departments/cases/:caseId
+→ 204 No Content
+
+POST /api/conversations/sync-history
+{ "days": 30, "limit": 100 }
+→ 200 { "message": "...", "jobId": "..." }
+
+GET /api/conversations/sync-history/status
+→ 200 { "data": ZernioSyncStatus }
 ```
 
-**Consideraciones**:
-
-- `slug` debe ser único.
-- El rol `admin` es el único autorizado para efectuar estas mutaciones.
-- Se debe validar que no rompa integraciones existentes al desactivar un departamento (ej. casos huérfanos o agentes sin departamento).
