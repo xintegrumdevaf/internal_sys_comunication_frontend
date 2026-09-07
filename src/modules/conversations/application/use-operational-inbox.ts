@@ -47,6 +47,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
+  const conversationsRef = useRef<ConversationDto[]>([]);
+  conversationsRef.current = conversations;
 
   const reload = useCallback(
     async (opts?: { silent?: boolean }) => {

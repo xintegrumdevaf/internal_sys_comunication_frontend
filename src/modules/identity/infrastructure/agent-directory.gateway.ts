@@ -20,7 +20,6 @@ import type {
 
 export type { CreateDepartmentPayload, DepartmentCase, UpdateDepartmentPayload };
 
-
 export type UpdateAgentPayload = Partial<CreateAgentPayload> & {
   active?: boolean;
   autoAssignEnabled?: boolean;
