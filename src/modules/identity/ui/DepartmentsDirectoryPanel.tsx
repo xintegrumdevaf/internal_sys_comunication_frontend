@@ -394,8 +394,8 @@ export function DepartmentsDirectoryPanel() {
                 <p className="font-medium text-foreground">Sin casos configurados aún</p>
                 <p className="text-[11px]">
                   Agrega al menos un caso (ej. <em>Cancelación de Contrato</em>,{" "}
-                  <em>Lentitud de Internet</em>) para que el modelo de IA aprenda cuándo transferir a
-                  esta área.
+                  <em>Lentitud de Internet</em>) para que el modelo de IA aprenda cuándo transferir
+                  a esta área.
                 </p>
               </div>
             ) : (
@@ -735,4 +735,3 @@ export function DepartmentsDirectoryPanel() {
     </div>
   );
 }
-

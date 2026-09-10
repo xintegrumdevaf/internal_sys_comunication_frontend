@@ -319,7 +319,6 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           <ZernioSyncControl />
         </div>
 
-
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/60">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
             Área:

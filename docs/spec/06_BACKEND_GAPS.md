@@ -184,4 +184,3 @@ POST /api/conversations/sync-history
 GET /api/conversations/sync-history/status
 → 200 { "data": ZernioSyncStatus }
 ```
-

@@ -88,7 +88,13 @@ describe("departmentService", () => {
         },
       ],
     };
-    const updatedDept = { id: "dept-2", slug: "cobranzas", ...payload, active: true, visibility: "restricted" };
+    const updatedDept = {
+      id: "dept-2",
+      slug: "cobranzas",
+      ...payload,
+      active: true,
+      visibility: "restricted",
+    };
     const fetchMock = mockFetchOnce(updatedDept);
 
     const result = await departmentService.updateDepartment("dept-2", payload);

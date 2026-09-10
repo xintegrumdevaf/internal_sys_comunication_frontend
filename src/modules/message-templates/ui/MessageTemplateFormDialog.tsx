@@ -270,7 +270,11 @@ export function MessageTemplateFormDialog({
                   className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground font-medium focus:ring-2 focus:ring-primary outline-none cursor-pointer"
                 >
                   {LANGUAGES.map((lang) => (
-                    <option key={lang.code} value={lang.code} className="bg-card text-card-foreground">
+                    <option
+                      key={lang.code}
+                      value={lang.code}
+                      className="bg-card text-card-foreground"
+                    >
                       {lang.label}
                     </option>
                   ))}
@@ -288,7 +292,11 @@ export function MessageTemplateFormDialog({
                 onChange={(e) => setConnectionId(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground font-medium focus:ring-2 focus:ring-primary outline-none cursor-pointer"
               >
-                {connections.length === 0 && <option value="" className="bg-card text-card-foreground">Seleccione una conexión*</option>}
+                {connections.length === 0 && (
+                  <option value="" className="bg-card text-card-foreground">
+                    Seleccione una conexión*
+                  </option>
+                )}
                 {connections.map((conn) => (
                   <option key={conn.id} value={conn.id} className="bg-card text-card-foreground">
                     {conn.name} {conn.phoneNumber ? `(${conn.phoneNumber})` : ""}
@@ -312,11 +320,21 @@ export function MessageTemplateFormDialog({
                 onChange={(e) => setHeaderType(e.target.value as TemplateHeaderType)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground font-medium focus:ring-2 focus:ring-primary outline-none cursor-pointer"
               >
-                <option value="NONE" className="bg-card text-card-foreground">Ninguno</option>
-                <option value="TEXT" className="bg-card text-card-foreground">Texto</option>
-                <option value="IMAGE" className="bg-card text-card-foreground">Imagen</option>
-                <option value="VIDEO" className="bg-card text-card-foreground">Video</option>
-                <option value="DOCUMENT" className="bg-card text-card-foreground">Documento</option>
+                <option value="NONE" className="bg-card text-card-foreground">
+                  Ninguno
+                </option>
+                <option value="TEXT" className="bg-card text-card-foreground">
+                  Texto
+                </option>
+                <option value="IMAGE" className="bg-card text-card-foreground">
+                  Imagen
+                </option>
+                <option value="VIDEO" className="bg-card text-card-foreground">
+                  Video
+                </option>
+                <option value="DOCUMENT" className="bg-card text-card-foreground">
+                  Documento
+                </option>
               </select>
 
               {headerType === "TEXT" && (
@@ -453,7 +471,9 @@ export function MessageTemplateFormDialog({
                     <p className="text-xs font-semibold text-foreground dark:text-slate-100 truncate">
                       Contacto de ejemplo
                     </p>
-                    <p className="text-[10px] text-muted-foreground dark:text-[#8696a0]">en línea</p>
+                    <p className="text-[10px] text-muted-foreground dark:text-[#8696a0]">
+                      en línea
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground dark:text-[#8696a0]">
                     <Video className="size-4" />
@@ -465,8 +485,7 @@ export function MessageTemplateFormDialog({
                 <div
                   className="p-4 min-h-[260px] flex flex-col justify-end"
                   style={{
-                    backgroundImage:
-                      "radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0)",
+                    backgroundImage: "radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0)",
                     backgroundSize: "16px 16px",
                   }}
                 >
@@ -510,7 +529,8 @@ export function MessageTemplateFormDialog({
             </div>
 
             <p className="text-[10px] text-center text-muted-foreground leading-normal">
-              Las variables aparecen como marcadores; el valor real se sustituye en el momento del envío.
+              Las variables aparecen como marcadores; el valor real se sustituye en el momento del
+              envío.
             </p>
           </div>
 

@@ -100,4 +100,3 @@ export async function addDepartmentCase(
 export async function deleteDepartmentCase(caseId: string): Promise<void> {
   return apiDelete<void>(`/api/departments/cases/${caseId}`);
 }
-

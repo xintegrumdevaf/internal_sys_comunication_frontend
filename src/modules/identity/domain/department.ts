@@ -33,8 +33,5 @@ export function departmentVisibilityLabel(visibility: DepartmentVisibility): str
  * Etiqueta amigable del modo de atención del caso.
  */
 export function departmentHandlingModeLabel(mode: DepartmentHandlingMode): string {
-  return mode === "human_direct"
-    ? "Transferencia Directa a Humano"
-    : "Asistido por IA";
+  return mode === "human_direct" ? "Transferencia Directa a Humano" : "Asistido por IA";
 }
-

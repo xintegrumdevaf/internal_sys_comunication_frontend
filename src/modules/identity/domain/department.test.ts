@@ -20,4 +20,3 @@ describe("departmentHandlingModeLabel", () => {
     expect(departmentHandlingModeLabel("human_direct")).toBe("Transferencia Directa a Humano");
   });
 });
-

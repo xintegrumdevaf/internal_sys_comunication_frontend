@@ -127,10 +127,7 @@ describe("DepartmentsDirectoryPanel", () => {
     const newBtn = screen.getByRole("button", { name: /Nuevo departamento/i });
     fireEvent.click(newBtn);
 
-    expect(
-      screen.getByRole("heading", { name: /Nuevo departamento/i }),
-    ).toBeInTheDocument();
-
+    expect(screen.getByRole("heading", { name: /Nuevo departamento/i })).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText(/Ej: Soporte Técnico/i), {
       target: { value: "Retenciones" },
@@ -138,12 +135,9 @@ describe("DepartmentsDirectoryPanel", () => {
     fireEvent.change(screen.getByPlaceholderText(/soporte-tecnico/i), {
       target: { value: "retenciones" },
     });
-    fireEvent.change(
-      screen.getByPlaceholderText(/Ej: Área técnica encargada de atender caídas/i),
-      {
-        target: { value: "Área para evitar cancelaciones" },
-      },
-    );
+    fireEvent.change(screen.getByPlaceholderText(/Ej: Área técnica encargada de atender caídas/i), {
+      target: { value: "Área para evitar cancelaciones" },
+    });
 
     // Agregar un caso
     const addCaseBtn = screen.getByRole("button", { name: /Agregar Motivo\/Caso/i });
@@ -152,12 +146,9 @@ describe("DepartmentsDirectoryPanel", () => {
     fireEvent.change(screen.getByPlaceholderText(/Ej: Cancelación de Contrato/i), {
       target: { value: "Baja de Servicio" },
     });
-    fireEvent.change(
-      screen.getByPlaceholderText(/Ej: cuando el cliente pide darse de baja/i),
-      {
-        target: { value: "cuando el cliente quiere cancelar" },
-      },
-    );
+    fireEvent.change(screen.getByPlaceholderText(/Ej: cuando el cliente pide darse de baja/i), {
+      target: { value: "cuando el cliente quiere cancelar" },
+    });
 
     // Cambiar a Directo a Humano
     const humanBtn = screen.getByRole("button", { name: /Directo a Humano/i });

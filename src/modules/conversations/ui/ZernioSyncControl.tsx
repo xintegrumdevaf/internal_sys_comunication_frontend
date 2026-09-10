@@ -102,7 +102,9 @@ export function ZernioSyncControl() {
           title="Importar mensajes y conversaciones históricas desde Zernio"
         >
           <History className="size-3.5 text-primary" />
-          <span className="hidden sm:inline font-bold">Sincronizar Mensajes Anteriores de WhatsApp</span>
+          <span className="hidden sm:inline font-bold">
+            Sincronizar Mensajes Anteriores de WhatsApp
+          </span>
           <span className="sm:hidden font-bold">Sincronizar Historial</span>
         </button>
       )}
@@ -143,7 +145,10 @@ export function ZernioSyncControl() {
                 <History className="size-5" />
               </div>
               <div className="flex-1">
-                <h3 id="zernio-sync-title" className="text-sm sm:text-base font-bold text-foreground">
+                <h3
+                  id="zernio-sync-title"
+                  className="text-sm sm:text-base font-bold text-foreground"
+                >
                   Sincronizar Mensajes Anteriores de WhatsApp
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">

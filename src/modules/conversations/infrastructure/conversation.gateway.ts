@@ -8,7 +8,6 @@ import type {
 import type { CaseDto } from "@/modules/cases/domain/case";
 import type { ZernioSyncStatus } from "@/types/department";
 
-
 /**
  * Puerto de infraestructura del modulo conversations: unico punto que conoce
  * las rutas REST reales de /api/conversations/* (docs/API_ENDPOINTS.md §4).
@@ -73,7 +72,6 @@ export function takeControl(conversationId: string, agentUserId: string): Promis
 }
 
 export function markAsRead(conversationId: string): Promise<void> {
-
   return apiPost(`/api/conversations/${conversationId}/read`);
 }
 
@@ -89,4 +87,3 @@ export function startZernioHistorySync(
 export function getZernioHistorySyncStatus(): Promise<ZernioSyncStatus> {
   return apiGet<ZernioSyncStatus>("/api/conversations/sync-history/status");
 }
-

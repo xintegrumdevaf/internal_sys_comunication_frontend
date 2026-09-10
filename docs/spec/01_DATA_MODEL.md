@@ -77,7 +77,6 @@ export type AgentDto = {
   primaryDepartmentId: string | null;
   active: boolean;
 };
-
 ```
 
 ## 2. Conversaciones y mensajes
