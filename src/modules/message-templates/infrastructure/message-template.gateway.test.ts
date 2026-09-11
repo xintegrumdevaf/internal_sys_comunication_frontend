@@ -135,6 +135,41 @@ describe("message-template.gateway", () => {
     expect(res.variables).toEqual(["1", "2"]);
   });
 
+  it("createMessageTemplate mapea mediaUrl a headerContent para encabezados multimedia (IMAGE/VIDEO/DOCUMENT)", async () => {
+    const fetchMock = mockFetchOnce({
+      id: "tpl_media",
+      name: "promocion_imagen",
+      category: "MARKETING",
+      language: "es",
+      connectionId: "default",
+      headerType: "IMAGE",
+      headerContent: "https://example.com/banner.jpg",
+      bodyText: "¡Hola! Mira nuestra promoción.",
+      footerText: null,
+      buttons: null,
+      status: "PENDING",
+      createdAt: "2026-09-11T10:00:00.000Z",
+    });
+
+    const payload = {
+      name: "promocion_imagen",
+      category: "MARKETING" as const,
+      language: "es",
+      connectionId: "default",
+      header: { type: "IMAGE" as const, mediaUrl: "https://example.com/banner.jpg" },
+      body: "¡Hola! Mira nuestra promoción.",
+    };
+
+    const res = await createMessageTemplate(payload, "user_1");
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sentBody = JSON.parse(init.body as string);
+    expect(sentBody.headerType).toBe("IMAGE");
+    expect(sentBody.headerContent).toBe("https://example.com/banner.jpg");
+    expect(res.header?.type).toBe("IMAGE");
+    expect(res.header?.mediaUrl).toBe("https://example.com/banner.jpg");
+  });
+
   it("deleteMessageTemplate realiza la petición DELETE al id especificado", async () => {
     const fetchMock = mockFetchOnce({ success: true, id: "tpl_123" });
     await deleteMessageTemplate("tpl_123", "user_1");

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCheck, X } from "lucide-react";
+import { AlertTriangle, CheckCheck, FileText, Image as ImageIcon, Video, X } from "lucide-react";
 import type { MessageTemplate } from "@/modules/message-templates/domain/message-template";
 import {
   substituteTemplateVariables,
@@ -106,8 +106,50 @@ export function MessageTemplateDetailModal({ template, isOpen, onClose }: Props)
             <div className="rounded-xl border border-border overflow-hidden bg-[#0b141a] p-4 flex justify-center">
               <div className="w-full max-w-md bg-[#005c4b] text-slate-100 rounded-xl rounded-tl-none p-3.5 shadow-lg space-y-2 border border-emerald-400/20 text-xs">
                 {template.header && template.header.type !== "NONE" && (
-                  <div className="font-bold text-emerald-100 border-b border-emerald-400/20 pb-1 text-xs">
-                    {template.header.text || `[Encabezado ${template.header.type}]`}
+                  <div className="font-bold text-emerald-100 border-b border-emerald-400/20 pb-2 text-xs space-y-1">
+                    {template.header.type === "TEXT" && (
+                      <div>{template.header.text || "Encabezado"}</div>
+                    )}
+                    {template.header.type === "IMAGE" && (
+                      <div className="rounded-lg overflow-hidden border border-black/10 bg-black/10 flex flex-col items-center justify-center min-h-[90px]">
+                        {template.header.mediaUrl ? (
+                          <img
+                            src={template.header.mediaUrl}
+                            alt="Header"
+                            className="w-full max-h-40 object-cover"
+                          />
+                        ) : (
+                          <div className="p-2 text-center text-slate-300">
+                            <ImageIcon className="size-5 text-emerald-400 mx-auto mb-1" />
+                            <span className="text-[10px]">Imagen de encabezado</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {template.header.type === "VIDEO" && (
+                      <div className="rounded-lg overflow-hidden border border-black/10 bg-black/10 flex flex-col items-center justify-center min-h-[90px]">
+                        {template.header.mediaUrl ? (
+                          <video src={template.header.mediaUrl} controls className="w-full max-h-40" />
+                        ) : (
+                          <div className="p-2 text-center text-slate-300">
+                            <Video className="size-5 text-emerald-400 mx-auto mb-1" />
+                            <span className="text-[10px]">Video de encabezado</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {template.header.type === "DOCUMENT" && (
+                      <div className="rounded-lg p-2 bg-black/20 border border-emerald-400/20 flex items-center gap-2">
+                        <div className="size-7 rounded bg-emerald-500/20 text-emerald-300 grid place-items-center shrink-0">
+                          <FileText className="size-4" />
+                        </div>
+                        <span className="text-[11px] font-bold truncate flex-1">
+                          {template.header.mediaUrl
+                            ? template.header.mediaUrl.split("/").pop()
+                            : "Documento adjunto"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="leading-relaxed whitespace-pre-wrap text-[12.5px] text-slate-50">

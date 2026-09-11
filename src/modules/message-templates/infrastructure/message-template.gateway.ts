@@ -92,7 +92,7 @@ export async function createMessageTemplate(
     language: payload.language,
     connectionId: payload.connectionId || "default",
     headerType: payload.header?.type || "NONE",
-    headerContent: payload.header?.text || null,
+    headerContent: payload.header?.text || payload.header?.mediaUrl || null,
     bodyText: payload.body,
     footerText: payload.footer || null,
     buttons:

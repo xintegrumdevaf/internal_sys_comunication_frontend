@@ -235,7 +235,8 @@ export function mapRawBackendTemplateToDomain(raw: RawBackendTemplate): MessageT
       raw.headerType && raw.headerType !== "NONE"
         ? {
             type: raw.headerType,
-            text: raw.headerContent || undefined,
+            text: raw.headerType === "TEXT" ? raw.headerContent || undefined : undefined,
+            mediaUrl: raw.headerType !== "TEXT" ? raw.headerContent || undefined : undefined,
           }
         : undefined,
     body: raw.bodyText || "",

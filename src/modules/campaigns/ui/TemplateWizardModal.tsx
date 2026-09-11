@@ -1,4 +1,3 @@
-import { useState, useMemo, useEffect } from "react";
 import {
   X,
   Plus,
@@ -8,6 +7,9 @@ import {
   CheckCircle,
   AlertCircle,
   Sparkles,
+  Upload,
+  Link as LinkIcon,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -39,6 +41,9 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
   // Paso 2: Componentes
   const [headerType, setHeaderType] = useState<HeaderType>("NONE");
   const [headerText, setHeaderText] = useState("");
+  const [headerMediaUrl, setHeaderMediaUrl] = useState("");
+  const [headerFileName, setHeaderFileName] = useState("");
+  const [headerMode, setHeaderMode] = useState<"file" | "url">("file");
   const [bodyText, setBodyText] = useState("");
   const [footerText, setFooterText] = useState("");
   const [buttons, setButtons] = useState<TemplateButton[]>([]);
@@ -55,6 +60,9 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
       setLanguage(initialData.language || "es");
       setHeaderType(initialData.components.header?.type || "NONE");
       setHeaderText(initialData.components.header?.text || "");
+      setHeaderMediaUrl(initialData.components.header?.mediaUrl || "");
+      setHeaderFileName("");
+      setHeaderMode("file");
       setBodyText(initialData.components.body?.text || "");
       setFooterText(initialData.components.footer?.text || "");
       setButtons(initialData.components.buttons || []);
@@ -64,12 +72,26 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
       setLanguage("es");
       setHeaderType("NONE");
       setHeaderText("");
+      setHeaderMediaUrl("");
+      setHeaderFileName("");
+      setHeaderMode("file");
       setBodyText("");
       setFooterText("");
       setButtons([]);
     }
     setStep(1);
   }, [initialData, isOpen]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeaderFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setHeaderMediaUrl((event.target?.result as string) || "");
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Detector de variables en el body
   const detectedVariables = useMemo(() => {
@@ -141,7 +163,14 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
         language,
         status: submitStatus,
         components: {
-          header: headerType !== "NONE" ? { type: headerType, text: headerText } : undefined,
+          header:
+            headerType !== "NONE"
+              ? {
+                  type: headerType,
+                  text: headerType === "TEXT" ? headerText : undefined,
+                  mediaUrl: headerType !== "TEXT" ? headerMediaUrl : undefined,
+                }
+              : undefined,
           body: { text: bodyText },
           footer: footerText.trim() ? { text: footerText } : undefined,
           buttons: buttons.length > 0 ? buttons : undefined,
@@ -308,6 +337,76 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
                     onChange={(e) => setHeaderText(e.target.value)}
                     className="w-full px-3 py-1.5 text-xs rounded-md border border-border bg-card"
                   />
+                )}
+
+                {headerType !== "NONE" && headerType !== "TEXT" && (
+                  <div className="mt-2 p-3 rounded-lg bg-card border border-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-bold text-foreground">
+                        Archivo de muestra para Meta ({headerType === "IMAGE" ? "Imagen" : headerType === "VIDEO" ? "Video" : "Documento"})
+                      </p>
+                      <div className="flex items-center gap-1 bg-background p-0.5 rounded border border-border">
+                        <button
+                          type="button"
+                          onClick={() => setHeaderMode("file")}
+                          className={`px-2 py-0.5 text-[10px] font-semibold rounded flex items-center gap-1 cursor-pointer transition-colors ${
+                            headerMode === "file"
+                              ? "bg-primary text-primary-foreground font-bold"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <Upload className="size-3" /> Subir archivo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHeaderMode("url")}
+                          className={`px-2 py-0.5 text-[10px] font-semibold rounded flex items-center gap-1 cursor-pointer transition-colors ${
+                            headerMode === "url"
+                              ? "bg-primary text-primary-foreground font-bold"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <LinkIcon className="size-3" /> Usar URL
+                        </button>
+                      </div>
+                    </div>
+
+                    {headerMode === "file" ? (
+                      <div className="space-y-1">
+                        <label className="flex flex-col items-center justify-center p-2.5 border-2 border-dashed border-border hover:border-primary/50 bg-background rounded-lg cursor-pointer transition-colors">
+                          <Upload className="size-4 text-primary mb-1" />
+                          <span className="text-[11px] font-semibold text-foreground text-center">
+                            {headerFileName ? headerFileName : "Seleccionar archivo multimedia"}
+                          </span>
+                          <input
+                            type="file"
+                            accept={
+                              headerType === "IMAGE"
+                                ? "image/*"
+                                : headerType === "VIDEO"
+                                ? "video/*"
+                                : ".pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf"
+                            }
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {headerFileName && (
+                          <p className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
+                            <CheckCircle className="size-3" /> Archivo cargado correctamente.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        type="url"
+                        placeholder="https://ejemplo.com/archivo-muestra"
+                        value={headerMediaUrl}
+                        onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs rounded-md border border-border bg-background font-mono outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
 

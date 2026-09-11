@@ -4,12 +4,16 @@ import {
   Bold,
   CheckCheck,
   CheckCircle,
+  FileText,
+  Image as ImageIcon,
   Italic,
+  Link as LinkIcon,
   Phone,
   Plus,
   Send,
   Smile,
   Strikethrough,
+  Upload,
   Video,
   X,
 } from "lucide-react";
@@ -57,6 +61,9 @@ export function MessageTemplateFormDialog({
   const [connectionId, setConnectionId] = useState(connections[0]?.id || "");
   const [headerType, setHeaderType] = useState<TemplateHeaderType>("NONE");
   const [headerText, setHeaderText] = useState("");
+  const [headerMediaUrl, setHeaderMediaUrl] = useState("");
+  const [headerFileName, setHeaderFileName] = useState("");
+  const [headerMode, setHeaderMode] = useState<"file" | "url">("file");
   const [body, setBody] = useState("");
   const [footer, setFooter] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -69,6 +76,9 @@ export function MessageTemplateFormDialog({
     setLanguage("pt_BR");
     setHeaderType("NONE");
     setHeaderText("");
+    setHeaderMediaUrl("");
+    setHeaderFileName("");
+    setHeaderMode("file");
     setBody("");
     setFooter("");
     setShowEmojiPicker(false);
@@ -155,6 +165,17 @@ export function MessageTemplateFormDialog({
     }, 0);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeaderFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setHeaderMediaUrl((event.target?.result as string) || "");
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameValidation.valid || !bodyValidation.valid) return;
@@ -165,7 +186,14 @@ export function MessageTemplateFormDialog({
       language,
       languageLabel: currentLanguageLabel,
       connectionId: connectionId || connections[0]?.id || "",
-      header: headerType !== "NONE" ? { type: headerType, text: headerText } : undefined,
+      header:
+        headerType !== "NONE"
+          ? {
+              type: headerType,
+              text: headerType === "TEXT" ? headerText : undefined,
+              mediaUrl: headerType !== "TEXT" ? headerMediaUrl : undefined,
+            }
+          : undefined,
       body,
       footer: footer.trim() ? footer : undefined,
     };
@@ -312,10 +340,11 @@ export function MessageTemplateFormDialog({
 
             {/* Encabezado opcional */}
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1">
+              <label htmlFor="header-type-select" className="block text-xs font-bold text-foreground mb-1">
                 Encabezado <span className="text-muted-foreground font-normal">· opcional</span>
               </label>
               <select
+                id="header-type-select"
                 value={headerType}
                 onChange={(e) => setHeaderType(e.target.value as TemplateHeaderType)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground font-medium focus:ring-2 focus:ring-primary outline-none cursor-pointer"
@@ -345,6 +374,98 @@ export function MessageTemplateFormDialog({
                   onChange={(e) => setHeaderText(e.target.value)}
                   className="w-full mt-2 px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
                 />
+              )}
+
+              {headerType !== "NONE" && headerType !== "TEXT" && (
+                <div className="mt-2.5 p-3 rounded-xl bg-muted/40 border border-border space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-foreground">
+                      Muestra de multimedia (
+                      {headerType === "IMAGE"
+                        ? "Imagen"
+                        : headerType === "VIDEO"
+                        ? "Video"
+                        : "Documento"}
+                      )
+                    </p>
+                    <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border">
+                      <button
+                        type="button"
+                        onClick={() => setHeaderMode("file")}
+                        className={`px-2 py-1 text-[10px] font-semibold rounded-md flex items-center gap-1 cursor-pointer transition-colors ${
+                          headerMode === "file"
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Upload className="size-3" /> Subir archivo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHeaderMode("url")}
+                        className={`px-2 py-1 text-[10px] font-semibold rounded-md flex items-center gap-1 cursor-pointer transition-colors ${
+                          headerMode === "url"
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <LinkIcon className="size-3" /> Usar URL
+                      </button>
+                    </div>
+                  </div>
+
+                  {headerMode === "file" ? (
+                    <div className="space-y-1.5">
+                      <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-border hover:border-primary/50 bg-background hover:bg-muted/20 rounded-xl cursor-pointer transition-colors">
+                        <Upload className="size-5 text-primary mb-1" />
+                        <span className="text-xs font-semibold text-foreground text-center">
+                          {headerFileName ? headerFileName : "Haz clic para seleccionar tu archivo"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground text-center mt-0.5">
+                          {headerType === "IMAGE" && "Formato: JPG, PNG, WEBP (Máx. 5MB)"}
+                          {headerType === "VIDEO" && "Formato: MP4, 3GP (Máx. 16MB)"}
+                          {headerType === "DOCUMENT" && "Formato: PDF, DOC, DOCX, XLS (Máx. 10MB)"}
+                        </span>
+                        <input
+                          type="file"
+                          accept={
+                            headerType === "IMAGE"
+                              ? "image/*"
+                              : headerType === "VIDEO"
+                              ? "video/*"
+                              : ".pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf"
+                          }
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {headerFileName && (
+                        <p className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
+                          <CheckCircle className="size-3" /> Archivo listo para la revisión de Meta.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="url"
+                        placeholder={
+                          headerType === "IMAGE"
+                            ? "https://ejemplo.com/imagen.jpg"
+                            : headerType === "VIDEO"
+                            ? "https://ejemplo.com/video.mp4"
+                            : "https://ejemplo.com/documento.pdf"
+                        }
+                        value={headerMediaUrl}
+                        onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary font-mono"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Ingresa un enlace público directo a tu archivo de muestra.
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -498,10 +619,66 @@ export function MessageTemplateFormDialog({
                   {/* WA Bubble */}
                   <div className="max-w-[90%] self-end bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-slate-100 rounded-xl rounded-tr-none p-3 shadow-md border border-black/5 dark:border-emerald-400/20 text-xs space-y-1.5">
                     {headerType !== "NONE" && (
-                      <div className="font-bold text-[#005c4b] dark:text-emerald-100 text-xs border-b border-black/10 dark:border-emerald-400/20 pb-1">
-                        {headerType === "TEXT"
-                          ? headerText || "Encabezado"
-                          : `[Encabezado de tipo ${headerType}]`}
+                      <div className="font-bold text-[#005c4b] dark:text-emerald-100 text-xs border-b border-black/10 dark:border-emerald-400/20 pb-2 space-y-1">
+                        {headerType === "TEXT" && (
+                          <div className="text-xs font-bold">{headerText || "Encabezado"}</div>
+                        )}
+                        {headerType === "IMAGE" && (
+                          <div className="rounded-lg overflow-hidden border border-black/10 bg-black/10 flex flex-col items-center justify-center text-muted-foreground min-h-[100px]">
+                            {headerMediaUrl ? (
+                              <img
+                                src={headerMediaUrl}
+                                alt="Header Preview"
+                                className="w-full max-h-44 object-cover"
+                              />
+                            ) : (
+                              <div className="p-3 text-center space-y-1">
+                                <ImageIcon className="size-6 text-emerald-500 mx-auto opacity-70" />
+                                <p className="text-[11px] font-semibold text-foreground dark:text-emerald-100">
+                                  Vista previa de Imagen
+                                </p>
+                                <p className="text-[9.5px] opacity-80 text-muted-foreground dark:text-emerald-200/70">
+                                  Suba un archivo o ingrese URL a la izquierda
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {headerType === "VIDEO" && (
+                          <div className="rounded-lg overflow-hidden border border-black/10 bg-black/10 flex flex-col items-center justify-center text-muted-foreground min-h-[100px]">
+                            {headerMediaUrl ? (
+                              <video src={headerMediaUrl} controls className="w-full max-h-44" />
+                            ) : (
+                              <div className="p-3 text-center space-y-1">
+                                <Video className="size-6 text-emerald-500 mx-auto opacity-70" />
+                                <p className="text-[11px] font-semibold text-foreground dark:text-emerald-100">
+                                  Vista previa de Video
+                                </p>
+                                <p className="text-[9.5px] opacity-80 text-muted-foreground dark:text-emerald-200/70">
+                                  Suba un archivo o ingrese URL a la izquierda
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {headerType === "DOCUMENT" && (
+                          <div className="rounded-lg p-2.5 bg-black/10 border border-black/10 flex items-center gap-2.5">
+                            <div className="size-8 rounded-lg bg-emerald-500/20 text-emerald-500 dark:text-emerald-300 grid place-items-center shrink-0">
+                              <FileText className="size-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold text-foreground dark:text-emerald-100 truncate">
+                                {headerFileName ||
+                                  (headerMediaUrl
+                                    ? headerMediaUrl.split("/").pop() || "documento.pdf"
+                                    : "Documento adjunto")}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground dark:text-emerald-200/60">
+                                Documento de muestra para Meta
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

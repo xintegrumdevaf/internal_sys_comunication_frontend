@@ -75,4 +75,23 @@ describe("MessageTemplateFormDialog", () => {
     expect(newNameInput.value).toBe("");
     expect(newBodyTextarea.value).toBe("");
   });
+
+  it("muestra controles de carga de archivo y URL al seleccionar un encabezado de tipo Imagen", () => {
+    render(
+      <MessageTemplateFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+        connections={mockConnections}
+        submitting={false}
+      />,
+    );
+
+    const headerSelect = screen.getByLabelText(/encabezado/i);
+    fireEvent.change(headerSelect, { target: { value: "IMAGE" } });
+
+    expect(screen.getByText(/Muestra de multimedia \(Imagen\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Subir archivo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Usar URL/i)).toBeInTheDocument();
+  });
 });
