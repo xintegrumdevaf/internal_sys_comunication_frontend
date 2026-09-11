@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useMemo } from "react";
 import {
   X,
   Plus,
@@ -100,10 +101,10 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
 
   // Actualizar sampleVars cuando cambien las variables detectadas
   useEffect(() => {
-    setSampleVars((prev) => {
+    setSampleVars((prev: Record<string, string>) => {
       const updated: Record<string, string> = { ...prev };
       let changed = false;
-      detectedVariables.forEach((v) => {
+      detectedVariables.forEach((v: string) => {
         if (!updated[v]) {
           updated[v] = v === "1" ? "Carlos" : v === "2" ? "$50,000" : `Valor_${v}`;
           changed = true;
@@ -119,7 +120,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
 
   const handleInsertVariable = () => {
     const nextNum = detectedVariables.length + 1;
-    setBodyText((prev) => `${prev} {{${nextNum}}}`);
+    setBodyText((prev: string) => `${prev} {{${nextNum}}}`);
   };
 
   const handleAddButton = (type: ButtonType) => {
@@ -127,7 +128,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
       toast.error("Meta permite un máximo de 3 botones por plantilla.");
       return;
     }
-    setButtons((prev) => [
+    setButtons((prev: TemplateButton[]) => [
       ...prev,
       {
         type,
@@ -139,7 +140,9 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
   };
 
   const handleRemoveButton = (index: number) => {
-    setButtons((prev) => prev.filter((_, i) => i !== index));
+    setButtons((prev: TemplateButton[]) =>
+      prev.filter((_: TemplateButton, i: number) => i !== index),
+    );
   };
 
   const handleSave = async (submitStatus: "draft" | "pending") => {
@@ -343,7 +346,13 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
                   <div className="mt-2 p-3 rounded-lg bg-card border border-border space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-bold text-foreground">
-                        Archivo de muestra para Meta ({headerType === "IMAGE" ? "Imagen" : headerType === "VIDEO" ? "Video" : "Documento"})
+                        Archivo de muestra para Meta (
+                        {headerType === "IMAGE"
+                          ? "Imagen"
+                          : headerType === "VIDEO"
+                            ? "Video"
+                            : "Documento"}
+                        )
                       </p>
                       <div className="flex items-center gap-1 bg-background p-0.5 rounded border border-border">
                         <button
@@ -384,8 +393,8 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
                               headerType === "IMAGE"
                                 ? "image/*"
                                 : headerType === "VIDEO"
-                                ? "video/*"
-                                : ".pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf"
+                                  ? "video/*"
+                                  : ".pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf"
                             }
                             onChange={handleFileUpload}
                             className="hidden"
@@ -441,7 +450,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
                 {detectedVariables.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
                     <span>Variables encontradas:</span>
-                    {detectedVariables.map((v) => (
+                    {detectedVariables.map((v: string) => (
                       <span
                         key={v}
                         className="px-1.5 py-0.5 rounded bg-card border border-border text-foreground font-bold"
@@ -494,7 +503,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
 
                 {buttons.length > 0 ? (
                   <div className="space-y-2">
-                    {buttons.map((btn, idx) => (
+                    {buttons.map((btn: TemplateButton, idx: number) => (
                       <div
                         key={idx}
                         className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg text-xs"
@@ -573,7 +582,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
                       Probar Variables de Previsualización
                     </h4>
                     <div className="space-y-2">
-                      {detectedVariables.map((v) => (
+                      {detectedVariables.map((v: string) => (
                         <div key={v} className="flex items-center gap-2 text-xs font-mono">
                           <span className="w-12 font-bold text-primary">{`{{${v}}}`}:</span>
                           <input
@@ -611,7 +620,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
             {step > 1 && (
               <button
                 type="button"
-                onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
+                onClick={() => setStep((s: number) => (s - 1) as 1 | 2 | 3)}
                 className="px-4 py-2 rounded-lg border border-border text-xs font-bold uppercase flex items-center gap-1.5 hover:bg-background"
               >
                 <ArrowLeft className="size-3.5" /> Anterior
@@ -624,7 +633,7 @@ export function TemplateWizardModal({ isOpen, onClose, onSubmit, initialData }: 
               <button
                 type="button"
                 disabled={step === 1 && !nameValidation.valid}
-                onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
+                onClick={() => setStep((s: number) => (s + 1) as 1 | 2 | 3)}
                 className="px-5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-extrabold uppercase flex items-center gap-1.5 disabled:opacity-40 shadow-md"
               >
                 Siguiente <ArrowRight className="size-3.5" />

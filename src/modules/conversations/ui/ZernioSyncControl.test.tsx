@@ -140,4 +140,3 @@ describe("ZernioSyncControl", () => {
     expect(submitBtn).toBeDisabled();
   });
 });
-

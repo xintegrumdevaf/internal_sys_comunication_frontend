@@ -129,7 +129,11 @@ export function MessageTemplateDetailModal({ template, isOpen, onClose }: Props)
                     {template.header.type === "VIDEO" && (
                       <div className="rounded-lg overflow-hidden border border-black/10 bg-black/10 flex flex-col items-center justify-center min-h-[90px]">
                         {template.header.mediaUrl ? (
-                          <video src={template.header.mediaUrl} controls className="w-full max-h-40" />
+                          <video
+                            src={template.header.mediaUrl}
+                            controls
+                            className="w-full max-h-40"
+                          />
                         ) : (
                           <div className="p-2 text-center text-slate-300">
                             <Video className="size-5 text-emerald-400 mx-auto mb-1" />

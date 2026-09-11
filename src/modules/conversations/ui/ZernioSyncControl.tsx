@@ -98,9 +98,7 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
             toast.success(
               `¡Sincronización completada! ${latest.totalMessagesSynced.toLocaleString()} mensajes importados`,
             );
-            window.dispatchEvent(
-              new CustomEvent("zernio-sync-completed", { detail: latest }),
-            );
+            window.dispatchEvent(new CustomEvent("zernio-sync-completed", { detail: latest }));
             window.dispatchEvent(new Event("refresh-conversations"));
             onSyncComplete?.(latest);
           } else if (latest.status === "failed") {
@@ -167,9 +165,7 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
       await fetchStatus();
     } catch (e) {
       setSyncStatus(null);
-      window.dispatchEvent(
-        new CustomEvent("zernio-sync-status-changed", { detail: null }),
-      );
+      window.dispatchEvent(new CustomEvent("zernio-sync-status-changed", { detail: null }));
       toast.error(
         e instanceof Error ? e.message : "No se pudo iniciar la sincronización con Zernio",
       );
@@ -391,12 +387,16 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
                   <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/25 space-y-1.5 animate-pulse">
                     <div className="flex justify-between items-center text-xs font-bold text-primary">
                       <span>Porcentaje de Avance</span>
-                      <span className="font-mono text-xs font-extrabold">{syncStatus?.progress ?? 15}%</span>
+                      <span className="font-mono text-xs font-extrabold">
+                        {syncStatus?.progress ?? 15}%
+                      </span>
                     </div>
                     <div className="w-full bg-primary/20 rounded-full h-2.5 overflow-hidden">
                       <div
                         className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${Math.min(100, Math.max(8, syncStatus?.progress ?? 15))}%` }}
+                        style={{
+                          width: `${Math.min(100, Math.max(8, syncStatus?.progress ?? 15))}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -418,7 +418,10 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
                       <Clock className="size-3 text-primary" /> Tiempo Transcurrido
                     </span>
                     <p className="text-xl font-extrabold font-mono text-foreground mt-1">
-                      {calculateDuration(syncStatus?.startedAt ?? null, syncStatus?.completedAt ?? null)}
+                      {calculateDuration(
+                        syncStatus?.startedAt ?? null,
+                        syncStatus?.completedAt ?? null,
+                      )}
                     </p>
                   </div>
                 </div>
@@ -485,7 +488,8 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2.5">
                     <AlertCircle className="size-4 shrink-0 text-amber-500" />
                     <p className="text-[11px] font-medium">
-                      Ya existe una sincronización en curso. No es posible iniciar una nueva hasta que finalice la actual.
+                      Ya existe una sincronización en curso. No es posible iniciar una nueva hasta
+                      que finalice la actual.
                     </p>
                   </div>
                 )}
@@ -558,4 +562,3 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
     </div>
   );
 }
-

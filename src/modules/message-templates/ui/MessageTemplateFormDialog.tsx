@@ -340,7 +340,10 @@ export function MessageTemplateFormDialog({
 
             {/* Encabezado opcional */}
             <div>
-              <label htmlFor="header-type-select" className="block text-xs font-bold text-foreground mb-1">
+              <label
+                htmlFor="header-type-select"
+                className="block text-xs font-bold text-foreground mb-1"
+              >
                 Encabezado <span className="text-muted-foreground font-normal">· opcional</span>
               </label>
               <select
@@ -384,8 +387,8 @@ export function MessageTemplateFormDialog({
                       {headerType === "IMAGE"
                         ? "Imagen"
                         : headerType === "VIDEO"
-                        ? "Video"
-                        : "Documento"}
+                          ? "Video"
+                          : "Documento"}
                       )
                     </p>
                     <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border">
@@ -432,8 +435,8 @@ export function MessageTemplateFormDialog({
                             headerType === "IMAGE"
                               ? "image/*"
                               : headerType === "VIDEO"
-                              ? "video/*"
-                              : ".pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf"
+                                ? "video/*"
+                                : ".pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf"
                           }
                           onChange={handleFileUpload}
                           className="hidden"
@@ -453,8 +456,8 @@ export function MessageTemplateFormDialog({
                           headerType === "IMAGE"
                             ? "https://ejemplo.com/imagen.jpg"
                             : headerType === "VIDEO"
-                            ? "https://ejemplo.com/video.mp4"
-                            : "https://ejemplo.com/documento.pdf"
+                              ? "https://ejemplo.com/video.mp4"
+                              : "https://ejemplo.com/documento.pdf"
                         }
                         value={headerMediaUrl}
                         onChange={(e) => setHeaderMediaUrl(e.target.value)}

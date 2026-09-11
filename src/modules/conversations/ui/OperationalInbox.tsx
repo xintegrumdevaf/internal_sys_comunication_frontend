@@ -339,7 +339,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
             <RotateCw className="size-4 animate-spin text-primary shrink-0" />
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center justify-between text-xs font-bold">
-                <span className="truncate">Sincronizando mensajes y conversaciones de WhatsApp...</span>
+                <span className="truncate">
+                  Sincronizando mensajes y conversaciones de WhatsApp...
+                </span>
                 <span className="font-mono text-xs font-extrabold ml-2 shrink-0">
                   {currentSyncStatus.progress != null
                     ? `${currentSyncStatus.progress}%`
