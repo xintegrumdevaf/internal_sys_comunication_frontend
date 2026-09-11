@@ -57,4 +57,6 @@ export interface ZernioSyncStatus {
   startedAt: string | null;
   completedAt: string | null;
   lastError: string | null;
+  progress?: number;
+  totalItems?: number;
 }

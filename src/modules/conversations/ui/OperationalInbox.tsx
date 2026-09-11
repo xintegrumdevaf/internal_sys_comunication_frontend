@@ -3,6 +3,8 @@ import {
   Search,
   User,
   CheckCheck,
+  CheckCircle2,
+  RotateCw,
   Wifi,
   WifiOff,
   UserRound,
@@ -20,6 +22,7 @@ import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInter
 import { CasePanel } from "@/modules/cases/ui/CasePanel";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
 import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
+import type { ZernioSyncStatus } from "@/types/department";
 
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
 import {
@@ -159,6 +162,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
     loadCaseSummary,
     loading,
     busy,
+    reload,
     takeControl,
     claim,
     complete,
@@ -178,6 +182,48 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   const [draft, setDraft] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
+
+  const [currentSyncStatus, setCurrentSyncStatus] = useState<ZernioSyncStatus | null>(null);
+  const [syncCompletedBanner, setSyncCompletedBanner] = useState<{
+    show: boolean;
+    count: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void reload({ silent: true });
+    };
+
+    const handleSyncStatusChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<ZernioSyncStatus | null>;
+      if (customEvent.detail !== undefined) {
+        setCurrentSyncStatus(customEvent.detail);
+      }
+    };
+
+    const handleSyncComplete = (event: Event) => {
+      const customEvent = event as CustomEvent<ZernioSyncStatus>;
+      const detail = customEvent.detail;
+      if (detail) {
+        setCurrentSyncStatus(detail);
+        setSyncCompletedBanner({
+          show: true,
+          count: detail.totalMessagesSynced ?? 0,
+        });
+      }
+      void reload({ silent: true });
+    };
+
+    window.addEventListener("refresh-conversations", handleRefresh);
+    window.addEventListener("zernio-sync-status-changed", handleSyncStatusChanged);
+    window.addEventListener("zernio-sync-completed", handleSyncComplete);
+
+    return () => {
+      window.removeEventListener("refresh-conversations", handleRefresh);
+      window.removeEventListener("zernio-sync-status-changed", handleSyncStatusChanged);
+      window.removeEventListener("zernio-sync-completed", handleSyncComplete);
+    };
+  }, [reload]);
 
   // Panel de detalles: se abre solo cuando hay un caso con informacion util
   // y se puede plegar a una pestania angosta (como un sidebar) — nunca
@@ -282,8 +328,67 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   let lastRenderedDay = "";
   let lastRenderedSender = "";
 
+  const isSyncRunning = currentSyncStatus?.status === "running";
+
   return (
     <div className="flex flex-col gap-4 h-full flex-1 min-h-0 animate-fade-up">
+      {/* Banner de Sincronización en Ejecución con Barra de Progreso y Porcentaje */}
+      {isSyncRunning && (
+        <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-between gap-3 animate-pulse shadow-xs">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <RotateCw className="size-4 animate-spin text-primary shrink-0" />
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="truncate">Sincronizando mensajes y conversaciones de WhatsApp...</span>
+                <span className="font-mono text-xs font-extrabold ml-2 shrink-0">
+                  {currentSyncStatus.progress != null
+                    ? `${currentSyncStatus.progress}%`
+                    : `${currentSyncStatus.totalMessagesSynced.toLocaleString()} importados`}
+                </span>
+              </div>
+              <div className="w-full bg-primary/20 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.max(
+                        8,
+                        currentSyncStatus.progress ??
+                          (currentSyncStatus.totalMessagesSynced > 0 ? 65 : 15),
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de Sincronización Finalizada Exitosamente */}
+      {!isSyncRunning && syncCompletedBanner?.show && (
+        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 animate-fade-in shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+            <p className="text-xs font-semibold">
+              Sincronización finalizada: Se han importado{" "}
+              <span className="font-extrabold font-mono">
+                {syncCompletedBanner.count.toLocaleString()}
+              </span>{" "}
+              mensajes históricos. La bandeja de entrada se encuentra totalmente actualizada.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncCompletedBanner(null)}
+            className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-2 py-0.5 cursor-pointer"
+          >
+            Descartar
+          </button>
+        </div>
+      )}
+
       {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
       <div
         className={`bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs ${

@@ -46,8 +46,32 @@ describe("ZernioSyncControl", () => {
     render(<ZernioSyncControl />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Sincronizando:.*mensajes importados/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sincronizando/i)).toBeInTheDocument();
     });
+  });
+
+  it("muestra el badge de sincronización finalizada cuando el estado es completed", async () => {
+    vi.mocked(conversationService.getZernioHistorySyncStatus).mockResolvedValueOnce({
+      status: "completed",
+      totalMessagesSynced: 342,
+      startedAt: "2026-09-07T12:00:00Z",
+      completedAt: "2026-09-07T12:01:30Z",
+      lastError: null,
+    });
+
+    render(<ZernioSyncControl />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sincronización Finalizada \(342 msgs\)/i)).toBeInTheDocument();
+    });
+
+    // Abrir modal de detalles al hacer click
+    const btn = screen.getByTitle(/Click para ver resumen completo de la sincronización/i);
+    fireEvent.click(btn);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText(/Sincronización Histórica Finalizada/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/342/i).length).toBeGreaterThan(0);
   });
 
   it("abre el modal de confirmación y permite iniciar la sincronización", async () => {
@@ -85,4 +109,35 @@ describe("ZernioSyncControl", () => {
       expect(conversationService.startZernioHistorySync).toHaveBeenCalledWith(30);
     });
   });
+
+  it("bloquea el inicio de una nueva sincronización si ya hay una en ejecución", async () => {
+    vi.mocked(conversationService.getZernioHistorySyncStatus).mockResolvedValue({
+      status: "running",
+      totalMessagesSynced: 50,
+      startedAt: "2026-09-07T12:00:00Z",
+      completedAt: null,
+      lastError: null,
+    });
+
+    render(<ZernioSyncControl />);
+
+    const statusBadge = await screen.findByTitle(/Ver detalles de la sincronización en curso/i);
+    fireEvent.click(statusBadge);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Intentar ir a Nueva sincronización
+    const newSyncBtn = screen.getByText(/Nueva sincronización/i);
+    fireEvent.click(newSyncBtn);
+
+    expect(
+      screen.getByText(
+        /Ya existe una sincronización en curso. No es posible iniciar una nueva hasta que finalice la actual/i,
+      ),
+    ).toBeInTheDocument();
+
+    const submitBtn = screen.getByRole("button", { name: /Sincronización en Curso/i });
+    expect(submitBtn).toBeDisabled();
+  });
 });
+
