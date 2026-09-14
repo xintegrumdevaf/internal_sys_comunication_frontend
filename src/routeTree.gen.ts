@@ -24,6 +24,7 @@ import { Route as EscalacionesRouteImport } from './routes/escalaciones'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlantillasRouteImport } from './routes/plantillas'
+import { Route as RespuestasRapidasRouteImport } from './routes/respuestas-rapidas'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 
 const IndexRoute = IndexRouteImport.update({
@@ -101,6 +102,11 @@ const PlantillasRoute = PlantillasRouteImport.update({
   path: '/plantillas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RespuestasRapidasRoute = RespuestasRapidasRouteImport.update({
+  id: '/respuestas-rapidas',
+  path: '/respuestas-rapidas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
+  '/respuestas-rapidas': typeof RespuestasRapidasRoute
   '/usuarios': typeof UsuariosRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
+  '/respuestas-rapidas': typeof RespuestasRapidasRoute
   '/usuarios': typeof UsuariosRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
+  '/respuestas-rapidas': typeof RespuestasRapidasRoute
   '/usuarios': typeof UsuariosRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/plantillas'
+    | '/respuestas-rapidas'
     | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/plantillas'
+    | '/respuestas-rapidas'
     | '/usuarios'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/plantillas'
+    | '/respuestas-rapidas'
     | '/usuarios'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
   PlantillasRoute: typeof PlantillasRoute
+  RespuestasRapidasRoute: typeof RespuestasRapidasRoute
   UsuariosRoute: typeof UsuariosRoute
 }
 
@@ -345,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlantillasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/respuestas-rapidas': {
+      id: '/respuestas-rapidas'
+      path: '/respuestas-rapidas'
+      fullPath: '/respuestas-rapidas'
+      preLoaderRoute: typeof RespuestasRapidasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/usuarios': {
       id: '/usuarios'
       path: '/usuarios'
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
   PlantillasRoute: PlantillasRoute,
+  RespuestasRapidasRoute: RespuestasRapidasRoute,
   UsuariosRoute: UsuariosRoute,
 }
 export const routeTree = rootRouteImport

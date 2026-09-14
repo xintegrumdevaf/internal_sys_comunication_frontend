@@ -126,6 +126,7 @@ describe("modulesForSession", () => {
     expect(items).toContain("/calidad");
     expect(items).toContain("/campanas");
     expect(items).toContain("/plantillas");
+    expect(items).toContain("/respuestas-rapidas");
     expect(items).not.toContain("/usuarios");
   });
 

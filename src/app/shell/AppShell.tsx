@@ -21,6 +21,7 @@ import {
   X,
   Sparkles,
   Power,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -63,6 +64,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/flujos": GitBranch,
   "/campanas": Megaphone,
   "/plantillas": LayoutTemplate,
+  "/respuestas-rapidas": Zap,
   "/auditoria": ShieldCheck,
   "/conocimiento": BrainCircuit,
 };

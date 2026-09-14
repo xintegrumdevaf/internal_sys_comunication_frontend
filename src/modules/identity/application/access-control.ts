@@ -32,6 +32,7 @@ const SUPERVISOR_PATHS = new Set([
   "/dashboard-gerencial",
   "/campanas",
   "/plantillas",
+  "/respuestas-rapidas",
 ]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno"]);
 
@@ -62,6 +63,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
       { label: "Base de Conocimiento", to: "/conocimiento" },
       { label: "Campañas masivas", to: "/campanas" },
       { label: "Plantillas Meta", to: "/plantillas" },
+      { label: "Respuestas Rápidas", to: "/respuestas-rapidas" },
     );
   }
   if (session.role === "admin") {
