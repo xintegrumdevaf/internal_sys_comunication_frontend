@@ -825,6 +825,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                                 : "text-emerald-800/80 dark:text-emerald-200/80"
                             }`}
                           >
+                            {m.editedAt && (
+                              <span
+                                className="italic text-[9px] opacity-75 mr-0.5"
+                                title={`Editado el ${new Date(m.editedAt).toLocaleTimeString()}`}
+                              >
+                                (editado)
+                              </span>
+                            )}
                             <span>{messageClock(m.createdAt)}</span>
                             {!fromCustomer && (
                               <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />

@@ -12,6 +12,8 @@ export type MessagePreviewDto = {
   author: MessageAuthor;
   direction: MessageDirection;
   createdAt: string;
+  id?: string;
+  editedAt?: string | null;
 } | null;
 
 export type ConversationDto = {
@@ -83,6 +85,11 @@ export function conversationStatusLabel(status: ConversationStatus): string {
   return CONVERSATION_STATUS_LABELS[status] ?? status;
 }
 
+export type MessageEditHistoryItem = {
+  previousBody: string;
+  editedAt: string;
+};
+
 export type MessageDto = {
   id: string;
   conversationId: string;
@@ -94,9 +101,13 @@ export type MessageDto = {
   body: string;
   type: MessageType;
   createdAt: string;
+  editedAt?: string | null;
+  editHistory?: MessageEditHistoryItem[];
   mediaId?: string;
   mimeType?: string;
   caption?: string;
   filename?: string;
   mediaUrl?: string;
 };
+
+export type Message = MessageDto;
