@@ -25,6 +25,8 @@ import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
 import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
 import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
+import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
+import { EmojiPickerPopover } from "@/components/common/EmojiPickerPopover";
 import type { ZernioSyncStatus } from "@/types/department";
 
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
@@ -184,6 +186,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   const connected = useRealtimeConnected();
   const [draft, setDraft] = useState("");
 
+  const {
+    isOpen: isEmojiOpen,
+    setIsOpen: setIsEmojiOpen,
+    inputRef: chatInputRef,
+    containerRef: emojiContainerRef,
+    insertEmoji,
+  } = useEmojiInsertion<HTMLInputElement>(draft, setDraft);
+
   const currentConversationDepartmentId =
     activeCase?.departmentId ?? selected?.activeCase?.departmentId ?? departmentId;
 
@@ -291,7 +301,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
 
   useEffect(() => {
     setDraft("");
-  }, [selectedId]);
+    setIsEmojiOpen(false);
+  }, [selectedId, setIsEmojiOpen]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
@@ -880,6 +891,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       selectedIndex={quickReplySelectedIndex}
                       onSelect={selectQuickReply}
                     />
+                    <EmojiPickerPopover
+                      isOpen={isEmojiOpen}
+                      onToggle={() => setIsEmojiOpen(!isEmojiOpen)}
+                      onEmojiSelect={insertEmoji}
+                      containerRef={emojiContainerRef}
+                      position="top-left"
+                      buttonClassName="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0 disabled:opacity-40"
+                    />
                     <button
                       type="button"
                       disabled={busy || isAutomationActive}
@@ -892,6 +911,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       <Zap className="size-4" />
                     </button>
                     <input
+                      ref={chatInputRef}
                       value={draft}
                       disabled={busy || isAutomationActive}
                       onChange={(e) => setDraft(e.target.value)}

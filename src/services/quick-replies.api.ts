@@ -70,4 +70,22 @@ export const quickRepliesApi = {
   delete: async (id: string): Promise<void> => {
     await apiDelete<void>(`/api/quick-replies/${id}`);
   },
+
+  refineTone: async (text: string): Promise<string> => {
+    const res = await apiPost<RefineToneResponse | { data: RefineToneResponse }>(
+      "/api/quick-replies/refine-tone",
+      { text },
+    );
+    if ("data" in res && res.data && typeof res.data === "object" && "refinedText" in res.data) {
+      return (res.data as RefineToneResponse).refinedText;
+    }
+    return (res as RefineToneResponse).refinedText;
+  },
 };
+
+export interface RefineToneResponse {
+  refinedText: string;
+}
+
+export const refineQuickReplyTone = (text: string): Promise<string> =>
+  quickRepliesApi.refineTone(text);

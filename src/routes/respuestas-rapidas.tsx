@@ -13,8 +13,10 @@ function RespuestasRapidasPage() {
       <div className="mb-4 p-3 rounded-xl border border-border bg-card text-xs text-muted-foreground animate-fade-up flex items-center justify-between">
         <div>
           <span className="font-bold text-foreground">Respuestas Rápidas estilo Whaticket:</span>{" "}
-          Atajos que los operadores activan escribiendo <code className="font-mono bg-muted px-1 py-0.5 rounded text-primary">/</code> en el chat.
-          Los administradores pueden crear respuestas Globales y los managers para sus departamentos.
+          Atajos que los operadores activan escribiendo{" "}
+          <code className="font-mono bg-muted px-1 py-0.5 rounded text-primary">/</code> en el chat.
+          Los administradores pueden crear respuestas Globales y los managers para sus
+          departamentos.
         </div>
       </div>
       <QuickRepliesManagementView />

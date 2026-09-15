@@ -18,6 +18,8 @@ import {
 } from "@/modules/internal-chat/domain/deep-link";
 import type { Mention, MentionTarget } from "@/modules/internal-chat/domain/internal-chat";
 import { getQualityReview } from "@/modules/quality/infrastructure/quality.gateway";
+import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
+import { EmojiPickerPopover } from "@/components/common/EmojiPickerPopover";
 import { toast } from "sonner";
 
 export function InternalChatShell({
@@ -52,11 +54,28 @@ export function InternalChatShell({
   const [draft, setDraft] = useState("");
   const [draftMentions, setDraftMentions] = useState<Mention[]>([]);
   const [caret, setCaret] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    isOpen: isEmojiOpen,
+    setIsOpen: setIsEmojiOpen,
+    inputRef,
+    containerRef: emojiContainerRef,
+    insertEmoji,
+  } = useEmojiInsertion<HTMLInputElement>(draft, (val) => {
+    setDraft(val);
+    if (inputRef.current) {
+      setCaret(inputRef.current.selectionStart ?? val.length);
+    }
+  });
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const deepLinkApplied = useRef(false);
 
   const supervisor = isSupervisorSession(session);
+
+  useEffect(() => {
+    setIsEmojiOpen(false);
+  }, [selectedThreadId, setIsEmojiOpen]);
 
   useEffect(() => {
     if (!session) return;
@@ -151,6 +170,7 @@ export function InternalChatShell({
       setDraft("");
       setDraftMentions([]);
       setCaret(0);
+      setIsEmojiOpen(false);
     }
   };
 
@@ -348,7 +368,16 @@ export function InternalChatShell({
               targets={targets}
               onSelect={applyMention}
             />
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <EmojiPickerPopover
+                isOpen={isEmojiOpen}
+                onToggle={() => setIsEmojiOpen(!isEmojiOpen)}
+                onEmojiSelect={insertEmoji}
+                containerRef={emojiContainerRef}
+                position="top-left"
+                disabled={!selectedThreadId}
+                buttonClassName="inline-flex items-center justify-center size-9 rounded-xl border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors shrink-0"
+              />
               <input
                 ref={inputRef}
                 disabled={!selectedThreadId}
