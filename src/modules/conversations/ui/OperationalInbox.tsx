@@ -14,6 +14,7 @@ import {
   PanelRightClose,
   Info,
   ArrowLeft,
+  Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -22,6 +23,8 @@ import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInter
 import { CasePanel } from "@/modules/cases/ui/CasePanel";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
 import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
+import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
+import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
 import type { ZernioSyncStatus } from "@/types/department";
 
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
@@ -180,6 +183,31 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
 
   const connected = useRealtimeConnected();
   const [draft, setDraft] = useState("");
+
+  const currentConversationDepartmentId =
+    activeCase?.departmentId ?? selected?.activeCase?.departmentId ?? departmentId;
+
+  const {
+    isOpen: isQuickReplyOpen,
+    filtered: quickReplyFiltered,
+    selectedIndex: quickReplySelectedIndex,
+    selectReply: selectQuickReply,
+    handleKeyDown: handleQuickReplyKeyDown,
+  } = useQuickReplyAutocomplete({
+    inputText: draft,
+    departmentId: currentConversationDepartmentId,
+    conversationId: selectedId ?? undefined,
+    onSelect: (interpolatedText) => {
+      setDraft((prev) => {
+        const slashIndex = prev.lastIndexOf("/");
+        if (slashIndex !== -1) {
+          return prev.slice(0, slashIndex) + interpolatedText;
+        }
+        return interpolatedText;
+      });
+    },
+  });
+
   const [summaryOpen, setSummaryOpen] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
 
@@ -845,12 +873,32 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       )}
                     </div>
                   )}
-                  <div className="p-2 flex gap-2">
+                  <div className="relative p-2 flex gap-2 items-center">
+                    <QuickReplyDropdown
+                      isOpen={isQuickReplyOpen}
+                      replies={quickReplyFiltered}
+                      selectedIndex={quickReplySelectedIndex}
+                      onSelect={selectQuickReply}
+                    />
+                    <button
+                      type="button"
+                      disabled={busy || isAutomationActive}
+                      onClick={() => {
+                        setDraft((prev) => (prev.endsWith("/") ? prev : prev ? `${prev} /` : "/"));
+                      }}
+                      title="Respuestas rápidas (escribe /)"
+                      className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0 disabled:opacity-40"
+                    >
+                      <Zap className="size-4" />
+                    </button>
                     <input
                       value={draft}
                       disabled={busy || isAutomationActive}
                       onChange={(e) => setDraft(e.target.value)}
                       onKeyDown={(e) => {
+                        if (handleQuickReplyKeyDown(e)) {
+                          return;
+                        }
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
                           void handleSend();
@@ -859,7 +907,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       placeholder={
                         isAutomationActive
                           ? "🤖 El Asistente IA está respondiendo... Haz clic en 'Tomar control' para escribir"
-                          : "Escribe tu respuesta… se envía por WhatsApp"
+                          : "Escribe tu respuesta… o '/' para respuestas rápidas"
                       }
                       className="flex-1 px-3.5 py-1.5 bg-card border border-border rounded-full text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                     />
