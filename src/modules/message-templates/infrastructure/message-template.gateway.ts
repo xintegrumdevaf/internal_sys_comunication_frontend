@@ -138,3 +138,26 @@ export async function listWabaConnections(_agentUserId?: string): Promise<WabaCo
     },
   ];
 }
+
+
+/**
+ * POST /api/message-templates/sync-all
+ */
+export async function syncAllMessageTemplates(
+  agentUserId?: string,
+): Promise<MessageTemplate[]> {
+  const rawRes = await apiPost<{ data: RawBackendTemplate[] } | RawBackendTemplate[]>(
+    "/api/message-templates/sync-all",
+    {},
+    { agentId: agentUserId },
+  );
+
+  let rawList: RawBackendTemplate[] = [];
+  if (Array.isArray(rawRes)) {
+    rawList = rawRes;
+  } else if (rawRes && Array.isArray((rawRes as any).data)) {
+    rawList = (rawRes as any).data;
+  }
+
+  return rawList.map(mapRawBackendTemplateToDomain);
+}

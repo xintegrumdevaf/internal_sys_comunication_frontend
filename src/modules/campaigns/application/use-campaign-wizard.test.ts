@@ -3,27 +3,46 @@ import { renderHook, act } from "@testing-library/react";
 import { useCampaignWizard } from "./use-campaign-wizard";
 
 describe("useCampaignWizard", () => {
-  it("should initialize with default state", () => {
+  it("should initialize with default state and calculate intervals correctly", () => {
     const { result } = renderHook(() => useCampaignWizard());
     expect(result.current.activeStep).toBe(1);
     expect(result.current.name).toBe("");
     expect(result.current.quickMode).toBe(true);
-    expect(result.current.intervalSeconds).toBe(45);
+    expect(result.current.intervalSeconds).toBe(7);
     expect(result.current.step1Pending).toBe(true);
     expect(result.current.step2Pending).toBe(true);
     expect(result.current.canSubmit).toBe(false);
+
+    act(() => {
+      result.current.setQuickMode(false);
+    });
+    expect(result.current.quickMode).toBe(false);
+    expect(result.current.intervalSeconds).toBe(45);
   });
 
-  it("should update campaign name and message text", () => {
+  it("should update campaign name and require template selection", () => {
     const { result } = renderHook(() => useCampaignWizard());
+
+    const mockTemplate = {
+      id: "tpl_test",
+      name: "aviso_cobro",
+      category: "UTILITY" as const,
+      language: "es",
+      connectionId: "default",
+      connectionName: "Línea Oficial WhatsApp",
+      status: "APPROVED" as const,
+      body: "Hola {{name}}, ¡aprovecha esta oferta!",
+      variables: ["name"],
+      createdAt: "2026-08-30T10:00:00Z",
+    };
 
     act(() => {
       result.current.setName("Campaña Promocional");
-      result.current.setMessageText("Hola {{name}}, ¡aprovecha esta oferta!");
+      result.current.handleSelectTemplate(mockTemplate);
     });
 
     expect(result.current.name).toBe("Campaña Promocional");
-    expect(result.current.messageText).toBe("Hola {{name}}, ¡aprovecha esta oferta!");
+    expect(result.current.selectedTemplate).toEqual(mockTemplate);
     expect(result.current.step1Pending).toBe(false);
   });
 

@@ -5,7 +5,7 @@ import {
   CampaignRecipient,
   validateCampaignName,
   validateCampaignMessage,
-  parseCsvText,
+  parseImportFile,
   buildCampaignRecipientsFromRows,
 } from "../domain/campaign";
 
@@ -15,7 +15,9 @@ export function useCampaignWizard() {
   // Step 1 state: Mensaje & Plantilla Meta
   const [name, setName] = useState("");
   const [quickMode, setQuickMode] = useState(true);
-  const [intervalSeconds, setIntervalSeconds] = useState(45);
+
+  const intervalSeconds = quickMode ? 7 : 45;
+  const setIntervalSeconds = (_sec: number) => {};
   const [messageText, setMessageText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
   const [templateVariableValues, setTemplateVariableValues] = useState<Record<string, string>>({});
@@ -24,6 +26,9 @@ export function useCampaignWizard() {
   const [importedRecipients, setImportedRecipients] = useState<CampaignRecipient[]>([]);
   const [importedFile, setImportedFile] = useState<File | null>(null);
   const [previewRows, setPreviewRows] = useState<Array<Record<string, string>>>([]);
+  const [rawRows, setRawRows] = useState<Array<Record<string, string>>>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [importSummary, setImportSummary] = useState({ total: 0, valid: 0, invalid: 0 });
 
   // Step 3 state: Enrutamiento del chat
@@ -38,10 +43,9 @@ export function useCampaignWizard() {
 
   // Validations & Pending Indicators
   const nameValidation = useMemo(() => validateCampaignName(name), [name]);
-  const messageValidation = useMemo(() => validateCampaignMessage(messageText), [messageText]);
 
-  const step1Pending = !nameValidation.valid || !messageValidation.valid;
-  const step2Pending = importedRecipients.length === 0 && !importedFile;
+  const step1Pending = !nameValidation.valid || !selectedTemplate;
+  const step2Pending = importedRecipients.length === 0 || importSummary.valid === 0;
 
   const canSubmit = !step1Pending && !step2Pending;
 
@@ -75,10 +79,60 @@ export function useCampaignWizard() {
 
   const handleProcessFile = async (file: File) => {
     setImportedFile(file);
-    const text = await file.text();
-    const rows = parseCsvText(text);
+    const rows = await parseImportFile(file);
+    setRawRows(rows);
     setPreviewRows(rows.slice(0, 5));
-    const { recipients, validCount, invalidCount } = buildCampaignRecipientsFromRows(rows);
+
+    const headers = rows.headers || [];
+    setCsvHeaders(headers);
+
+    // Auto-mapear variables de la plantilla si existen
+    const autoMap: Record<string, string> = {};
+    if (selectedTemplate?.variables && selectedTemplate.variables.length > 0) {
+      // Detectar columna telefónica para no asignarla por error a variables {{1}}, {{2}}
+      const phoneCol =
+        headers.find((h) => /number|telefono|phone|celular|movil|numero/i.test(h)) || headers[0];
+
+      const nonPhoneHeaders = headers.filter(
+        (h) => h !== phoneCol && !/number|telefono|phone|celular|movil|numero/i.test(h),
+      );
+
+      selectedTemplate.variables.forEach((vKey, index) => {
+        const match = headers.find((h) => {
+          const hLower = h.toLowerCase();
+          if (
+            vKey === "1" &&
+            (hLower.includes("nombre") || hLower.includes("name") || hLower === "1")
+          )
+            return true;
+          if (
+            vKey === "2" &&
+            (hLower.includes("monto") ||
+              hLower.includes("valor") ||
+              hLower.includes("precio") ||
+              hLower === "2")
+          )
+            return true;
+          return h.toLowerCase() === vKey.toLowerCase();
+        });
+
+        if (match) {
+          autoMap[vKey] = match;
+        } else {
+          const fallbackCol = nonPhoneHeaders[index] || headers[index + 1] || headers[0];
+          if (fallbackCol) {
+            autoMap[vKey] = fallbackCol;
+          }
+        }
+      });
+    }
+    setColumnMapping(autoMap);
+
+    const { recipients, validCount, invalidCount } = buildCampaignRecipientsFromRows(
+      rows,
+      undefined,
+      autoMap,
+    );
     setImportedRecipients(recipients);
     setImportSummary({
       total: rows.length,
@@ -87,17 +141,38 @@ export function useCampaignWizard() {
     });
   };
 
+  const handleUpdateColumnMapping = (varKey: string, excelHeader: string) => {
+    const updated = { ...columnMapping, [varKey]: excelHeader };
+    setColumnMapping(updated);
+
+    if (rawRows.length > 0) {
+      const { recipients, validCount, invalidCount } = buildCampaignRecipientsFromRows(
+        rawRows,
+        undefined,
+        updated,
+      );
+      setImportedRecipients(recipients);
+      setImportSummary({
+        total: rawRows.length,
+        valid: validCount,
+        invalid: invalidCount,
+      });
+    }
+  };
+
   const resetWizard = () => {
     setActiveStep(1);
     setName("");
     setQuickMode(true);
-    setIntervalSeconds(45);
     setMessageText("");
     setSelectedTemplate(null);
     setTemplateVariableValues({});
     setImportedRecipients([]);
     setImportedFile(null);
     setPreviewRows([]);
+    setRawRows([]);
+    setCsvHeaders([]);
+    setColumnMapping({});
     setImportSummary({ total: 0, valid: 0, invalid: 0 });
     setRoutingConfig({
       chatStatus: "closed",
@@ -130,12 +205,14 @@ export function useCampaignWizard() {
     importedRecipients,
     importedFile,
     previewRows,
+    csvHeaders,
+    columnMapping,
+    handleUpdateColumnMapping,
     importSummary,
     handleProcessFile,
     routingConfig,
     setRoutingConfig,
     nameValidation,
-    messageValidation,
     step1Pending,
     step2Pending,
     canSubmit,

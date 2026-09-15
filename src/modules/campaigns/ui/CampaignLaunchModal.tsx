@@ -6,7 +6,7 @@ import { extractTemplateVariables } from "../domain/template";
 import {
   buildCampaignRecipients,
   estimateCampaignCost,
-  parseCsvText,
+  parseImportFile,
   CreateCampaignPayload,
 } from "../domain/campaign";
 import { WhatsAppBubblePreview } from "./WhatsAppBubblePreview";
@@ -65,35 +65,30 @@ export function CampaignLaunchModal({ isOpen, onClose, approvedTemplates, onSubm
     return extractTemplateVariables(selectedTemplate.components.body.text);
   }, [selectedTemplate]);
 
-  // Manejador de archivo CSV
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Manejador de archivo CSV / Excel
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setCsvContent(text);
+    const res = await parseImportFile(file);
+    const headers = res.headers || [];
+    const rows = res.rows || [];
+    setCsvHeaders(headers);
+    setCsvRows(rows);
 
-      const { headers, rows } = parseCsvText(text);
-      setCsvHeaders(headers);
-      setCsvRows(rows);
+    if (headers.length > 0) {
+      // Auto-seleccionar columna de teléfono si contiene 'tel', 'phone', 'movil', 'number'
+      const foundPhone = headers.find((h: string) => /tel|phone|cel|movil|numero|number/i.test(h));
+      setPhoneColumn(foundPhone || headers[0]);
 
-      if (headers.length > 0) {
-        // Auto-seleccionar columna de teléfono si contiene 'tel', 'phone', 'movil'
-        const foundPhone = headers.find((h: string) => /tel|phone|cel|movil|numero/i.test(h));
-        setPhoneColumn(foundPhone || headers[0]);
-
-        // Auto-mapear variables si coinciden
-        const autoMap: Record<string, string> = {};
-        templateVariables.forEach((v, idx) => {
-          const matchedHeader = headers[idx + 1] || headers[idx] || "";
-          autoMap[v] = matchedHeader;
-        });
-        setColumnMapping(autoMap);
-      }
-    };
-    reader.readAsText(file);
+      // Auto-mapear variables si coinciden
+      const autoMap: Record<string, string> = {};
+      templateVariables.forEach((v, idx) => {
+        const matchedHeader = headers[idx + 1] || headers[idx] || "";
+        autoMap[v] = matchedHeader;
+      });
+      setColumnMapping(autoMap);
+    }
   };
 
   // Parsear destinatarios finales según modo

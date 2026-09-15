@@ -15,6 +15,7 @@ import {
 import {
   createMessageTemplate as apiCreateTemplate,
   deleteMessageTemplate as apiDeleteTemplate,
+  syncAllMessageTemplates as apiSyncAllTemplates,
   listMessageTemplates as apiListTemplates,
   listWabaConnections as apiListConnections,
   type CreateMessageTemplatePayload,
@@ -124,6 +125,7 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
   const [connections, setConnections] = useState<WabaConnectionDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   // Modales
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -278,8 +280,30 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
     setIsDetailOpen(false);
   }, []);
 
+  
+  // Sincronizar plantillas con Zernio
+  const syncTemplates = useCallback(async (): Promise<boolean> => {
+    setSyncing(true);
+    try {
+      const agentId = session?.id;
+      await apiSyncAllTemplates(agentId);
+      toast.success("Plantillas sincronizadas con Zernio correctamente.");
+      await reload({ silent: true });
+      return true;
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Error al sincronizar con Zernio.",
+      );
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  }, [session?.id, reload]);
+
   return {
     session,
+    syncing,
+    syncTemplates,
     loading,
     submitting,
     templates: filteredTemplates,

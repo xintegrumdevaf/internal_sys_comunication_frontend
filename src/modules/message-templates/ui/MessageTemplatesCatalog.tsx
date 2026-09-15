@@ -4,6 +4,7 @@ import {
   LayoutList,
   Megaphone,
   Plus,
+  RefreshCw,
   Search,
   ShieldCheck,
   Trash2,
@@ -51,6 +52,8 @@ export function MessageTemplatesCatalog() {
     setDeletingTemplate,
     createTemplate,
     deleteTemplate,
+    syncing,
+    syncTemplates,
   } = useMessageTemplates();
 
   const CategoryIcon = ({ category }: { category: TemplateCategory }) => {
@@ -171,6 +174,18 @@ export function MessageTemplatesCatalog() {
           </div>
 
           {/* Botón Añadir Plantilla */}
+
+          {/* Botón Sincronizar Zernio */}
+          <button
+            type="button"
+            onClick={() => void syncTemplates()}
+            disabled={syncing || loading}
+            className="px-3 py-2 rounded-xl border border-border bg-card hover:bg-accent text-foreground font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`size-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando..." : "Sincronizar Zernio"}
+          </button>
+
           <button
             type="button"
             onClick={() => setIsFormOpen(true)}

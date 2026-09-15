@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,27 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   MessageSquare,
   Users,
   GitBranch,
-  UserCheck,
   Upload,
   Download,
-  Plus,
-  Trash2,
   HelpCircle,
-  Smile,
-  Bold,
-  Italic,
-  Strikethrough,
-  Paperclip,
   CheckCircle2,
   AlertCircle,
   FileSpreadsheet,
-  Braces,
-  X,
   LayoutTemplate,
   Sparkles,
 } from "lucide-react";
@@ -85,6 +74,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
           intervalSeconds: wizard.intervalSeconds,
           recipients: wizard.importedRecipients,
           routingConfig: wizard.routingConfig,
+          variableMapping: wizard.columnMapping,
           contactConfig: {
             tags: [],
             customFields: [],
@@ -93,11 +83,13 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
         },
         wizard.importedFile,
       );
+      toast.success("Campaña creada correctamente");
       wizard.resetWizard();
       onOpenChange(false);
       onCampaignCreated?.();
     } catch (err) {
       console.error("Error creating campaign:", err);
+      toast.error(err instanceof Error ? err.message : "Error al crear la campaña");
     }
   };
 
@@ -112,16 +104,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  const insertFormatText = (prefix: string, suffix = prefix) => {
-    wizard.setMessageText((prev) => `${prev}${prefix}texto${suffix}`);
-  };
-
-  const insertVariable = (variableName: string) => {
-    wizard.setMessageText((prev) => `${prev}{{${variableName}}}`);
-  };
-
-  const emojis = ["😀", "😁", "😊", "👍", "🙏", "👉", "🔥", "🎉", "💡", "📢", "✅", "⭐"];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -257,29 +239,22 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                     </div>
 
                     <Select
-                      value={wizard.selectedTemplate?.id || "none"}
+                      value={wizard.selectedTemplate?.id || ""}
                       onValueChange={(val) => {
-                        if (val === "none") {
-                          wizard.handleClearTemplate();
-                        } else {
-                          const found = availableTemplates.find((t) => t.id === val);
-                          if (found) wizard.handleSelectTemplate(found);
-                        }
+                        const found = availableTemplates.find((t) => t.id === val);
+                        if (found) wizard.handleSelectTemplate(found);
                       }}
                     >
                       <SelectTrigger className="w-full text-xs h-9 bg-background min-w-0">
                         <SelectValue
                           placeholder={
-                            loadingTemplates ? "Cargando plantillas..." : "Seleccionar plantilla..."
+                            loadingTemplates
+                              ? "Cargando plantillas..."
+                              : "Seleccionar plantilla aprobada..."
                           }
                         />
                       </SelectTrigger>
                       <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80 w-[var(--radix-select-trigger-width)]">
-                        <SelectItem value="none" className="cursor-pointer">
-                          <span className="text-muted-foreground italic truncate">
-                            Redactar mensaje personalizado (Sin plantilla)
-                          </span>
-                        </SelectItem>
                         {approvedTemplates.length > 0 && (
                           <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded my-1">
                             Plantillas Aprobadas por Meta
@@ -329,6 +304,16 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       </SelectContent>
                     </Select>
 
+                    {!wizard.selectedTemplate && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>
+                          Es obligatorio seleccionar una plantilla aprobada por Meta para crear una
+                          campaña masiva.
+                        </span>
+                      </div>
+                    )}
+
                     {/* Card de plantilla seleccionada & edición de variables */}
                     {wizard.selectedTemplate && (
                       <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-2.5 min-w-0">
@@ -350,9 +335,9 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             variant="ghost"
                             size="sm"
                             onClick={() => wizard.handleClearTemplate()}
-                            className="h-6 text-[10px] text-muted-foreground hover:text-red-500 px-1.5 shrink-0 whitespace-nowrap"
+                            className="h-6 text-[10px] text-muted-foreground hover:text-primary px-1.5 shrink-0 whitespace-nowrap"
                           >
-                            <X className="w-3 h-3 mr-1 shrink-0" /> Desvincular
+                            Cambiar plantilla
                           </Button>
                         </div>
 
@@ -386,18 +371,19 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                   </div>
 
                   {/* Modo Rápido Switch */}
-                  <div className="p-3.5 rounded-xl border border-border bg-muted/10 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-border bg-muted/10 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs font-semibold cursor-pointer">Modo rápido</label>
+                        <label className="text-xs font-semibold cursor-pointer text-foreground">
+                          Modo rápido
+                        </label>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              Envía los mensajes de manera continua manteniendo el intervalo
-                              especificado.
+                              Determina el tiempo de espera fijo entre el envío de cada mensaje.
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -406,179 +392,21 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       {wizard.quickMode
-                        ? `Envía un mensaje cada ${wizard.intervalSeconds} segundos.`
-                        : "Modo pausado manual activado."}
+                        ? "Envío acelerado activado: Se enviará 1 mensaje cada 7 segundos."
+                        : "Modo estándar activado: Se enviará 1 mensaje cada 45 segundos."}
                     </p>
 
-                    {wizard.quickMode && (
-                      <div className="pt-2 border-t border-border flex items-center gap-3">
-                        <label className="text-xs text-muted-foreground whitespace-nowrap">
-                          Intervalo (segundos):
-                        </label>
-                        <Input
-                          type="number"
-                          min={5}
-                          max={600}
-                          value={wizard.intervalSeconds}
-                          onChange={(e) => wizard.setIntervalSeconds(Number(e.target.value) || 45)}
-                          className="w-24 h-8 text-xs font-mono"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Mensaje Estándar */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1">
-                        <label className="text-xs font-semibold text-foreground">
-                          Mensaje estándar <span className="text-red-500">*</span>
-                        </label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              Puedes usar formato WhatsApp (*negrita*, _cursiva_, ~tachado~) y
-                              variables tipo {"{{name}}"}.
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                    <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-medium">
+                        Tiempo de espera entre mensajes:
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className="font-mono font-bold text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2.5 py-0.5 shrink-0"
+                      >
+                        {wizard.quickMode ? "7 segundos" : "45 segundos"}
+                      </Badge>
                     </div>
-
-                    <div className="rounded-lg border border-border bg-background overflow-hidden">
-                      <Textarea
-                        placeholder="Escribe el mensaje enviado a todos los contactos..."
-                        value={wizard.messageText}
-                        onChange={(e) => wizard.setMessageText(e.target.value)}
-                        rows={6}
-                        className="border-0 focus-visible:ring-0 resize-none text-xs leading-relaxed p-3"
-                      />
-
-                      {/* Formatting Toolbar */}
-                      <div className="flex items-center justify-between border-t border-border px-2 py-1.5 bg-muted/20">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => insertFormatText("*")}
-                            title="Negrita (*texto*)"
-                          >
-                            <Bold className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => insertFormatText("_")}
-                            title="Cursiva (_texto_)"
-                          >
-                            <Italic className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => insertFormatText("~")}
-                            title="Tachado (~texto~)"
-                          >
-                            <Strikethrough className="w-3.5 h-3.5" />
-                          </Button>
-
-                          {/* Emoji Picker */}
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                title="Insertar emoji"
-                              >
-                                <Smile className="w-3.5 h-3.5" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-60 p-2 border-border bg-card">
-                              <div className="grid grid-cols-6 gap-1">
-                                {emojis.map((emoji, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => wizard.setMessageText((prev) => prev + emoji)}
-                                    className="h-8 w-8 rounded hover:bg-muted grid place-items-center text-base"
-                                  >
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-
-                          {/* Attachment Icon */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            title="Adjuntar archivo"
-                            onClick={() => alert("Adjuntar archivo opcional")}
-                          >
-                            <Paperclip className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-
-                        {/* Variables Menu */}
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[11px] gap-1 px-2"
-                            >
-                              <Braces className="w-3.5 h-3.5 text-primary" />
-                              Variables
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-48 p-1.5 border-border bg-card">
-                            <div className="space-y-0.5">
-                              <button
-                                type="button"
-                                onClick={() => insertVariable("name")}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted font-mono"
-                              >
-                                {"{{name}}"} - Nombre
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => insertVariable("number")}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted font-mono"
-                              >
-                                {"{{number}}"} - Teléfono
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => insertVariable("body")}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-xs hover:bg-muted font-mono"
-                              >
-                                {"{{body}}"} - Mensaje custom
-                              </button>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                    {!wizard.messageValidation.valid && wizard.messageText && (
-                      <p className="text-[11px] text-red-500 mt-1">
-                        {wizard.messageValidation.error}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -598,74 +426,204 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             {wizard.activeStep === 2 && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
                 <div className="space-y-4">
-                  <div className="p-6 border-2 border-dashed border-border rounded-xl bg-muted/10 text-center hover:bg-muted/20 transition-colors flex flex-col items-center justify-center min-h-[220px]">
-                    <FileSpreadsheet className="w-10 h-10 text-primary mb-2 opacity-80" />
-                    <h3 className="text-sm font-bold text-foreground">
-                      Importa la planilla de contactos
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                      Archivo .xlsx o .csv con las columnas{" "}
-                      <code className="font-mono text-primary">number</code> (requerida),{" "}
-                      <code className="font-mono text-muted-foreground">name</code> y{" "}
-                      <code className="font-mono text-muted-foreground">body</code> (opcionales).
-                    </p>
+                  {/* Cargar Planilla Box (Se muestra SOLO si NO se ha cargado un archivo) */}
+                  {wizard.importSummary.total === 0 ? (
+                    <div className="p-6 border-2 border-dashed border-border rounded-xl bg-muted/10 text-center hover:bg-muted/20 transition-colors flex flex-col items-center justify-center min-h-[220px]">
+                      <FileSpreadsheet className="w-10 h-10 text-primary mb-2 opacity-80" />
+                      <h3 className="text-sm font-bold text-foreground">
+                        Importa la planilla de contactos
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                        Archivo .xlsx o .csv con las columnas{" "}
+                        <code className="font-mono text-primary">number</code> (requerida),{" "}
+                        <code className="font-mono text-muted-foreground">name</code> y{" "}
+                        <code className="font-mono text-muted-foreground">body</code> (opcionales).
+                      </p>
 
-                    <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                      <label className="cursor-pointer">
-                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity">
-                          <Upload className="w-4 h-4" />
-                          Importar planilla
-                        </span>
-                        <input
-                          type="file"
-                          accept=".csv, .xlsx, .xls"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) wizard.handleProcessFile(file);
-                          }}
-                        />
-                      </label>
+                      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                        <label className="cursor-pointer">
+                          <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity">
+                            <Upload className="w-4 h-4" />
+                            Importar planilla
+                          </span>
+                          <input
+                            type="file"
+                            accept=".csv, .xlsx, .xls"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) wizard.handleProcessFile(file);
+                            }}
+                          />
+                        </label>
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleDownloadExample}
-                        className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Descargar archivo de muestra
-                      </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleDownloadExample}
+                          className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Descargar archivo de muestra
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Summary & Status */}
-                  {wizard.importSummary.total > 0 && (
-                    <div className="p-3.5 rounded-xl border border-border bg-card space-y-2">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Resumen de importación
-                      </h4>
-                      <div className="flex items-center gap-4 text-xs">
-                        <div className="flex items-center gap-1.5 text-emerald-500 font-semibold">
-                          <CheckCircle2 className="w-4 h-4" />
-                          {wizard.importSummary.valid} válidos
-                        </div>
-                        {wizard.importSummary.invalid > 0 && (
-                          <div className="flex items-center gap-1.5 text-red-500 font-semibold">
-                            <AlertCircle className="w-4 h-4" />
-                            {wizard.importSummary.invalid} con error
-                          </div>
+                  ) : (
+                    /* Tarjeta de Archivo Cargado (Se muestra cuando YA se cargó la planilla) */
+                    <div className="space-y-3">
+                      <div
+                        className={cx(
+                          "p-3.5 rounded-xl border space-y-2 transition-colors",
+                          wizard.importSummary.valid === 0
+                            ? "border-red-500/40 bg-red-500/5"
+                            : "border-emerald-500/30 bg-emerald-500/5",
                         )}
-                        <div className="text-muted-foreground">
-                          Total procesados: {wizard.importSummary.total}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={cx(
+                                "size-9 rounded-lg grid place-items-center shrink-0",
+                                wizard.importSummary.valid === 0
+                                  ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+                              )}
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-foreground font-mono truncate">
+                                  {wizard.importedFile?.name || "Planilla de contactos cargada"}
+                                </span>
+                                <Badge
+                                  variant="secondary"
+                                  className={cx(
+                                    "text-[10px] px-1.5 py-0 border-0 shrink-0 font-semibold",
+                                    wizard.importSummary.valid === 0
+                                      ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                                      : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+                                  )}
+                                >
+                                  {wizard.importSummary.valid} contactos válidos
+                                </Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                Total de filas procesadas: {wizard.importSummary.total}
+                                {wizard.importSummary.invalid > 0 && (
+                                  <span className="text-red-500 ml-1">
+                                    ({wizard.importSummary.invalid} con errores)
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <label className="cursor-pointer shrink-0">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-background border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors shadow-xs">
+                              <Upload className="w-3.5 h-3.5" />
+                              Cambiar archivo
+                            </span>
+                            <input
+                              type="file"
+                              accept=".csv, .xlsx, .xls"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) wizard.handleProcessFile(file);
+                              }}
+                            />
+                          </label>
                         </div>
                       </div>
+
+                      {wizard.importSummary.total > 0 && wizard.importSummary.valid === 0 && (
+                        <div className="p-3.5 rounded-xl border border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400 text-xs flex items-start gap-2.5">
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+                          <div className="space-y-1">
+                            <h5 className="font-bold">Sin contactos válidos para el envío</h5>
+                            <p className="text-[11px] opacity-90 leading-normal">
+                              El archivo cargado contiene {wizard.importSummary.total} filas, pero ninguna posee un número de teléfono válido (mínimo 8 dígitos). Por favor corrige el archivo antes de continuar.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
+                  {/* Mapeo de Variables de Plantilla con Columnas de Excel */}
+                  {wizard.selectedTemplate?.variables &&
+                    wizard.selectedTemplate.variables.length > 0 &&
+                    wizard.csvHeaders.length > 0 && (
+                      <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <h4 className="text-xs font-bold text-foreground">
+                            Mapeo de variables con columnas del Excel
+                          </h4>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Asocia cada variable de tu plantilla de Meta con la columna
+                          correspondiente de tu archivo:
+                        </p>
+                        <div className="space-y-2 pt-1">
+                          {wizard.selectedTemplate.variables.map((vKey) => (
+                            <div
+                              key={vKey}
+                              className="flex items-center gap-2.5 p-2.5 rounded-lg bg-background border border-border min-w-0"
+                            >
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className="font-mono font-bold text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2 py-0.5"
+                                >
+                                  {"{{" + vKey + "}}"}
+                                </Badge>
+                                <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
+                                  se asocia a:
+                                </span>
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <Select
+                                  value={wizard.columnMapping[vKey] || ""}
+                                  onValueChange={(header) =>
+                                    wizard.handleUpdateColumnMapping(vKey, header)
+                                  }
+                                >
+                                  <SelectTrigger className="h-8 text-xs font-semibold bg-card border-border w-full min-w-0">
+                                    <SelectValue placeholder="Seleccionar columna del Excel..." />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-60">
+                                    {wizard.csvHeaders.map((header) => (
+                                      <SelectItem
+                                        key={header}
+                                        value={header}
+                                        className="text-xs cursor-pointer py-2"
+                                      >
+                                        <div className="flex items-center gap-2 truncate">
+                                          <FileSpreadsheet className="w-3.5 h-3.5 text-primary shrink-0 opacity-70" />
+                                          <span className="truncate">
+                                            Columna:{" "}
+                                            <strong className="font-bold text-foreground">
+                                              {header}
+                                            </strong>
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                   {/* Preview Table of First Rows */}
-                  {wizard.previewRows.length > 0 && (
+                  {(wizard.importedRecipients.length > 0 || wizard.previewRows.length > 0) && (
                     <div>
                       <h4 className="text-xs font-bold mb-2 text-foreground">
                         Vista previa de contactos (primeras filas)
@@ -676,21 +634,43 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                             <tr>
                               <th className="p-2 font-semibold">Número</th>
                               <th className="p-2 font-semibold">Nombre</th>
-                              <th className="p-2 font-semibold">Mensaje custom</th>
+                              <th className="p-2 font-semibold">Variables / Mensaje</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
-                            {wizard.previewRows.map((r, i) => (
-                              <tr key={i} className="hover:bg-muted/10">
-                                <td className="p-2 font-mono text-[11px]">
-                                  {r.number || r.telefono || r.phone || "—"}
-                                </td>
-                                <td className="p-2 font-medium">{r.name || r.nombre || "—"}</td>
-                                <td className="p-2 text-muted-foreground truncate max-w-[150px]">
-                                  {r.body || r.mensaje || "—"}
-                                </td>
-                              </tr>
-                            ))}
+                            {wizard.importedRecipients.length > 0
+                              ? wizard.importedRecipients.slice(0, 5).map((r, i) => (
+                                  <tr key={i} className="hover:bg-muted/10">
+                                    <td className="p-2 font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                      {r.number}
+                                    </td>
+                                    <td className="p-2 font-medium">{r.name || "—"}</td>
+                                    <td className="p-2 text-muted-foreground truncate max-w-[180px]">
+                                      {r.variables && Object.keys(r.variables).length > 0
+                                        ? Object.entries(r.variables)
+                                            .map(([k, v]) => `{{${k}}}: ${v}`)
+                                            .join(" | ")
+                                        : r.body || "—"}
+                                    </td>
+                                  </tr>
+                                ))
+                              : wizard.previewRows.slice(0, 5).map((r, i) => {
+                                  const phoneVal =
+                                    r.number || r.telefono || r.phone || Object.values(r)[0] || "—";
+                                  const nameVal = r.name || r.nombre || Object.values(r)[1] || "—";
+                                  const bodyVal = r.body || r.mensaje || "—";
+                                  return (
+                                    <tr key={i} className="hover:bg-muted/10">
+                                      <td className="p-2 font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                        {phoneVal}
+                                      </td>
+                                      <td className="p-2 font-medium">{nameVal}</td>
+                                      <td className="p-2 text-muted-foreground truncate max-w-[180px]">
+                                        {bodyVal}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                           </tbody>
                         </table>
                       </div>
@@ -975,6 +955,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
   );
 };
 
-function cx(...classes: (string | boolean | undefined)[]) {
+function cx(...classes: (string | boolean | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }

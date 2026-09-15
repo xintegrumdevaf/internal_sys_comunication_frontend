@@ -46,8 +46,19 @@ async function parseEnvelope<T>(res: Response, raw = false): Promise<T> {
     json = undefined;
   }
   if (!res.ok) {
-    const errorBody = json as { error?: { type?: string; message?: string } } | undefined;
-    const message = errorBody?.error?.message || res.statusText || `Error HTTP ${res.status}`;
+    const errorBody = json as { error?: { type?: string; message?: string }; message?: string | string[] } | undefined;
+    let message = res.statusText || `Error HTTP ${res.status}`;
+    if (errorBody) {
+      if (errorBody.error?.message) {
+        message = String(errorBody.error.message);
+      } else if (errorBody.message) {
+        if (Array.isArray(errorBody.message)) {
+          message = errorBody.message.join(", ");
+        } else {
+          message = String(errorBody.message);
+        }
+      }
+    }
     throw new ApiError(message, res.status, errorBody?.error?.type);
   }
   if (raw) {

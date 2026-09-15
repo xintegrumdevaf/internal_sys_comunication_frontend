@@ -57,21 +57,21 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
 
   // Filter contacts by active status filter and search term
   const filteredRecipients = recipientsList.filter((r) => {
-    const status = r.status || "sent";
+    const st = (r.status || "pending").toLowerCase();
 
     let matchesFilter = true;
     if (activeFilter === "sent") {
-      matchesFilter = ["sent", "delivered", "read", "replied"].includes(status);
+      matchesFilter = ["sent", "delivered", "read", "replied"].includes(st);
     } else if (activeFilter === "delivered") {
-      matchesFilter = ["delivered", "read", "replied"].includes(status);
+      matchesFilter = ["delivered", "read", "replied"].includes(st);
     } else if (activeFilter === "read") {
-      matchesFilter = ["read", "replied"].includes(status);
+      matchesFilter = ["read", "replied"].includes(st);
     } else if (activeFilter === "replied") {
-      matchesFilter = status === "replied";
+      matchesFilter = st === "replied";
     } else if (activeFilter === "failed") {
-      matchesFilter = status === "failed";
+      matchesFilter = st === "failed" || st === "skipped";
     } else if (activeFilter === "queued") {
-      matchesFilter = status === "queued";
+      matchesFilter = st === "queued" || st === "pending" || st === "draft";
     }
 
     if (!matchesFilter) return false;
@@ -112,7 +112,7 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
     const rows = failedItems
       .map(
         (r) =>
-          `"${r.number || r.phone}","${r.name || ""}","${(r.errorMessage || r.body || "").replace(
+          `"${r.phone || (r as any).number}","${r.name || ""}","${(r.errorMessage || r.body || "").replace(
             /"/g,
             '""',
           )}","${r.updatedAt || ""}"`,
@@ -415,17 +415,19 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                       </tr>
                     ) : (
                       filteredRecipients.map((r, idx) => {
-                        const isFailed = r.status === "failed";
-                        const isReplied = r.status === "replied";
-                        const isRead = r.status === "read";
-                        const isDelivered = r.status === "delivered";
+                        const st = (r.status || "sent").toLowerCase();
+                        const isFailed = st === "failed";
+                        const isReplied = st === "replied";
+                        const isRead = st === "read";
+                        const isDelivered = st === "delivered";
+                        const isSent = st === "sent";
 
                         return (
                           <tr key={r.id || idx} className="hover:bg-muted/20 transition-colors">
                             {/* Contacto */}
                             <td className="py-3 px-4">
                               <div className="font-bold text-foreground uppercase text-xs tracking-tight line-clamp-1">
-                                {r.name || r.number || "Sin nombre"}
+                                {r.name || r.phone || (r as any).number || "Sin nombre"}
                               </div>
                               <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
                                 {r.number || r.phone}
@@ -438,11 +440,21 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                                 <span className="text-danger font-semibold text-xs line-clamp-2">
                                   {r.errorMessage ||
                                     r.body ||
+                                    (r as any).customBody ||
                                     "Meta API 131026 error: Message Undeliverable."}
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground text-xs line-clamp-1">
-                                  {r.body || campaign.messageText}
+                                <span className="text-muted-foreground text-xs line-clamp-1 flex items-center gap-1.5">
+                                  <span className="text-amber-500 font-normal">📌</span>
+                                  <span>
+                                    {r.body ||
+                                      (r as any).customBody ||
+                                      (r as any).bodyText ||
+                                      campaign.messageText || (campaign as any).messageBody ||
+                                      (campaign.templateName || (campaign as any).template_name
+                                        ? `Plantilla ${campaign.templateName || (campaign as any).template_name}`
+                                        : "Sin contenido")}
+                                  </span>
                                 </span>
                               )}
                             </td>
@@ -473,6 +485,11 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                                 <div className="flex items-center gap-1.5 text-muted-foreground font-medium text-xs">
                                   <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />
                                   <span>Entregada</span>
+                                </div>
+                              ) : isSent ? (
+                                <div className="flex items-center gap-1.5 text-emerald-500 font-medium text-xs">
+                                  <Send className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>Enviada</span>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1.5 text-amber-500 font-medium text-xs">

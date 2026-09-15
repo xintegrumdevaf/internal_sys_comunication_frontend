@@ -49,6 +49,15 @@ describe("Campaign Domain", () => {
       expect(recipients[0].name).toBe("Carlos");
       expect(recipients[0].variables?.custom_city).toBe("Bogotá");
     });
+
+    it("handles uppercase NUMBER header from Excel files", () => {
+      const rows = [{ NUMBER: "593997420399" }, { NUMBER: "593979456762" }];
+      const { recipients, validCount, invalidCount } = buildCampaignRecipientsFromRows(rows);
+      expect(validCount).toBe(2);
+      expect(invalidCount).toBe(0);
+      expect(recipients[0].number).toBe("+593997420399");
+      expect(recipients[1].number).toBe("+593979456762");
+    });
   });
 
   describe("formatRoutingBehaviorSummary", () => {

@@ -39,20 +39,27 @@ export function useCampaignDetails(campaignId: string | null) {
     let isMounted = true;
     setLoading(true);
 
-    campaignsGateway
-      .getCampaign(campaignId)
-      .then((data) => {
-        if (isMounted) setCampaign(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching campaign details:", err);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+    const loadDetails = (showLoading = false) => {
+      if (showLoading) setLoading(true);
+      campaignsGateway
+        .getCampaign(campaignId)
+        .then((data) => {
+          if (isMounted) setCampaign(data);
+        })
+        .catch((err) => {
+          console.error("Error fetching campaign details:", err);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+    };
+
+    loadDetails(true);
+    const interval = setInterval(() => loadDetails(false), 4000);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, [campaignId]);
 

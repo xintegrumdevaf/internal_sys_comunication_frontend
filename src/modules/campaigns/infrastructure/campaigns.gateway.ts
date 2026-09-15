@@ -1,11 +1,21 @@
-import { apiGet, apiPost, apiPut, apiDelete } from "@/shared/http/http-client";
+import { apiGet, apiPost, apiPut, apiDelete, ApiError } from "@/shared/http/http-client";
 import { Campaign, CreateCampaignPayload } from "../domain/campaign";
+
+function shouldThrowError(err: unknown): boolean {
+  if (err instanceof ApiError) {
+    if (err.status !== 401 && err.status !== 403) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export const campaignsGateway = {
   async listCampaigns(): Promise<Campaign[]> {
     try {
       return await apiGet<Campaign[]>("/api/campaigns");
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       return mockCampaigns;
     }
   },
@@ -13,7 +23,8 @@ export const campaignsGateway = {
   async getCampaign(id: string): Promise<Campaign> {
     try {
       return await apiGet<Campaign>(`/api/campaigns/${id}`);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       const found = mockCampaigns.find((c) => c.id === id);
       if (found) return found;
       return mockCampaigns[0];
@@ -23,7 +34,8 @@ export const campaignsGateway = {
   async createCampaign(payload: CreateCampaignPayload): Promise<Campaign> {
     try {
       return await apiPost<Campaign>("/api/campaigns", payload);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       const newCamp: Campaign = {
         id: `camp_${Date.now()}`,
         name: payload.name,
@@ -61,7 +73,8 @@ export const campaignsGateway = {
       const formData = new FormData();
       formData.append("file", file);
       return await apiPost(`/api/campaigns/${campaignId}/recipients/import`, formData);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       return { success: true };
     }
   },
@@ -69,7 +82,8 @@ export const campaignsGateway = {
   async startCampaign(id: string): Promise<Campaign> {
     try {
       return await apiPost<Campaign>(`/api/campaigns/${id}/start`);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       const found = mockCampaigns.find((c) => c.id === id);
       if (found) found.status = "RUNNING";
       return found || mockCampaigns[0];
@@ -79,7 +93,8 @@ export const campaignsGateway = {
   async suspendCampaign(id: string): Promise<Campaign> {
     try {
       return await apiPost<Campaign>(`/api/campaigns/${id}/suspend`);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       const found = mockCampaigns.find((c) => c.id === id);
       if (found) found.status = "SUSPENDED";
       return found || mockCampaigns[0];
@@ -89,7 +104,8 @@ export const campaignsGateway = {
   async resumeCampaign(id: string): Promise<Campaign> {
     try {
       return await apiPost<Campaign>(`/api/campaigns/${id}/resume`);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       const found = mockCampaigns.find((c) => c.id === id);
       if (found) found.status = "RUNNING";
       return found || mockCampaigns[0];
@@ -99,7 +115,8 @@ export const campaignsGateway = {
   async deleteCampaign(id: string): Promise<Campaign> {
     try {
       return await apiDelete<Campaign>(`/api/campaigns/${id}`);
-    } catch {
+    } catch (err) {
+      if (shouldThrowError(err)) throw err;
       const idx = mockCampaigns.findIndex((c) => c.id === id);
       if (idx !== -1) mockCampaigns.splice(idx, 1);
       return { id } as Campaign;
