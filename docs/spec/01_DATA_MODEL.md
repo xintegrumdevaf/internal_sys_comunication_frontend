@@ -125,12 +125,33 @@ export type MessageDto = {
   body: string;
   type: MessageType;
   createdAt: string;
+  editedAt?: string | null;
+  editHistory?: Array<{
+    previousBody: string;
+    editedAt: string;
+  }>;
   // Campos opcionales de media, mismos que ya soporta MessageMediaBody:
   mediaId?: string;
   mimeType?: string;
   caption?: string;
   filename?: string;
   mediaUrl?: string;
+};
+
+export type Message = MessageDto;
+
+export type QuickReply = {
+  id: string;
+  shortcut: string;
+  title: string;
+  body: string;
+  departmentId: string | null;
+  category: string | null;
+  mediaUrl: string | null;
+  createdByAgentId: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 ```
 
