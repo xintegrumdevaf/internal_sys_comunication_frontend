@@ -676,35 +676,56 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       </span>
                       {c.activeCase ? (
                         <>
-                          <span
-                            className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 ${
+                          {(() => {
+                            const isHuman =
                               !c.activeCase.automationEnabled ||
-                              c.activeCase.status === "HUMAN_ACTIVE"
-                                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30"
-                                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
-                            }`}
-                          >
-                            {!c.activeCase.automationEnabled ||
-                            c.activeCase.status === "HUMAN_ACTIVE" ? (
-                              <>
-                                <User className="size-2.5" />
-                                <span>
-                                  {c.activeCase.assignedAgentName ||
-                                    (c.activeCase.assignedAgentId === session?.id
-                                      ? "Tú"
-                                      : directory.find(
-                                          (a) => a.id === c.activeCase?.assignedAgentId,
-                                        )?.name) ||
-                                    "Humano"}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <Bot className="size-2.5 text-emerald-500" />
-                                <span>IA</span>
-                              </>
-                            )}
-                          </span>
+                              c.activeCase.status === "HUMAN_ACTIVE" ||
+                              c.activeCase.status === "ESCALATED";
+
+                            const agentName =
+                              c.activeCase.assignedAgentName ||
+                              (c.activeCase.assignedAgentId
+                                ? c.activeCase.assignedAgentId === session?.id
+                                  ? "Tú"
+                                  : directory.find((a) => a.id === c.activeCase?.assignedAgentId)
+                                      ?.name || "Agente"
+                                : null);
+
+                            const displayLabel = isHuman
+                              ? agentName
+                                ? `Humano: ${agentName}`
+                                : "Humano (Sin asignar)"
+                              : "IA";
+
+                            return (
+                              <span
+                                className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[170px] ${
+                                  isHuman
+                                    ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30"
+                                    : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
+                                }`}
+                                title={
+                                  isHuman
+                                    ? agentName
+                                      ? `Caso escalado/asignado a: ${agentName}`
+                                      : "Caso escalado a humano (Sin asignar a agente específico)"
+                                    : "Asistido por IA"
+                                }
+                              >
+                                {isHuman ? (
+                                  <>
+                                    <User className="size-2.5 shrink-0" />
+                                    <span className="truncate">{displayLabel}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Bot className="size-2.5 text-emerald-500 shrink-0" />
+                                    <span>IA</span>
+                                  </>
+                                )}
+                              </span>
+                            );
+                          })()}
                           {c.activeCase.departmentId && (
                             <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-1">
                               {departments.find((d) => d.id === c.activeCase!.departmentId)?.name ||
@@ -802,9 +823,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           ? "Atención Humana (Tú)"
                           : assignedAgentName
                             ? `Atendido por ${assignedAgentName}`
-                            : "Atención Manual"}
+                            : "Atención Humana (Sin asignar)"}
                       </span>
-                      <span className="sm:hidden">{isAssignedToMe ? "Tú" : "Humano"}</span>
+                      <span className="sm:hidden">
+                        {isAssignedToMe ? "Tú" : assignedAgentName ?? "Sin Asignar"}
+                      </span>
                     </span>
                   )}
                   {showClaim && (
