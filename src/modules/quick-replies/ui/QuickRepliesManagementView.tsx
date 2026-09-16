@@ -18,10 +18,7 @@ import type {
   UpdateQuickReplyPayload,
 } from "@/types/quick-reply";
 import { QuickReplyFormModal } from "@/components/quick-replies/QuickReplyFormModal";
-import {
-  useDepartmentsQuery,
-  useSession,
-} from "@/modules/identity/application/use-session";
+import { useDepartmentsQuery, useSession } from "@/modules/identity/application/use-session";
 import { toast } from "sonner";
 
 export function QuickRepliesManagementView() {
@@ -104,9 +101,7 @@ export function QuickRepliesManagementView() {
         active: !reply.active,
       });
       setReplies((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-      toast.success(
-        `Respuesta /${reply.shortcut} ${updated.active ? "activada" : "desactivada"}`,
-      );
+      toast.success(`Respuesta /${reply.shortcut} ${updated.active ? "activada" : "desactivada"}`);
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message || "Error al cambiar estado";
       toast.error(msg);
@@ -217,7 +212,9 @@ export function QuickRepliesManagementView() {
               <div
                 key={item.id}
                 className={`flex flex-col justify-between p-4 rounded-2xl bg-card border transition-all ${
-                  item.active ? "border-border shadow-sm" : "border-border/60 opacity-60 bg-muted/20"
+                  item.active
+                    ? "border-border shadow-sm"
+                    : "border-border/60 opacity-60 bg-muted/20"
                 }`}
               >
                 <div>

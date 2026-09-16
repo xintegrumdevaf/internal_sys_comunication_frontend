@@ -191,7 +191,40 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   // Tiempo real: refresca hilo/lista según lo que llegue por SSE (03_REALTIME_NOTIFICATIONS.md §2).
   useEffect(() => {
     return subscribeRealtimeEvents((event) => {
-      if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT" || event.type === "MESSAGE_STATUS_UPDATED") {
+      if (event.type === "MESSAGE_EDITED") {
+        const { conversationId, messageId, newBody, editedAt } = event;
+        // Actualizar la lista de mensajes en memoria/estado si es la conversación abierta
+        if (conversationId === selectedIdRef.current) {
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === messageId
+                ? {
+                    ...msg,
+                    body: newBody,
+                    editedAt,
+                  }
+                : msg,
+            ),
+          );
+        }
+        // Si la conversación tiene lastMessagePreview, actualizar el snippet si corresponde
+        setConversations((prevList) =>
+          prevList.map((conv) =>
+            conv.id === conversationId && conv.lastMessagePreview
+              ? {
+                  ...conv,
+                  lastMessagePreview: {
+                    ...conv.lastMessagePreview,
+                    body: newBody,
+                    editedAt,
+                  },
+                }
+              : conv,
+          ),
+        );
+        return;
+      }
+      if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT"  || event.type === "MESSAGE_STATUS_UPDATED") {
         if (event.conversationId === selectedIdRef.current) {
           void loadThread(event.conversationId);
           void conversationGateway.markAsRead(event.conversationId).catch(() => {});

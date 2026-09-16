@@ -122,4 +122,19 @@ describe("quickRepliesApi", () => {
     expect(calledUrl).toContain("/api/quick-replies/qr-1");
     expect(options.method).toBe("DELETE");
   });
+
+  it("refineTone hace POST a /api/quick-replies/refine-tone", async () => {
+    const fetchMock = mockFetchOnce({
+      refinedText: "Hola estimado {{nombre}}, ¿en qué podemos servirle hoy?",
+    });
+
+    const result = await quickRepliesApi.refineTone("Hola {{nombre}}");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl, options] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain("/api/quick-replies/refine-tone");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body)).toEqual({ text: "Hola {{nombre}}" });
+    expect(result).toBe("Hola estimado {{nombre}}, ¿en qué podemos servirle hoy?");
+  });
 });

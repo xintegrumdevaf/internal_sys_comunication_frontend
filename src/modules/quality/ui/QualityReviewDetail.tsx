@@ -239,7 +239,7 @@ export function QualityReviewDetail({
                       )}
                       <MessageMediaBody message={m} />
                       <div
-                        className={`flex justify-end mt-1.5 ${
+                        className={`flex items-center justify-end gap-1 mt-1.5 ${
                           fromCustomer
                             ? "text-muted-foreground"
                             : highlight
@@ -247,6 +247,14 @@ export function QualityReviewDetail({
                               : "text-primary-foreground/80"
                         }`}
                       >
+                        {m.editedAt && (
+                          <span
+                            className="italic text-[9px] opacity-75 mr-0.5"
+                            title={`Editado el ${new Date(m.editedAt).toLocaleTimeString()}`}
+                          >
+                            (editado)
+                          </span>
+                        )}
                         <span className="text-[10px] tabular-nums">
                           {messageClock(m.createdAt)}
                         </span>

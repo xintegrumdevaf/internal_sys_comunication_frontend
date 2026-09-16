@@ -38,4 +38,29 @@ describe("conversationDisplayName", () => {
       "+593 998 576 466",
     );
   });
+
+  it("permite modelar mensajes con metadatos de edición e historial", () => {
+    const msg = {
+      id: "msg_1",
+      conversationId: "conv_1",
+      caseId: "case_1",
+      direction: "outbound" as const,
+      author: "agent" as const,
+      agentId: "agent_1",
+      body: "Mensaje corregido",
+      type: "text" as const,
+      createdAt: "2026-09-15T12:00:00Z",
+      editedAt: "2026-09-15T12:05:00Z",
+      editHistory: [
+        {
+          previousBody: "Mensaje original con error",
+          editedAt: "2026-09-15T12:05:00Z",
+        },
+      ],
+    };
+
+    expect(msg.editedAt).toBe("2026-09-15T12:05:00Z");
+    expect(msg.editHistory).toHaveLength(1);
+    expect(msg.editHistory?.[0]?.previousBody).toBe("Mensaje original con error");
+  });
 });

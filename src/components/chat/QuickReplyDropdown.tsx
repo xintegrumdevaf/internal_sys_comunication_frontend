@@ -35,7 +35,9 @@ export const QuickReplyDropdown: React.FC<QuickReplyDropdownProps> = ({
     >
       <div className="p-2 text-[11px] font-semibold text-muted-foreground border-b border-border flex items-center justify-between">
         <span>Respuestas Rápidas</span>
-        <span className="text-[10px] font-normal text-muted-foreground/80">Tab / Enter para insertar</span>
+        <span className="text-[10px] font-normal text-muted-foreground/80">
+          Tab / Enter para insertar
+        </span>
       </div>
       <ul ref={listRef} className="py-1">
         {replies.map((item, idx) => {
@@ -57,9 +59,7 @@ export const QuickReplyDropdown: React.FC<QuickReplyDropdownProps> = ({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs font-bold text-primary">
-                  /{item.shortcut}
-                </span>
+                <span className="font-mono text-xs font-bold text-primary">/{item.shortcut}</span>
                 <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
                   {item.departmentId ? "Área" : "Global"}
                 </span>

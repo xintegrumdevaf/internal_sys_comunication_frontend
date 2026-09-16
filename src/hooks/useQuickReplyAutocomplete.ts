@@ -55,9 +55,7 @@ export function useQuickReplyAutocomplete({
     if (!match) return [];
     const q = match.query;
     return quickReplies.filter(
-      (r) =>
-        r.shortcut.toLowerCase().includes(q) ||
-        r.title.toLowerCase().includes(q)
+      (r) => r.shortcut.toLowerCase().includes(q) || r.title.toLowerCase().includes(q),
     );
   }, [match, quickReplies]);
 
