@@ -15,6 +15,12 @@ export type RealtimeEvent =
       editedAt: string;
     }
   | {
+      type: "MESSAGE_STATUS_UPDATED";
+      conversationId: string;
+      messageId?: string;
+      status?: string;
+    }
+  | {
       type: "CASE_ESCALATED";
       caseId: string;
       conversationId: string;
