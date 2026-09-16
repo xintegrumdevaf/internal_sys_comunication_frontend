@@ -142,14 +142,22 @@ export function MessageMediaBody({
 
   // Audio estilo WhatsApp
   if (isAudio && mediaUrl) {
+    const isPlaceholder = (text: string) => {
+      const t = text.trim().toLowerCase();
+      return (
+        t === "[audio]" ||
+        t === "audio" ||
+        t === "[voice note]" ||
+        t === "[nota de voz]" ||
+        t.startsWith("[audio/")
+      );
+    };
+    const hasValidCaption = displayCaption && !isPlaceholder(displayCaption);
+
     return (
       <div className="space-y-1.5 my-1">
-        <WhatsAppAudioPlayer
-          mediaUrl={mediaUrl}
-          messageId={message.id}
-          author={message.author}
-        />
-        {displayCaption && <p className={captionClassName}>{displayCaption}</p>}
+        <WhatsAppAudioPlayer mediaUrl={mediaUrl} messageId={message.id} author={message.author} />
+        {hasValidCaption ? <p className={captionClassName}>{displayCaption}</p> : null}
       </div>
     );
   }

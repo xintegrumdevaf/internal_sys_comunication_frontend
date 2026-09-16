@@ -149,9 +149,7 @@ export function WhatsAppAudioPlayer({
       audioRef.current.pause();
     } else {
       setIsLoading(true);
-      window.dispatchEvent(
-        new CustomEvent("whatsapp-audio-play", { detail: { mediaUrl } }),
-      );
+      window.dispatchEvent(new CustomEvent("whatsapp-audio-play", { detail: { mediaUrl } }));
       audioRef.current
         .play()
         .then(() => {
