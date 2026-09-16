@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download, ExternalLink, FileText, Image as ImageIcon } from "lucide-react";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
 import { resolveApiUrl } from "@/shared/http/api-base";
+import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
 
 type Props = {
   message: MessageDto;
@@ -143,9 +144,11 @@ export function MessageMediaBody({
   if (isAudio && mediaUrl) {
     return (
       <div className="space-y-1.5 my-1">
-        <audio controls preload="metadata" src={mediaUrl} className="w-full max-w-xs">
-          Tu navegador no soporta audio.
-        </audio>
+        <WhatsAppAudioPlayer
+          mediaUrl={mediaUrl}
+          messageId={message.id}
+          author={message.author}
+        />
         {displayCaption && <p className={captionClassName}>{displayCaption}</p>}
       </div>
     );
