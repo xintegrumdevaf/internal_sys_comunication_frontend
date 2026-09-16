@@ -826,7 +826,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                             : "Atención Humana (Sin asignar)"}
                       </span>
                       <span className="sm:hidden">
-                        {isAssignedToMe ? "Tú" : assignedAgentName ?? "Sin Asignar"}
+                        {isAssignedToMe ? "Tú" : (assignedAgentName ?? "Sin Asignar")}
                       </span>
                     </span>
                   )}
