@@ -224,7 +224,11 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         );
         return;
       }
-      if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT"  || event.type === "MESSAGE_STATUS_UPDATED") {
+      if (
+        event.type === "MESSAGE_RECEIVED" ||
+        event.type === "MESSAGE_SENT" ||
+        event.type === "MESSAGE_STATUS_UPDATED"
+      ) {
         if (event.conversationId === selectedIdRef.current) {
           void loadThread(event.conversationId);
           void conversationGateway.markAsRead(event.conversationId).catch(() => {});

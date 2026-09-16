@@ -119,17 +119,25 @@ export function AgentAnalyticsView() {
 
           {/* Alertas SLA de No Respuesta */}
           <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card shadow-xs relative overflow-hidden">
-            <div className={`absolute top-0 left-0 right-0 h-1 ${breachedCount > 0 ? "bg-danger animate-pulse" : "bg-emerald-500"}`} />
+            <div
+              className={`absolute top-0 left-0 right-0 h-1 ${breachedCount > 0 ? "bg-danger animate-pulse" : "bg-emerald-500"}`}
+            />
             <div className="flex items-center justify-between">
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 Alertas SLA ({slaConfig.responseThresholdMinutes}m+)
               </span>
-              <AlertTriangle className={`size-4 ${breachedCount > 0 ? "text-danger animate-bounce" : "text-emerald-500"}`} />
+              <AlertTriangle
+                className={`size-4 ${breachedCount > 0 ? "text-danger animate-bounce" : "text-emerald-500"}`}
+              />
             </div>
-            <p className={`text-3xl font-extrabold font-mono mt-2 ${breachedCount > 0 ? "text-danger" : "text-foreground"}`}>
+            <p
+              className={`text-3xl font-extrabold font-mono mt-2 ${breachedCount > 0 ? "text-danger" : "text-foreground"}`}
+            >
               {loading ? "—" : breachedCount}
             </p>
-            <p className={`text-[11px] mt-1 font-medium ${breachedCount > 0 ? "text-danger" : "text-emerald-600 dark:text-emerald-400"}`}>
+            <p
+              className={`text-[11px] mt-1 font-medium ${breachedCount > 0 ? "text-danger" : "text-emerald-600 dark:text-emerald-400"}`}
+            >
               {breachedCount > 0 ? "Sin respuesta a tiempo" : "¡Atención al día!"}
             </p>
           </div>

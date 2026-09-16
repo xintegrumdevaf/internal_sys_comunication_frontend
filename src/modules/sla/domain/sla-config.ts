@@ -31,7 +31,10 @@ export type ConversationSlaStatus = {
  * y si ha superado el umbral configurable de SLA (ej. 5 minutos).
  */
 export function calculateConversationSla(
-  conversation: Pick<ConversationDto, "status" | "lastActivityAt" | "lastMessagePreview" | "activeCase">,
+  conversation: Pick<
+    ConversationDto,
+    "status" | "lastActivityAt" | "lastMessagePreview" | "activeCase"
+  >,
   config: SlaConfigDto = DEFAULT_SLA_CONFIG,
 ): ConversationSlaStatus {
   if (!config.enabled) {
@@ -96,7 +99,9 @@ export function calculateConversationSla(
   }
 
   // Calcular minutos transcurridos desde la última actividad / mensaje del cliente
-  const lastActivityTime = new Date(lastPreview?.createdAt || conversation.lastActivityAt).getTime();
+  const lastActivityTime = new Date(
+    lastPreview?.createdAt || conversation.lastActivityAt,
+  ).getTime();
   const now = Date.now();
   const diffMs = Math.max(0, now - lastActivityTime);
   const minutesWaiting = Math.floor(diffMs / 60000);

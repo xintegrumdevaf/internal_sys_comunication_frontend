@@ -139,13 +139,10 @@ export async function listWabaConnections(_agentUserId?: string): Promise<WabaCo
   ];
 }
 
-
 /**
  * POST /api/message-templates/sync-all
  */
-export async function syncAllMessageTemplates(
-  agentUserId?: string,
-): Promise<MessageTemplate[]> {
+export async function syncAllMessageTemplates(agentUserId?: string): Promise<MessageTemplate[]> {
   const rawRes = await apiPost<{ data: RawBackendTemplate[] } | RawBackendTemplate[]>(
     "/api/message-templates/sync-all",
     {},
@@ -155,8 +152,8 @@ export async function syncAllMessageTemplates(
   let rawList: RawBackendTemplate[] = [];
   if (Array.isArray(rawRes)) {
     rawList = rawRes;
-  } else if (rawRes && Array.isArray((rawRes as any).data)) {
-    rawList = (rawRes as any).data;
+  } else if (rawRes && "data" in rawRes && Array.isArray(rawRes.data)) {
+    rawList = rawRes.data;
   }
 
   return rawList.map(mapRawBackendTemplateToDomain);

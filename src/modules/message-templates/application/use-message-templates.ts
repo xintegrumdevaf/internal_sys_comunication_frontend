@@ -280,7 +280,6 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
     setIsDetailOpen(false);
   }, []);
 
-  
   // Sincronizar plantillas con Zernio
   const syncTemplates = useCallback(async (): Promise<boolean> => {
     setSyncing(true);
@@ -291,9 +290,7 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
       await reload({ silent: true });
       return true;
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Error al sincronizar con Zernio.",
-      );
+      toast.error(e instanceof Error ? e.message : "Error al sincronizar con Zernio.");
       return false;
     } finally {
       setSyncing(false);

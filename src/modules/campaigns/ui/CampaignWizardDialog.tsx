@@ -544,7 +544,9 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                           <div className="space-y-1">
                             <h5 className="font-bold">Sin contactos válidos para el envío</h5>
                             <p className="text-[11px] opacity-90 leading-normal">
-                              El archivo cargado contiene {wizard.importSummary.total} filas, pero ninguna posee un número de teléfono válido (mínimo 8 dígitos). Por favor corrige el archivo antes de continuar.
+                              El archivo cargado contiene {wizard.importSummary.total} filas, pero
+                              ninguna posee un número de teléfono válido (mínimo 8 dígitos). Por
+                              favor corrige el archivo antes de continuar.
                             </p>
                           </div>
                         </div>

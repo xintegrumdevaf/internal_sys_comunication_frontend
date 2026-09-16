@@ -112,10 +112,11 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
     const rows = failedItems
       .map(
         (r) =>
-          `"${r.phone || (r as any).number}","${r.name || ""}","${(r.errorMessage || r.body || "").replace(
-            /"/g,
-            '""',
-          )}","${r.updatedAt || ""}"`,
+          `"${r.phone || r.number || ""}","${r.name || ""}","${(
+            r.errorMessage ||
+            r.body ||
+            ""
+          ).replace(/"/g, '""')}","${r.updatedAt || ""}"`,
       )
       .join("\n");
 
@@ -427,7 +428,7 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                             {/* Contacto */}
                             <td className="py-3 px-4">
                               <div className="font-bold text-foreground uppercase text-xs tracking-tight line-clamp-1">
-                                {r.name || r.phone || (r as any).number || "Sin nombre"}
+                                {r.name || r.phone || r.number || "Sin nombre"}
                               </div>
                               <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
                                 {r.number || r.phone}
@@ -440,7 +441,7 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                                 <span className="text-danger font-semibold text-xs line-clamp-2">
                                   {r.errorMessage ||
                                     r.body ||
-                                    (r as any).customBody ||
+                                    r.customBody ||
                                     "Meta API 131026 error: Message Undeliverable."}
                                 </span>
                               ) : (
@@ -448,11 +449,12 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
                                   <span className="text-amber-500 font-normal">📌</span>
                                   <span>
                                     {r.body ||
-                                      (r as any).customBody ||
-                                      (r as any).bodyText ||
-                                      campaign.messageText || (campaign as any).messageBody ||
-                                      (campaign.templateName || (campaign as any).template_name
-                                        ? `Plantilla ${campaign.templateName || (campaign as any).template_name}`
+                                      r.customBody ||
+                                      r.bodyText ||
+                                      campaign.messageText ||
+                                      campaign.messageBody ||
+                                      (campaign.templateName || campaign.template_name
+                                        ? `Plantilla ${campaign.templateName || campaign.template_name}`
                                         : "Sin contenido")}
                                   </span>
                                 </span>

@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Clock, ShieldCheck, Volume2, VolumeX, Save, CheckCircle2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
 
 type Props = {
@@ -58,7 +64,8 @@ export function SlaSettingsModal({ open, onOpenChange }: Props) {
             Configuración de Alertas de No Respuesta (SLA)
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Configura el tiempo máximo tolerable para que un asesor responda los mensajes entrantes de clientes. Los cambios se aplican a toda la organización.
+            Configura el tiempo máximo tolerable para que un asesor responda los mensajes entrantes
+            de clientes. Los cambios se aplican a toda la organización.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,7 +111,9 @@ export function SlaSettingsModal({ open, onOpenChange }: Props) {
               ))}
             </select>
             <p className="text-[11px] text-muted-foreground">
-              Si un cliente escribe y transcurre más de <span className="font-bold text-primary">{threshold} minutos</span> sin respuesta del asesor, se generará la alerta visual en la bandeja.
+              Si un cliente escribe y transcurre más de{" "}
+              <span className="font-bold text-primary">{threshold} minutos</span> sin respuesta del
+              asesor, se generará la alerta visual en la bandeja.
             </p>
           </div>
 
@@ -118,7 +127,9 @@ export function SlaSettingsModal({ open, onOpenChange }: Props) {
               )}
               <div>
                 <p className="text-xs font-bold text-foreground">Notificación Sonora</p>
-                <p className="text-[11px] text-muted-foreground">Emitir un sonido al sobrepasar el tiempo límite</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Emitir un sonido al sobrepasar el tiempo límite
+                </p>
               </div>
             </div>
             <button

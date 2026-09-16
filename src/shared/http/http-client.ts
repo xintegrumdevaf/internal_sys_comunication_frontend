@@ -46,7 +46,8 @@ async function parseEnvelope<T>(res: Response, raw = false): Promise<T> {
     json = undefined;
   }
   if (!res.ok) {
-    const errorBody = json as { error?: { type?: string; message?: string }; message?: string | string[] } | undefined;
+    const errorBody = json as
+      { error?: { type?: string; message?: string }; message?: string | string[] } | undefined;
     let message = res.statusText || `Error HTTP ${res.status}`;
     if (errorBody) {
       if (errorBody.error?.message) {

@@ -8,6 +8,8 @@ export type CampaignRecipient = {
   phone?: string;
   name?: string;
   body?: string;
+  customBody?: string;
+  bodyText?: string;
   variables?: Record<string, string>;
   status?: RecipientStatus;
   errorMessage?: string;
@@ -43,8 +45,10 @@ export type Campaign = {
   quickMode: boolean;
   intervalSeconds: number;
   messageText: string;
+  messageBody?: string;
   templateId?: string;
   templateName?: string;
+  template_name?: string;
   sentCount: number;
   deliveredCount?: number;
   readCount?: number;
@@ -451,8 +455,8 @@ export function calculateCampaignMetrics(campaign: Campaign) {
   read = campaign.readCount ?? Math.round(sent * 0.347);
   replied = campaign.repliedCount ?? Math.round(sent * 0.163);
 
-  const total = campaign.totalRecipients || (sent + failed + queued);
-  const processed = campaign.processedCount ?? (sent + failed);
+  const total = campaign.totalRecipients || sent + failed + queued;
+  const processed = campaign.processedCount ?? sent + failed;
 
   return {
     total,

@@ -52,7 +52,10 @@ import {
   useDirectoryUsers,
   useSession,
 } from "@/modules/identity/application/use-session";
-import { canAccessDepartment, isSupervisorSession } from "@/modules/identity/application/access-control";
+import {
+  canAccessDepartment,
+  isSupervisorSession,
+} from "@/modules/identity/application/access-control";
 import { useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
 
 type Props = {
@@ -160,7 +163,9 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       return departments.filter((d) => d.active && canAccessDepartment(session, d));
     }
     const userDeptIds = new Set(
-      [session.primaryDepartmentId, ...(session.departmentIds ?? [])].filter((id): id is string => Boolean(id))
+      [session.primaryDepartmentId, ...(session.departmentIds ?? [])].filter((id): id is string =>
+        Boolean(id),
+      ),
     );
     return departments.filter((d) => d.active && userDeptIds.has(d.id));
   }, [departments, session, isSupervisorOrAdmin]);
@@ -569,8 +574,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               slaAlertsOnly
                 ? "bg-danger text-white shadow-xs"
                 : breachedSlaCount > 0
-                ? "bg-danger/10 text-danger ring-1 ring-danger/30 hover:bg-danger/20 animate-pulse"
-                : "bg-background text-muted-foreground ring-1 ring-border hover:bg-foreground/5"
+                  ? "bg-danger/10 text-danger ring-1 ring-danger/30 hover:bg-danger/20 animate-pulse"
+                  : "bg-background text-muted-foreground ring-1 ring-border hover:bg-foreground/5"
             }`}
             title="Filtrar conversaciones con alertas de no respuesta superadas"
           >
@@ -624,8 +629,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                     active
                       ? "bg-primary/5 border-l-4 border-primary"
                       : sla.isBreached
-                      ? "bg-danger/5 hover:bg-danger/10 border-l-4 border-danger"
-                      : "hover:bg-foreground/5 border-l-4 border-transparent"
+                        ? "bg-danger/5 hover:bg-danger/10 border-l-4 border-danger"
+                        : "hover:bg-foreground/5 border-l-4 border-transparent"
                   }`}
                 >
                   <div className="relative shrink-0">
@@ -862,11 +867,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
                     <span>
-                      <strong className="font-extrabold uppercase">Alerta de No Respuesta:</strong> El cliente ha estado esperando{" "}
+                      <strong className="font-extrabold uppercase">Alerta de No Respuesta:</strong>{" "}
+                      El cliente ha estado esperando{" "}
                       <strong className="font-extrabold font-mono text-sm">
                         {calculateConversationSla(selected, slaConfig).minutesWaiting} minutos
                       </strong>{" "}
-                      sin respuesta (Límite configurado por el admin: {slaConfig.responseThresholdMinutes}m). Responda pronto para no afectar la métrica de eficiencia.
+                      sin respuesta (Límite configurado por el admin:{" "}
+                      {slaConfig.responseThresholdMinutes}m). Responda pronto para no afectar la
+                      métrica de eficiencia.
                     </span>
                   </div>
                 </div>
@@ -940,8 +948,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                               </span>
                             )}
                             <span>{messageClock(m.createdAt)}</span>
-                            {!fromCustomer && (
-                              m.status === "failed" ? (
+                            {!fromCustomer &&
+                              (m.status === "failed" ? (
                                 <span
                                   className="inline-flex items-center gap-1 text-rose-500 font-medium cursor-help"
                                   title={m.errorMessage || "Error de entrega en WhatsApp / Zernio"}
@@ -953,8 +961,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                                 <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
                               ) : (
                                 <CheckCheck className="size-3.5 text-sky-500/70 dark:text-sky-400/70" />
-                              )
-                            )}
+                              ))}
                           </div>
                         </div>
                         {!fromCustomer && (
