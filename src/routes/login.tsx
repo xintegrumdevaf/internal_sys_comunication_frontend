@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ShieldCheck, LogIn, MessageCircle, Zap } from "lucide-react";
+import { ShieldCheck, LogIn, MessageCircle, Zap, Eye, EyeOff } from "lucide-react";
 import { useAuth, useSession } from "@/modules/identity/application/use-session";
 
 export const Route = createFileRoute("/login")({
@@ -18,6 +18,7 @@ function LoginPage() {
   const { login, loggingIn, loginError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (session) navigate({ to: session.landing });
@@ -97,14 +98,24 @@ function LoginPage() {
               <span className="font-bold uppercase tracking-wide text-muted-foreground">
                 Contraseña
               </span>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2.5 rounded-md border border-border bg-card text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2.5 pr-10 rounded-md border border-border bg-card text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground focus:outline-none cursor-pointer"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </label>
 
             {loginError && (

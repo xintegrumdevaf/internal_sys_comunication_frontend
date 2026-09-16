@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Inbox,
@@ -10,6 +10,7 @@ import {
   Zap,
   ArrowRight,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 import { useSession } from "@/modules/identity/application/use-session";
 import { getDashboard } from "@/modules/dashboard/infrastructure/dashboard.gateway";
@@ -18,12 +19,19 @@ import type { DashboardDto } from "@/modules/dashboard/domain/dashboard";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
 import { relativeTime } from "@/shared/datetime";
+import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
+import { calculateConversationSla } from "@/modules/sla/domain/sla-config";
 
 export function AgentAnalyticsView() {
   const session = useSession();
+  const { config: slaConfig } = useSlaConfig();
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const breachedCount = useMemo(() => {
+    return conversations.filter((c) => calculateConversationSla(c, slaConfig).isBreached).length;
+  }, [conversations, slaConfig]);
 
   useEffect(() => {
     if (!session?.id) return;
@@ -76,7 +84,7 @@ export function AgentAnalyticsView() {
           <TrendingUp className="size-3.5 text-primary" /> Mis Indicadores Operativos
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Casos Asignados */}
           <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card shadow-xs relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
@@ -107,6 +115,23 @@ export function AgentAnalyticsView() {
               {loading ? "—" : (dashboard?.openConversations ?? 0)}
             </p>
             <p className="text-[11px] mt-1 text-muted-foreground">En curso con clientes</p>
+          </div>
+
+          {/* Alertas SLA de No Respuesta */}
+          <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card shadow-xs relative overflow-hidden">
+            <div className={`absolute top-0 left-0 right-0 h-1 ${breachedCount > 0 ? "bg-danger animate-pulse" : "bg-emerald-500"}`} />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Alertas SLA ({slaConfig.responseThresholdMinutes}m+)
+              </span>
+              <AlertTriangle className={`size-4 ${breachedCount > 0 ? "text-danger animate-bounce" : "text-emerald-500"}`} />
+            </div>
+            <p className={`text-3xl font-extrabold font-mono mt-2 ${breachedCount > 0 ? "text-danger" : "text-foreground"}`}>
+              {loading ? "—" : breachedCount}
+            </p>
+            <p className={`text-[11px] mt-1 font-medium ${breachedCount > 0 ? "text-danger" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {breachedCount > 0 ? "Sin respuesta a tiempo" : "¡Atención al día!"}
+            </p>
           </div>
 
           {/* Esperando Cliente */}

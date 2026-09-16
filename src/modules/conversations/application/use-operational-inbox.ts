@@ -191,7 +191,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   // Tiempo real: refresca hilo/lista según lo que llegue por SSE (03_REALTIME_NOTIFICATIONS.md §2).
   useEffect(() => {
     return subscribeRealtimeEvents((event) => {
-      if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT") {
+      if (event.type === "MESSAGE_RECEIVED" || event.type === "MESSAGE_SENT" || event.type === "MESSAGE_STATUS_UPDATED") {
         if (event.conversationId === selectedIdRef.current) {
           void loadThread(event.conversationId);
           void conversationGateway.markAsRead(event.conversationId).catch(() => {});

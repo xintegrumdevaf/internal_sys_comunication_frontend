@@ -1,4 +1,7 @@
 import {
+  AlertCircle,
+  AlertTriangle,
+  Clock,
   Bot,
   Search,
   User,
@@ -26,6 +29,9 @@ import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl"
 import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
 import type { ZernioSyncStatus } from "@/types/department";
+import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
+import { calculateConversationSla } from "@/modules/sla/domain/sla-config";
+import { SlaSettingsModal } from "@/modules/sla/ui/SlaSettingsModal";
 
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
 import {
@@ -44,7 +50,7 @@ import {
   useDirectoryUsers,
   useSession,
 } from "@/modules/identity/application/use-session";
-import { canAccessDepartment } from "@/modules/identity/application/access-control";
+import { canAccessDepartment, isSupervisorSession } from "@/modules/identity/application/access-control";
 import { useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
 
 type Props = {
@@ -138,15 +144,37 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   const { data: departments = [] } = useDepartmentsQuery();
   const directory = useDirectoryUsers();
 
-  const [departmentId, setDepartmentId] = useState<string | undefined>(initialDepartmentId);
+  const [departmentId, setDepartmentId] = useState<string | undefined>(
+    initialDepartmentId ?? session?.primaryDepartmentId ?? undefined,
+  );
+
+  const isSupervisorOrAdmin = isSupervisorSession(session);
+
+  // Para supervisores/admins: ven todas las áreas activas.
+  // Para agentes estándar: ven únicamente sus departamentos asignados.
+  const visibleDepartments = useMemo(() => {
+    if (!session) return [];
+    if (isSupervisorOrAdmin) {
+      return departments.filter((d) => d.active && canAccessDepartment(session, d));
+    }
+    const userDeptIds = new Set(
+      [session.primaryDepartmentId, ...(session.departmentIds ?? [])].filter((id): id is string => Boolean(id))
+    );
+    return departments.filter((d) => d.active && userDeptIds.has(d.id));
+  }, [departments, session, isSupervisorOrAdmin]);
+
+  // Si es un agente estándar, asegurar que departmentId esté acotado a su departamento asignado
+  useEffect(() => {
+    if (!isSupervisorOrAdmin && session?.primaryDepartmentId) {
+      if (!departmentId || !visibleDepartments.some((d) => d.id === departmentId)) {
+        setDepartmentId(session.primaryDepartmentId);
+      }
+    }
+  }, [isSupervisorOrAdmin, session?.primaryDepartmentId, departmentId, visibleDepartments]);
+
   const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>("all");
   const [statusFilter, setStatusFilter] = useState<ConversationStatus>("open");
   const [search, setSearch] = useState("");
-
-  const visibleDepartments = useMemo(
-    () => departments.filter((d) => d.active && canAccessDepartment(session, d)),
-    [departments, session],
-  );
 
   const agentIdParam =
     agentFilter === "all" ? undefined : agentFilter === "mine" ? session?.id : agentFilter;
@@ -267,15 +295,33 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   }, [selectedId]);
   const detailsOpen = detailsOverride ?? Boolean(activeCase);
 
+  const { config: slaConfig } = useSlaConfig();
+  const [slaModalOpen, setSlaModalOpen] = useState(false);
+  const [slaAlertsOnly, setSlaAlertsOnly] = useState(false);
+  const [, setTicker] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTicker((t) => t + 1), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const breachedSlaCount = useMemo(() => {
+    return conversations.filter((c) => calculateConversationSla(c, slaConfig).isBreached).length;
+  }, [conversations, slaConfig]);
+
   const filteredConversations = useMemo(() => {
+    let list = conversations;
+    if (slaAlertsOnly) {
+      list = list.filter((c) => calculateConversationSla(c, slaConfig).isBreached);
+    }
     const q = search.trim().toLowerCase();
-    if (!q) return conversations;
-    return conversations.filter(
+    if (!q) return list;
+    return list.filter(
       (c) =>
         c.waPhone.toLowerCase().includes(q) ||
         (c.lastMessagePreview?.body ?? "").toLowerCase().includes(q),
     );
-  }, [conversations, search]);
+  }, [conversations, search, slaAlertsOnly, slaConfig]);
 
   const assignedAgentName = useMemo(() => {
     if (activeCase?.assignedAgentName) return activeCase.assignedAgentName;
@@ -458,17 +504,19 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
             Área:
           </span>
-          <button
-            type="button"
-            onClick={() => setDepartmentId(undefined)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-              !departmentId
-                ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-            }`}
-          >
-            Todas
-          </button>
+          {isSupervisorOrAdmin && (
+            <button
+              type="button"
+              onClick={() => setDepartmentId(undefined)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                !departmentId
+                  ? "bg-primary/10 text-primary ring-1 ring-primary/30"
+                  : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
+              }`}
+            >
+              Todas
+            </button>
+          )}
           {visibleDepartments.map((d) => (
             <button
               key={d.id}
@@ -502,6 +550,34 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 </option>
               ))}
           </select>
+
+          <button
+            type="button"
+            onClick={() => setSlaAlertsOnly(!slaAlertsOnly)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ml-auto ${
+              slaAlertsOnly
+                ? "bg-danger text-white shadow-xs"
+                : breachedSlaCount > 0
+                ? "bg-danger/10 text-danger ring-1 ring-danger/30 hover:bg-danger/20 animate-pulse"
+                : "bg-background text-muted-foreground ring-1 ring-border hover:bg-foreground/5"
+            }`}
+            title="Filtrar conversaciones con alertas de no respuesta superadas"
+          >
+            <Clock className="size-3" />
+            <span>Sin Respuesta ({breachedSlaCount})</span>
+          </button>
+
+          {isSupervisorOrAdmin && (
+            <button
+              type="button"
+              onClick={() => setSlaModalOpen(true)}
+              className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary hover:bg-primary/20 ring-1 ring-primary/30 flex items-center gap-1 cursor-pointer shrink-0"
+              title="Configurar tiempo límite de respuesta SLA"
+            >
+              <Clock className="size-3" />
+              <span>SLA Admin ({slaConfig.responseThresholdMinutes}m)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -528,6 +604,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
           <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
             {filteredConversations.map((c) => {
               const active = c.id === selectedId;
+              const sla = calculateConversationSla(c, slaConfig);
               return (
                 <button
                   key={c.id}
@@ -535,6 +612,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   className={`w-full text-left p-3.5 transition-colors flex gap-3 ${
                     active
                       ? "bg-primary/5 border-l-4 border-primary"
+                      : sla.isBreached
+                      ? "bg-danger/5 hover:bg-danger/10 border-l-4 border-danger"
                       : "hover:bg-foreground/5 border-l-4 border-transparent"
                   }`}
                 >
@@ -564,6 +643,18 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       {c.lastMessagePreview?.body ?? "Todavía no hay mensajes"}
                     </p>
                     <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
+                      {sla.isBreached && (
+                        <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-danger/15 text-danger ring-1 ring-danger/30 animate-pulse">
+                          <Clock className="size-2.5 text-danger" />
+                          <span>Sin respuesta: {sla.minutesWaiting}m</span>
+                        </span>
+                      )}
+                      {!sla.isBreached && sla.status === "warning" && (
+                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30">
+                          <Clock className="size-2.5 text-amber-500" />
+                          <span>Espera: {sla.minutesWaiting}m</span>
+                        </span>
+                      )}
                       <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
                         {conversationStatusLabel(c.status)}
                       </span>
@@ -755,6 +846,21 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 </div>
               </div>
 
+              {selected && calculateConversationSla(selected, slaConfig).isBreached && (
+                <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-center justify-between gap-2 text-xs font-semibold shrink-0 animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
+                    <span>
+                      <strong className="font-extrabold uppercase">Alerta de No Respuesta:</strong> El cliente ha estado esperando{" "}
+                      <strong className="font-extrabold font-mono text-sm">
+                        {calculateConversationSla(selected, slaConfig).minutesWaiting} minutos
+                      </strong>{" "}
+                      sin respuesta (Límite configurado por el admin: {slaConfig.responseThresholdMinutes}m). Responda pronto para no afectar la métrica de eficiencia.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div
                 ref={messagesScrollRef}
                 className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-1 bg-background/40"
@@ -816,7 +922,19 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           >
                             <span>{messageClock(m.createdAt)}</span>
                             {!fromCustomer && (
-                              <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
+                              m.status === "failed" ? (
+                                <span
+                                  className="inline-flex items-center gap-1 text-rose-500 font-medium cursor-help"
+                                  title={m.errorMessage || "Error de entrega en WhatsApp / Zernio"}
+                                >
+                                  <AlertCircle className="size-3.5 text-rose-500" />
+                                  <span className="text-[9px]">Fallo</span>
+                                </span>
+                              ) : m.status === "delivered" || m.status === "read" ? (
+                                <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
+                              ) : (
+                                <CheckCheck className="size-3.5 text-sky-500/70 dark:text-sky-400/70" />
+                              )
                             )}
                           </div>
                         </div>
@@ -1032,6 +1150,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
         }
         claimDisabled={busy}
       />
+
+      <SlaSettingsModal open={slaModalOpen} onOpenChange={setSlaModalOpen} />
     </div>
   );
 }

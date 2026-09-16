@@ -1,4 +1,5 @@
-import { Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Sparkles, ShieldCheck, Clock } from "lucide-react";
 import { StatCard } from "@/app/shell/AppShell";
 import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
 import {
@@ -12,6 +13,8 @@ import { useQualityBoard } from "@/modules/quality/application/use-quality-board
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
 import { QualityReviewDetail } from "@/modules/quality/ui/QualityReviewDetail";
 import { relativeTime } from "@/shared/datetime";
+import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
+import { SlaSettingsModal } from "@/modules/sla/ui/SlaSettingsModal";
 
 /**
  * Ranking + lista de chats. Progreso por conversación: msgs analizados/total.
@@ -25,6 +28,8 @@ export function QualityBoard({
   onSelectReview: (id: string) => void;
   onClearReview: () => void;
 }) {
+  const { config: slaConfig } = useSlaConfig();
+  const [slaModalOpen, setSlaModalOpen] = useState(false);
   const { data: departments = [] } = useDepartmentsQuery();
   const directory = useDirectoryUsers();
   const {
@@ -194,19 +199,26 @@ export function QualityBoard({
           <select
             value={filters.status}
             onChange={(e) =>
-              setFilters((p) => ({
-                ...p,
-                status: e.target.value as QualityReviewStatus | "",
-              }))
+              setFilters((p) => ({ ...p, status: e.target.value as QualityReviewStatus | "" }))
             }
             className="text-xs px-3 py-2 border border-border rounded-lg bg-background font-medium outline-none focus:ring-2 focus:ring-primary/20 w-full sm:w-auto"
           >
-            <option value="">Cualquier estado</option>
-            <option value="pending">Por analizar</option>
-            <option value="ready">Analizado</option>
-            <option value="failed">Fallido</option>
-            <option value="reviewed">Revisada</option>
+            <option value="">Todos los estados</option>
+            <option value="pending">En curso</option>
+            <option value="ready">Listas para revisar</option>
+            <option value="reviewed">Revisadas</option>
+            <option value="failed">Fallidas</option>
           </select>
+
+          <button
+            type="button"
+            onClick={() => setSlaModalOpen(true)}
+            className="text-xs px-3 py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Configurar el tiempo límite de respuesta (SLA) para asesores"
+          >
+            <Clock className="size-3.5" />
+            <span>Configurar SLA ({slaConfig.responseThresholdMinutes}m)</span>
+          </button>
         </div>
 
         <button
@@ -446,6 +458,8 @@ export function QualityBoard({
           </div>
         </div>
       </section>
+
+      <SlaSettingsModal open={slaModalOpen} onOpenChange={setSlaModalOpen} />
     </div>
   );
 }

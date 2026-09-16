@@ -99,4 +99,6 @@ export type MessageDto = {
   caption?: string;
   filename?: string;
   mediaUrl?: string;
+  status?: "sent" | "delivered" | "read" | "failed";
+  errorMessage?: string | null;
 };
