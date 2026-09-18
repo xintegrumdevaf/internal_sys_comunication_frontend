@@ -5,10 +5,12 @@ import type { SessionUser } from "@/modules/identity/domain/session";
 
 const claimCaseMock = vi.fn();
 const assignCaseMock = vi.fn();
+const advanceCaseMock = vi.fn();
 
 vi.mock("@/modules/cases/infrastructure/case.gateway", () => ({
   claimCase: (...args: unknown[]) => claimCaseMock(...args),
   assignCase: (...args: unknown[]) => assignCaseMock(...args),
+  advanceCase: (...args: unknown[]) => advanceCaseMock(...args),
   reassignCase: vi.fn(),
   completeCase: vi.fn(),
   cancelCase: vi.fn(),
@@ -113,5 +115,26 @@ describe("useCaseActions", () => {
     });
 
     expect(result.current.busy).toBe(false);
+  });
+
+  it("advance llama al gateway con el caseId y el payload de entities, y notifica éxito", async () => {
+    advanceCaseMock.mockResolvedValueOnce({ id: "case_1", status: "ACTIVE" });
+    const onChanged = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useCaseActions(session, onChanged));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.advance("case_1", {
+        selectedOption: 1,
+        contractCode: "CON-001",
+      });
+    });
+
+    expect(ok).toBe(true);
+    expect(advanceCaseMock).toHaveBeenCalledWith("case_1", {
+      entities: { selectedOption: 1, contractCode: "CON-001" },
+    });
+    expect(toastSuccess).toHaveBeenCalledWith("Servicio asignado correctamente");
+    expect(onChanged).toHaveBeenCalledTimes(1);
   });
 });

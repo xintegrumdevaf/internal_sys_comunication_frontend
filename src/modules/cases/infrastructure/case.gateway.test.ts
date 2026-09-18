@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { assignCase, claimCase, getCaseSummary } from "./case.gateway";
+import { advanceCase, assignCase, claimCase, getCaseSummary } from "./case.gateway";
 
 /**
  * Verifica que el gateway arme exactamente la URL/método/headers/body que
@@ -50,6 +50,21 @@ describe("case.gateway", () => {
     expect(JSON.parse(init.body as string)).toEqual({
       agentUserId: "agent_target",
       departmentId: "dept_support",
+    });
+  });
+
+  it("advanceCase hace POST a /api/cases/:id/advance con payload de entidades", async () => {
+    const fetchMock = mockFetchOnce(200, { data: { id: "case_1", status: "ACTIVE" } });
+    await advanceCase("case_1", {
+      entities: { selectedOption: 2, contractCode: "CON-456" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://localhost:3000/api/cases/case_1/advance");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      entities: { selectedOption: 2, contractCode: "CON-456" },
     });
   });
 
