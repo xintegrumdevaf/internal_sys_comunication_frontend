@@ -391,5 +391,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       activeCase ? caseActions.disableAutomation(activeCase.id, reason) : Promise.resolve(false),
     reactivateAutomation: () =>
       activeCase ? caseActions.reactivateAutomation(activeCase.id) : Promise.resolve(false),
+    advanceCase: (entities: { selectedOption: number; contractCode?: string }) =>
+      activeCase ? caseActions.advance(activeCase.id, entities) : Promise.resolve(false),
   };
 }

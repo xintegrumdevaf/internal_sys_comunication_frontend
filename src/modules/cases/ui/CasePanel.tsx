@@ -12,7 +12,11 @@ import {
   Wrench,
   XCircle,
 } from "lucide-react";
-import type { CaseDto, SupportInternetDiagnosticTechnical } from "@/modules/cases/domain/case";
+import type {
+  CaseDto,
+  PendingContractItem,
+  SupportInternetDiagnosticTechnical,
+} from "@/modules/cases/domain/case";
 import {
   CANCELLABLE_STATUSES,
   caseStatusLabel,
@@ -22,6 +26,7 @@ import {
   paymentStatusLabel,
   workflowLabel,
 } from "@/modules/cases/domain/case";
+import { advanceCase } from "@/modules/cases/infrastructure/case.gateway";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 
 function DataRow({ label, value }: { label: string; value: string | number | undefined | null }) {
@@ -182,6 +187,7 @@ export function CasePanel({
   customerPhone,
   busy,
   canWrite,
+  canManage: canManageProp,
   departments,
   assignedAgentName,
   onOpenSummary,
@@ -190,6 +196,7 @@ export function CasePanel({
   onTransfer,
   onDisableAutomation,
   onReactivateAutomation,
+  onAdvance,
 }: {
   caseDto: CaseDto | null;
   /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
@@ -197,6 +204,7 @@ export function CasePanel({
   customerPhone?: string;
   busy: boolean;
   canWrite: boolean;
+  canManage?: boolean;
   departments: DepartmentDto[];
   /** Nombre del agente asignado ya resuelto — nunca se muestra el UUID crudo. */
   assignedAgentName?: string | null;
@@ -206,10 +214,44 @@ export function CasePanel({
   onTransfer: (toDepartmentId: string, reason: string) => void;
   onDisableAutomation: (reason: string) => void;
   onReactivateAutomation: () => void;
+  onAdvance?: (entities: { selectedOption: number; contractCode?: string }) => Promise<unknown> | void;
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferDept, setTransferDept] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
+  const [assigningOption, setAssigningOption] = useState<number | null>(null);
+
+  const canManage = canManageProp ?? canWrite;
+  const currentState = caseDto
+    ? (caseDto.workflowInstance?.currentState ?? caseDto.currentState)
+    : undefined;
+  const contextData = (caseDto?.context?.data ?? {}) as Record<string, unknown>;
+  const rawContext = caseDto?.context as unknown as Record<string, unknown> | undefined;
+  const pendingContracts = (contextData.pendingContracts ?? rawContext?.pendingContracts) as
+    | PendingContractItem[]
+    | undefined;
+
+  const handleManualAssign = async (option: number, contract: PendingContractItem) => {
+    if (!caseDto) return;
+    setAssigningOption(option);
+    try {
+      if (onAdvance) {
+        await onAdvance({
+          selectedOption: option,
+          contractCode: contract.contractCode,
+        });
+      } else {
+        await advanceCase(caseDto.id, {
+          entities: {
+            selectedOption: option,
+            contractCode: contract.contractCode,
+          },
+        });
+      }
+    } finally {
+      setAssigningOption(null);
+    }
+  };
 
   const validatedName = caseDto ? clientNameFromCase(caseDto) : null;
 
@@ -250,7 +292,6 @@ export function CasePanel({
   }
 
   const tag = workflowLabel(caseDto.workflowType);
-  const canManageEscalation = caseDto.status === "ESCALATED" || caseDto.status === "HUMAN_ACTIVE";
 
   const isAiAttending = (caseDto.automation?.enabled ?? true) && caseDto.status !== "HUMAN_ACTIVE";
   const handlerLabel = isAiAttending
@@ -270,6 +311,39 @@ export function CasePanel({
             {tag.label}
           </span>
         </div>
+
+        {currentState === "WAITING_USER_DISAMBIGUATE" && pendingContracts && pendingContracts.length > 0 && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="font-semibold text-amber-900 text-xs mb-2">
+              Selección de servicio pendiente ({pendingContracts.length} contratos)
+            </p>
+            {pendingContracts.map((c, i) => (
+              <div
+                key={c.id || c.contractCode || i}
+                className="p-2 bg-white rounded border mb-1.5 text-xs flex justify-between items-center"
+              >
+                <div>
+                  <span className="font-bold">
+                    {i + 1}. {c.label || c.address}
+                  </span>
+                  <p className="text-gray-500">
+                    Código: {c.contractCode || c.id} | {c.sector}
+                  </p>
+                </div>
+                {canManage && (
+                  <button
+                    type="button"
+                    disabled={busy || assigningOption === i + 1}
+                    onClick={() => handleManualAssign(i + 1, c)}
+                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {assigningOption === i + 1 ? "Asignando..." : "Asignar"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <SectionLabel icon={Sparkles}>Resumen</SectionLabel>
         {isAiAttending && (
@@ -304,16 +378,14 @@ export function CasePanel({
         <SectionLabel icon={Wrench}>Datos técnicos</SectionLabel>
         <CaseContextBody caseDto={caseDto} />
 
-        {canManageEscalation && (
-          <button
-            type="button"
-            onClick={onOpenSummary}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition"
-          >
-            <FileText className="size-3.5" />
-            Ver resumen del caso
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onOpenSummary}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition"
+        >
+          <FileText className="size-3.5" />
+          Ver detalles del caso
+        </button>
       </div>
 
       {!canWrite && (
@@ -421,3 +493,6 @@ export function CasePanel({
     </div>
   );
 }
+
+export { CasePanel as CaseDetailsSidebar };
+

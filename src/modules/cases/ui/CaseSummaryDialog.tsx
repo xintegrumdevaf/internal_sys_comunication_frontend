@@ -85,7 +85,7 @@ export function CaseSummaryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Resumen del caso escalado</DialogTitle>
+          <DialogTitle>Detalles y resumen del caso</DialogTitle>
           <DialogDescription>
             Generado por el backend a partir del historial real del caso — no es un texto inventado
             por la IA.

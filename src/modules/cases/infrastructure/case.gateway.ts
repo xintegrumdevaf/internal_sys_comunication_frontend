@@ -76,3 +76,18 @@ export function disableAutomation(caseId: string, reason: string, agentUserId: s
 export function reactivateAutomation(caseId: string, agentUserId: string) {
   return apiPost(`/api/cases/${caseId}/reactivate-automation`, { agentUserId });
 }
+
+export type AdvanceCasePayload = {
+  entities: {
+    selectedOption: number;
+    contractCode?: string;
+  };
+};
+
+export function advanceCase(
+  caseId: string,
+  payload: AdvanceCasePayload,
+): Promise<CaseDto> {
+  return apiPost<CaseDto>(`/api/cases/${caseId}/advance`, payload);
+}
+

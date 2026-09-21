@@ -48,6 +48,14 @@ export type SupportInternetDiagnosticTechnical = {
   onuNumber?: string;
 };
 
+export type PendingContractItem = {
+  id: string;
+  label?: string;
+  address?: string;
+  contractCode?: string;
+  sector?: string;
+};
+
 export type SupportInternetContext = {
   client?: { nationalId: string; fullName: string };
   contract?: {
@@ -65,6 +73,7 @@ export type SupportInternetContext = {
     result?: string;
     technical?: SupportInternetDiagnosticTechnical;
   };
+  pendingContracts?: PendingContractItem[];
 };
 
 const ONU_RUN_STATE_LABELS: Record<string, string> = {
@@ -148,6 +157,10 @@ export type CaseDto = {
   context: CaseContext;
   automation: AutomationStateDto | null;
   currentState?: string;
+  workflowInstance?: {
+    currentState?: string;
+    [key: string]: unknown;
+  } | null;
   createdAt: string;
   lastActivityAt: string;
   expiresAt: string | null;
@@ -221,6 +234,7 @@ const CASE_STEP_LABELS: Record<string, string> = {
   QUERY_KNOWLEDGE_BASE: "Búsqueda en base de conocimiento",
   ESCALATE: "Escalado a un agente humano",
   WAITING_USER: "Esperando respuesta del cliente",
+  WAITING_USER_DISAMBIGUATE: "Selección de contrato por el cliente",
 };
 
 function humanizeStep(step: string): string {

@@ -101,6 +101,18 @@ export function useCaseActions(
     );
   };
 
+  const advance = (
+    caseId: string,
+    entities: { selectedOption: number; contractCode?: string },
+  ) => {
+    if (!session) return Promise.resolve(false);
+    return run(
+      "avanzar el caso",
+      () => caseGateway.advanceCase(caseId, { entities }),
+      "Servicio asignado correctamente",
+    );
+  };
+
   return {
     busy,
     claim,
@@ -111,5 +123,6 @@ export function useCaseActions(
     transfer,
     disableAutomation,
     reactivateAutomation,
+    advance,
   };
 }

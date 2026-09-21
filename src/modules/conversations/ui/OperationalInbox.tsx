@@ -18,6 +18,7 @@ import {
   Info,
   ArrowLeft,
   Zap,
+  FileText,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -32,7 +33,7 @@ import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
 import { EmojiPickerPopover } from "@/components/common/EmojiPickerPopover";
 import type { ZernioSyncStatus } from "@/types/department";
 import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
-import { calculateConversationSla } from "@/modules/sla/domain/sla-config";
+import { calculateConversationSla, formatSlaWaitTime } from "@/modules/sla/domain/sla-config";
 import { SlaSettingsModal } from "@/modules/sla/ui/SlaSettingsModal";
 
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
@@ -208,6 +209,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
     transfer,
     disableAutomation,
     reactivateAutomation,
+    advanceCase,
     sendReply,
   } = useOperationalInbox({
     departmentId,
@@ -662,13 +664,13 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                       {sla.isBreached && (
                         <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-danger/15 text-danger ring-1 ring-danger/30 animate-pulse">
                           <Clock className="size-2.5 text-danger" />
-                          <span>Sin respuesta: {sla.minutesWaiting}m</span>
+                          <span>Sin respuesta: {sla.formattedShort}</span>
                         </span>
                       )}
                       {!sla.isBreached && sla.status === "warning" && (
                         <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30">
                           <Clock className="size-2.5 text-amber-500" />
-                          <span>Espera: {sla.minutesWaiting}m</span>
+                          <span>Espera: {sla.formattedShort}</span>
                         </span>
                       )}
                       <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
@@ -885,23 +887,27 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 </div>
               </div>
 
-              {selected && calculateConversationSla(selected, slaConfig).isBreached && (
-                <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-center justify-between gap-2 text-xs font-semibold shrink-0 animate-fade-in">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
-                    <span>
-                      <strong className="font-extrabold uppercase">Alerta de No Respuesta:</strong>{" "}
-                      El cliente ha estado esperando{" "}
-                      <strong className="font-extrabold font-mono text-sm">
-                        {calculateConversationSla(selected, slaConfig).minutesWaiting} minutos
-                      </strong>{" "}
-                      sin respuesta (Límite configurado por el admin:{" "}
-                      {slaConfig.responseThresholdMinutes}m). Responda pronto para no afectar la
-                      métrica de eficiencia.
-                    </span>
+              {selected && (() => {
+                const selectedSla = calculateConversationSla(selected, slaConfig);
+                if (!selectedSla.isBreached) return null;
+                return (
+                  <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-center justify-between gap-2 text-xs font-semibold shrink-0 animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
+                      <span>
+                        <strong className="font-extrabold uppercase">Alerta de No Respuesta:</strong>{" "}
+                        El cliente ha estado esperando{" "}
+                        <strong className="font-extrabold font-mono text-sm">
+                          {selectedSla.formattedFull}
+                        </strong>{" "}
+                        sin respuesta (Límite configurado por el admin:{" "}
+                        {formatSlaWaitTime(slaConfig.responseThresholdMinutes, "short")}). Responda pronto para no afectar la
+                        métrica de eficiencia.
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <div
                 ref={messagesScrollRef}
@@ -1125,14 +1131,29 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Detalles
               </span>
-              <button
-                type="button"
-                onClick={() => setDetailsOverride(false)}
-                title="Ocultar panel de detalles"
-                className="p-1 rounded-md hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition"
-              >
-                <PanelRightClose className="size-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                {activeCase && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void loadCaseSummary(activeCase.id);
+                      setSummaryOpen(true);
+                    }}
+                    title="Ver detalles completos del caso (modal)"
+                    className="p-1 rounded-md hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition"
+                  >
+                    <FileText className="size-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDetailsOverride(false)}
+                  title="Ocultar panel de detalles"
+                  className="p-1 rounded-md hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition"
+                >
+                  <PanelRightClose className="size-4" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
               <CasePanel
@@ -1152,6 +1173,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
                 onDisableAutomation={(reason) => void disableAutomation(reason)}
                 onReactivateAutomation={() => void reactivateAutomation()}
+                onAdvance={(entities) => void advanceCase(entities)}
               />
             </div>
           </div>
@@ -1168,6 +1190,19 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
             <SheetTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Detalles del Caso y Cliente
             </SheetTitle>
+            {activeCase && (
+              <button
+                type="button"
+                onClick={() => {
+                  void loadCaseSummary(activeCase.id);
+                  setSummaryOpen(true);
+                }}
+                title="Ver detalles completos del caso (modal)"
+                className="p-1 rounded-md hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition"
+              >
+                <FileText className="size-4" />
+              </button>
+            )}
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             <CasePanel
@@ -1187,6 +1222,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
               onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
               onDisableAutomation={(reason) => void disableAutomation(reason)}
               onReactivateAutomation={() => void reactivateAutomation()}
+              onAdvance={(entities) => void advanceCase(entities)}
             />
           </div>
         </SheetContent>
