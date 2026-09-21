@@ -121,7 +121,10 @@ export function MessageTemplateFormDialog({
   const headerValidation = useMemo(() => {
     if (headerType === "TEXT" && headerText) {
       if (headerText.length > 60) {
-        return { valid: false, error: "El encabezado de texto no puede superar los 60 caracteres." };
+        return {
+          valid: false,
+          error: "El encabezado de texto no puede superar los 60 caracteres.",
+        };
       }
       return validateProhibitedLinks(headerText, "El encabezado");
     }

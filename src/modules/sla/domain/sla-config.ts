@@ -41,10 +41,7 @@ export type ConversationSlaStatus = {
  *   - 1h a < 24h: "1 hora y 15 minutos" / "2 horas"
  *   - >= 24h: "7 días y 15 horas" / "1 día"
  */
-export function formatSlaWaitTime(
-  minutes: number,
-  format: "short" | "full" = "short",
-): string {
+export function formatSlaWaitTime(minutes: number, format: "short" | "full" = "short"): string {
   const safeMinutes = Math.max(0, Math.floor(minutes));
 
   if (safeMinutes < 60) {

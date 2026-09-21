@@ -214,7 +214,10 @@ export function CasePanel({
   onTransfer: (toDepartmentId: string, reason: string) => void;
   onDisableAutomation: (reason: string) => void;
   onReactivateAutomation: () => void;
-  onAdvance?: (entities: { selectedOption: number; contractCode?: string }) => Promise<unknown> | void;
+  onAdvance?: (entities: {
+    selectedOption: number;
+    contractCode?: string;
+  }) => Promise<unknown> | void;
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferDept, setTransferDept] = useState("");
@@ -228,8 +231,7 @@ export function CasePanel({
   const contextData = (caseDto?.context?.data ?? {}) as Record<string, unknown>;
   const rawContext = caseDto?.context as unknown as Record<string, unknown> | undefined;
   const pendingContracts = (contextData.pendingContracts ?? rawContext?.pendingContracts) as
-    | PendingContractItem[]
-    | undefined;
+    PendingContractItem[] | undefined;
 
   const handleManualAssign = async (option: number, contract: PendingContractItem) => {
     if (!caseDto) return;
@@ -312,38 +314,40 @@ export function CasePanel({
           </span>
         </div>
 
-        {currentState === "WAITING_USER_DISAMBIGUATE" && pendingContracts && pendingContracts.length > 0 && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="font-semibold text-amber-900 text-xs mb-2">
-              Selección de servicio pendiente ({pendingContracts.length} contratos)
-            </p>
-            {pendingContracts.map((c, i) => (
-              <div
-                key={c.id || c.contractCode || i}
-                className="p-2 bg-white rounded border mb-1.5 text-xs flex justify-between items-center"
-              >
-                <div>
-                  <span className="font-bold">
-                    {i + 1}. {c.label || c.address}
-                  </span>
-                  <p className="text-gray-500">
-                    Código: {c.contractCode || c.id} | {c.sector}
-                  </p>
+        {currentState === "WAITING_USER_DISAMBIGUATE" &&
+          pendingContracts &&
+          pendingContracts.length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="font-semibold text-amber-900 text-xs mb-2">
+                Selección de servicio pendiente ({pendingContracts.length} contratos)
+              </p>
+              {pendingContracts.map((c, i) => (
+                <div
+                  key={c.id || c.contractCode || i}
+                  className="p-2 bg-white rounded border mb-1.5 text-xs flex justify-between items-center"
+                >
+                  <div>
+                    <span className="font-bold">
+                      {i + 1}. {c.label || c.address}
+                    </span>
+                    <p className="text-gray-500">
+                      Código: {c.contractCode || c.id} | {c.sector}
+                    </p>
+                  </div>
+                  {canManage && (
+                    <button
+                      type="button"
+                      disabled={busy || assigningOption === i + 1}
+                      onClick={() => handleManualAssign(i + 1, c)}
+                      className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {assigningOption === i + 1 ? "Asignando..." : "Asignar"}
+                    </button>
+                  )}
                 </div>
-                {canManage && (
-                  <button
-                    type="button"
-                    disabled={busy || assigningOption === i + 1}
-                    onClick={() => handleManualAssign(i + 1, c)}
-                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {assigningOption === i + 1 ? "Asignando..." : "Asignar"}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
         <SectionLabel icon={Sparkles}>Resumen</SectionLabel>
         {isAiAttending && (
@@ -495,4 +499,3 @@ export function CasePanel({
 }
 
 export { CasePanel as CaseDetailsSidebar };
-
