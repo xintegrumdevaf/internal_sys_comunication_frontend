@@ -25,7 +25,9 @@ import type {
 import {
   extractTemplateVariables,
   substituteTemplateVariables,
+  validateAllTemplatePolicies,
   validateMetaTemplateName,
+  validateProhibitedLinks,
   validateTemplateBody,
 } from "@/modules/message-templates/domain/message-template";
 import type { CreateMessageTemplatePayload } from "@/modules/message-templates/infrastructure/message-template.gateway";
@@ -33,7 +35,9 @@ import type { CreateMessageTemplatePayload } from "@/modules/message-templates/i
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (payload: CreateMessageTemplatePayload) => Promise<boolean>;
+  onSubmit: (
+    payload: CreateMessageTemplatePayload,
+  ) => Promise<boolean | { success: boolean; error?: string }>;
   connections: WabaConnectionDto[];
   submitting: boolean;
 };
@@ -67,6 +71,7 @@ export function MessageTemplateFormDialog({
   const [body, setBody] = useState("");
   const [footer, setFooter] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -82,6 +87,7 @@ export function MessageTemplateFormDialog({
     setBody("");
     setFooter("");
     setShowEmojiPicker(false);
+    setFormError(null);
     if (connections.length > 0) {
       setConnectionId(connections[0].id);
     } else {
@@ -109,9 +115,34 @@ export function MessageTemplateFormDialog({
   const detectedVariables = useMemo(() => extractTemplateVariables(body), [body]);
   const renderedBodyPreview = useMemo(() => substituteTemplateVariables(body), [body]);
 
-  // Validaciones
+  // Validaciones en tiempo real
   const nameValidation = useMemo(() => validateMetaTemplateName(name), [name]);
   const bodyValidation = useMemo(() => validateTemplateBody(body), [body]);
+  const headerValidation = useMemo(() => {
+    if (headerType === "TEXT" && headerText) {
+      if (headerText.length > 60) {
+        return { valid: false, error: "El encabezado de texto no puede superar los 60 caracteres." };
+      }
+      return validateProhibitedLinks(headerText, "El encabezado");
+    }
+    return { valid: true };
+  }, [headerType, headerText]);
+
+  const footerValidation = useMemo(() => {
+    if (footer) {
+      if (footer.length > 60) {
+        return { valid: false, error: "El pie de página no puede superar los 60 caracteres." };
+      }
+      return validateProhibitedLinks(footer, "El pie de página");
+    }
+    return { valid: true };
+  }, [footer]);
+
+  const isFormValid =
+    nameValidation.valid &&
+    bodyValidation.valid &&
+    headerValidation.valid &&
+    footerValidation.valid;
 
   if (!isOpen) return null;
 
@@ -178,7 +209,20 @@ export function MessageTemplateFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameValidation.valid || !bodyValidation.valid) return;
+    setFormError(null);
+
+    const policyRes = validateAllTemplatePolicies({
+      name,
+      body,
+      headerType,
+      headerText: headerType === "TEXT" ? headerText : undefined,
+      footerText: footer.trim() ? footer : undefined,
+    });
+
+    if (!policyRes.valid) {
+      setFormError(policyRes.errors.join("; "));
+      return;
+    }
 
     const payload: CreateMessageTemplatePayload = {
       name,
@@ -198,8 +242,14 @@ export function MessageTemplateFormDialog({
       footer: footer.trim() ? footer : undefined,
     };
 
-    const success = await onSubmit(payload);
-    if (success) {
+    const res = await onSubmit(payload);
+    if (typeof res === "object" && res !== null) {
+      if (res.success) {
+        resetForm();
+      } else if (res.error) {
+        setFormError(res.error);
+      }
+    } else if (res === true) {
       resetForm();
     }
   };
@@ -234,6 +284,18 @@ export function MessageTemplateFormDialog({
           onSubmit={handleSubmit}
           className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12"
         >
+          {formError && (
+            <div className="lg:col-span-12 mx-5 mt-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-start gap-2.5 text-xs font-medium animate-fade-in">
+              <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-rose-700 dark:text-rose-300">
+                  Error en la validación / envío de la plantilla:
+                </p>
+                <p className="mt-0.5 leading-relaxed whitespace-pre-wrap">{formError}</p>
+              </div>
+            </div>
+          )}
+
           {/* Left Column: Form (7 cols) */}
           <div className="lg:col-span-7 p-5 space-y-4 border-r border-border overflow-y-auto">
             {/* Categoría (Segmented control) */}
@@ -283,7 +345,7 @@ export function MessageTemplateFormDialog({
                 <p className="text-[10px] text-muted-foreground mt-1">minúsculas, números y _</p>
                 {!nameValidation.valid && name.length > 0 && (
                   <p className="text-[11px] text-rose-500 mt-0.5 flex items-center gap-1 font-semibold">
-                    <AlertCircle className="size-3" /> {nameValidation.error}
+                    <AlertCircle className="size-3 shrink-0" /> {nameValidation.error}
                   </p>
                 )}
               </div>
@@ -370,13 +432,21 @@ export function MessageTemplateFormDialog({
               </select>
 
               {headerType === "TEXT" && (
-                <input
-                  type="text"
-                  placeholder="Escribe el texto del encabezado"
-                  value={headerText}
-                  onChange={(e) => setHeaderText(e.target.value)}
-                  className="w-full mt-2 px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
-                />
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Escribe el texto del encabezado"
+                    value={headerText}
+                    onChange={(e) => setHeaderText(e.target.value)}
+                    className="w-full mt-2 px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {!headerValidation.valid && (
+                    <p className="text-[11px] text-rose-500 mt-1 flex items-start gap-1 font-semibold">
+                      <AlertCircle className="size-3.5 shrink-0 mt-0.5" />{" "}
+                      <span>{headerValidation.error}</span>
+                    </p>
+                  )}
+                </div>
               )}
 
               {headerType !== "NONE" && headerType !== "TEXT" && (
@@ -558,6 +628,12 @@ export function MessageTemplateFormDialog({
                   </span>
                 </div>
               </div>
+              {!bodyValidation.valid && body.length > 0 && (
+                <p className="text-[11px] text-rose-500 mt-1 flex items-start gap-1 font-semibold">
+                  <AlertCircle className="size-3.5 shrink-0 mt-0.5" />{" "}
+                  <span>{bodyValidation.error}</span>
+                </p>
+              )}
             </div>
 
             {/* Pie opcional */}
@@ -572,6 +648,12 @@ export function MessageTemplateFormDialog({
                 onChange={(e) => setFooter(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary"
               />
+              {!footerValidation.valid && (
+                <p className="text-[11px] text-rose-500 mt-1 flex items-start gap-1 font-semibold">
+                  <AlertCircle className="size-3.5 shrink-0 mt-0.5" />{" "}
+                  <span>{footerValidation.error}</span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -725,7 +807,7 @@ export function MessageTemplateFormDialog({
             </button>
             <button
               type="submit"
-              disabled={submitting || !nameValidation.valid || !bodyValidation.valid}
+              disabled={submitting || !isFormValid}
               className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-lg disabled:opacity-40 flex items-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed"
             >
               <Send className="size-3.5" /> Enviar para revisión

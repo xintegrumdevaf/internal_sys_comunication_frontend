@@ -9,6 +9,7 @@ import type {
 } from "@/modules/message-templates/domain/message-template";
 import {
   extractTemplateVariables,
+  validateAllTemplatePolicies,
   validateMetaTemplateName,
   validateTemplateBody,
 } from "@/modules/message-templates/domain/message-template";
@@ -115,6 +116,8 @@ const DEFAULT_TEMPLATES: MessageTemplate[] = [
 
 const PENDING_POLL_INTERVAL_MS = 10_000;
 
+export type CreateTemplateResult = { success: boolean; error?: string };
+
 export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
   const session = useSession();
   const pausePolling = opts?.pausePolling === true;
@@ -213,16 +216,20 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
 
   // Crear plantilla
   const createTemplate = useCallback(
-    async (payload: CreateMessageTemplatePayload): Promise<boolean> => {
-      const nameVal = validateMetaTemplateName(payload.name);
-      if (!nameVal.valid) {
-        toast.error(nameVal.error);
-        return false;
-      }
-      const bodyVal = validateTemplateBody(payload.body);
-      if (!bodyVal.valid) {
-        toast.error(bodyVal.error);
-        return false;
+    async (payload: CreateMessageTemplatePayload): Promise<CreateTemplateResult> => {
+      const policyResult = validateAllTemplatePolicies({
+        name: payload.name,
+        body: payload.body,
+        headerType: payload.header?.type,
+        headerText: payload.header?.text,
+        footerText: payload.footer,
+        buttons: payload.buttons,
+      });
+
+      if (!policyResult.valid) {
+        const errorMsg = policyResult.errors.join("; ");
+        toast.error(errorMsg);
+        return { success: false, error: errorMsg };
       }
 
       setSubmitting(true);
@@ -234,12 +241,12 @@ export function useMessageTemplates(opts?: { pausePolling?: boolean }) {
         toast.success(`Plantilla "${payload.name}" guardada y enviada a Meta.`);
         setIsFormOpen(false);
         await reload({ silent: true });
-        return true;
+        return { success: true };
       } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : "Error al guardar la plantilla en el backend.",
-        );
-        return false;
+        const errorMsg =
+          e instanceof Error ? e.message : "Error al guardar la plantilla en el backend.";
+        toast.error(errorMsg);
+        return { success: false, error: errorMsg };
       } finally {
         setSubmitting(false);
       }

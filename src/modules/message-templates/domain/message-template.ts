@@ -90,25 +90,103 @@ export type BackendCreateTemplatePayload = {
 
 /**
  * Reglas de Meta para el nombre de la plantilla:
- * Solo letras minúsculas (a-z), números (0-9) y guiones bajos (_).
+ * Debe empezar con una letra minúscula (a-z) y solo contener letras minúsculas, números (0-9) y guiones bajos (_).
  * Sin espacios, mayúsculas ni caracteres especiales.
  */
-export const META_TEMPLATE_NAME_REGEX = /^[a-z0-9_]+$/;
+export const META_TEMPLATE_NAME_REGEX = /^[a-z][a-z0-9_]*$/;
+
+export const PROHIBITED_URL_SHORTENERS_REGEX =
+  /(?:https?:\/\/)?(?:www\.)?(bit\.ly|tinyurl\.com|goo\.gl|ow\.ly|rb\.gy|is\.gd|buff\.ly|adf\.ly|bit\.do)\b/i;
 
 export function validateMetaTemplateName(name: string): { valid: boolean; error?: string } {
-  if (!name || name.trim() === "") {
+  const trimmed = name ? name.trim() : "";
+  if (!trimmed) {
     return { valid: false, error: "El nombre de la plantilla es obligatorio." };
   }
-  if (!META_TEMPLATE_NAME_REGEX.test(name)) {
+  if (!META_TEMPLATE_NAME_REGEX.test(trimmed)) {
     return {
       valid: false,
       error:
-        "El nombre solo puede contener letras minúsculas (a-z), números (0-9) y guiones bajos (_).",
+        "El nombre de la plantilla debe empezar con una letra minúscula y solo contener letras minúsculas, números y guiones bajos (^[a-z][a-z0-9_]*$).",
     };
   }
-  if (name.length > 512) {
+  if (trimmed.length > 512) {
     return { valid: false, error: "El nombre no puede exceder los 512 caracteres." };
   }
+  return { valid: true };
+}
+
+export function validateProhibitedLinks(
+  text: string,
+  fieldName = "El texto",
+): { valid: boolean; error?: string } {
+  if (text && PROHIBITED_URL_SHORTENERS_REGEX.test(text)) {
+    return {
+      valid: false,
+      error: `${fieldName} contiene un acortador de URL prohibido por Meta (ej. bit.ly, tinyurl). Usa la URL completa HTTPS de tu dominio.`,
+    };
+  }
+  return { valid: true };
+}
+
+export function validateTemplateVariables(bodyText: string): { valid: boolean; error?: string } {
+  const text = bodyText ? bodyText.trim() : "";
+  if (!text) {
+    return { valid: false, error: "El cuerpo del mensaje es obligatorio." };
+  }
+
+  // 1. Contiguous variables
+  if (/\{\{\s*\d+\s*\}\}\s*\{\{\s*\d+\s*\}\}/.test(text)) {
+    return {
+      valid: false,
+      error:
+        "Meta rechaza plantillas con variables contiguas (ej. {{1}}{{2}}). Debe existir texto o espacio descriptivo entre ellas.",
+    };
+  }
+
+  // 2. Extract variables and verify sequence
+  const varRegex = /\{\{\s*(\d+)\s*\}\}/g;
+  const matches: number[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = varRegex.exec(text)) !== null) {
+    matches.push(parseInt(match[1], 10));
+  }
+
+  if (matches.length > 0) {
+    const maxVar = Math.max(...matches);
+    const uniqueVars = new Set(matches);
+
+    for (let i = 1; i <= maxVar; i++) {
+      if (!uniqueVars.has(i)) {
+        return {
+          valid: false,
+          error: `Las variables de la plantilla deben ser secuenciales iniciando en {{1}}. Falta la variable {{${i}}}.`,
+        };
+      }
+    }
+
+    // 3. Check starting or ending with variable
+    const startsWithVar = /^\{\{\s*\d+\s*\}\}/.test(text);
+    const endsWithVar = /\{\{\s*\d+\s*\}\}$/.test(text);
+
+    if (startsWithVar) {
+      return {
+        valid: false,
+        error:
+          "La plantilla no puede iniciar directamente con una variable sin texto o palabras previas de contexto.",
+      };
+    }
+
+    if (endsWithVar) {
+      return {
+        valid: false,
+        error:
+          "La plantilla no puede finalizar directamente con una variable sin texto posterior o cierre adecuado.",
+      };
+    }
+  }
+
   return { valid: true };
 }
 
@@ -117,9 +195,79 @@ export function validateTemplateBody(body: string): { valid: boolean; error?: st
     return { valid: false, error: "El cuerpo del mensaje es obligatorio." };
   }
   if (body.length > 1024) {
-    return { valid: false, error: "El cuerpo del mensaje no puede exceder 1024 caracteres." };
+    return { valid: false, error: "El cuerpo del mensaje no puede superar los 1024 caracteres." };
+  }
+  const varValidation = validateTemplateVariables(body);
+  if (!varValidation.valid) {
+    return varValidation;
+  }
+  const linkValidation = validateProhibitedLinks(body, "El cuerpo del mensaje");
+  if (!linkValidation.valid) {
+    return linkValidation;
   }
   return { valid: true };
+}
+
+export type TemplatePolicyInput = {
+  name: string;
+  body: string;
+  headerType?: TemplateHeaderType;
+  headerText?: string;
+  footerText?: string;
+  buttons?: TemplateButton[];
+};
+
+export function validateAllTemplatePolicies(input: TemplatePolicyInput): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  const nameRes = validateMetaTemplateName(input.name);
+  if (!nameRes.valid && nameRes.error) {
+    errors.push(nameRes.error);
+  }
+
+  const bodyRes = validateTemplateBody(input.body);
+  if (!bodyRes.valid && bodyRes.error) {
+    errors.push(bodyRes.error);
+  }
+
+  if (input.headerType === "TEXT" && input.headerText) {
+    if (input.headerText.length > 60) {
+      errors.push("El encabezado de texto no puede superar los 60 caracteres.");
+    }
+    const headerLink = validateProhibitedLinks(input.headerText, "El encabezado");
+    if (!headerLink.valid && headerLink.error) {
+      errors.push(headerLink.error);
+    }
+  }
+
+  if (input.footerText) {
+    if (input.footerText.length > 60) {
+      errors.push("El pie de página no puede superar los 60 caracteres.");
+    }
+    const footerLink = validateProhibitedLinks(input.footerText, "El pie de página");
+    if (!footerLink.valid && footerLink.error) {
+      errors.push(footerLink.error);
+    }
+  }
+
+  if (input.buttons && input.buttons.length > 0) {
+    for (const btn of input.buttons) {
+      if (btn.text.length > 25) {
+        errors.push(`El texto del botón '${btn.text}' no puede superar los 25 caracteres.`);
+      }
+      if (btn.url) {
+        const btnLink = validateProhibitedLinks(btn.url, `La URL del botón '${btn.text}'`);
+        if (!btnLink.valid && btnLink.error) {
+          errors.push(btnLink.error);
+        }
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 /**

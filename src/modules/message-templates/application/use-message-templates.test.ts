@@ -100,9 +100,9 @@ describe("useMessageTemplates", () => {
     const { result } = renderHook(() => useMessageTemplates({ pausePolling: true }));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    let success = false;
+    let res: { success: boolean; error?: string } = { success: true };
     await act(async () => {
-      success = await result.current.createTemplate({
+      res = await result.current.createTemplate({
         name: "Nombre Invalido",
         category: "UTILITY",
         language: "es",
@@ -111,7 +111,8 @@ describe("useMessageTemplates", () => {
       });
     });
 
-    expect(success).toBe(false);
+    expect(res.success).toBe(false);
+    expect(res.error).toBeDefined();
     expect(createMessageTemplateMock).not.toHaveBeenCalled();
   });
 
