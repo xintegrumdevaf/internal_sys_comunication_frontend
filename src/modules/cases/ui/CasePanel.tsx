@@ -1,11 +1,15 @@
 import { useState } from "react";
 import {
+  Activity,
+  AlertTriangle,
   Bot,
   FileText,
+  HelpCircle,
   Lock,
   Phone,
   Power,
   PowerOff,
+  Send,
   Sparkles,
   UserCircle2,
   UserRound,
@@ -21,6 +25,9 @@ import {
   CANCELLABLE_STATUSES,
   caseStatusLabel,
   clientNameFromCase,
+  findingTypeLabel,
+  formatMacAddress,
+  formatOpticalPower,
   onuRunStateLabel,
   onuSignalQuality,
   paymentStatusLabel,
@@ -55,26 +62,40 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
   // 1. Contrato y Red
   const contract = (data.contract ?? rawContext?.contract) as
-    { sector?: string; oltName?: string; pon?: string | number; serial?: string } | undefined;
+    | { sector?: string; oltName?: string; pon?: string | number; serial?: string }
+    | undefined;
 
   // 2. Deuda y Estado Financiero
   const balance = (data.balance ?? rawContext?.balance) as
-    { hasDebt?: boolean; amount?: number } | undefined;
+    | { hasDebt?: boolean; amount?: number }
+    | undefined;
   const hasDebt = balance?.hasDebt ?? (data.hasDebt as boolean | undefined);
   const debtAmount =
     balance?.amount ?? (data.debt as number | undefined) ?? (data.amount as number | undefined);
 
   // 3. Diagnóstico Técnico
   const diagnostic = (data.diagnostic ?? rawContext?.diagnostic) as
-    | { status?: string; result?: string; technical?: SupportInternetDiagnosticTechnical }
+    | {
+        status?: string;
+        result?: string;
+        findings?: Array<{ type?: string; severity?: string; description?: string }>;
+        instruction?: string;
+        technical?: SupportInternetDiagnosticTechnical;
+      }
     | string
     | undefined;
   const diagnosticResult =
     typeof diagnostic === "string" ? diagnostic : (diagnostic?.result ?? diagnostic?.status);
+  const findings = typeof diagnostic === "object" ? diagnostic?.findings : undefined;
+  const instruction =
+    typeof diagnostic === "object"
+      ? diagnostic?.instruction
+      : (data.instruction as string | undefined);
 
   // 4. Pago y Comprobantes
   const payment = (data.payment ?? rawContext?.payment) as
-    { amount?: number; reference?: string; status?: string } | undefined;
+    | { amount?: number; reference?: string; status?: string }
+    | undefined;
 
   // 5. Planes y Ofertas (Ventas / Comercial)
   const requestedSpeed = data.requestedSpeed as string | undefined;
@@ -82,13 +103,59 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
   const offer = data.offer as
     { name?: string; price?: number | string; speed?: string } | undefined;
 
-  // 6. Telemetría de la ONU
-  const technical = (data.technical ??
+  // 6. Telemetría de la ONU (Normalizada o Cruda)
+  const rawTech = (data.technical ??
     (typeof diagnostic === "object" ? diagnostic?.technical : undefined)) as
-    SupportInternetDiagnosticTechnical | undefined;
-  const quality = technical ? onuSignalQuality(technical.opticalPowerDbm) : null;
+    | Record<string, unknown>
+    | undefined;
+  const technical = rawTech as SupportInternetDiagnosticTechnical | undefined;
+
+  const brand = technical?.brand || (rawTech?.brand as string | undefined);
+  const onuModel =
+    technical?.onuModel ||
+    ((rawTech?.onu as Record<string, unknown> | undefined)?.model as string | undefined);
+  const onuSerial =
+    technical?.onuSerial ||
+    ((rawTech?.onu as Record<string, unknown> | undefined)?.authinfo as string | undefined) ||
+    ((rawTech?.onu as Record<string, unknown> | undefined)?.serial as string | undefined) ||
+    contract?.serial;
+  const onuIndex =
+    technical?.onuIndex ||
+    ((rawTech?.onu as Record<string, unknown> | undefined)?.onuindex as string | undefined) ||
+    technical?.stateOnuIndex ||
+    ((rawTech?.state as Record<string, unknown> | undefined)?.onuIndex as string | undefined);
+  const phaseState =
+    technical?.phaseState ||
+    ((rawTech?.state as Record<string, unknown> | undefined)?.phaseState as string | undefined);
+  const runState =
+    technical?.runState ||
+    ((rawTech?.state as Record<string, unknown> | undefined)?.runState as string | undefined);
+  const adminState =
+    technical?.adminState ||
+    ((rawTech?.state as Record<string, unknown> | undefined)?.adminState as string | undefined);
+  const channel =
+    technical?.channel ||
+    ((rawTech?.state as Record<string, unknown> | undefined)?.channel as string | undefined);
+
+  const isSupportCase =
+    caseDto.workflowType === "SUPPORT_INTERNET" ||
+    Boolean(contract?.serial || contract?.oltName);
+
+  const powerVal =
+    technical?.opticalPowerDbm !== undefined
+      ? technical.opticalPowerDbm
+      : (rawTech?.power as number | null | undefined);
+  const macVal =
+    technical?.macAddress !== undefined
+      ? technical.macAddress
+      : (rawTech?.mac as string | null | undefined);
+
+  const powerFormatted = formatOpticalPower(powerVal);
+  const macFormatted = formatMacAddress(macVal);
+  const quality = powerFormatted.isMeasured ? onuSignalQuality(powerVal) : null;
 
   const hasAnyData = Boolean(
+    isSupportCase ||
     contract?.sector ||
     contract?.oltName ||
     contract?.serial ||
@@ -100,7 +167,8 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
     requestedSpeed ||
     currentPlan?.name ||
     offer?.name ||
-    technical,
+    technical ||
+    rawTech,
   );
 
   if (!hasAnyData) {
@@ -124,6 +192,26 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
       {/* Diagnóstico técnico */}
       {diagnosticResult && <DataRow label="Diagnóstico" value={diagnosticResult} />}
+      {findings && findings.length > 0 && (
+        <div className="pt-1">
+          <span className="text-muted-foreground block text-[10px] uppercase font-bold">Hallazgos:</span>
+          <div className="flex flex-wrap gap-1 mt-0.5">
+            {findings.map((f, i) => (
+              <span
+                key={i}
+                className="px-1.5 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded text-[9px] font-semibold"
+              >
+                {findingTypeLabel(f.type || f.description)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {instruction && (
+        <div className="p-2 bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-primary rounded-r text-[10px] italic text-muted-foreground my-1 leading-snug">
+          "{instruction}"
+        </div>
+      )}
 
       {/* Comercial / Planes (para Ventas) */}
       {requestedSpeed && <DataRow label="Velocidad solicitada" value={requestedSpeed} />}
@@ -142,39 +230,68 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
         <DataRow label="Estado pago" value={paymentStatusLabel(payment.status)} />
       )}
 
-      {/* Telemetría técnica ONU */}
-      {technical && (
+      {/* Telemetría técnica ONU - Power y MAC SIEMPRE VISIBLES */}
+      {(isSupportCase || technical || rawTech || brand || onuModel || onuSerial) && (
         <>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">
             Lectura real del equipo (ONU)
           </p>
-          {technical.runState && (
-            <div className="flex justify-between gap-2 items-center">
-              <span className="text-muted-foreground">Estado del equipo</span>
-              <span className="text-right font-semibold">
-                {onuRunStateLabel(technical.runState)}
-              </span>
-            </div>
-          )}
-          {technical.opticalPowerDbm != null && (
-            <div className="flex justify-between gap-2 items-center">
-              <span className="text-muted-foreground">Potencia óptica</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold">{technical.opticalPowerDbm.toFixed(1)} dBm</span>
-                {quality && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
-                  >
-                    {quality.label}
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
-          {technical.onuModel && technical.onuModel !== "unknown" && (
-            <DataRow label="Modelo de ONU" value={technical.onuModel} />
-          )}
-          {technical.macAddress && <DataRow label="MAC" value={technical.macAddress} />}
+          <DataRow label="Marca" value={brand ? brand.toUpperCase() : "No obtenida (null)"} />
+          <div className="flex justify-between gap-2 items-center">
+            <span className="text-muted-foreground">Estado del equipo</span>
+            <span className="text-right font-semibold">
+              {phaseState || (runState ? onuRunStateLabel(runState) : "No obtenido (falló diagnóstico)")}
+            </span>
+          </div>
+          {adminState && <DataRow label="Estado admin" value={adminState} />}
+          {onuIndex && <DataRow label="Índice ONU" value={onuIndex} />}
+          {channel && <DataRow label="Canal GPON" value={channel} />}
+
+          {/* Potencia óptica: SIEMPRE VISIBLE */}
+          <div className="flex justify-between gap-2 items-center">
+            <span className="text-muted-foreground">Potencia óptica</span>
+            <span className="text-right font-medium flex items-center gap-1.5 justify-end">
+              {powerFormatted.isMeasured ? (
+                <>
+                  <span className="font-semibold">{powerFormatted.text}</span>
+                  {quality && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
+                    >
+                      {quality.label}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-amber-600 dark:text-amber-400 font-semibold text-[10px] bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  {powerFormatted.text}
+                </span>
+              )}
+            </span>
+          </div>
+
+          <DataRow
+            label="Modelo de ONU"
+            value={onuModel && onuModel !== "unknown" ? onuModel : "Desconocido (null)"}
+          />
+          <DataRow
+            label="Serial ONU"
+            value={onuSerial || contract?.serial || "No encontrada (null)"}
+          />
+
+          {/* MAC: SIEMPRE VISIBLE */}
+          <div className="flex justify-between gap-2 items-center">
+            <span className="text-muted-foreground">MAC</span>
+            <span className="text-right font-medium">
+              {macFormatted.isFound ? (
+                <span className="font-semibold">{macFormatted.text}</span>
+              ) : (
+                <span className="text-amber-600 dark:text-amber-400 font-semibold text-[10px] bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  {macFormatted.text}
+                </span>
+              )}
+            </span>
+          </div>
         </>
       )}
     </div>
@@ -214,12 +331,14 @@ export function CasePanel({
   onTransfer: (toDepartmentId: string, reason: string) => void;
   onDisableAutomation: (reason: string) => void;
   onReactivateAutomation: () => void;
-  onAdvance?: (entities: { selectedOption: number; contractCode?: string }) => Promise<unknown> | void;
+  onAdvance?: (entities: Record<string, unknown>) => Promise<unknown> | void;
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferDept, setTransferDept] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
   const [assigningOption, setAssigningOption] = useState<number | null>(null);
+  const [diagnosticAnswer, setDiagnosticAnswer] = useState("");
+  const [continuingDiagnostic, setContinuingDiagnostic] = useState(false);
 
   const canManage = canManageProp ?? canWrite;
   const currentState = caseDto
@@ -250,6 +369,27 @@ export function CasePanel({
       }
     } finally {
       setAssigningOption(null);
+    }
+  };
+
+  const handleContinueDiagnostic = async () => {
+    if (!caseDto || !diagnosticAnswer.trim()) return;
+    setContinuingDiagnostic(true);
+    try {
+      if (onAdvance) {
+        await onAdvance({
+          answer: diagnosticAnswer.trim(),
+        });
+      } else {
+        await advanceCase(caseDto.id, {
+          entities: {
+            answer: diagnosticAnswer.trim(),
+          },
+        });
+      }
+      setDiagnosticAnswer("");
+    } finally {
+      setContinuingDiagnostic(false);
     }
   };
 
@@ -342,6 +482,76 @@ export function CasePanel({
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {currentState === "WAITING_USER_DIAGNOSTIC" && (
+          <div className="p-3 bg-blue-50/80 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60 rounded-lg space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-blue-900 dark:text-blue-200 text-xs flex items-center gap-1.5">
+                <Activity className="size-3.5 text-blue-600" />
+                Continuación de Diagnóstico Técnico
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-blue-600 text-white">
+                Esperando cliente
+              </span>
+            </div>
+
+            {(() => {
+              const diag = (contextData.diagnostic ?? rawContext?.diagnostic) as
+                | { instruction?: string; lastQuestion?: string }
+                | undefined;
+              const q =
+                diag?.instruction ||
+                diag?.lastQuestion ||
+                (contextData.instruction as string | undefined);
+              return q ? (
+                <div className="text-[11px] text-blue-950 dark:text-blue-200 bg-white/70 dark:bg-background/40 p-2.5 rounded border border-blue-100 dark:border-blue-900/30 italic leading-relaxed">
+                  "{q}"
+                </div>
+              ) : null;
+            })()}
+
+            {canManage && (
+              <div className="space-y-2 pt-1">
+                <input
+                  type="text"
+                  value={diagnosticAnswer}
+                  onChange={(e) => setDiagnosticAnswer(e.target.value)}
+                  placeholder="Respuesta cliente (ej: Luz roja LOS / Todas verdes)"
+                  className="w-full text-xs px-2.5 py-1.5 border border-border rounded-md bg-background text-foreground"
+                  disabled={busy || continuingDiagnostic}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleContinueDiagnostic();
+                    }
+                  }}
+                />
+                <div className="flex flex-wrap gap-1">
+                  {["Luz roja LOS", "Luces apagadas", "Todas verdes"].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      disabled={busy || continuingDiagnostic}
+                      onClick={() => setDiagnosticAnswer(suggestion)}
+                      className="px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-[10px] text-muted-foreground transition font-medium"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  disabled={busy || continuingDiagnostic || !diagnosticAnswer.trim()}
+                  onClick={handleContinueDiagnostic}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold uppercase transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  <Send className="size-3" />
+                  {continuingDiagnostic ? "Actualizando diagnóstico..." : "Continuar Diagnóstico"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

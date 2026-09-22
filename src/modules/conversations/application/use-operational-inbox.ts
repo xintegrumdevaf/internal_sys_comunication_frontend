@@ -281,6 +281,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
   const caseActions = useCaseActions(session, async () => {
     await refreshActiveCase();
+    if (activeCase) void loadCaseSummary(activeCase.id);
     await reload({ silent: true });
   });
 
@@ -391,7 +392,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       activeCase ? caseActions.disableAutomation(activeCase.id, reason) : Promise.resolve(false),
     reactivateAutomation: () =>
       activeCase ? caseActions.reactivateAutomation(activeCase.id) : Promise.resolve(false),
-    advanceCase: (entities: { selectedOption: number; contractCode?: string }) =>
+    advanceCase: (entities: Record<string, unknown>) =>
       activeCase ? caseActions.advance(activeCase.id, entities) : Promise.resolve(false),
   };
 }

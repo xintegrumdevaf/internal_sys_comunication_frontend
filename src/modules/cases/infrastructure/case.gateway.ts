@@ -78,10 +78,7 @@ export function reactivateAutomation(caseId: string, agentUserId: string) {
 }
 
 export type AdvanceCasePayload = {
-  entities: {
-    selectedOption: number;
-    contractCode?: string;
-  };
+  entities: Record<string, unknown>;
 };
 
 export function advanceCase(
