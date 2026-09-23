@@ -154,9 +154,7 @@ describe("CasePanel - Desambiguación de Contratos", () => {
       />,
     );
 
-    expect(
-      screen.queryByText(/Selección de servicio pendiente/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Selección de servicio pendiente/i)).not.toBeInTheDocument();
   });
 
   it("muestra el botón 'Ver detalles del caso' y llama a onOpenSummary al hacer clic", () => {
@@ -266,9 +264,7 @@ describe("CasePanel - Desambiguación de Contratos", () => {
       />,
     );
 
-    expect(
-      screen.getByText(/Continuación de Diagnóstico Técnico/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Continuación de Diagnóstico Técnico/i)).toBeInTheDocument();
     expect(
       screen.getAllByText(/Verifique si las luces del router están encendidas/i).length,
     ).toBeGreaterThanOrEqual(1);
@@ -284,4 +280,3 @@ describe("CasePanel - Desambiguación de Contratos", () => {
     });
   });
 });
-

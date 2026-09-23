@@ -153,7 +153,10 @@ export function onuSignalQuality(
  * Extrae y formatea el valor de potencia óptica. Si viene en null o undefined,
  * indica claramente "No encontrada (null)" ya que la lectura falló o no se realizó (ej. ONU offline).
  */
-export function formatOpticalPower(power: number | null | undefined): { text: string; isMeasured: boolean } {
+export function formatOpticalPower(power: number | null | undefined): {
+  text: string;
+  isMeasured: boolean;
+} {
   if (power !== null && power !== undefined && !Number.isNaN(power)) {
     return { text: `${Number(power).toFixed(1)} dBm`, isMeasured: true };
   }
@@ -165,8 +168,14 @@ export function formatOpticalPower(power: number | null | undefined): { text: st
  * indica claramente "No encontrada (null)" para reflejar que la lectura no se obtuvo.
  */
 export function formatMacAddress(mac: unknown): { text: string; isFound: boolean } {
-  const resolved = typeof mac === "object" && mac !== null && "mac" in mac ? (mac as { mac?: unknown }).mac : mac;
-  if (typeof resolved === "string" && resolved.trim() !== "" && resolved.toLowerCase() !== "null" && resolved.toLowerCase() !== "unknown") {
+  const resolved =
+    typeof mac === "object" && mac !== null && "mac" in mac ? (mac as { mac?: unknown }).mac : mac;
+  if (
+    typeof resolved === "string" &&
+    resolved.trim() !== "" &&
+    resolved.toLowerCase() !== "null" &&
+    resolved.toLowerCase() !== "unknown"
+  ) {
     return { text: resolved.trim(), isFound: true };
   }
   return { text: "No encontrada (null)", isFound: false };

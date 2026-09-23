@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from "@/shared/http/http-client";
+import { apiGet, apiPost, apiPut, apiDelete } from "@/shared/http/http-client";
 import type {
   KnowledgeDocument,
   FaqItem,
@@ -8,9 +8,13 @@ import type {
 } from "../types/knowledge.types";
 
 class KnowledgeService {
-  async getDocuments(): Promise<KnowledgeDocument[]> {
+  async getDocuments(departmentId?: string): Promise<KnowledgeDocument[]> {
     try {
-      const res = await apiGet<KnowledgeDocument[]>("/api/rag/documents");
+      const url =
+        departmentId && departmentId !== "all"
+          ? `/api/rag/documents?departmentId=${encodeURIComponent(departmentId)}`
+          : "/api/rag/documents";
+      const res = await apiGet<KnowledgeDocument[]>(url);
       return res || [];
     } catch (e) {
       console.error("Error cargando documentos de PostgreSQL:", e);
@@ -18,10 +22,21 @@ class KnowledgeService {
     }
   }
 
-  async uploadDocument(file: File, category: string = "General"): Promise<KnowledgeDocument> {
+  async uploadDocument(
+    file: File,
+    category: string = "General",
+    departmentId?: string | null,
+    isGlobal?: boolean,
+  ): Promise<KnowledgeDocument> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("category", category);
+    if (departmentId) {
+      formData.append("departmentId", departmentId);
+    }
+    if (typeof isGlobal === "boolean") {
+      formData.append("isGlobal", String(isGlobal));
+    }
 
     return apiPost<KnowledgeDocument>("/api/rag/documents", formData);
   }
@@ -30,9 +45,13 @@ class KnowledgeService {
     await apiDelete(`/api/rag/documents/${id}`);
   }
 
-  async getFaqs(): Promise<FaqItem[]> {
+  async getFaqs(departmentId?: string): Promise<FaqItem[]> {
     try {
-      const res = await apiGet<FaqItem[]>("/api/rag/faqs");
+      const url =
+        departmentId && departmentId !== "all"
+          ? `/api/rag/faqs?departmentId=${encodeURIComponent(departmentId)}`
+          : "/api/rag/faqs";
+      const res = await apiGet<FaqItem[]>(url);
       return res || [];
     } catch (e) {
       console.error("Error cargando FAQs de PostgreSQL:", e);
@@ -43,6 +62,9 @@ class KnowledgeService {
   async saveFaq(
     faq: Omit<FaqItem, "id" | "createdAt" | "updatedAt"> & { id?: string },
   ): Promise<FaqItem> {
+    if (faq.id) {
+      return apiPut<FaqItem>(`/api/rag/faqs/${faq.id}`, faq);
+    }
     return apiPost<FaqItem>("/api/rag/faqs", faq);
   }
 

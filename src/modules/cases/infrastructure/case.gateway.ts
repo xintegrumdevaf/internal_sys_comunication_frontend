@@ -81,10 +81,6 @@ export type AdvanceCasePayload = {
   entities: Record<string, unknown>;
 };
 
-export function advanceCase(
-  caseId: string,
-  payload: AdvanceCasePayload,
-): Promise<CaseDto> {
+export function advanceCase(caseId: string, payload: AdvanceCasePayload): Promise<CaseDto> {
   return apiPost<CaseDto>(`/api/cases/${caseId}/advance`, payload);
 }
-

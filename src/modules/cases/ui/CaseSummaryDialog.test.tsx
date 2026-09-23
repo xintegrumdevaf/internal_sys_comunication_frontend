@@ -14,7 +14,8 @@ describe("CaseSummaryDialog - Telemetría y Trazabilidad", () => {
       workflow: "SUPPORT_INTERNET",
       department: "support",
       status: "ESCALATED",
-      reason: 'Servicio de diagnostico respondio 422: {"code":"OLT_NOT_FOUND","message":"OLT cData no existe en bellavista"}',
+      reason:
+        'Servicio de diagnostico respondio 422: {"code":"OLT_NOT_FOUND","message":"OLT cData no existe en bellavista"}',
       completedSteps: ["VALIDATE_CLIENT", "CHECK_CLIENT_STATUS"],
       results: {
         client: { fullName: "SAMANIEGO PINEDA JOHN WALTER", nationalId: "0102110582" },
@@ -44,8 +45,10 @@ describe("CaseSummaryDialog - Telemetría y Trazabilidad", () => {
         onOpenChange={() => {}}
         summary={failedSummary}
         timeline={[]}
-        departments={[{ id: "1", name: "Soporte Técnico", slug: "support" }]}
-      />
+        departments={[
+          { id: "1", name: "Soporte Técnico", slug: "support", visibility: "shared", active: true },
+        ]}
+      />,
     );
 
     // Debe mostrar la sección de telemetría técnica
@@ -67,7 +70,9 @@ describe("CaseSummaryDialog - Telemetría y Trazabilidad", () => {
 
     // Motivo humanizado sin JSON crudo
     expect(
-      screen.getByText(/Servicio de diagnostico respondio 422: OLT cData no existe en bellavista \(OLT_NOT_FOUND\)/i)
+      screen.getByText(
+        /Servicio de diagnostico respondio 422: OLT cData no existe en bellavista \(OLT_NOT_FOUND\)/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -88,7 +93,12 @@ describe("CaseSummaryDialog - Telemetría y Trazabilidad", () => {
           macAddress: "AA:BB:CC:DD:EE:FF",
           _history: [
             { step: "Auth OLT", command: "telnet 10.0.0.1", success: true },
-            { step: "Query ONU power", command: "display ont optical-info 1 1", raw: "Rx power: -28.5 dBm", success: true },
+            {
+              step: "Query ONU power",
+              command: "display ont optical-info 1 1",
+              raw: "Rx power: -28.5 dBm",
+              success: true,
+            },
           ],
         },
       },
@@ -102,7 +112,7 @@ describe("CaseSummaryDialog - Telemetría y Trazabilidad", () => {
         onOpenChange={() => {}}
         summary={historySummary}
         timeline={[]}
-      />
+      />,
     );
 
     // Acordeón de trazabilidad presente pero no intrusivo

@@ -1,19 +1,52 @@
-import { useState, useRef, type DragEvent } from "react";
-import { Upload, X, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, type DragEvent } from "react";
+import {
+  Upload,
+  X,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Globe,
+  Building2,
+} from "lucide-react";
+import { departmentService } from "@/services/department.service";
+import type { Department } from "@/types/department";
 
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: (file: File, category: string) => Promise<void>;
+  onUploadSuccess: (
+    file: File,
+    category: string,
+    departmentId?: string | null,
+    isGlobal?: boolean,
+  ) => Promise<void>;
 }
 
 export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState<string>("Soporte Técnico");
+  const [isGlobal, setIsGlobal] = useState<boolean>(true);
+  const [departmentId, setDepartmentId] = useState<string>("");
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      departmentService
+        .getDepartments()
+        .then((data) => {
+          setDepartments(data || []);
+          if (data && data.length > 0 && !departmentId) {
+            setDepartmentId(data[0].id);
+          }
+        })
+        .catch((err) => console.error("Error cargando departamentos:", err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -81,11 +114,24 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
       return;
     }
 
+    if (!isGlobal && !departmentId) {
+      setError("Selecciona un departamento para asociar el documento.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      await onUploadSuccess(selectedFile, category);
+      const selectedDept = departments.find((d) => d.id === departmentId);
+      const computedCategory = isGlobal ? "Políticas Generales" : selectedDept?.name || category;
+
+      await onUploadSuccess(
+        selectedFile,
+        computedCategory,
+        isGlobal ? null : departmentId || null,
+        isGlobal,
+      );
       setSelectedFile(null);
       onClose();
     } catch (err) {
@@ -115,21 +161,69 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Departamento / Área
+          {/* Alcance del Documento */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Alcance del Documento
             </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="Soporte Técnico">Soporte Técnico</option>
-              <option value="Cartera & Cobros">Cartera & Cobros</option>
-              <option value="UTGA & Operaciones">UTGA & Operaciones</option>
-              <option value="Políticas Generales">Políticas Generales</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setIsGlobal(true)}
+                className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
+                  isGlobal
+                    ? "border-primary bg-primary/10 text-primary shadow-xs"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                }`}
+              >
+                <Globe className="size-4 shrink-0" />
+                Global (Toda la Empresa)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsGlobal(false)}
+                className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
+                  !isGlobal
+                    ? "border-primary bg-primary/10 text-primary shadow-xs"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                }`}
+              >
+                <Building2 className="size-4 shrink-0" />
+                Por Departamento
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {isGlobal
+                ? "Aplica para cualquier consulta sin importar el departamento (ej. cuentas, horarios, políticas generales)."
+                : "La búsqueda semántica solo considerará este documento para consultas del departamento seleccionado."}
+            </p>
           </div>
+
+          {/* Departamento selector if not global */}
+          {!isGlobal && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Departamento Asignado
+              </label>
+              <select
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+                required={!isGlobal}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                {departments.length === 0 ? (
+                  <option value="">Cargando departamentos...</option>
+                ) : (
+                  departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
 
           {/* Drag and Drop Zone */}
           <div

@@ -67,6 +67,8 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/respuestas-rapidas": Zap,
   "/auditoria": ShieldCheck,
   "/conocimiento": BrainCircuit,
+  "/prompts": Sparkles,
+  "/admin/prompts": Sparkles,
 };
 
 /**

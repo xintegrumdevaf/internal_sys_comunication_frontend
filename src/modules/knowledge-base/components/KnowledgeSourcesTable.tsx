@@ -7,15 +7,20 @@ import {
   Plus,
   FileCode,
   Globe,
+  Building2,
   CheckCircle2,
   Clock,
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
 import type { KnowledgeDocument } from "../types/knowledge.types";
+import type { Department } from "@/types/department";
 
 interface KnowledgeSourcesTableProps {
   documents: KnowledgeDocument[];
+  departments?: Department[];
+  departmentFilter?: string;
+  onDepartmentFilterChange?: (deptId: string) => void;
   onUploadClick: () => void;
   onDeleteDoc: (id: string) => void;
   onRefresh: () => void;
@@ -24,25 +29,35 @@ interface KnowledgeSourcesTableProps {
 
 export function KnowledgeSourcesTable({
   documents,
+  departments = [],
+  departmentFilter = "all",
+  onDepartmentFilterChange,
   onUploadClick,
   onDeleteDoc,
   onRefresh,
   loading = false,
 }: KnowledgeSourcesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [localDepartmentFilter, setLocalDepartmentFilter] = useState("all");
 
-  const categories = Array.from(new Set(documents.map((d) => d.category)));
+  const effectiveDeptFilter = onDepartmentFilterChange ? departmentFilter : localDepartmentFilter;
 
   const filteredDocs = documents.filter((doc) => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (doc.category && doc.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (doc.departmentName && doc.departmentName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       doc.uploadedBy.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = selectedCategory === "all" || doc.category === selectedCategory;
+    const matchesDept =
+      effectiveDeptFilter === "all"
+        ? true
+        : effectiveDeptFilter === "global"
+          ? Boolean(doc.isGlobal)
+          : doc.departmentId === effectiveDeptFilter ||
+            (!doc.departmentId && !doc.isGlobal && doc.category === effectiveDeptFilter);
 
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesDept;
   });
 
   const formatFileSize = (bytes: number) => {
@@ -128,6 +143,30 @@ export function KnowledgeSourcesTable({
     }
   };
 
+  const getScopeBadge = (doc: KnowledgeDocument) => {
+    if (doc.isGlobal) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          <Globe className="size-3" />
+          Global
+        </span>
+      );
+    }
+
+    const deptName =
+      doc.departmentName ||
+      departments.find((d) => d.id === doc.departmentId)?.name ||
+      doc.category ||
+      "Departamento";
+
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+        <Building2 className="size-3" />
+        {deptName}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Action Bar */}
@@ -145,14 +184,21 @@ export function KnowledgeSourcesTable({
           </div>
 
           <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            value={effectiveDeptFilter}
+            onChange={(e) => {
+              if (onDepartmentFilterChange) {
+                onDepartmentFilterChange(e.target.value);
+              } else {
+                setLocalDepartmentFilter(e.target.value);
+              }
+            }}
             className="px-3 py-2 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            <option value="all">Todas las áreas</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            <option value="all">Todas las áreas (Global y Departamentos)</option>
+            <option value="global">Solo Documentos Globales</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
               </option>
             ))}
           </select>
@@ -185,7 +231,7 @@ export function KnowledgeSourcesTable({
             <thead className="bg-muted/40 border-b border-border text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               <tr>
                 <th className="px-4 py-3.5">Documento</th>
-                <th className="px-4 py-3.5">Departamento / Área</th>
+                <th className="px-4 py-3.5">Alcance / Área</th>
                 <th className="px-4 py-3.5">Estado</th>
                 <th className="px-4 py-3.5 text-center">Información Extraída</th>
                 <th className="px-4 py-3.5">Subido Por</th>
@@ -227,7 +273,7 @@ export function KnowledgeSourcesTable({
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5">{getCategoryBadge(doc.category)}</td>
+                    <td className="px-4 py-3.5">{getScopeBadge(doc)}</td>
                     <td className="px-4 py-3.5">{getStatusBadge(doc.status)}</td>
                     <td className="px-4 py-3.5 text-center">
                       <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">

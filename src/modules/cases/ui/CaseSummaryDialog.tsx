@@ -110,9 +110,11 @@ function parseContractsData(value: unknown): ContractCardItem[] | null {
 }
 
 function renderValueFriendly(key: string, value: unknown) {
-  if (value === true) return <span className="font-semibold text-emerald-600 dark:text-emerald-400">Sí</span>;
+  if (value === true)
+    return <span className="font-semibold text-emerald-600 dark:text-emerald-400">Sí</span>;
   if (value === false) return <span className="font-semibold text-muted-foreground">No</span>;
-  if (value === null || value === undefined) return <span className="text-muted-foreground">—</span>;
+  if (value === null || value === undefined)
+    return <span className="text-muted-foreground">—</span>;
 
   // Si es la salida cruda de consola
   if (key === "rawOutput" || key.toLowerCase().includes("output")) {
@@ -147,7 +149,8 @@ function renderValueFriendly(key: string, value: unknown) {
               </span>
               <span
                 className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase ${
-                  (c.status || "").toUpperCase() === "ACTIVO" || (c.status || "").toUpperCase() === "HABILITADO"
+                  (c.status || "").toUpperCase() === "ACTIVO" ||
+                  (c.status || "").toUpperCase() === "HABILITADO"
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                     : "bg-muted text-muted-foreground"
                 }`}
@@ -199,7 +202,9 @@ function renderValueFriendly(key: string, value: unknown) {
       const parsed = JSON.parse(value);
       if (typeof parsed === "object" && parsed !== null) {
         if ("message" in parsed || "error" in parsed) {
-          const msg = (parsed as { message?: string; error?: string; code?: string }).message || (parsed as { error?: string }).error;
+          const msg =
+            (parsed as { message?: string; error?: string; code?: string }).message ||
+            (parsed as { error?: string }).error;
           const code = (parsed as { code?: string }).code;
           return (
             <span className="font-semibold text-foreground">
@@ -259,7 +264,8 @@ export function CaseSummaryDialog({
         <DialogHeader>
           <DialogTitle className="text-lg font-bold">Detalles y resumen del caso</DialogTitle>
           <DialogDescription className="text-xs">
-            Generado por el sistema a partir del historial real del caso — sin datos inventados por IA.
+            Generado por el sistema a partir del historial real del caso — sin datos inventados por
+            IA.
           </DialogDescription>
         </DialogHeader>
 
@@ -300,7 +306,9 @@ export function CaseSummaryDialog({
               | string
               | undefined;
             const diagnosticResult =
-              typeof diagnostic === "string" ? diagnostic : (diagnostic?.result ?? diagnostic?.status);
+              typeof diagnostic === "string"
+                ? diagnostic
+                : (diagnostic?.result ?? diagnostic?.status);
             const findings = typeof diagnostic === "object" ? diagnostic?.findings : undefined;
             const instruction =
               typeof diagnostic === "object"
@@ -314,31 +322,41 @@ export function CaseSummaryDialog({
 
             // Telemetría con soporte unificado (normalizado o crudo)
             const brand = technical?.brand || (rawTech?.brand as string | undefined);
-            const onuModel = technical?.onuModel || (rawTech?.onu as Record<string, unknown> | undefined)?.model as string | undefined;
+            const onuModel =
+              technical?.onuModel ||
+              ((rawTech?.onu as Record<string, unknown> | undefined)?.model as string | undefined);
             const onuSerial =
               technical?.onuSerial ||
-              ((rawTech?.onu as Record<string, unknown> | undefined)?.authinfo as string | undefined) ||
+              ((rawTech?.onu as Record<string, unknown> | undefined)?.authinfo as
+                string | undefined) ||
               ((rawTech?.onu as Record<string, unknown> | undefined)?.serial as string | undefined);
             const onuIndex =
               technical?.onuIndex ||
-              ((rawTech?.onu as Record<string, unknown> | undefined)?.onuindex as string | undefined) ||
+              ((rawTech?.onu as Record<string, unknown> | undefined)?.onuindex as
+                string | undefined) ||
               technical?.stateOnuIndex ||
-              ((rawTech?.state as Record<string, unknown> | undefined)?.onuIndex as string | undefined);
+              ((rawTech?.state as Record<string, unknown> | undefined)?.onuIndex as
+                string | undefined);
             const phaseState =
               technical?.phaseState ||
-              ((rawTech?.state as Record<string, unknown> | undefined)?.phaseState as string | undefined);
+              ((rawTech?.state as Record<string, unknown> | undefined)?.phaseState as
+                string | undefined);
             const runState =
               technical?.runState ||
-              ((rawTech?.state as Record<string, unknown> | undefined)?.runState as string | undefined);
+              ((rawTech?.state as Record<string, unknown> | undefined)?.runState as
+                string | undefined);
             const adminState =
               technical?.adminState ||
-              ((rawTech?.state as Record<string, unknown> | undefined)?.adminState as string | undefined);
+              ((rawTech?.state as Record<string, unknown> | undefined)?.adminState as
+                string | undefined);
             const omccState =
               technical?.omccState ||
-              ((rawTech?.state as Record<string, unknown> | undefined)?.omccState as string | undefined);
+              ((rawTech?.state as Record<string, unknown> | undefined)?.omccState as
+                string | undefined);
             const channel =
               technical?.channel ||
-              ((rawTech?.state as Record<string, unknown> | undefined)?.channel as string | undefined);
+              ((rawTech?.state as Record<string, unknown> | undefined)?.channel as
+                string | undefined);
 
             const powerVal =
               technical?.opticalPowerDbm !== undefined
@@ -367,18 +385,20 @@ export function CaseSummaryDialog({
                 (t) =>
                   (t.action === "DIAGNOSTIC" || t.action === "CONTINUE_DIAGNOSTIC") &&
                   t.status === "FAILED",
-              ) ||
-              timeline?.some(
-                (t) =>
-                  t.action === "DIAGNOSTIC" &&
-                  t.status === "FAILED",
-              );
+              ) || timeline?.some((t) => t.action === "DIAGNOSTIC" && t.status === "FAILED");
 
-            const historySteps = (
-              ((rawTech?._history as any[]) ||
-              ((technical as any)?._history as any[]) ||
-              (summary.results?._history as any[])) ?? []
-            ) as Array<{ step?: string; command?: string; raw?: string; success?: boolean }>;
+            const rawHistory =
+              rawTech?._history ||
+              (technical as { _history?: unknown[] })?._history ||
+              (summary.results as { _history?: unknown[] })?._history;
+            const historySteps = Array.isArray(rawHistory)
+              ? (rawHistory as Array<{
+                  step?: string;
+                  command?: string;
+                  raw?: string;
+                  success?: boolean;
+                }>)
+              : [];
 
             const otherResults = Object.entries(summary.results ?? {}).filter(
               ([key]) =>
@@ -524,7 +544,11 @@ export function CaseSummaryDialog({
                 )}
 
                 {/* Diagnóstico y Estado */}
-                {(diagnosticResult || instruction || (findings && findings.length > 0) || hasDebt !== undefined || debtAmount != null) && (
+                {(diagnosticResult ||
+                  instruction ||
+                  (findings && findings.length > 0) ||
+                  hasDebt !== undefined ||
+                  debtAmount != null) && (
                   <div>
                     <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
                       <Sparkles className="size-3.5" /> Diagnóstico y Estado
@@ -541,7 +565,9 @@ export function CaseSummaryDialog({
 
                       {findings && findings.length > 0 && (
                         <div className="px-3 py-2 space-y-1.5">
-                          <span className="text-muted-foreground font-medium">Hallazgos técnicos:</span>
+                          <span className="text-muted-foreground font-medium">
+                            Hallazgos técnicos:
+                          </span>
                           <div className="flex flex-wrap gap-1.5 pt-0.5">
                             {findings.map((f, idx) => (
                               <span
@@ -595,12 +621,19 @@ export function CaseSummaryDialog({
                     <div className="rounded-lg border border-border divide-y divide-border text-xs">
                       <div className="flex justify-between gap-3 px-3 py-1.5">
                         <span className="text-muted-foreground">Marca</span>
-                        <span className="text-right font-medium uppercase">{brand || "No obtenida (null)"}</span>
+                        <span className="text-right font-medium uppercase">
+                          {brand || "No obtenida (null)"}
+                        </span>
                       </div>
                       <div className="flex justify-between gap-3 px-3 py-1.5">
                         <span className="text-muted-foreground">Estado de fase / ONU</span>
                         <span className="text-right font-semibold">
-                          {phaseState || (runState ? onuRunStateLabel(runState) : isDiagnosticFailed ? "No obtenido (falló diagnóstico)" : "No obtenida (null)")}
+                          {phaseState ||
+                            (runState
+                              ? onuRunStateLabel(runState)
+                              : isDiagnosticFailed
+                                ? "No obtenido (falló diagnóstico)"
+                                : "No obtenida (null)")}
                         </span>
                       </div>
                       {adminState && (
@@ -623,7 +656,10 @@ export function CaseSummaryDialog({
                       )}
                       <div className="flex justify-between gap-3 px-3 py-1.5">
                         <span className="text-muted-foreground">Canal GPON</span>
-                        <span className="text-right font-medium">{channel || (contract?.pon ? `PON ${contract.pon}` : "No obtenida (null)")}</span>
+                        <span className="text-right font-medium">
+                          {channel ||
+                            (contract?.pon ? `PON ${contract.pon}` : "No obtenida (null)")}
+                        </span>
                       </div>
 
                       {/* Potencia óptica: SIEMPRE VISIBLE */}
@@ -651,7 +687,9 @@ export function CaseSummaryDialog({
 
                       <div className="flex justify-between gap-3 px-3 py-1.5">
                         <span className="text-muted-foreground">Modelo de ONU</span>
-                        <span className="text-right font-medium">{onuModel && onuModel !== "unknown" ? onuModel : "Desconocido (null)"}</span>
+                        <span className="text-right font-medium">
+                          {onuModel && onuModel !== "unknown" ? onuModel : "Desconocido (null)"}
+                        </span>
                       </div>
 
                       <div className="flex justify-between gap-3 px-3 py-1.5">
@@ -684,11 +722,16 @@ export function CaseSummaryDialog({
                             <Terminal className="size-3.5 text-primary" />
                             Trazabilidad de comandos OLT ({historySteps.length} pasos)
                           </span>
-                          <span className="text-[10px] text-muted-foreground/70">(clic para ver detalle)</span>
+                          <span className="text-[10px] text-muted-foreground/70">
+                            (clic para ver detalle)
+                          </span>
                         </summary>
                         <div className="mt-2 space-y-2 p-2 bg-muted/20 border border-border rounded-lg text-xs">
                           {historySteps.map((step, idx) => (
-                            <div key={idx} className="p-2 bg-background border border-border rounded-md space-y-1">
+                            <div
+                              key={idx}
+                              className="p-2 bg-background border border-border rounded-md space-y-1"
+                            >
                               <div className="flex justify-between items-center text-[11px]">
                                 <span className="font-bold text-foreground font-mono">
                                   #{idx + 1} {step.step || "comando"}
@@ -740,13 +783,21 @@ export function CaseSummaryDialog({
                           <div
                             key={key}
                             className={`p-2.5 ${
-                              isContracts || isRaw ? "flex flex-col gap-1.5" : "flex justify-between gap-3 items-center"
+                              isContracts || isRaw
+                                ? "flex flex-col gap-1.5"
+                                : "flex justify-between gap-3 items-center"
                             }`}
                           >
                             <span className="text-muted-foreground font-semibold">
                               {humanizeResultKey(key)}:
                             </span>
-                            <div className={isContracts || isRaw ? "w-full" : "text-right break-words font-medium"}>
+                            <div
+                              className={
+                                isContracts || isRaw
+                                  ? "w-full"
+                                  : "text-right break-words font-medium"
+                              }
+                            >
                               {renderValueFriendly(key, value)}
                             </div>
                           </div>
@@ -767,7 +818,10 @@ export function CaseSummaryDialog({
                     </h4>
                     <ol className="space-y-1.5 text-[11px] font-mono max-h-40 overflow-y-auto">
                       {timeline.map((entry, i) => (
-                        <li key={i} className="flex justify-between gap-2 p-1.5 rounded bg-muted/20">
+                        <li
+                          key={i}
+                          className="flex justify-between gap-2 p-1.5 rounded bg-muted/20"
+                        >
                           <span className="truncate">{caseStepLabel(entry.action)}</span>
                           <span className="text-muted-foreground shrink-0">
                             {caseStepStatusLabel(entry.status)}

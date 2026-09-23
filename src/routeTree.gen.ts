@@ -24,8 +24,10 @@ import { Route as EscalacionesRouteImport } from './routes/escalaciones'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlantillasRouteImport } from './routes/plantillas'
+import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as RespuestasRapidasRouteImport } from './routes/respuestas-rapidas'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as AdminPromptsRouteImport } from './routes/admin.prompts'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -102,6 +104,11 @@ const PlantillasRoute = PlantillasRouteImport.update({
   path: '/plantillas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PromptsRoute = PromptsRouteImport.update({
+  id: '/prompts',
+  path: '/prompts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RespuestasRapidasRoute = RespuestasRapidasRouteImport.update({
   id: '/respuestas-rapidas',
   path: '/respuestas-rapidas',
@@ -110,6 +117,11 @@ const RespuestasRapidasRoute = RespuestasRapidasRouteImport.update({
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPromptsRoute = AdminPromptsRouteImport.update({
+  id: '/admin/prompts',
+  path: '/admin/prompts',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -129,8 +141,10 @@ export interface FileRoutesByFullPath {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
+  '/prompts': typeof PromptsRoute
   '/respuestas-rapidas': typeof RespuestasRapidasRoute
   '/usuarios': typeof UsuariosRoute
+  '/admin/prompts': typeof AdminPromptsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -148,8 +162,10 @@ export interface FileRoutesByTo {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
+  '/prompts': typeof PromptsRoute
   '/respuestas-rapidas': typeof RespuestasRapidasRoute
   '/usuarios': typeof UsuariosRoute
+  '/admin/prompts': typeof AdminPromptsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,8 +184,10 @@ export interface FileRoutesById {
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
+  '/prompts': typeof PromptsRoute
   '/respuestas-rapidas': typeof RespuestasRapidasRoute
   '/usuarios': typeof UsuariosRoute
+  '/admin/prompts': typeof AdminPromptsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,8 +207,10 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/plantillas'
+    | '/prompts'
     | '/respuestas-rapidas'
     | '/usuarios'
+    | '/admin/prompts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -208,8 +228,10 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/plantillas'
+    | '/prompts'
     | '/respuestas-rapidas'
     | '/usuarios'
+    | '/admin/prompts'
   id:
     | '__root__'
     | '/'
@@ -227,8 +249,10 @@ export interface FileRouteTypes {
     | '/flujos'
     | '/login'
     | '/plantillas'
+    | '/prompts'
     | '/respuestas-rapidas'
     | '/usuarios'
+    | '/admin/prompts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,8 +271,10 @@ export interface RootRouteChildren {
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
   PlantillasRoute: typeof PlantillasRoute
+  PromptsRoute: typeof PromptsRoute
   RespuestasRapidasRoute: typeof RespuestasRapidasRoute
   UsuariosRoute: typeof UsuariosRoute
+  AdminPromptsRoute: typeof AdminPromptsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -358,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlantillasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prompts': {
+      id: '/prompts'
+      path: '/prompts'
+      fullPath: '/prompts'
+      preLoaderRoute: typeof PromptsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/respuestas-rapidas': {
       id: '/respuestas-rapidas'
       path: '/respuestas-rapidas'
@@ -370,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/prompts': {
+      id: '/admin/prompts'
+      path: '/admin/prompts'
+      fullPath: '/admin/prompts'
+      preLoaderRoute: typeof AdminPromptsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -391,8 +431,10 @@ const rootRouteChildren: RootRouteChildren = {
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
   PlantillasRoute: PlantillasRoute,
+  PromptsRoute: PromptsRoute,
   RespuestasRapidasRoute: RespuestasRapidasRoute,
   UsuariosRoute: UsuariosRoute,
+  AdminPromptsRoute: AdminPromptsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

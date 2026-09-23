@@ -887,27 +887,30 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 </div>
               </div>
 
-              {selected && (() => {
-                const selectedSla = calculateConversationSla(selected, slaConfig);
-                if (!selectedSla.isBreached) return null;
-                return (
-                  <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-center justify-between gap-2 text-xs font-semibold shrink-0 animate-fade-in">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
-                      <span>
-                        <strong className="font-extrabold uppercase">Alerta de No Respuesta:</strong>{" "}
-                        El cliente ha estado esperando{" "}
-                        <strong className="font-extrabold font-mono text-sm">
-                          {selectedSla.formattedFull}
-                        </strong>{" "}
-                        sin respuesta (Límite configurado por el admin:{" "}
-                        {formatSlaWaitTime(slaConfig.responseThresholdMinutes, "short")}). Responda pronto para no afectar la
-                        métrica de eficiencia.
-                      </span>
+              {selected &&
+                (() => {
+                  const selectedSla = calculateConversationSla(selected, slaConfig);
+                  if (!selectedSla.isBreached) return null;
+                  return (
+                    <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-center justify-between gap-2 text-xs font-semibold shrink-0 animate-fade-in">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
+                        <span>
+                          <strong className="font-extrabold uppercase">
+                            Alerta de No Respuesta:
+                          </strong>{" "}
+                          El cliente ha estado esperando{" "}
+                          <strong className="font-extrabold font-mono text-sm">
+                            {selectedSla.formattedFull}
+                          </strong>{" "}
+                          sin respuesta (Límite configurado por el admin:{" "}
+                          {formatSlaWaitTime(slaConfig.responseThresholdMinutes, "short")}).
+                          Responda pronto para no afectar la métrica de eficiencia.
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
               <div
                 ref={messagesScrollRef}

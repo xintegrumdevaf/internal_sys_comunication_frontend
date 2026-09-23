@@ -123,7 +123,10 @@ describe("formatOpticalPower", () => {
 
   it("devuelve 'No encontrada (null)' cuando el valor es null o undefined", () => {
     expect(formatOpticalPower(null)).toEqual({ text: "No encontrada (null)", isMeasured: false });
-    expect(formatOpticalPower(undefined)).toEqual({ text: "No encontrada (null)", isMeasured: false });
+    expect(formatOpticalPower(undefined)).toEqual({
+      text: "No encontrada (null)",
+      isMeasured: false,
+    });
     expect(formatOpticalPower(NaN)).toEqual({ text: "No encontrada (null)", isMeasured: false });
   });
 });

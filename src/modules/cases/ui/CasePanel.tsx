@@ -62,13 +62,11 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
   // 1. Contrato y Red
   const contract = (data.contract ?? rawContext?.contract) as
-    | { sector?: string; oltName?: string; pon?: string | number; serial?: string }
-    | undefined;
+    { sector?: string; oltName?: string; pon?: string | number; serial?: string } | undefined;
 
   // 2. Deuda y Estado Financiero
   const balance = (data.balance ?? rawContext?.balance) as
-    | { hasDebt?: boolean; amount?: number }
-    | undefined;
+    { hasDebt?: boolean; amount?: number } | undefined;
   const hasDebt = balance?.hasDebt ?? (data.hasDebt as boolean | undefined);
   const debtAmount =
     balance?.amount ?? (data.debt as number | undefined) ?? (data.amount as number | undefined);
@@ -94,8 +92,7 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
   // 4. Pago y Comprobantes
   const payment = (data.payment ?? rawContext?.payment) as
-    | { amount?: number; reference?: string; status?: string }
-    | undefined;
+    { amount?: number; reference?: string; status?: string } | undefined;
 
   // 5. Planes y Ofertas (Ventas / Comercial)
   const requestedSpeed = data.requestedSpeed as string | undefined;
@@ -106,8 +103,7 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
   // 6. Telemetría de la ONU (Normalizada o Cruda)
   const rawTech = (data.technical ??
     (typeof diagnostic === "object" ? diagnostic?.technical : undefined)) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const technical = rawTech as SupportInternetDiagnosticTechnical | undefined;
 
   const brand = technical?.brand || (rawTech?.brand as string | undefined);
@@ -138,8 +134,7 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
     ((rawTech?.state as Record<string, unknown> | undefined)?.channel as string | undefined);
 
   const isSupportCase =
-    caseDto.workflowType === "SUPPORT_INTERNET" ||
-    Boolean(contract?.serial || contract?.oltName);
+    caseDto.workflowType === "SUPPORT_INTERNET" || Boolean(contract?.serial || contract?.oltName);
 
   const powerVal =
     technical?.opticalPowerDbm !== undefined
@@ -194,7 +189,9 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
       {diagnosticResult && <DataRow label="Diagnóstico" value={diagnosticResult} />}
       {findings && findings.length > 0 && (
         <div className="pt-1">
-          <span className="text-muted-foreground block text-[10px] uppercase font-bold">Hallazgos:</span>
+          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+            Hallazgos:
+          </span>
           <div className="flex flex-wrap gap-1 mt-0.5">
             {findings.map((f, i) => (
               <span
@@ -240,7 +237,8 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
           <div className="flex justify-between gap-2 items-center">
             <span className="text-muted-foreground">Estado del equipo</span>
             <span className="text-right font-semibold">
-              {phaseState || (runState ? onuRunStateLabel(runState) : "No obtenido (falló diagnóstico)")}
+              {phaseState ||
+                (runState ? onuRunStateLabel(runState) : "No obtenido (falló diagnóstico)")}
             </span>
           </div>
           {adminState && <DataRow label="Estado admin" value={adminState} />}
@@ -347,8 +345,7 @@ export function CasePanel({
   const contextData = (caseDto?.context?.data ?? {}) as Record<string, unknown>;
   const rawContext = caseDto?.context as unknown as Record<string, unknown> | undefined;
   const pendingContracts = (contextData.pendingContracts ?? rawContext?.pendingContracts) as
-    | PendingContractItem[]
-    | undefined;
+    PendingContractItem[] | undefined;
 
   const handleManualAssign = async (option: number, contract: PendingContractItem) => {
     if (!caseDto) return;
@@ -452,38 +449,40 @@ export function CasePanel({
           </span>
         </div>
 
-        {currentState === "WAITING_USER_DISAMBIGUATE" && pendingContracts && pendingContracts.length > 0 && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="font-semibold text-amber-900 text-xs mb-2">
-              Selección de servicio pendiente ({pendingContracts.length} contratos)
-            </p>
-            {pendingContracts.map((c, i) => (
-              <div
-                key={c.id || c.contractCode || i}
-                className="p-2 bg-white rounded border mb-1.5 text-xs flex justify-between items-center"
-              >
-                <div>
-                  <span className="font-bold">
-                    {i + 1}. {c.label || c.address}
-                  </span>
-                  <p className="text-gray-500">
-                    Código: {c.contractCode || c.id} | {c.sector}
-                  </p>
+        {currentState === "WAITING_USER_DISAMBIGUATE" &&
+          pendingContracts &&
+          pendingContracts.length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="font-semibold text-amber-900 text-xs mb-2">
+                Selección de servicio pendiente ({pendingContracts.length} contratos)
+              </p>
+              {pendingContracts.map((c, i) => (
+                <div
+                  key={c.id || c.contractCode || i}
+                  className="p-2 bg-white rounded border mb-1.5 text-xs flex justify-between items-center"
+                >
+                  <div>
+                    <span className="font-bold">
+                      {i + 1}. {c.label || c.address}
+                    </span>
+                    <p className="text-gray-500">
+                      Código: {c.contractCode || c.id} | {c.sector}
+                    </p>
+                  </div>
+                  {canManage && (
+                    <button
+                      type="button"
+                      disabled={busy || assigningOption === i + 1}
+                      onClick={() => handleManualAssign(i + 1, c)}
+                      className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {assigningOption === i + 1 ? "Asignando..." : "Asignar"}
+                    </button>
+                  )}
                 </div>
-                {canManage && (
-                  <button
-                    type="button"
-                    disabled={busy || assigningOption === i + 1}
-                    onClick={() => handleManualAssign(i + 1, c)}
-                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {assigningOption === i + 1 ? "Asignando..." : "Asignar"}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
         {currentState === "WAITING_USER_DIAGNOSTIC" && (
           <div className="p-3 bg-blue-50/80 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60 rounded-lg space-y-2">
@@ -499,8 +498,7 @@ export function CasePanel({
 
             {(() => {
               const diag = (contextData.diagnostic ?? rawContext?.diagnostic) as
-                | { instruction?: string; lastQuestion?: string }
-                | undefined;
+                { instruction?: string; lastQuestion?: string } | undefined;
               const q =
                 diag?.instruction ||
                 diag?.lastQuestion ||
@@ -705,4 +703,3 @@ export function CasePanel({
 }
 
 export { CasePanel as CaseDetailsSidebar };
-
