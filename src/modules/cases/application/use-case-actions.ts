@@ -124,12 +124,13 @@ export function useCaseActions(
   };
 
   const advance = (caseId: string, entities: { selectedOption: number; contractCode?: string }) => {
+  const advance = (caseId: string, entities: Record<string, unknown>) => {
     if (!session) return Promise.resolve(false);
-    return run(
-      "avanzar el caso",
-      () => caseGateway.advanceCase(caseId, { entities }),
-      "Servicio asignado correctamente",
-    );
+    const successMsg =
+      "selectedOption" in entities
+        ? "Servicio asignado correctamente"
+        : "Diagnóstico actualizado correctamente";
+    return run("avanzar el caso", () => caseGateway.advanceCase(caseId, { entities }), successMsg);
   };
 
   return {

@@ -46,6 +46,29 @@ export type SupportInternetDiagnosticTechnical = {
   omccState?: string;
   channel?: string;
   onuNumber?: string;
+
+  // Propiedades directas de la respuesta de API mikrotik / OLT
+  power?: number | null;
+  mac?: string | { mac?: string | null } | null;
+  onu?: {
+    onuindex?: string;
+    id?: number | string;
+    model?: string;
+    profile?: string;
+    mode?: string;
+    authinfo?: string;
+    serial?: string;
+  } | null;
+  state?: {
+    onuIndex?: string;
+    adminState?: string;
+    omccState?: string;
+    phaseState?: string;
+    channel?: string;
+    onuNumber?: string;
+    runState?: string;
+  } | null;
+  _history?: Array<unknown>;
 };
 
 export type PendingContractItem = {
@@ -71,6 +94,23 @@ export type SupportInternetContext = {
     status: string;
     lastQuestion?: string;
     result?: string;
+    findings?: Array<{
+      type?: string;
+      severity?: string;
+      stopExecution?: boolean;
+      description?: string;
+    }>;
+    actions?: Array<{
+      priority?: number;
+      type?: string;
+      stopExecution?: boolean;
+    }>;
+    instruction?: string;
+    workflow?: {
+      status?: string;
+      currentStep?: string;
+      stopExecution?: boolean;
+    };
     technical?: SupportInternetDiagnosticTechnical;
   };
   pendingContracts?: PendingContractItem[];
@@ -107,6 +147,81 @@ export function onuSignalQuality(
   if (dbm >= -23) return { label: "Buena", cls: "bg-emerald-100 text-emerald-700" };
   if (dbm >= -27) return { label: "Regular — a vigilar", cls: "bg-amber-100 text-amber-700" };
   return { label: "Crítica — señal muy débil", cls: "bg-red-100 text-red-700" };
+}
+
+/**
+ * Extrae y formatea el valor de potencia óptica. Si viene en null o undefined,
+ * indica claramente "No encontrada (null)" ya que la lectura falló o no se realizó (ej. ONU offline).
+ */
+export function formatOpticalPower(power: number | null | undefined): {
+  text: string;
+  isMeasured: boolean;
+} {
+  if (power !== null && power !== undefined && !Number.isNaN(power)) {
+    return { text: `${Number(power).toFixed(1)} dBm`, isMeasured: true };
+  }
+  return { text: "No encontrada (null)", isMeasured: false };
+}
+
+/**
+ * Extrae y formatea la dirección MAC. Si viene en null o undefined,
+ * indica claramente "No encontrada (null)" para reflejar que la lectura no se obtuvo.
+ */
+export function formatMacAddress(mac: unknown): { text: string; isFound: boolean } {
+  const resolved =
+    typeof mac === "object" && mac !== null && "mac" in mac ? (mac as { mac?: unknown }).mac : mac;
+  if (
+    typeof resolved === "string" &&
+    resolved.trim() !== "" &&
+    resolved.toLowerCase() !== "null" &&
+    resolved.toLowerCase() !== "unknown"
+  ) {
+    return { text: resolved.trim(), isFound: true };
+  }
+  return { text: "No encontrada (null)", isFound: false };
+}
+
+/**
+ * Limpia y humaniza mensajes de error o razones que contengan payloads JSON crudos
+ * como 'Servicio de diagnostico respondio 422: {"code":"OLT_NOT_FOUND","message":"cData no existe en bellavista"}'.
+ */
+export function humanizeCaseReason(reason?: string | null): string {
+  if (!reason) return "—";
+  const jsonRegex = /\{[\s\S]*\}/;
+  const match = reason.match(jsonRegex);
+  if (!match) return reason;
+
+  try {
+    const parsed = JSON.parse(match[0]) as { message?: string; code?: string; error?: string };
+    const prefix = reason.slice(0, match.index).trim().replace(/:\s*$/, "");
+    const mainMsg = parsed.message || parsed.error;
+    const code = parsed.code;
+
+    if (mainMsg && code) {
+      return prefix ? `${prefix}: ${mainMsg} (${code})` : `${mainMsg} (${code})`;
+    }
+    if (mainMsg) {
+      return prefix ? `${prefix}: ${mainMsg}` : mainMsg;
+    }
+  } catch {
+    // Si no es JSON válido, devolver el texto original
+  }
+  return reason;
+}
+
+/**
+ * Traduce el tipo de hallazgo técnico a una etiqueta comprensible para agentes.
+ */
+export function findingTypeLabel(type?: string): string {
+  if (!type) return "Desconocido";
+  const map: Record<string, string> = {
+    onu_offline: "ONU Fuera de Línea (Desconectada)",
+    low_optical_power: "Potencia Óptica Muy Baja (Señal Débil)",
+    high_optical_power: "Potencia Óptica Muy Alta",
+    no_signal: "Sin Señal Óptica (LOS)",
+    auth_failed: "Fallo de Autenticación de ONU",
+  };
+  return map[type.toLowerCase()] ?? type;
 }
 
 export type BillingBalanceContext = {

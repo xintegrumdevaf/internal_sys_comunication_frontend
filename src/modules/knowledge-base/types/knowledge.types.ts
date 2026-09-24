@@ -13,6 +13,9 @@ export interface KnowledgeDocument {
   updatedAt: string;
   sourceUrl?: string;
   errorMessage?: string;
+  departmentId?: string | null;
+  isGlobal?: boolean;
+  departmentName?: string;
 }
 
 export interface FaqItem {
@@ -25,6 +28,9 @@ export interface FaqItem {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  departmentId?: string | null;
+  isGlobal?: boolean;
+  departmentName?: string;
 }
 
 export interface RagRetrievedChunk {

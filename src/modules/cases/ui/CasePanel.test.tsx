@@ -183,4 +183,100 @@ describe("CasePanel - Desambiguación de Contratos", () => {
     fireEvent.click(detailsButton);
     expect(onOpenSummaryMock).toHaveBeenCalledTimes(1);
   });
+
+  it("muestra 'No encontrada (null)' para Potencia óptica y MAC cuando vienen en null", () => {
+    const diagnosticCase: CaseDto = {
+      ...mockCase,
+      context: {
+        workflowType: "SUPPORT_INTERNET",
+        data: {
+          contract: {
+            id: "cont_1",
+            sector: "bellavista",
+            oltName: "cData",
+            pon: "2",
+            serial: "48575443EAE381BB",
+            router: "10.10.2.37",
+          },
+          technical: {
+            brand: "v-sol",
+            runState: "Offline",
+            opticalPowerDbm: null,
+            macAddress: null,
+          },
+        },
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={diagnosticCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Potencia óptica/i)).toBeInTheDocument();
+    expect(screen.getByText(/MAC/i)).toBeInTheDocument();
+    // Ambos deben mostrar "No encontrada (null)"
+    const notFoundBadges = screen.getAllByText("No encontrada (null)");
+    expect(notFoundBadges.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("permite continuar el diagnóstico al ingresar respuesta y hacer clic en 'Continuar Diagnóstico'", () => {
+    const onAdvanceMock = vi.fn().mockResolvedValue(true);
+    const waitingDiagCase: CaseDto = {
+      ...mockCase,
+      workflowInstance: {
+        currentState: "WAITING_USER_DIAGNOSTIC",
+      },
+      context: {
+        workflowType: "SUPPORT_INTERNET",
+        data: {
+          diagnostic: {
+            status: "CRITICAL",
+            instruction: "Verifique si las luces del router están encendidas",
+          },
+        },
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={waitingDiagCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onAdvance={onAdvanceMock}
+      />,
+    );
+
+    expect(screen.getByText(/Continuación de Diagnóstico Técnico/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Verifique si las luces del router están encendidas/i).length,
+    ).toBeGreaterThanOrEqual(1);
+
+    const input = screen.getByPlaceholderText(/Respuesta cliente/i);
+    fireEvent.change(input, { target: { value: "Luz roja LOS encendida" } });
+
+    const continueBtn = screen.getByRole("button", { name: /Continuar Diagnóstico/i });
+    fireEvent.click(continueBtn);
+
+    expect(onAdvanceMock).toHaveBeenCalledWith({
+      answer: "Luz roja LOS encendida",
+    });
+  });
 });

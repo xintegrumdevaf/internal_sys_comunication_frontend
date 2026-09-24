@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Send,
   Sparkles,
@@ -13,9 +13,13 @@ import {
   AlertTriangle,
   Loader2,
   FileText,
+  Building2,
+  Globe,
 } from "lucide-react";
 import type { RagTestQueryResponse, RagRetrievedChunk } from "../types/knowledge.types";
 import { knowledgeService } from "../services/knowledge.service";
+import { departmentService } from "@/services/department.service";
+import type { Department } from "@/types/department";
 
 interface MessageItem {
   id: string;
@@ -25,10 +29,16 @@ interface MessageItem {
   ragDetails?: RagTestQueryResponse;
 }
 
-export function RagPlayground() {
+interface RagPlaygroundProps {
+  departments?: Department[];
+}
+
+export function RagPlayground({ departments: propDepartments }: RagPlaygroundProps = {}) {
   const [inputQuestion, setInputQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedChunk, setSelectedChunk] = useState<RagRetrievedChunk | null>(null);
+  const [departments, setDepartments] = useState<Department[]>(propDepartments || []);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("all");
   const [messages, setMessages] = useState<MessageItem[]>([
     {
       id: "m-1",
@@ -40,7 +50,16 @@ export function RagPlayground() {
   const [activeRagDetails, setActiveRagDetails] = useState<RagTestQueryResponse | null>(null);
   const [embeddingModel, setEmbeddingModel] = useState("Cargando...");
 
-  useState(() => {
+  useEffect(() => {
+    if (propDepartments && propDepartments.length > 0) {
+      setDepartments(propDepartments);
+    } else {
+      departmentService
+        .getDepartments()
+        .then((depts) => setDepartments(depts || []))
+        .catch(() => {});
+    }
+
     knowledgeService
       .getMetrics()
       .then((metrics) => {
@@ -54,7 +73,7 @@ export function RagPlayground() {
         }
       })
       .catch(() => setEmbeddingModel("GEMINI embedding-2"));
-  });
+  }, [propDepartments]);
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -73,7 +92,11 @@ export function RagPlayground() {
     setLoading(true);
 
     try {
-      const response = await knowledgeService.queryRag({ question: q });
+      const deptIdParam = selectedDepartmentId !== "all" ? selectedDepartmentId : undefined;
+      const response = await knowledgeService.queryRag({
+        question: q,
+        departmentId: deptIdParam,
+      });
 
       const botMsg: MessageItem = {
         id: `msg-bot-${Date.now()}`,
@@ -128,6 +151,29 @@ export function RagPlayground() {
           </div>
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20">
             {embeddingModel}
+          </span>
+        </div>
+
+        {/* Barra de Filtro de Departamento para Simulación */}
+        <div className="px-4 py-2 border-b border-border bg-card/70 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Building2 className="size-3.5 text-primary" />
+            <span className="text-xs font-semibold text-foreground">Área a Simular:</span>
+            <select
+              value={selectedDepartmentId}
+              onChange={(e) => setSelectedDepartmentId(e.target.value)}
+              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-border bg-background text-foreground focus:ring-1 focus:ring-primary/50"
+            >
+              <option value="all">Todas las áreas (Global + Todos)</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+            Filtra vectores del área elegida y documentos globales
           </span>
         </div>
 

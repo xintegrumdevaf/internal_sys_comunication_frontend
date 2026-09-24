@@ -18,6 +18,8 @@ import { FaqDirectEditor } from "../components/FaqDirectEditor";
 import { knowledgeService } from "../services/knowledge.service";
 import type { KnowledgeDocument, FaqItem, RagMetrics } from "../types/knowledge.types";
 import { toast } from "sonner";
+import { departmentService } from "@/services/department.service";
+import type { Department } from "@/types/department";
 
 export function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState<"sources" | "faqs" | "playground" | "metrics">(
@@ -25,21 +27,29 @@ export function KnowledgeBasePage() {
   );
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [metrics, setMetrics] = useState<RagMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (deptFilter: string = departmentFilter) => {
     setLoading(true);
     try {
-      const [docsData, faqsData, metricsData] = await Promise.all([
-        knowledgeService.getDocuments(),
-        knowledgeService.getFaqs(),
+      const [docsData, faqsData, metricsData, deptsData] = await Promise.all([
+        knowledgeService.getDocuments(deptFilter !== "global" ? deptFilter : undefined),
+        knowledgeService.getFaqs(deptFilter !== "global" ? deptFilter : undefined),
         knowledgeService.getMetrics(),
+        departments.length === 0
+          ? departmentService.getDepartments()
+          : Promise.resolve(departments),
       ]);
       setDocuments(docsData);
       setFaqs(faqsData);
       setMetrics(metricsData);
+      if (deptsData && deptsData.length > 0) {
+        setDepartments(deptsData);
+      }
     } catch (e) {
       toast.error("Error al cargar la información de la Base de Conocimiento");
     } finally {
@@ -48,39 +58,24 @@ export function KnowledgeBasePage() {
   };
 
   useEffect(() => {
-    void loadData();
-  }, []);
+    void loadData(departmentFilter);
+  }, [departmentFilter]);
 
-  // const handleUploadDocument = async (file: File, category: string) => {
-  //   try {
-  //     const newDoc = await knowledgeService.uploadDocument(file, category);
-  //     setDocuments((prev) => [newDoc, ...prev]);
-  //     toast.success(`Documento ${file.name} cargado e indexado correctamente`);
-  //     void loadData();
-  //   } catch (err) {
-  //     toast.error("Error al vectorizar el documento en n8n");
-  //     throw err;
-  //   }
-  // };
+  const handleDepartmentFilterChange = (newDept: string) => {
+    setDepartmentFilter(newDept);
+  };
 
-  // Al seleccionar o soltar el archivo (ej: en el evento onDrop o onChange del <input type="file" />)
-  // const handleUploadDocument = async (file: File, category: string = 'General') => {
-  //   const formData = new FormData();
-  //   formData.append('file', file); // 👈 Adjunta el archivo binario real
-  //   formData.append('category', category);
-
-  //   // Si usás fetch:
-  //   const response = await fetch('/api/rag/documents', {
-  //     method: 'POST',
-  //     body: formData, // ⚠️ IMPORTANTE: No agregues el header 'Content-Type', el navegador lo pone automáticamente con el boundary
-  //   });
-
-  const handleUploadDocument = async (file: File, category: string = "General") => {
+  const handleUploadDocument = async (
+    file: File,
+    category: string = "General",
+    departmentId?: string | null,
+    isGlobal?: boolean,
+  ) => {
     try {
-      const newDoc = await knowledgeService.uploadDocument(file, category);
+      const newDoc = await knowledgeService.uploadDocument(file, category, departmentId, isGlobal);
       setDocuments((prev) => [newDoc, ...prev]);
       toast.success(`Documento ${file.name} cargado e indexado correctamente`);
-      void loadData();
+      void loadData(departmentFilter);
     } catch (err) {
       toast.error("Error al vectorizar el documento en n8n");
       console.error(err);
@@ -88,19 +83,12 @@ export function KnowledgeBasePage() {
     }
   };
 
-  // O si usás axios:
-  // await axios.post('/api/rag/documents', formData);
-
-  //   const result = await response.json();
-  //   return result;
-  // };
-
   const handleDeleteDocument = async (id: string) => {
     try {
       await knowledgeService.deleteDocument(id);
       setDocuments((prev) => prev.filter((d) => d.id !== id));
       toast.success("Documento eliminado de la base de conocimiento");
-      void loadData();
+      void loadData(departmentFilter);
     } catch {
       toast.error("No se pudo eliminar el documento");
     }
@@ -228,18 +216,28 @@ export function KnowledgeBasePage() {
         {activeTab === "sources" && (
           <KnowledgeSourcesTable
             documents={documents}
+            departments={departments}
+            departmentFilter={departmentFilter}
+            onDepartmentFilterChange={handleDepartmentFilterChange}
             onUploadClick={() => setIsUploadOpen(true)}
             onDeleteDoc={handleDeleteDocument}
-            onRefresh={loadData}
+            onRefresh={() => void loadData(departmentFilter)}
             loading={loading}
           />
         )}
 
         {activeTab === "faqs" && (
-          <FaqDirectEditor faqs={faqs} onSaveFaq={handleSaveFaq} onDeleteFaq={handleDeleteFaq} />
+          <FaqDirectEditor
+            faqs={faqs}
+            departments={departments}
+            departmentFilter={departmentFilter}
+            onDepartmentFilterChange={handleDepartmentFilterChange}
+            onSaveFaq={handleSaveFaq}
+            onDeleteFaq={handleDeleteFaq}
+          />
         )}
 
-        {activeTab === "playground" && <RagPlayground />}
+        {activeTab === "playground" && <RagPlayground departments={departments} />}
 
         {activeTab === "metrics" && (
           <div className="p-6 border border-border rounded-xl bg-card space-y-6">

@@ -22,7 +22,14 @@ export function canAccessDepartment(
   return session.primaryDepartmentId === department.id;
 }
 
-const ADMIN_ONLY_PATHS = new Set(["/usuarios", "/departamentos", "/flujos", "/auditoria"]);
+const ADMIN_ONLY_PATHS = new Set([
+  "/usuarios",
+  "/departamentos",
+  "/flujos",
+  "/auditoria",
+  "/prompts",
+  "/admin/prompts",
+]);
 const SUPERVISOR_PATHS = new Set([
   "/escalaciones",
   "/asignaciones",
@@ -71,6 +78,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
       { label: "Agentes", to: "/usuarios", adminOnly: true },
       { label: "Departamentos", to: "/departamentos", adminOnly: true },
       { label: "Automatizaciones", to: "/flujos", adminOnly: true },
+      { label: "Prompts IA", to: "/prompts", adminOnly: true },
       { label: "Auditoría", to: "/auditoria", adminOnly: true },
     );
   }
