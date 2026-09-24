@@ -26,6 +26,9 @@ import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInternalNoteComposer";
 import { CasePanel } from "@/modules/cases/ui/CasePanel";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
+import { CompleteCaseModal } from "@/modules/cases/ui/CompleteCaseModal";
+import { ScheduleCaseModal } from "@/modules/cases/ui/ScheduleCaseModal";
+import type { CloseReason } from "@/modules/cases/infrastructure/case.gateway";
 import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
 import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
@@ -63,6 +66,7 @@ type Props = {
   /** Preselecciona un departamento (deep-link desde la campana de notificaciones o el menú lateral). */
   initialDepartmentId?: string;
   initialConversationId?: string | null;
+  initialStatus?: ConversationStatus;
 };
 
 const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
@@ -145,7 +149,7 @@ function MessageAvatar({
  * FILTROS dentro de esta pantalla (no rutas separadas) — ver
  * docs/skills/ui-ux-design-principles.md.
  */
-export function OperationalInbox({ initialDepartmentId, initialConversationId }: Props) {
+export function OperationalInbox({ initialDepartmentId, initialConversationId, initialStatus }: Props) {
   const session = useSession();
   const { data: departments = [] } = useDepartmentsQuery();
   const directory = useDirectoryUsers();
@@ -181,7 +185,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
   }, [isSupervisorOrAdmin, session?.primaryDepartmentId, departmentId, visibleDepartments]);
 
   const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>("all");
-  const [statusFilter, setStatusFilter] = useState<ConversationStatus>("open");
+  const [statusFilter, setStatusFilter] = useState<ConversationStatus>(initialStatus ?? "open");
   const [search, setSearch] = useState("");
 
   const agentIdParam =
@@ -205,6 +209,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
     takeControl,
     claim,
     complete,
+    schedule,
     cancel,
     transfer,
     disableAutomation,
@@ -217,6 +222,26 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
     status: statusFilter,
     initialConversationId,
   });
+
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+
+  const handleSchedule = async (scheduledAt: string, reminderReason?: string) => {
+    const ok = await schedule(scheduledAt, reminderReason);
+    if (ok !== false) {
+      setStatusFilter("pending");
+      await reload({ silent: true });
+    }
+    return ok;
+  };
+
+  const handleComplete = async (closeReason?: CloseReason, resolutionNote?: string) => {
+    const ok = await complete(closeReason, resolutionNote);
+    if (ok !== false) {
+      await reload({ silent: true });
+    }
+    return ok;
+  };
 
   const connected = useRealtimeConnected();
   const [draft, setDraft] = useState("");
@@ -673,9 +698,16 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                           <span>Espera: {sla.formattedShort}</span>
                         </span>
                       )}
-                      <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
-                        {conversationStatusLabel(c.status)}
-                      </span>
+                      {c.status === "pending" || c.activeCase?.status === "WAITING_USER" ? (
+                        <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30">
+                          <Clock className="size-2.5 text-amber-500" />
+                          <span>En Espera</span>
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
+                          {conversationStatusLabel(c.status)}
+                        </span>
+                      )}
                       {c.activeCase ? (
                         <>
                           {(() => {
@@ -1171,7 +1203,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                   if (activeCase) void loadCaseSummary(activeCase.id);
                   setSummaryOpen(true);
                 }}
-                onComplete={(note) => void complete(note)}
+                onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
+                onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
                 onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
                 onDisableAutomation={(reason) => void disableAutomation(reason)}
@@ -1220,7 +1253,8 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
                 if (activeCase) void loadCaseSummary(activeCase.id);
                 setSummaryOpen(true);
               }}
-              onComplete={(note) => void complete(note)}
+              onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
+              onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
               onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
               onDisableAutomation={(reason) => void disableAutomation(reason)}
@@ -1249,6 +1283,20 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId }:
       />
 
       <SlaSettingsModal open={slaModalOpen} onOpenChange={setSlaModalOpen} />
+
+      <CompleteCaseModal
+        open={completeModalOpen}
+        onOpenChange={setCompleteModalOpen}
+        onConfirm={handleComplete}
+        busy={busy}
+      />
+
+      <ScheduleCaseModal
+        open={scheduleModalOpen}
+        onOpenChange={setScheduleModalOpen}
+        onConfirm={handleSchedule}
+        busy={busy}
+      />
     </div>
   );
 }

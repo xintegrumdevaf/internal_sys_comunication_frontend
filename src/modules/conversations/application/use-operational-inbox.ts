@@ -55,14 +55,25 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       if (!session) return;
       if (!opts?.silent) setLoading(true);
       try {
-        const data = await conversationGateway.listConversations({
+        let data = await conversationGateway.listConversations({
           departmentId: options.departmentId,
           userId: options.agentId,
           status: options.status ?? "open",
         });
 
-        const prevId = selectedIdRef.current;
         const preferred = options.initialConversationId;
+        if (preferred && !data.some((c) => c.id === preferred)) {
+          try {
+            const single = await conversationGateway.getConversation(preferred);
+            if (single) {
+              data = [single, ...data];
+            }
+          } catch {
+            // silencioso
+          }
+        }
+
+        const prevId = selectedIdRef.current;
         const nextId =
           prevId && data.some((c) => c.id === prevId)
             ? prevId
@@ -241,7 +252,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         event.type === "CASE_CLAIMED" ||
         event.type === "HUMAN_ASSIGNED" ||
         event.type === "AUTOMATION_ENABLED" ||
-        event.type === "AUTOMATION_DISABLED"
+        event.type === "AUTOMATION_DISABLED" ||
+        event.type === "CASE_SCHEDULED_REMINDER"
       ) {
         if (event.type === "AUTOMATION_DISABLED") {
           setAutomationState({
@@ -379,8 +391,14 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       activeCase ? caseActions.assign(activeCase.id, agentUserId) : Promise.resolve(false),
     reassign: (agentUserId: string) =>
       activeCase ? caseActions.reassign(activeCase.id, agentUserId) : Promise.resolve(false),
-    complete: (note?: string) =>
-      activeCase ? caseActions.complete(activeCase.id, note) : Promise.resolve(false),
+    complete: (closeReason?: caseGateway.CloseReason, note?: string) =>
+      activeCase
+        ? caseActions.complete(activeCase.id, closeReason ?? "RESOLVED", note)
+        : Promise.resolve(false),
+    schedule: (scheduledAt: string, reminderReason?: string) =>
+      activeCase
+        ? caseActions.schedule(activeCase.id, scheduledAt, reminderReason)
+        : Promise.resolve(false),
     cancel: (reason: string) =>
       activeCase ? caseActions.cancel(activeCase.id, reason) : Promise.resolve(false),
     transfer: (toDepartmentId: string, reason: string) =>

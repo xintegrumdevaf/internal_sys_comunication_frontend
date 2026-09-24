@@ -6,6 +6,7 @@ import { OperationalInbox } from "@/modules/conversations/ui/OperationalInbox";
 type BandejaSearch = {
   conversationId?: string;
   departmentId?: string;
+  status?: string;
 };
 
 export const Route = createFileRoute("/bandeja")({
@@ -18,16 +19,24 @@ export const Route = createFileRoute("/bandeja")({
       typeof search.departmentId === "string" && search.departmentId.length > 0
         ? search.departmentId
         : undefined,
+    status:
+      typeof search.status === "string" && search.status.length > 0
+        ? search.status
+        : undefined,
   }),
   component: BandejaPage,
 });
 
 function BandejaPage() {
-  const { conversationId, departmentId } = Route.useSearch();
+  const { conversationId, departmentId, status } = Route.useSearch();
 
   return (
     <AppShell title="Bandeja de conversaciones" icon={Inbox}>
-      <OperationalInbox initialDepartmentId={departmentId} initialConversationId={conversationId} />
+      <OperationalInbox
+        initialDepartmentId={departmentId}
+        initialConversationId={conversationId}
+        initialStatus={status as any}
+      />
     </AppShell>
   );
 }

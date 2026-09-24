@@ -221,6 +221,29 @@ export function useRealtimeSession(userId: string | null): void {
             renotify: true,
           });
         }
+      } else if (event.type === "CASE_SCHEDULED_REMINDER") {
+        const reason = event.reminderReason || "Es momento de verificar el caso agendado";
+        toast.info("⏰ Recordatorio de Caso Agendado", {
+          description: reason,
+          duration: 10000,
+          action: event.conversationId
+            ? {
+                label: "Ver Caso",
+                onClick: () => {
+                  window.location.href = `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=pending`;
+                },
+              }
+            : undefined,
+        });
+        playNotificationSound();
+        if (isAppInBackground()) {
+          flashDocumentTitle("⏰ Recordatorio de caso");
+        }
+        sendDesktopNotification("⏰ Recordatorio de caso agendado", {
+          body: reason,
+          tag: `reminder-${event.caseId}-${Date.now()}`,
+          renotify: true,
+        });
       } else if (event.type === "MESSAGE_RECEIVED") {
         const isCurrentActiveChat = getActiveChatId() === event.conversationId;
         const inBackground = isAppInBackground();

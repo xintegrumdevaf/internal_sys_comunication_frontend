@@ -33,6 +33,10 @@ export function listConversations(filter?: {
   return apiGet<ConversationDto[]>("/api/conversations", { query: filter });
 }
 
+export function getConversation(conversationId: string): Promise<ConversationDto> {
+  return apiGet<ConversationDto>(`/api/conversations/${conversationId}`);
+}
+
 export async function listMessages(
   conversationId: string,
   page?: { limit?: number; cursor?: string },

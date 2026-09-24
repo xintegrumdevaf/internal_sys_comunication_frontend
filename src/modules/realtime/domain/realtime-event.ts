@@ -32,6 +32,15 @@ export type RealtimeEvent =
   | { type: "AUTOMATION_ENABLED"; caseId: string }
   | { type: "AUTOMATION_DISABLED"; caseId: string }
   | {
+      type: "CASE_SCHEDULED_REMINDER";
+      caseId: string;
+      conversationId: string;
+      assignedAgentId?: string | null;
+      departmentId?: string | null;
+      scheduledAt: string;
+      reminderReason?: string | null;
+    }
+  | {
       type: "INTERNAL_MESSAGE_SENT";
       threadId: string;
       messageId?: string;

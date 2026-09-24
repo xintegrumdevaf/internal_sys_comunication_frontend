@@ -47,6 +47,19 @@ export function wireNotifications(userId: string | null): void {
         createdAt: new Date().toISOString(),
         read: false,
       });
+    } else if (event.type === "CASE_SCHEDULED_REMINDER") {
+      push({
+        id: `rem-${event.caseId}-${Date.now()}`,
+        kind: "CASE_SCHEDULED_REMINDER",
+        caseId: event.caseId,
+        conversationId: event.conversationId,
+        departmentId: event.departmentId,
+        reminderReason: event.reminderReason,
+        scheduledAt: event.scheduledAt,
+        isMine: true,
+        createdAt: new Date().toISOString(),
+        read: false,
+      });
     }
   });
 }

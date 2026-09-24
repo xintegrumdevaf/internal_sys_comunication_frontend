@@ -56,12 +56,34 @@ export function useCaseActions(
     );
   };
 
-  const complete = (caseId: string, resolutionNote?: string) => {
+  const complete = (
+    caseId: string,
+    closeReason: caseGateway.CloseReason = "RESOLVED",
+    resolutionNote?: string,
+  ) => {
     if (!session) return Promise.resolve(false);
     return run(
       "completar",
-      () => caseGateway.completeCase(caseId, session.id, resolutionNote),
+      () =>
+        caseGateway.completeCase(caseId, {
+          closeReason,
+          resolutionNote: resolutionNote || undefined,
+          agentUserId: session.id,
+        }),
       "Caso completado",
+    );
+  };
+
+  const schedule = (caseId: string, scheduledAt: string, reminderReason?: string) => {
+    if (!session) return Promise.resolve(false);
+    return run(
+      "agendar seguimiento",
+      () =>
+        caseGateway.scheduleCase(caseId, {
+          scheduledAt,
+          reminderReason: reminderReason || undefined,
+        }),
+      "Seguimiento agendado correctamente",
     );
   };
 
@@ -116,6 +138,7 @@ export function useCaseActions(
     assign,
     reassign,
     complete,
+    schedule,
     cancel,
     transfer,
     disableAutomation,

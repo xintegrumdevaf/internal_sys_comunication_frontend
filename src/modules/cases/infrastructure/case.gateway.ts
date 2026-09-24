@@ -48,12 +48,43 @@ export function reassignCase(
   );
 }
 
+export type CloseReason = "RESOLVED" | "CLIENT_NO_RESPONSE";
+
+export type CompleteCasePayload = {
+  closeReason?: CloseReason;
+  resolutionNote?: string;
+  agentUserId?: string;
+};
+
 export function completeCase(
   caseId: string,
-  agentUserId: string,
-  resolutionNote?: string,
+  payload?: CompleteCasePayload | string,
+  resolutionNoteArg?: string,
 ): Promise<CaseDto> {
-  return apiPost<CaseDto>(`/api/cases/${caseId}/complete`, { agentUserId, resolutionNote });
+  let body: Record<string, unknown> = {};
+  if (typeof payload === "object" && payload !== null) {
+    body = {
+      closeReason: payload.closeReason ?? "RESOLVED",
+      ...(payload.resolutionNote ? { resolutionNote: payload.resolutionNote } : {}),
+      ...(payload.agentUserId ? { agentUserId: payload.agentUserId } : {}),
+    };
+  } else {
+    body = {
+      closeReason: "RESOLVED",
+      ...(payload ? { agentUserId: payload } : {}),
+      ...(resolutionNoteArg ? { resolutionNote: resolutionNoteArg } : {}),
+    };
+  }
+  return apiPost<CaseDto>(`/api/cases/${caseId}/complete`, body);
+}
+
+export type ScheduleCasePayload = {
+  scheduledAt: string;
+  reminderReason?: string;
+};
+
+export function scheduleCase(caseId: string, payload: ScheduleCasePayload): Promise<CaseDto> {
+  return apiPost<CaseDto>(`/api/cases/${caseId}/schedule`, payload);
 }
 
 export function cancelCase(caseId: string, reason: string, agentUserId: string): Promise<CaseDto> {

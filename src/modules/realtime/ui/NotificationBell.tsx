@@ -97,21 +97,29 @@ export function NotificationBell() {
                 type="button"
                 onClick={() => {
                   setOpen(false);
-                  void navigate({ to: "/bandeja", search: { conversationId: n.conversationId } });
+                  const targetStatus = n.kind === "CASE_SCHEDULED_REMINDER" ? "pending" : undefined;
+                  void navigate({
+                    to: "/bandeja",
+                    search: { conversationId: n.conversationId, status: targetStatus },
+                  });
                 }}
                 className="w-full text-left p-3 hover:bg-foreground/5 text-xs"
               >
                 <p className="font-bold">
-                  {n.kind === "CASE_ESCALATED"
-                    ? "Un cliente necesita un agente humano"
-                    : n.isMine
-                      ? "Te asignaron una conversación"
-                      : "Se asignó una conversación a otro agente"}
+                  {n.kind === "CASE_SCHEDULED_REMINDER"
+                    ? "⏰ Recordatorio de seguimiento"
+                    : n.kind === "CASE_ESCALATED"
+                      ? "Un cliente necesita un agente humano"
+                      : n.isMine
+                        ? "Te asignaron una conversación"
+                        : "Se asignó una conversación a otro agente"}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {n.kind === "CASE_ESCALATED"
-                    ? "Toca aquí para revisar el resumen y atenderlo"
-                    : "Toca aquí para abrir la conversación"}{" "}
+                  {n.kind === "CASE_SCHEDULED_REMINDER"
+                    ? n.reminderReason || "Es momento de revisar el caso agendado"
+                    : n.kind === "CASE_ESCALATED"
+                      ? "Toca aquí para revisar el resumen y atenderlo"
+                      : "Toca aquí para abrir la conversación"}{" "}
                   · {relativeTime(n.createdAt)}
                 </p>
               </button>

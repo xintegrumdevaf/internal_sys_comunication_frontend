@@ -6,13 +6,16 @@ import type { SessionUser } from "@/modules/identity/domain/session";
 const claimCaseMock = vi.fn();
 const assignCaseMock = vi.fn();
 const advanceCaseMock = vi.fn();
+const completeCaseMock = vi.fn();
+const scheduleCaseMock = vi.fn();
 
 vi.mock("@/modules/cases/infrastructure/case.gateway", () => ({
   claimCase: (...args: unknown[]) => claimCaseMock(...args),
   assignCase: (...args: unknown[]) => assignCaseMock(...args),
   advanceCase: (...args: unknown[]) => advanceCaseMock(...args),
+  completeCase: (...args: unknown[]) => completeCaseMock(...args),
+  scheduleCase: (...args: unknown[]) => scheduleCaseMock(...args),
   reassignCase: vi.fn(),
-  completeCase: vi.fn(),
   cancelCase: vi.fn(),
   transferCase: vi.fn(),
   disableAutomation: vi.fn(),
@@ -135,6 +138,45 @@ describe("useCaseActions", () => {
       entities: { selectedOption: 1, contractCode: "CON-001" },
     });
     expect(toastSuccess).toHaveBeenCalledWith("Servicio asignado correctamente");
+    expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it("complete llama a completeCase con closeReason y resolutionNote", async () => {
+    completeCaseMock.mockResolvedValueOnce({ id: "case_1", status: "COMPLETED" });
+    const onChanged = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useCaseActions(session, onChanged));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.complete("case_1", "CLIENT_NO_RESPONSE", "Sin respuesta a plantilla");
+    });
+
+    expect(ok).toBe(true);
+    expect(completeCaseMock).toHaveBeenCalledWith("case_1", {
+      closeReason: "CLIENT_NO_RESPONSE",
+      resolutionNote: "Sin respuesta a plantilla",
+      agentUserId: "agent_1",
+    });
+    expect(toastSuccess).toHaveBeenCalledWith("Caso completado");
+    expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it("schedule llama a scheduleCase con scheduledAt y reminderReason", async () => {
+    scheduleCaseMock.mockResolvedValueOnce({ id: "case_1", status: "WAITING_USER" });
+    const onChanged = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useCaseActions(session, onChanged));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.schedule("case_1", "2026-09-25T10:00:00.000Z", "Verificar servicio");
+    });
+
+    expect(ok).toBe(true);
+    expect(scheduleCaseMock).toHaveBeenCalledWith("case_1", {
+      scheduledAt: "2026-09-25T10:00:00.000Z",
+      reminderReason: "Verificar servicio",
+    });
+    expect(toastSuccess).toHaveBeenCalledWith("Seguimiento agendado correctamente");
     expect(onChanged).toHaveBeenCalledTimes(1);
   });
 });

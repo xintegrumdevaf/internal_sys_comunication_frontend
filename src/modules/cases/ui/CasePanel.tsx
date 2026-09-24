@@ -1,6 +1,9 @@
 import { useState } from "react";
 import {
   Bot,
+  Calendar,
+  CheckCircle2,
+  Clock,
   FileText,
   Lock,
   Phone,
@@ -26,8 +29,10 @@ import {
   paymentStatusLabel,
   workflowLabel,
 } from "@/modules/cases/domain/case";
-import { advanceCase } from "@/modules/cases/infrastructure/case.gateway";
+import { advanceCase, type CloseReason } from "@/modules/cases/infrastructure/case.gateway";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
+import { CompleteCaseModal } from "@/modules/cases/ui/CompleteCaseModal";
+import { ScheduleCaseModal } from "@/modules/cases/ui/ScheduleCaseModal";
 
 function DataRow({ label, value }: { label: string; value: string | number | undefined | null }) {
   if (value === undefined || value === null || value === "") return null;
@@ -192,6 +197,7 @@ export function CasePanel({
   assignedAgentName,
   onOpenSummary,
   onComplete,
+  onSchedule,
   onCancel,
   onTransfer,
   onDisableAutomation,
@@ -209,7 +215,8 @@ export function CasePanel({
   /** Nombre del agente asignado ya resuelto — nunca se muestra el UUID crudo. */
   assignedAgentName?: string | null;
   onOpenSummary: () => void;
-  onComplete: (note?: string) => void;
+  onComplete: (closeReason?: CloseReason, note?: string) => void | Promise<unknown>;
+  onSchedule?: (scheduledAt: string, reminderReason?: string) => void | Promise<unknown>;
   onCancel: (reason: string) => void;
   onTransfer: (toDepartmentId: string, reason: string) => void;
   onDisableAutomation: (reason: string) => void;
@@ -223,6 +230,8 @@ export function CasePanel({
   const [transferDept, setTransferDept] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
   const [assigningOption, setAssigningOption] = useState<number | null>(null);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const canManage = canManageProp ?? canWrite;
   const currentState = caseDto
@@ -428,13 +437,24 @@ export function CasePanel({
             </button>
           )}
 
+          {onSchedule && (
+            <button
+              type="button"
+              disabled={busy || caseDto.status === "COMPLETED"}
+              onClick={() => setScheduleModalOpen(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-bold uppercase tracking-wide hover:bg-amber-500/20 transition disabled:opacity-40"
+            >
+              <Clock className="size-3.5" /> Agendar Seguimiento / En Espera
+            </button>
+          )}
+
           <button
             type="button"
             disabled={busy || caseDto.status === "COMPLETED"}
-            onClick={() => onComplete()}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-wide shadow-sm hover:brightness-95 transition disabled:opacity-40"
+            onClick={() => setCompleteModalOpen(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-wide shadow-sm hover:brightness-95 transition disabled:opacity-40"
           >
-            Marcar como resuelto
+            <CheckCircle2 className="size-3.5" /> Cerrar / Completar Caso
           </button>
 
           <button
@@ -491,6 +511,22 @@ export function CasePanel({
             >
               <XCircle className="size-3.5" /> Cancelar caso
             </button>
+          )}
+
+          <CompleteCaseModal
+            open={completeModalOpen}
+            onOpenChange={setCompleteModalOpen}
+            onConfirm={(reason, note) => Promise.resolve(onComplete(reason, note))}
+            busy={busy}
+          />
+
+          {onSchedule && (
+            <ScheduleCaseModal
+              open={scheduleModalOpen}
+              onOpenChange={setScheduleModalOpen}
+              onConfirm={(at, reason) => Promise.resolve(onSchedule(at, reason))}
+              busy={busy}
+            />
           )}
         </div>
       )}

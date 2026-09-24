@@ -8,6 +8,21 @@ import type { RealtimeEvent } from "@/modules/realtime/domain/realtime-event";
  * `EventSource` no puede mandar headers propios, pero `withCredentials:
  * true` si hace que el navegador adjunte la cookie en la conexion SSE.
  */
+const KNOWN_EVENT_TYPES = [
+  "MESSAGE_RECEIVED",
+  "MESSAGE_SENT",
+  "MESSAGE_EDITED",
+  "MESSAGE_STATUS_UPDATED",
+  "CASE_ESCALATED",
+  "CASE_CLAIMED",
+  "HUMAN_ASSIGNED",
+  "AUTOMATION_ENABLED",
+  "AUTOMATION_DISABLED",
+  "CASE_SCHEDULED_REMINDER",
+  "INTERNAL_MESSAGE_SENT",
+  "INTERNAL_THREAD_READ",
+] as const;
+
 export function connectRealtime(
   userId: string,
   handlers: {
@@ -19,20 +34,38 @@ export function connectRealtime(
     withCredentials: true,
   });
 
-  es.onopen = () => handlers.onConnectedChange?.(true);
-  es.onerror = () => {
-    // El navegador reintenta automáticamente con backoff nativo de EventSource.
-    handlers.onConnectedChange?.(false);
-  };
-  es.onmessage = (ev) => {
-    if (!ev.data) return;
+  const handleRawData = (dataStr: string, eventTypeOverride?: string) => {
+    if (!dataStr) return;
     try {
-      const parsed = JSON.parse(ev.data) as RealtimeEvent;
+      const parsed = JSON.parse(dataStr) as RealtimeEvent;
+      if (eventTypeOverride && !parsed.type) {
+        (parsed as Record<string, unknown>).type = eventTypeOverride;
+      }
       handlers.onEvent(parsed);
     } catch {
       // línea de keep-alive/comentario SSE (": ping", ": connected ..."), no es JSON — se ignora.
     }
   };
 
-  return () => es.close();
+  es.onopen = () => handlers.onConnectedChange?.(true);
+  es.onerror = () => {
+    // El navegador reintenta automáticamente con backoff nativo de EventSource.
+    handlers.onConnectedChange?.(false);
+  };
+  es.onmessage = (ev) => handleRawData(ev.data);
+
+  // Registra listeners para eventos nominados SSE (cuando el servidor envía `event: CASE_SCHEDULED_REMINDER`)
+  const eventListeners: Array<{ type: string; listener: (ev: MessageEvent) => void }> = [];
+  KNOWN_EVENT_TYPES.forEach((type) => {
+    const listener = (ev: MessageEvent) => handleRawData(ev.data, type);
+    es.addEventListener(type, listener as EventListener);
+    eventListeners.push({ type, listener: listener as EventListener });
+  });
+
+  return () => {
+    eventListeners.forEach(({ type, listener }) => {
+      es.removeEventListener(type, listener as EventListener);
+    });
+    es.close();
+  };
 }
