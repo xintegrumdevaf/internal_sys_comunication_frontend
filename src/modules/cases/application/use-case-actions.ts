@@ -123,7 +123,6 @@ export function useCaseActions(
     );
   };
 
-  const advance = (caseId: string, entities: { selectedOption: number; contractCode?: string }) => {
   const advance = (caseId: string, entities: Record<string, unknown>) => {
     if (!session) return Promise.resolve(false);
     const successMsg =

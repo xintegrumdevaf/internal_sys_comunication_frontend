@@ -336,10 +336,6 @@ export function CasePanel({
   onTransfer: (toDepartmentId: string, reason: string) => void;
   onDisableAutomation: (reason: string) => void;
   onReactivateAutomation: () => void;
-  onAdvance?: (entities: {
-    selectedOption: number;
-    contractCode?: string;
-  }) => Promise<unknown> | void;
   onAdvance?: (entities: Record<string, unknown>) => Promise<unknown> | void;
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
@@ -724,7 +720,9 @@ export function CasePanel({
           <CompleteCaseModal
             open={completeModalOpen}
             onOpenChange={setCompleteModalOpen}
-            onConfirm={(reason, note) => Promise.resolve(onComplete(reason, note))}
+            onConfirm={async (reason, note) => {
+              await onComplete(reason, note);
+            }}
             busy={busy}
           />
 
@@ -732,7 +730,9 @@ export function CasePanel({
             <ScheduleCaseModal
               open={scheduleModalOpen}
               onOpenChange={setScheduleModalOpen}
-              onConfirm={(at, reason) => Promise.resolve(onSchedule(at, reason))}
+              onConfirm={async (at, reason) => {
+                await onSchedule(at, reason);
+              }}
               busy={busy}
             />
           )}

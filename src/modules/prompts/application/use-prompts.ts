@@ -41,6 +41,60 @@ Reglas estrictas:
   },
 };
 
+const FALLBACK_PROMPTS_LIST: PromptDto[] = [
+  {
+    id: "interpret_message",
+    slug: "interpret_message",
+    name: "Interpretación de Mensajes (Inbound)",
+    description: "Analiza el mensaje entrante del cliente para extraer intención y entidades.",
+    allowedVariables: ["text", "recentMessages", "activeCase", "pendingQuestion"],
+    versionsCount: 1,
+    activeVersion: {
+      id: "v1-interpret_message",
+      versionNumber: 1,
+      systemPrompt: DEFAULT_BASELINE_PROMPTS.interpret_message.systemPrompt,
+      userTemplate: DEFAULT_BASELINE_PROMPTS.interpret_message.userTemplate,
+      modelConfig: { temperature: 0.1 },
+      isPublished: true,
+      createdAt: new Date().toISOString(),
+    },
+  },
+  {
+    id: "compose_reply",
+    slug: "compose_reply",
+    name: "Redacción de Respuesta",
+    description: "Genera la respuesta final al cliente en base al resultado del flujo de negocio.",
+    allowedVariables: ["stepOutcome", "templateHint", "missingFields", "workflowType", "clientName"],
+    versionsCount: 1,
+    activeVersion: {
+      id: "v1-compose_reply",
+      versionNumber: 1,
+      systemPrompt: DEFAULT_BASELINE_PROMPTS.compose_reply.systemPrompt,
+      userTemplate: DEFAULT_BASELINE_PROMPTS.compose_reply.userTemplate,
+      modelConfig: { temperature: 0.2 },
+      isPublished: true,
+      createdAt: new Date().toISOString(),
+    },
+  },
+  {
+    id: "refine_tone",
+    slug: "refine_tone",
+    name: "Ajuste de Tono de Respuesta Rápida",
+    description: "Pule y profesionaliza borradores redactados por agentes humanos.",
+    allowedVariables: ["originalText", "contextHint"],
+    versionsCount: 1,
+    activeVersion: {
+      id: "v1-refine_tone",
+      versionNumber: 1,
+      systemPrompt: DEFAULT_BASELINE_PROMPTS.refine_tone.systemPrompt,
+      userTemplate: DEFAULT_BASELINE_PROMPTS.refine_tone.userTemplate,
+      modelConfig: { temperature: 0.3 },
+      isPublished: true,
+      createdAt: new Date().toISOString(),
+    },
+  },
+];
+
 export function usePrompts(initialSlug?: string) {
   const [prompts, setPrompts] = useState<PromptDto[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
@@ -75,46 +129,52 @@ export function usePrompts(initialSlug?: string) {
   // Cargar lista de prompts
   const loadPrompts = useCallback(async (slugToSelect?: string) => {
     setLoadingPrompts(true);
+    let list: PromptDto[] = [];
     try {
-      const list = await promptService.listPrompts();
-      setPrompts(list);
-
-      const targetSlug =
-        slugToSelect || selectedSlugRef.current || (list.length > 0 ? list[0].slug : "");
-      if (targetSlug) {
-        setSelectedSlug(targetSlug);
-        const found = list.find((p) => p.slug === targetSlug);
-        if (found) {
-          setSelectedPrompt(found);
-          const activeVer = found.activeVersion || (found.versions && found.versions[0]) || null;
-          setSelectedVersion(activeVer);
-          if (activeVer) {
-            setSystemPrompt(activeVer.systemPrompt || "");
-            setUserTemplate(activeVer.userTemplate || "");
-            setTemperature(
-              typeof activeVer.modelConfig?.temperature === "number"
-                ? activeVer.modelConfig.temperature
-                : 0.1,
-            );
-          }
-          const varsMap: Record<string, string> = {};
-          if (found.variableDefinitions && found.variableDefinitions.length > 0) {
-            found.variableDefinitions.forEach((vd) => {
-              varsMap[vd.key] = vd.example || "";
-            });
-          } else if (found.allowedVariables) {
-            found.allowedVariables.forEach((v) => {
-              varsMap[v] = "";
-            });
-          }
-          setTestVariables(varsMap);
-        }
-      }
+      list = await promptService.listPrompts();
     } catch (e) {
-      toast.error("Error al cargar la lista de plantillas de prompts");
-    } finally {
-      setLoadingPrompts(false);
+      console.warn("Error al cargar la lista de plantillas de backend, utilizando lista por defecto:", e);
+      list = FALLBACK_PROMPTS_LIST;
     }
+
+    if (!list || list.length === 0) {
+      list = FALLBACK_PROMPTS_LIST;
+    }
+
+    setPrompts(list);
+
+    const targetSlug =
+      slugToSelect || selectedSlugRef.current || (list.length > 0 ? list[0].slug : "");
+    if (targetSlug) {
+      setSelectedSlug(targetSlug);
+      const found = list.find((p) => p.slug === targetSlug);
+      if (found) {
+        setSelectedPrompt(found);
+        const activeVer = found.activeVersion || (found.versions && found.versions[0]) || null;
+        setSelectedVersion(activeVer);
+        if (activeVer) {
+          setSystemPrompt(activeVer.systemPrompt || "");
+          setUserTemplate(activeVer.userTemplate || "");
+          setTemperature(
+            typeof activeVer.modelConfig?.temperature === "number"
+              ? activeVer.modelConfig.temperature
+              : 0.1,
+          );
+        }
+        const varsMap: Record<string, string> = {};
+        if (found.variableDefinitions && found.variableDefinitions.length > 0) {
+          found.variableDefinitions.forEach((vd) => {
+            varsMap[vd.key] = vd.example || "";
+          });
+        } else if (found.allowedVariables) {
+          found.allowedVariables.forEach((v) => {
+            varsMap[v] = "";
+          });
+        }
+        setTestVariables(varsMap);
+      }
+    }
+    setLoadingPrompts(false);
   }, []);
 
   const promptsRef = useRef(prompts);
