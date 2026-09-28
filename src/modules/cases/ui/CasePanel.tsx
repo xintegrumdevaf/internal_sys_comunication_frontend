@@ -28,6 +28,7 @@ import {
   CANCELLABLE_STATUSES,
   caseStatusLabel,
   clientNameFromCase,
+  extractSchedulingMetadata,
   findingTypeLabel,
   formatMacAddress,
   formatOpticalPower,
@@ -331,7 +332,11 @@ export function CasePanel({
   assignedAgentName?: string | null;
   onOpenSummary: () => void;
   onComplete: (closeReason?: CloseReason, note?: string) => void | Promise<unknown>;
-  onSchedule?: (scheduledAt: string, reminderReason?: string) => void | Promise<unknown>;
+  onSchedule?: (
+    scheduledAt: string,
+    scheduleTag?: string,
+    reminderReason?: string,
+  ) => void | Promise<unknown>;
   onCancel: (reason: string) => void;
   onTransfer: (toDepartmentId: string, reason: string) => void;
   onDisableAutomation: (reason: string) => void;
@@ -576,6 +581,33 @@ export function CasePanel({
             </div>
           </div>
         )}
+        {(() => {
+          const scheduling = extractSchedulingMetadata(caseDto);
+          if (!scheduling && caseDto.status !== "WAITING_USER") return null;
+          return (
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+              <div className="flex items-center justify-between font-extrabold text-[10px] uppercase tracking-wider">
+                <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                  <Clock className="size-3.5 text-amber-500" />
+                  Seguimiento Agendado
+                </span>
+                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30">
+                  🏷️ {scheduling?.scheduleTag ?? "AGENDADO"}
+                </span>
+              </div>
+              {scheduling?.scheduledAt && (
+                <p className="text-[10px] text-amber-800 dark:text-amber-300 font-mono">
+                  Fecha: {new Date(scheduling.scheduledAt).toLocaleString("es-EC")}
+                </p>
+              )}
+              {scheduling?.reminderReason && (
+                <p className="text-[10px] text-amber-700 dark:text-amber-300 italic">
+                  "{scheduling.reminderReason}"
+                </p>
+              )}
+            </div>
+          );
+        })()}
         <div className="space-y-1.5 text-[11px] font-mono">
           {!customerCard && <DataRow label="Cliente" value={validatedName} />}
           <DataRow label="Estado del caso" value={caseStatusLabel(caseDto.status)} />
@@ -730,8 +762,8 @@ export function CasePanel({
             <ScheduleCaseModal
               open={scheduleModalOpen}
               onOpenChange={setScheduleModalOpen}
-              onConfirm={async (at, reason) => {
-                await onSchedule(at, reason);
+              onConfirm={async (at, tag, reason) => {
+                await onSchedule(at, tag, reason);
               }}
               busy={busy}
             />

@@ -54,6 +54,7 @@ export function wireNotifications(userId: string | null): void {
         caseId: event.caseId,
         conversationId: event.conversationId,
         departmentId: event.departmentId,
+        scheduleTag: event.scheduleTag,
         reminderReason: event.reminderReason,
         scheduledAt: event.scheduledAt,
         isMine: true,

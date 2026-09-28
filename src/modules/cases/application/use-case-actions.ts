@@ -74,13 +74,20 @@ export function useCaseActions(
     );
   };
 
-  const schedule = (caseId: string, scheduledAt: string, reminderReason?: string) => {
+  const schedule = (
+    caseId: string,
+    scheduledAt: string,
+    scheduleTag?: string,
+    reminderReason?: string,
+  ) => {
     if (!session) return Promise.resolve(false);
     return run(
       "agendar seguimiento",
       () =>
         caseGateway.scheduleCase(caseId, {
           scheduledAt,
+          scheduleTag: scheduleTag || undefined,
+          tag: scheduleTag || undefined,
           reminderReason: reminderReason || undefined,
         }),
       "Seguimiento agendado correctamente",

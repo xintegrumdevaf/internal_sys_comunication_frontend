@@ -38,6 +38,7 @@ export type RealtimeEvent =
       assignedAgentId?: string | null;
       departmentId?: string | null;
       scheduledAt: string;
+      scheduleTag?: string | null;
       reminderReason?: string | null;
     }
   | {

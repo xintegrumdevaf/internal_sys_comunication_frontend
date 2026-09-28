@@ -107,7 +107,7 @@ export function NotificationBell() {
               >
                 <p className="font-bold">
                   {n.kind === "CASE_SCHEDULED_REMINDER"
-                    ? "⏰ Recordatorio de seguimiento"
+                    ? `⏰ Recordatorio [${n.scheduleTag ?? "AGENDADO"}]`
                     : n.kind === "CASE_ESCALATED"
                       ? "Un cliente necesita un agente humano"
                       : n.isMine

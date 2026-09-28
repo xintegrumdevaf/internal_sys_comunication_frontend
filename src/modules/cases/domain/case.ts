@@ -256,6 +256,28 @@ export type CaseContext =
   | { workflowType: "GENERAL_INQUIRY"; data: GeneralInquiryContext }
   | { workflowType: string; data: Record<string, unknown> }; // fallback: workflows futuros/UNCLASSIFIED
 
+export type CaseScheduleTag = "AGENDADO" | "POSPUESTO" | "MONITOREO" | (string & {});
+
+export type CaseSchedulingMetadata = {
+  scheduledAt: string;
+  scheduleTag?: CaseScheduleTag;
+  reminderReason?: string | null;
+  scheduledByAgentId?: string;
+  notifiedAt?: string | null;
+};
+
+export function extractSchedulingMetadata(
+  caseDto: CaseDto | null | undefined,
+): CaseSchedulingMetadata | null {
+  if (!caseDto?.context) return null;
+  const ctx = caseDto.context as unknown as Record<string, unknown>;
+  const metadata = (ctx.schedulingMetadata ??
+    (ctx.data as Record<string, unknown> | undefined)?.schedulingMetadata) as
+    | CaseSchedulingMetadata
+    | undefined;
+  return metadata ?? null;
+}
+
 export type AutomationStateDto = {
   enabled: boolean;
   disabledReason: string | null;

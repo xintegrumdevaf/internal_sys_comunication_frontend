@@ -161,19 +161,26 @@ describe("useCaseActions", () => {
     expect(onChanged).toHaveBeenCalledTimes(1);
   });
 
-  it("schedule llama a scheduleCase con scheduledAt y reminderReason", async () => {
+  it("schedule llama a scheduleCase con scheduledAt, scheduleTag y reminderReason", async () => {
     scheduleCaseMock.mockResolvedValueOnce({ id: "case_1", status: "WAITING_USER" });
     const onChanged = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() => useCaseActions(session, onChanged));
 
     let ok: boolean | undefined;
     await act(async () => {
-      ok = await result.current.schedule("case_1", "2026-09-25T10:00:00.000Z", "Verificar servicio");
+      ok = await result.current.schedule(
+        "case_1",
+        "2026-09-25T10:00:00.000Z",
+        "MONITOREO",
+        "Verificar servicio",
+      );
     });
 
     expect(ok).toBe(true);
     expect(scheduleCaseMock).toHaveBeenCalledWith("case_1", {
       scheduledAt: "2026-09-25T10:00:00.000Z",
+      scheduleTag: "MONITOREO",
+      tag: "MONITOREO",
       reminderReason: "Verificar servicio",
     });
     expect(toastSuccess).toHaveBeenCalledWith("Seguimiento agendado correctamente");

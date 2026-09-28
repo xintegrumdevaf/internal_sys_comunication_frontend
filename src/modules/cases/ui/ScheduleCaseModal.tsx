@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calendar, Clock, Loader2, Sparkles } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Clock, Loader2, Tag as TagIcon, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,68 @@ import {
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (scheduledAt: string, reminderReason?: string) => Promise<boolean | void>;
+  onConfirm: (
+    scheduledAt: string,
+    scheduleTag?: string,
+    reminderReason?: string,
+  ) => Promise<boolean | void>;
   busy?: boolean;
 };
+
+export const DEFAULT_SCHEDULE_TAGS = [
+  { value: "AGENDADO", label: "AGENDADO — Seguimiento estándar" },
+  { value: "POSPUESTO", label: "POSPUESTO — Postergado por el cliente" },
+  { value: "MONITOREO", label: "MONITOREO — En observación técnica" },
+  { value: "REVISION_TECNICA", label: "REVISION_TECNICA — Revisión en nodo/campo" },
+  { value: "LLAMAR_LUEGO", label: "LLAMAR_LUEGO — Contactar en horario preferido" },
+  { value: "PAGO_PENDIENTE", label: "PAGO_PENDIENTE — Esperando pago o comprobante" },
+  { value: "CONFIRMACION_SERVICIO", label: "CONFIRMACION_SERVICIO — Validar calidad tras mantenimiento" },
+];
+
+const CUSTOM_TAGS_STORAGE_KEY = "custom_schedule_tags";
+
+function getSavedCustomTags(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_TAGS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.map((s) => String(s).trim().toUpperCase()).filter(Boolean)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistCustomTag(tag: string): string[] {
+  const normalized = tag.trim().toUpperCase();
+  if (!normalized || normalized === "OTRO") return getSavedCustomTags();
+  const existing = getSavedCustomTags();
+  const isDefault = DEFAULT_SCHEDULE_TAGS.some((t) => t.value === normalized);
+  if (isDefault || existing.includes(normalized)) {
+    return existing;
+  }
+  const updated = [...existing, normalized];
+  try {
+    localStorage.setItem(CUSTOM_TAGS_STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // localStorage fallback
+  }
+  return updated;
+}
+
+function removePersistedCustomTag(tag: string): string[] {
+  const normalized = tag.trim().toUpperCase();
+  const existing = getSavedCustomTags();
+  const updated = existing.filter((t) => t !== normalized);
+  try {
+    localStorage.setItem(CUSTOM_TAGS_STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // localStorage fallback
+  }
+  return updated;
+}
 
 /** Formatea una fecha JS a una cadena local utilizable por <input type="datetime-local"> (YYYY-MM-THH:mm). */
 function toLocalDatetimeString(date: Date): string {
@@ -28,18 +87,23 @@ function toLocalDatetimeString(date: Date): string {
 
 export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props) {
   const [scheduledDatetime, setScheduledDatetime] = useState<string>("");
+  const [selectedTag, setSelectedTag] = useState<string>("AGENDADO");
+  const [customTag, setCustomTag] = useState<string>("");
   const [reminderReason, setReminderReason] = useState<string>("");
+  const [savedCustomTags, setSavedCustomTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      // Default: mañana a las 10:00 AM
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(10, 0, 0, 0);
       setScheduledDatetime(toLocalDatetimeString(tomorrow));
+      setSelectedTag("AGENDADO");
+      setCustomTag("");
       setReminderReason("");
       setSubmitting(false);
+      setSavedCustomTags(getSavedCustomTags());
     }
   }, [open]);
 
@@ -56,15 +120,32 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     setScheduledDatetime(toLocalDatetimeString(d));
   };
 
+  const handleRemoveCustomTag = (tagToRemove: string) => {
+    const updated = removePersistedCustomTag(tagToRemove);
+    setSavedCustomTags(updated);
+    if (selectedTag === tagToRemove) {
+      setSelectedTag("AGENDADO");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scheduledDatetime) return;
+
+    let finalTag = selectedTag;
+    if (selectedTag === "OTRO") {
+      finalTag = customTag.trim().toUpperCase() || "AGENDADO";
+      if (finalTag !== "AGENDADO" && finalTag !== "OTRO") {
+        const updatedTags = persistCustomTag(finalTag);
+        setSavedCustomTags(updatedTags);
+      }
+    }
 
     setSubmitting(true);
     try {
       const dateObj = new Date(scheduledDatetime);
       const isoString = dateObj.toISOString();
-      const ok = await onConfirm(isoString, reminderReason.trim() || undefined);
+      const ok = await onConfirm(isoString, finalTag, reminderReason.trim() || undefined);
       if (ok !== false) {
         onOpenChange(false);
       }
@@ -74,6 +155,10 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
   };
 
   const isLoading = busy || submitting;
+  const currentBadgeTag =
+    selectedTag === "OTRO"
+      ? customTag.trim().toUpperCase() || "NUEVA ETIQUETA"
+      : selectedTag;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,11 +169,91 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
             Agendar Seguimiento / Poner en Espera
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            El caso pasará al estado "En Espera" y se generará una notificación interna en la fecha seleccionada.
+            Selecciona la etiqueta descriptiva del agendamiento. Las nuevas etiquetas que ingreses se guardarán para ser reutilizadas en futuros casos.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {/* Selector desplegable de Etiquetas Disponibles */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <TagIcon className="size-3.5 text-amber-500" />
+                Etiqueta de Agendamiento <span className="text-danger">*</span>
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                🏷️ {currentBadgeTag}
+              </span>
+            </label>
+
+            <select
+              value={selectedTag}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedTag(val);
+                if (val !== "OTRO") {
+                  setCustomTag("");
+                }
+              }}
+              className="w-full text-xs p-3 rounded-xl border border-border bg-background font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            >
+              <optgroup label="Etiquetas Estándar">
+                {DEFAULT_SCHEDULE_TAGS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </optgroup>
+
+              {savedCustomTags.length > 0 && (
+                <optgroup label="Etiquetas Guardadas Reutilizables">
+                  {savedCustomTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag} (Guardada)
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              <optgroup label="Crear Nueva">
+                <option value="OTRO">OTRO — Crear nueva etiqueta personalizada...</option>
+              </optgroup>
+            </select>
+
+            {/* Campo para ingresar nueva etiqueta personalizada */}
+            {selectedTag === "OTRO" && (
+              <div className="space-y-1 pt-1 animate-fade-in">
+                <input
+                  type="text"
+                  autoFocus
+                  required
+                  value={customTag}
+                  onChange={(e) => setCustomTag(e.target.value)}
+                  placeholder="Ej: INFORMATIVO-ADMINISTRATIVO"
+                  className="w-full text-xs p-3 rounded-xl border border-amber-500/60 bg-background font-mono uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                />
+                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                  💡 Al guardar, esta etiqueta estará disponible de inmediato en la lista desplegable para tus siguientes agendamientos.
+                </p>
+              </div>
+            )}
+
+            {/* Gestión / Eliminación de etiquetas personalizadas guardadas si se desea limpiar */}
+            {savedCustomTags.includes(selectedTag) && (
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[10px] text-muted-foreground">Etiqueta guardada localmente</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustomTag(selectedTag)}
+                  className="text-[10px] text-danger hover:underline flex items-center gap-1 cursor-pointer"
+                  title="Eliminar esta etiqueta de la lista desplegable guardada"
+                >
+                  <Trash2 className="size-2.5" /> Eliminar de la lista
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Selector de Fecha y Hora */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-foreground block">
@@ -104,49 +269,49 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
               />
             </div>
 
-            {/* Accesos rápidos / Presets */}
+            {/* Accesos rápidos / Presets de fecha */}
             <div className="flex flex-wrap gap-1.5 pt-1">
               <button
                 type="button"
                 onClick={() => applyPreset({ hours: 1 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition"
+                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
               >
                 +1 hora
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset({ hours: 4 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition"
+                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
               >
                 +4 horas
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset({ days: 1, setTime: 10 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition"
+                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
               >
                 Mañana 10:00 AM
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset({ days: 2, setTime: 10 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition"
+                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
               >
                 En 2 días
               </button>
             </div>
           </div>
 
-          {/* Motivo del recordatorio */}
+          {/* Motivo o Detalle adicional opcional */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground block">
-              Motivo del recordatorio <span className="text-muted-foreground font-normal">(opcional)</span>
+              Nota / Detalle adicional <span className="text-muted-foreground font-normal">(opcional)</span>
             </label>
             <input
               type="text"
               value={reminderReason}
               onChange={(e) => setReminderReason(e.target.value)}
-              placeholder="Ej: Verificar calidad de navegación con el cliente tras mantenimiento"
+              placeholder="Ej: Cliente solicitó probar servicio durante la noche"
               className="w-full text-xs p-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -156,14 +321,14 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
               type="button"
               disabled={isLoading}
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 rounded-lg border border-border text-xs font-semibold hover:bg-foreground/5 transition disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-border text-xs font-semibold hover:bg-foreground/5 transition disabled:opacity-50 cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading || !scheduledDatetime}
-              className="px-4 py-2 rounded-lg bg-amber-500 text-white text-xs font-bold shadow-sm hover:brightness-95 transition disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg bg-amber-500 text-white text-xs font-bold shadow-sm hover:brightness-95 transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               {isLoading && <Loader2 className="size-3.5 animate-spin" />}
               Confirmar Agendamiento

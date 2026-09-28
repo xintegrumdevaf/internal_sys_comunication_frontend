@@ -80,6 +80,8 @@ export function completeCase(
 
 export type ScheduleCasePayload = {
   scheduledAt: string;
+  scheduleTag?: string;
+  tag?: string;
   reminderReason?: string;
 };
 

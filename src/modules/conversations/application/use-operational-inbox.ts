@@ -396,9 +396,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       activeCase
         ? caseActions.complete(activeCase.id, closeReason ?? "RESOLVED", note)
         : Promise.resolve(false),
-    schedule: (scheduledAt: string, reminderReason?: string) =>
+    schedule: (scheduledAt: string, scheduleTag?: string, reminderReason?: string) =>
       activeCase
-        ? caseActions.schedule(activeCase.id, scheduledAt, reminderReason)
+        ? caseActions.schedule(activeCase.id, scheduledAt, scheduleTag, reminderReason)
         : Promise.resolve(false),
     cancel: (reason: string) =>
       activeCase ? caseActions.cancel(activeCase.id, reason) : Promise.resolve(false),

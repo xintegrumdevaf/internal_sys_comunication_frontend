@@ -222,7 +222,10 @@ export function useRealtimeSession(userId: string | null): void {
           });
         }
       } else if (event.type === "CASE_SCHEDULED_REMINDER") {
-        const reason = event.reminderReason || "Es momento de verificar el caso agendado";
+        const tagTitle = event.scheduleTag ? `🏷️ [${event.scheduleTag}] ` : "";
+        const reason = event.reminderReason
+          ? `${tagTitle}${event.reminderReason}`
+          : `${tagTitle}Es momento de verificar el caso agendado`;
         toast.info("⏰ Recordatorio de Caso Agendado", {
           description: reason,
           duration: 10000,

@@ -39,7 +39,7 @@ import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
 import { calculateConversationSla, formatSlaWaitTime } from "@/modules/sla/domain/sla-config";
 import { SlaSettingsModal } from "@/modules/sla/ui/SlaSettingsModal";
 
-import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
+import { caseStatusLabel, extractSchedulingMetadata, workflowLabel } from "@/modules/cases/domain/case";
 import {
   conversationDisplayName,
   conversationStatusLabel,
@@ -226,8 +226,12 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
-  const handleSchedule = async (scheduledAt: string, reminderReason?: string) => {
-    const ok = await schedule(scheduledAt, reminderReason);
+  const handleSchedule = async (
+    scheduledAt: string,
+    scheduleTag?: string,
+    reminderReason?: string,
+  ) => {
+    const ok = await schedule(scheduledAt, scheduleTag, reminderReason);
     if (ok !== false) {
       setStatusFilter("pending");
       await reload({ silent: true });
@@ -699,10 +703,21 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
                         </span>
                       )}
                       {c.status === "pending" || c.activeCase?.status === "WAITING_USER" ? (
-                        <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30">
-                          <Clock className="size-2.5 text-amber-500" />
-                          <span>En Espera</span>
-                        </span>
+                        (() => {
+                          const scheduling = extractSchedulingMetadata(c.activeCase);
+                          const tagLabel = scheduling?.scheduleTag
+                            ? `En Espera: ${scheduling.scheduleTag}`
+                            : "En Espera";
+                          return (
+                            <span
+                              className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30"
+                              title={scheduling?.reminderReason ? `Nota: ${scheduling.reminderReason}` : tagLabel}
+                            >
+                              <Clock className="size-2.5 text-amber-500" />
+                              <span>{tagLabel}</span>
+                            </span>
+                          );
+                        })()
                       ) : (
                         <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
                           {conversationStatusLabel(c.status)}

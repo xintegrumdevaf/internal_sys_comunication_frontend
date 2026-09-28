@@ -5,6 +5,7 @@ export type UiNotification = {
   caseId: string;
   conversationId?: string;
   departmentId?: string | null;
+  scheduleTag?: string | null;
   reminderReason?: string | null;
   scheduledAt?: string;
   /** true si HUMAN_ASSIGNED me asigno el caso a mi o si el recordatorio es para mi. */
