@@ -21,6 +21,7 @@ import { Route as ConocimientoRouteImport } from './routes/conocimiento'
 import { Route as DashboardGerencialRouteImport } from './routes/dashboard-gerencial'
 import { Route as DepartamentosRouteImport } from './routes/departamentos'
 import { Route as EscalacionesRouteImport } from './routes/escalaciones'
+import { Route as EtiquetasRouteImport } from './routes/etiquetas'
 import { Route as FlujosRouteImport } from './routes/flujos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlantillasRouteImport } from './routes/plantillas'
@@ -89,6 +90,11 @@ const EscalacionesRoute = EscalacionesRouteImport.update({
   path: '/escalaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EtiquetasRoute = EtiquetasRouteImport.update({
+  id: '/etiquetas',
+  path: '/etiquetas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FlujosRoute = FlujosRouteImport.update({
   id: '/flujos',
   path: '/flujos',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
+  '/etiquetas': typeof EtiquetasRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
+  '/etiquetas': typeof EtiquetasRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
+  '/etiquetas': typeof EtiquetasRoute
   '/flujos': typeof FlujosRoute
   '/login': typeof LoginRoute
   '/plantillas': typeof PlantillasRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
+    | '/etiquetas'
     | '/flujos'
     | '/login'
     | '/plantillas'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
+    | '/etiquetas'
     | '/flujos'
     | '/login'
     | '/plantillas'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
+    | '/etiquetas'
     | '/flujos'
     | '/login'
     | '/plantillas'
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   DashboardGerencialRoute: typeof DashboardGerencialRoute
   DepartamentosRoute: typeof DepartamentosRoute
   EscalacionesRoute: typeof EscalacionesRoute
+  EtiquetasRoute: typeof EtiquetasRoute
   FlujosRoute: typeof FlujosRoute
   LoginRoute: typeof LoginRoute
   PlantillasRoute: typeof PlantillasRoute
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EscalacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/etiquetas': {
+      id: '/etiquetas'
+      path: '/etiquetas'
+      fullPath: '/etiquetas'
+      preLoaderRoute: typeof EtiquetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/flujos': {
       id: '/flujos'
       path: '/flujos'
@@ -428,6 +448,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardGerencialRoute: DashboardGerencialRoute,
   DepartamentosRoute: DepartamentosRoute,
   EscalacionesRoute: EscalacionesRoute,
+  EtiquetasRoute: EtiquetasRoute,
   FlujosRoute: FlujosRoute,
   LoginRoute: LoginRoute,
   PlantillasRoute: PlantillasRoute,

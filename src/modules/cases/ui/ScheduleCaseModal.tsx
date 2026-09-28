@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Clock, Loader2, Tag as TagIcon, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, Loader2, Tag as TagIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  loadTagsFromStorage,
+  createTagInStorage,
+} from "@/modules/tags/infrastructure/tags.storage";
+import type { TagItem } from "@/modules/tags/domain/tag";
 
 type Props = {
   open: boolean;
@@ -18,61 +23,6 @@ type Props = {
   ) => Promise<boolean | void>;
   busy?: boolean;
 };
-
-export const DEFAULT_SCHEDULE_TAGS = [
-  { value: "AGENDADO", label: "AGENDADO — Seguimiento estándar" },
-  { value: "POSPUESTO", label: "POSPUESTO — Postergado por el cliente" },
-  { value: "MONITOREO", label: "MONITOREO — En observación técnica" },
-  { value: "REVISION_TECNICA", label: "REVISION_TECNICA — Revisión en nodo/campo" },
-  { value: "LLAMAR_LUEGO", label: "LLAMAR_LUEGO — Contactar en horario preferido" },
-  { value: "PAGO_PENDIENTE", label: "PAGO_PENDIENTE — Esperando pago o comprobante" },
-  { value: "CONFIRMACION_SERVICIO", label: "CONFIRMACION_SERVICIO — Validar calidad tras mantenimiento" },
-];
-
-const CUSTOM_TAGS_STORAGE_KEY = "custom_schedule_tags";
-
-function getSavedCustomTags(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(CUSTOM_TAGS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.map((s) => String(s).trim().toUpperCase()).filter(Boolean)
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistCustomTag(tag: string): string[] {
-  const normalized = tag.trim().toUpperCase();
-  if (!normalized || normalized === "OTRO") return getSavedCustomTags();
-  const existing = getSavedCustomTags();
-  const isDefault = DEFAULT_SCHEDULE_TAGS.some((t) => t.value === normalized);
-  if (isDefault || existing.includes(normalized)) {
-    return existing;
-  }
-  const updated = [...existing, normalized];
-  try {
-    localStorage.setItem(CUSTOM_TAGS_STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // localStorage fallback
-  }
-  return updated;
-}
-
-function removePersistedCustomTag(tag: string): string[] {
-  const normalized = tag.trim().toUpperCase();
-  const existing = getSavedCustomTags();
-  const updated = existing.filter((t) => t !== normalized);
-  try {
-    localStorage.setItem(CUSTOM_TAGS_STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // localStorage fallback
-  }
-  return updated;
-}
 
 /** Formatea una fecha JS a una cadena local utilizable por <input type="datetime-local"> (YYYY-MM-THH:mm). */
 function toLocalDatetimeString(date: Date): string {
@@ -90,7 +40,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
   const [selectedTag, setSelectedTag] = useState<string>("AGENDADO");
   const [customTag, setCustomTag] = useState<string>("");
   const [reminderReason, setReminderReason] = useState<string>("");
-  const [savedCustomTags, setSavedCustomTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -103,9 +53,18 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
       setCustomTag("");
       setReminderReason("");
       setSubmitting(false);
-      setSavedCustomTags(getSavedCustomTags());
+      setAvailableTags(loadTagsFromStorage());
     }
   }, [open]);
+
+  // Escuchar eventos de actualización de etiquetas del sistema
+  useEffect(() => {
+    const handleUpdate = () => {
+      setAvailableTags(loadTagsFromStorage());
+    };
+    window.addEventListener("tags-updated", handleUpdate);
+    return () => window.removeEventListener("tags-updated", handleUpdate);
+  }, []);
 
   const applyPreset = (minutesOrDays: { hours?: number; days?: number; setTime?: number }) => {
     const d = new Date();
@@ -120,14 +79,6 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     setScheduledDatetime(toLocalDatetimeString(d));
   };
 
-  const handleRemoveCustomTag = (tagToRemove: string) => {
-    const updated = removePersistedCustomTag(tagToRemove);
-    setSavedCustomTags(updated);
-    if (selectedTag === tagToRemove) {
-      setSelectedTag("AGENDADO");
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scheduledDatetime) return;
@@ -136,8 +87,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     if (selectedTag === "OTRO") {
       finalTag = customTag.trim().toUpperCase() || "AGENDADO";
       if (finalTag !== "AGENDADO" && finalTag !== "OTRO") {
-        const updatedTags = persistCustomTag(finalTag);
-        setSavedCustomTags(updatedTags);
+        createTagInStorage(finalTag, "#f59e0b", "Etiqueta creada durante agendamiento");
       }
     }
 
@@ -169,7 +119,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
             Agendar Seguimiento / Poner en Espera
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Selecciona la etiqueta descriptiva del agendamiento. Las nuevas etiquetas que ingreses se guardarán para ser reutilizadas en futuros casos.
+            Selecciona la etiqueta descriptiva del agendamiento. Las etiquetas creadas están sincronizadas con la sección de Etiquetas de la barra lateral.
           </DialogDescription>
         </DialogHeader>
 
@@ -197,23 +147,13 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
               }}
               className="w-full text-xs p-3 rounded-xl border border-border bg-background font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
             >
-              <optgroup label="Etiquetas Estándar">
-                {DEFAULT_SCHEDULE_TAGS.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
+              <optgroup label="Etiquetas Disponibles del Sistema">
+                {availableTags.map((t) => (
+                  <option key={t.id} value={t.name}>
+                    {t.name} {t.description ? `— ${t.description}` : ""}
                   </option>
                 ))}
               </optgroup>
-
-              {savedCustomTags.length > 0 && (
-                <optgroup label="Etiquetas Guardadas Reutilizables">
-                  {savedCustomTags.map((tag) => (
-                    <option key={tag} value={tag}>
-                      {tag} (Guardada)
-                    </option>
-                  ))}
-                </optgroup>
-              )}
 
               <optgroup label="Crear Nueva">
                 <option value="OTRO">OTRO — Crear nueva etiqueta personalizada...</option>
@@ -233,23 +173,8 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                   className="w-full text-xs p-3 rounded-xl border border-amber-500/60 bg-background font-mono uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                 />
                 <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                  💡 Al guardar, esta etiqueta estará disponible de inmediato en la lista desplegable para tus siguientes agendamientos.
+                  💡 Al guardar, esta etiqueta se registrará automáticamente en la sección de Etiquetas para reutilizarla.
                 </p>
-              </div>
-            )}
-
-            {/* Gestión / Eliminación de etiquetas personalizadas guardadas si se desea limpiar */}
-            {savedCustomTags.includes(selectedTag) && (
-              <div className="flex items-center justify-between pt-0.5">
-                <span className="text-[10px] text-muted-foreground">Etiqueta guardada localmente</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveCustomTag(selectedTag)}
-                  className="text-[10px] text-danger hover:underline flex items-center gap-1 cursor-pointer"
-                  title="Eliminar esta etiqueta de la lista desplegable guardada"
-                >
-                  <Trash2 className="size-2.5" /> Eliminar de la lista
-                </button>
               </div>
             )}
           </div>

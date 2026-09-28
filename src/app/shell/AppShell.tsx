@@ -22,6 +22,7 @@ import {
   Sparkles,
   Power,
   Zap,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -65,6 +66,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/campanas": Megaphone,
   "/plantillas": LayoutTemplate,
   "/respuestas-rapidas": Zap,
+  "/etiquetas": Tag,
   "/auditoria": ShieldCheck,
   "/conocimiento": BrainCircuit,
   "/prompts": Sparkles,
