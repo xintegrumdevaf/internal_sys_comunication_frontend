@@ -70,7 +70,7 @@ export function MessageTemplatesCatalog() {
   };
 
   return (
-    <div className="flex-1 flex flex-col space-y-4 max-w-7xl mx-auto w-full animate-fade-in">
+    <div className="flex-1 flex flex-col space-y-4 w-full animate-fade-in pb-8">
       {/* Header de la sección */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
         <div>

@@ -56,6 +56,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/analytics": BarChart3,
   "/dashboard-gerencial": BarChart3,
   "/bandeja": Inbox,
+  "/contactos": Users,
   "/chat-interno": MessagesSquare,
   "/escalaciones": ArrowRightLeft,
   "/asignaciones": Users,

@@ -18,6 +18,7 @@ import { Route as CalidadRouteImport } from './routes/calidad'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as ChatInternoRouteImport } from './routes/chat-interno'
 import { Route as ConocimientoRouteImport } from './routes/conocimiento'
+import { Route as ContactosRouteImport } from './routes/contactos'
 import { Route as DashboardGerencialRouteImport } from './routes/dashboard-gerencial'
 import { Route as DepartamentosRouteImport } from './routes/departamentos'
 import { Route as EscalacionesRouteImport } from './routes/escalaciones'
@@ -73,6 +74,11 @@ const ChatInternoRoute = ChatInternoRouteImport.update({
 const ConocimientoRoute = ConocimientoRouteImport.update({
   id: '/conocimiento',
   path: '/conocimiento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactosRoute = ContactosRouteImport.update({
+  id: '/contactos',
+  path: '/contactos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardGerencialRoute = DashboardGerencialRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/conocimiento': typeof ConocimientoRoute
+  '/contactos': typeof ContactosRoute
   '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/conocimiento': typeof ConocimientoRoute
+  '/contactos': typeof ContactosRoute
   '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
   '/conocimiento': typeof ConocimientoRoute
+  '/contactos': typeof ContactosRoute
   '/dashboard-gerencial': typeof DashboardGerencialRoute
   '/departamentos': typeof DepartamentosRoute
   '/escalaciones': typeof EscalacionesRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/campanas'
     | '/chat-interno'
     | '/conocimiento'
+    | '/contactos'
     | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/campanas'
     | '/chat-interno'
     | '/conocimiento'
+    | '/contactos'
     | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
@@ -254,6 +265,7 @@ export interface FileRouteTypes {
     | '/campanas'
     | '/chat-interno'
     | '/conocimiento'
+    | '/contactos'
     | '/dashboard-gerencial'
     | '/departamentos'
     | '/escalaciones'
@@ -277,6 +289,7 @@ export interface RootRouteChildren {
   CampanasRoute: typeof CampanasRoute
   ChatInternoRoute: typeof ChatInternoRoute
   ConocimientoRoute: typeof ConocimientoRoute
+  ContactosRoute: typeof ContactosRoute
   DashboardGerencialRoute: typeof DashboardGerencialRoute
   DepartamentosRoute: typeof DepartamentosRoute
   EscalacionesRoute: typeof EscalacionesRoute
@@ -353,6 +366,13 @@ declare module '@tanstack/react-router' {
       path: '/conocimiento'
       fullPath: '/conocimiento'
       preLoaderRoute: typeof ConocimientoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contactos': {
+      id: '/contactos'
+      path: '/contactos'
+      fullPath: '/contactos'
+      preLoaderRoute: typeof ContactosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard-gerencial': {
@@ -445,6 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampanasRoute: CampanasRoute,
   ChatInternoRoute: ChatInternoRoute,
   ConocimientoRoute: ConocimientoRoute,
+  ContactosRoute: ContactosRoute,
   DashboardGerencialRoute: DashboardGerencialRoute,
   DepartamentosRoute: DepartamentosRoute,
   EscalacionesRoute: EscalacionesRoute,

@@ -16,7 +16,7 @@ import {
   UserCheck,
   PanelRightClose,
   Info,
-  ArrowLeft,
+  ArrowLeft, Edit2,
   Zap,
   FileText,
 } from "lucide-react";
@@ -831,14 +831,34 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-bold truncate">
-                      {conversationDisplayName(selected)}
-                    </p>
-                    <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                      {selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}
-                      {activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}
-                      {activeCase ? ` · ${workflowLabel(activeCase.workflowType).label}` : ""}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs sm:text-sm font-bold truncate">
+                        {selectedCustomer?.fullName || conversationDisplayName(selected)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenContact()}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-primary bg-muted/70 hover:bg-primary/10 border border-border transition cursor-pointer shrink-0"
+                        title="Editar datos del contacto (Nombre, cédula, contratos ISP, etiquetas)"
+                      >
+                        <Edit2 className="size-2.5 text-primary" />
+                        <span className="hidden sm:inline">Editar contacto</span>
+                        <span className="sm:hidden">Editar</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground truncate">
+                      <span>{selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}</span>
+                      <span>{activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}</span>
+                      {activeCase && <span>{` · ${workflowLabel(activeCase.workflowType).label}`}</span>}
+                      {selectedCustomer?.contracts && selectedCustomer.contracts.length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20 shrink-0 ml-1">
+                          <FileText className="size-2.5" />
+                          {selectedCustomer.contracts.length === 1
+                            ? "1 contrato"
+                            : `${selectedCustomer.contracts.length} contratos`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -1208,8 +1228,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
               <CasePanel
                 caseDto={activeCase}
-                customerName={selected ? conversationDisplayName(selected) : undefined}
+                customerName={selectedCustomer?.fullName || (selected ? conversationDisplayName(selected) : undefined)}
                 customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
+                customerTags={selectedCustomer?.tags}
+                customerContractsCount={selectedCustomer?.contracts?.length}
+                onOpenContact={() => void handleOpenContact()}
                 busy={busy}
                 canWrite={canWriteCase}
                 departments={departments}
@@ -1258,8 +1281,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             <CasePanel
               caseDto={activeCase}
-              customerName={selected ? conversationDisplayName(selected) : undefined}
-              customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
+              customerName={selectedCustomer?.fullName || (selected ? conversationDisplayName(selected) : undefined)}
+                customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
+                customerTags={selectedCustomer?.tags}
+                customerContractsCount={selectedCustomer?.contracts?.length}
+                onOpenContact={() => void handleOpenContact()}
               busy={busy}
               canWrite={canWriteCase}
               departments={departments}
@@ -1304,6 +1330,18 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
         onOpenChange={setCompleteModalOpen}
         onConfirm={handleComplete}
         busy={busy}
+      />
+
+      <ContactDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        customer={selectedCustomer}
+        initialPhone={selected?.waPhone}
+        initialName={selected?.waProfileName ?? undefined}
+        onSuccess={(saved) => {
+          setSelectedCustomer(saved);
+          void reload({ silent: true });
+        }}
       />
 
       <ScheduleCaseModal

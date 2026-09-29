@@ -109,6 +109,7 @@ describe("canAccessPath", () => {
     const session = makeSession({ role: "agent" });
     expect(canAccessPath(session, "/")).toBe(true);
     expect(canAccessPath(session, "/bandeja")).toBe(true);
+    expect(canAccessPath(session, "/contactos")).toBe(true);
     expect(canAccessPath(session, "/chat-interno")).toBe(true);
   });
 });
@@ -116,7 +117,7 @@ describe("canAccessPath", () => {
 describe("modulesForSession", () => {
   it("agent ve inicio, bandeja y chat interno", () => {
     const items = modulesForSession(makeSession({ role: "agent" })).map((m) => m.to);
-    expect(items).toEqual(["/", "/bandeja", "/chat-interno"]);
+    expect(items).toEqual(["/", "/bandeja", "/contactos", "/chat-interno", "/etiquetas"]);
   });
 
   it("manager suma escalaciones, asignaciones, calidad y campañas masivas", () => {

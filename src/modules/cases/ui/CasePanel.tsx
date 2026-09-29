@@ -1,3 +1,4 @@
+import { resolveTagHex, type TagItem } from "@/modules/tags/domain/tag";
 import { useState } from "react";
 import {
   Activity,
@@ -16,6 +17,7 @@ import {
   Sparkles,
   UserCircle2,
   UserRound,
+  Edit2,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -306,6 +308,9 @@ export function CasePanel({
   caseDto,
   customerName,
   customerPhone,
+  customerTags,
+  customerContractsCount,
+  onOpenContact,
   busy,
   canWrite,
   canManage: canManageProp,
@@ -324,6 +329,9 @@ export function CasePanel({
   /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
   customerName?: string;
   customerPhone?: string;
+  customerTags?: TagItem[];
+  customerContractsCount?: number;
+  onOpenContact?: () => void;
   busy: boolean;
   canWrite: boolean;
   canManage?: boolean;
@@ -407,10 +415,23 @@ export function CasePanel({
   const validatedName = caseDto ? clientNameFromCase(caseDto) : null;
 
   const customerCard = (customerName || customerPhone) && (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-      <SectionLabel icon={UserRound}>Cliente</SectionLabel>
+    <div className="bg-card border border-border rounded-xl p-4 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <SectionLabel icon={UserRound}>Cliente</SectionLabel>
+        {onOpenContact && (
+          <button
+            type="button"
+            onClick={onOpenContact}
+            className="p-1 px-2.5 rounded-lg text-primary bg-primary/10 hover:bg-primary/20 transition text-xs flex items-center gap-1.5 font-semibold cursor-pointer"
+            title="Ver y editar ficha del contacto"
+          >
+            <Edit2 className="size-3" />
+            <span className="text-[11px]">Editar contacto</span>
+          </button>
+        )}
+      </div>
       <div className="space-y-1.5 text-[11px] font-mono">
-        <DataRow label="Nombre de WhatsApp" value={customerName} />
+        <DataRow label="Nombre" value={customerName} />
         {customerPhone && (
           <div className="flex justify-between gap-2 items-center">
             <span className="text-muted-foreground flex items-center gap-1">
@@ -422,7 +443,31 @@ export function CasePanel({
         {validatedName && validatedName !== customerName && (
           <DataRow label="Nombre validado (cédula)" value={validatedName} />
         )}
+        {customerContractsCount !== undefined && customerContractsCount > 0 && (
+          <DataRow label="Contratos ISP" value={`${customerContractsCount} contrato(s)`} />
+        )}
       </div>
+      {customerTags && customerTags.length > 0 && (
+        <div className="pt-1 flex flex-wrap gap-1">
+          {customerTags.map((tag) => {
+            const hex = resolveTagHex(tag.color);
+            return (
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 rounded-full text-[10px] font-semibold border flex items-center gap-1"
+                style={{
+                  borderColor: `${hex}50`,
+                  color: hex,
+                  backgroundColor: `${hex}18`,
+                }}
+              >
+                <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: hex }} />
+                <span>{tag.name}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 

@@ -42,7 +42,7 @@ const SUPERVISOR_PATHS = new Set([
   "/respuestas-rapidas",
   "/etiquetas",
 ]);
-const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/chat-interno", "/etiquetas"]);
+const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/contactos", "/chat-interno", "/etiquetas"]);
 
 export function canAccessPath(session: SessionUser | null | undefined, pathname: string): boolean {
   if (!session) return pathname === "/login";
@@ -60,6 +60,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   const base: NavItem[] = [
     { label: "Inicio", to: "/" },
     { label: "Conversaciones", to: "/bandeja" },
+    { label: "Contactos", to: "/contactos" },
     { label: "Chat interno", to: "/chat-interno" },
     { label: "Etiquetas", to: "/etiquetas" },
   ];
