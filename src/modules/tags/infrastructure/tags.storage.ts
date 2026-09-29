@@ -45,7 +45,7 @@ export function createTagInStorage(name: string, color?: string, description?: s
   const newTag: TagItem = {
     id: `tag-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     name: normalizedName,
-    color: color || "#64748b",
+    color: color || "#ffffff4d",
     description: description?.trim() || undefined,
     createdAt: new Date().toISOString(),
     isSystem: false,

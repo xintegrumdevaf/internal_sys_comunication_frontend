@@ -8,12 +8,11 @@ describe("TagsManagementView", () => {
     localStorage.clear();
   });
 
-  it("renderiza el título, buscador y lista de etiquetas iniciales", () => {
+  it("renderiza el buscador y lista de etiquetas iniciales", () => {
     render(<TagsManagementView />);
 
-    expect(screen.getByText("Etiquetas")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Buscar etiqueta...")).toBeInTheDocument();
-    expect(screen.getByText("+ Nueva etiqueta")).toBeInTheDocument();
+    expect(screen.getByText("Nueva etiqueta")).toBeInTheDocument();
     expect(screen.getByText("AGENDADO")).toBeInTheDocument();
     expect(screen.getByText("MONITOREO")).toBeInTheDocument();
   });
@@ -21,13 +20,13 @@ describe("TagsManagementView", () => {
   it("permite abrir el modal y crear una nueva etiqueta personalizada", () => {
     render(<TagsManagementView />);
 
-    const newBtn = screen.getByText("+ Nueva etiqueta");
+    const newBtn = screen.getByText("Nueva etiqueta");
     fireEvent.click(newBtn);
 
-    const inputName = screen.getByPlaceholderText(/Ej: INFORMATIVO-ADMINISTRATIVO/i);
+    const inputName = screen.getByPlaceholderText(/INFORMATIVO-ADMINISTRATIVO/i);
     fireEvent.change(inputName, { target: { value: "PROMO_SEPTIEMBRE" } });
 
-    const submitBtn = screen.getByText("Crear Etiqueta");
+    const submitBtn = screen.getByText("Agregar");
     fireEvent.click(submitBtn);
 
     expect(screen.getByText("PROMO_SEPTIEMBRE")).toBeInTheDocument();

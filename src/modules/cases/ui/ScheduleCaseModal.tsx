@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Clock, Loader2, Tag as TagIcon } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Clock, Loader2, Tag as TagIcon, Search, ChevronDown, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,11 +7,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  loadTagsFromStorage,
-  createTagInStorage,
-} from "@/modules/tags/infrastructure/tags.storage";
-import type { TagItem } from "@/modules/tags/domain/tag";
+import { loadTagsFromStorage } from "@/modules/tags/infrastructure/tags.storage";
+import { getTagColorPreset, type TagItem } from "@/modules/tags/domain/tag";
 
 type Props = {
   open: boolean;
@@ -38,10 +35,13 @@ function toLocalDatetimeString(date: Date): string {
 export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props) {
   const [scheduledDatetime, setScheduledDatetime] = useState<string>("");
   const [selectedTag, setSelectedTag] = useState<string>("AGENDADO");
-  const [customTag, setCustomTag] = useState<string>("");
+  const [tagSearch, setTagSearch] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [reminderReason, setReminderReason] = useState<string>("");
   const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -49,47 +49,59 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(10, 0, 0, 0);
       setScheduledDatetime(toLocalDatetimeString(tomorrow));
-      setSelectedTag("AGENDADO");
-      setCustomTag("");
+
+      const loaded = loadTagsFromStorage();
+      setAvailableTags(loaded);
+      const firstTag = loaded[0]?.name ?? "AGENDADO";
+      setSelectedTag(firstTag);
+      setTagSearch(firstTag);
       setReminderReason("");
+      setDropdownOpen(false);
       setSubmitting(false);
-      setAvailableTags(loadTagsFromStorage());
     }
   }, [open]);
 
   // Escuchar eventos de actualización de etiquetas del sistema
   useEffect(() => {
     const handleUpdate = () => {
-      setAvailableTags(loadTagsFromStorage());
+      const loaded = loadTagsFromStorage();
+      setAvailableTags(loaded);
     };
     window.addEventListener("tags-updated", handleUpdate);
     return () => window.removeEventListener("tags-updated", handleUpdate);
   }, []);
 
-  const applyPreset = (minutesOrDays: { hours?: number; days?: number; setTime?: number }) => {
-    const d = new Date();
-    if (minutesOrDays.hours) {
-      d.setHours(d.getHours() + minutesOrDays.hours);
-    } else if (minutesOrDays.days) {
-      d.setDate(d.getDate() + minutesOrDays.days);
-      if (minutesOrDays.setTime !== undefined) {
-        d.setHours(minutesOrDays.setTime, 0, 0, 0);
+  // Clic fuera para cerrar el menú desplegable de etiquetas
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
       }
-    }
-    setScheduledDatetime(toLocalDatetimeString(d));
-  };
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredTags = useMemo(() => {
+    const q = tagSearch.trim().toLowerCase();
+    if (!q) return availableTags;
+    return availableTags.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.description ?? "").toLowerCase().includes(q),
+    );
+  }, [availableTags, tagSearch]);
+
+  const activeTagItem = availableTags.find(
+    (t) => t.name.toUpperCase() === selectedTag.toUpperCase(),
+  );
+  const colorInfo = getTagColorPreset(activeTagItem?.color);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scheduledDatetime) return;
 
-    let finalTag = selectedTag;
-    if (selectedTag === "OTRO") {
-      finalTag = customTag.trim().toUpperCase() || "AGENDADO";
-      if (finalTag !== "AGENDADO" && finalTag !== "OTRO") {
-        createTagInStorage(finalTag, "#f59e0b", "Etiqueta creada durante agendamiento");
-      }
-    }
+    const finalTag = selectedTag.trim().toUpperCase() || "AGENDADO";
 
     setSubmitting(true);
     try {
@@ -105,10 +117,6 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
   };
 
   const isLoading = busy || submitting;
-  const currentBadgeTag =
-    selectedTag === "OTRO"
-      ? customTag.trim().toUpperCase() || "NUEVA ETIQUETA"
-      : selectedTag;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,62 +127,99 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
             Agendar Seguimiento / Poner en Espera
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Selecciona la etiqueta descriptiva del agendamiento. Las etiquetas creadas están sincronizadas con la sección de Etiquetas de la barra lateral.
+            Selecciona una de las etiquetas registradas en el sistema. El caso pasará al estado "En Espera" y generará un recordatorio en la fecha indicada.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          {/* Selector desplegable de Etiquetas Disponibles */}
-          <div className="space-y-2">
+          {/* Selector Buscable (Combobox) de Etiquetas Disponibles */}
+          <div className="space-y-2 relative" ref={containerRef}>
             <label className="text-xs font-bold text-foreground flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <TagIcon className="size-3.5 text-amber-500" />
                 Etiqueta de Agendamiento <span className="text-danger">*</span>
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                🏷️ {currentBadgeTag}
+              <span
+                className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase border transition ${colorInfo.bgCls} ${colorInfo.textCls} ${colorInfo.borderCls}`}
+                style={colorInfo.customStyle}
+              >
+                🏷️ {selectedTag}
               </span>
             </label>
 
-            <select
-              value={selectedTag}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedTag(val);
-                if (val !== "OTRO") {
-                  setCustomTag("");
-                }
-              }}
-              className="w-full text-xs p-3 rounded-xl border border-border bg-background font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-            >
-              <optgroup label="Etiquetas Disponibles del Sistema">
-                {availableTags.map((t) => (
-                  <option key={t.id} value={t.name}>
-                    {t.name} {t.description ? `— ${t.description}` : ""}
-                  </option>
-                ))}
-              </optgroup>
+            <div className="relative">
+              <Search className="size-4 absolute left-3 top-3 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                role="combobox"
+                aria-expanded={dropdownOpen}
+                value={dropdownOpen ? tagSearch : selectedTag}
+                onChange={(e) => {
+                  setTagSearch(e.target.value);
+                  setSelectedTag(e.target.value);
+                  setDropdownOpen(true);
+                }}
+                onFocus={() => {
+                  setTagSearch(selectedTag);
+                  setDropdownOpen(true);
+                }}
+                placeholder="Escribe para buscar o seleccionar etiqueta..."
+                className="w-full text-xs pl-9 pr-9 py-2.5 rounded-xl border border-border bg-card font-semibold font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition uppercase"
+              />
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                className="absolute right-2.5 top-2.5 p-0.5 text-muted-foreground hover:text-foreground transition cursor-pointer"
+              >
+                <ChevronDown className={`size-4 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+            </div>
 
-              <optgroup label="Crear Nueva">
-                <option value="OTRO">OTRO — Crear nueva etiqueta personalizada...</option>
-              </optgroup>
-            </select>
+            {/* Menú Desplegable con Filtro en Tiempo Real */}
+            {dropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto z-50 bg-card border border-border rounded-xl shadow-xl divide-y divide-border/40 animate-fade-down">
+                {filteredTags.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-muted-foreground italic">
+                    No se encontraron etiquetas que coincidan con "{tagSearch}"
+                  </div>
+                ) : (
+                  filteredTags.map((t) => {
+                    const isSelected = selectedTag.toUpperCase() === t.name.toUpperCase();
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTag(t.name);
+                          setTagSearch(t.name);
+                          setDropdownOpen(false);
+                        }}
+                        className={`w-full text-left p-2.5 hover:bg-foreground/5 transition flex items-center justify-between gap-2 cursor-pointer ${
+                          isSelected ? "bg-primary/10 font-bold" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span
+                            className="size-3 rounded-full shrink-0 shadow-xs"
+                            style={{ backgroundColor: t.color || "#64748b" }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-extrabold text-foreground font-mono text-xs block truncate">
+                              {t.name}
+                            </span>
+                            {t.description && (
+                              <span className="text-[11px] text-muted-foreground truncate block">
+                                {t.description}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-            {/* Campo para ingresar nueva etiqueta personalizada */}
-            {selectedTag === "OTRO" && (
-              <div className="space-y-1 pt-1 animate-fade-in">
-                <input
-                  type="text"
-                  autoFocus
-                  required
-                  value={customTag}
-                  onChange={(e) => setCustomTag(e.target.value)}
-                  placeholder="Ej: INFORMATIVO-ADMINISTRATIVO"
-                  className="w-full text-xs p-3 rounded-xl border border-amber-500/60 bg-background font-mono uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/30"
-                />
-                <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                  💡 Al guardar, esta etiqueta se registrará automáticamente en la sección de Etiquetas para reutilizarla.
-                </p>
+                        {isSelected && <Check className="size-4 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
@@ -192,38 +237,6 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                 onChange={(e) => setScheduledDatetime(e.target.value)}
                 className="w-full text-xs p-3 rounded-xl border border-border bg-background font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
-            </div>
-
-            {/* Accesos rápidos / Presets de fecha */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <button
-                type="button"
-                onClick={() => applyPreset({ hours: 1 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
-              >
-                +1 hora
-              </button>
-              <button
-                type="button"
-                onClick={() => applyPreset({ hours: 4 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
-              >
-                +4 horas
-              </button>
-              <button
-                type="button"
-                onClick={() => applyPreset({ days: 1, setTime: 10 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
-              >
-                Mañana 10:00 AM
-              </button>
-              <button
-                type="button"
-                onClick={() => applyPreset({ days: 2, setTime: 10 })}
-                className="px-2 py-1 rounded-md border border-border bg-card text-[11px] font-semibold hover:bg-foreground/5 transition cursor-pointer"
-              >
-                En 2 días
-              </button>
             </div>
           </div>
 
@@ -264,3 +277,4 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     </Dialog>
   );
 }
+

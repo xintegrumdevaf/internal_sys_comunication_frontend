@@ -53,30 +53,4 @@ describe("ScheduleCaseModal", () => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
-
-  it("allows selecting OTRO and entering a custom schedule tag", async () => {
-    const onOpenChange = vi.fn();
-    const onConfirm = vi.fn().mockResolvedValue(true);
-
-    render(
-      <ScheduleCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
-
-    const select = screen.getByRole("combobox");
-    fireEvent.change(select, { target: { value: "OTRO" } });
-
-    const customInput = screen.getByPlaceholderText(/INFORMATIVO-ADMINISTRATIVO/i);
-    fireEvent.change(customInput, { target: { value: "INFORMATIVO-ADMINISTRATIVO" } });
-
-    const submitBtn = screen.getByText(/Confirmar Agendamiento/i);
-    fireEvent.click(submitBtn);
-
-    await waitFor(() => {
-      expect(onConfirm).toHaveBeenCalledWith(
-        expect.any(String),
-        "INFORMATIVO-ADMINISTRATIVO",
-        undefined,
-      );
-    });
-  });
 });
