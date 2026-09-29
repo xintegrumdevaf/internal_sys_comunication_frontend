@@ -165,7 +165,14 @@ export function MessageMediaBody({
   // Mensaje Interactivo (botones o lista rápida estilo WhatsApp)
   let interactiveData:
     | { type: "buttons"; buttons: Array<{ id: string; title: string }> }
-    | { type: "list"; buttonText: string; sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }> }
+    | {
+        type: "list";
+        buttonText: string;
+        sections: Array<{
+          title: string;
+          rows: Array<{ id: string; title: string; description?: string }>;
+        }>;
+      }
     | null = null;
 
   if (message.caption) {
@@ -179,13 +186,13 @@ export function MessageMediaBody({
   // Fallback inteligente para mensajes que piden elegir opción (1 o 2 / 1️⃣ 2️⃣)
   if (!interactiveData && message.author === "ai" && bodyText) {
     // 1. Detección de lista numerada con emojis (1️⃣, 2️⃣, ...) o números (1., 2.)
-    const emojiMatches = Array.from(bodyText.matchAll(/([1-9])(?:️⃣|\.)\s*([^\n📍]+)/g));
+    const emojiMatches = Array.from(bodyText.matchAll(/([1-9])(?:\uFE0F?\u20E3|\.)\s*([^\n]+)/gu));
     if (emojiMatches.length >= 2) {
       interactiveData = {
         type: "buttons",
         buttons: emojiMatches.map((m) => {
           const num = m[1];
-          const rawTitle = m[2].trim();
+          const rawTitle = (m[2].split("📍")[0] ?? m[2]).trim();
           const cleanTitle = rawTitle.length > 17 ? rawTitle.slice(0, 16) + "…" : rawTitle;
           return {
             id: `option_${num}`,
@@ -215,7 +222,10 @@ export function MessageMediaBody({
   }
 
   if (interactiveData) {
-    const cleanedText = bodyText.replace(/\$\{[^}]+\}/g, "").replace(/\s{2,}/g, " ").trim();
+    const cleanedText = bodyText
+      .replace(/\$\{[^}]+\}/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
     return (
       <div className="space-y-2.5 max-w-sm">
         {cleanedText && <p className="whitespace-pre-wrap leading-relaxed">{cleanedText}</p>}
@@ -237,15 +247,19 @@ export function MessageMediaBody({
             <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
               📋 {interactiveData.buttonText || "Opciones disponibles"}:
             </div>
-            {interactiveData.sections.flatMap((s) => s.rows).map((row) => (
-              <div
-                key={row.id}
-                className="p-2 rounded-lg border border-primary/20 bg-background/70 text-xs space-y-0.5"
-              >
-                <p className="font-semibold text-primary">{row.title}</p>
-                {row.description && <p className="text-[11px] text-muted-foreground">{row.description}</p>}
-              </div>
-            ))}
+            {interactiveData.sections
+              .flatMap((s) => s.rows)
+              .map((row) => (
+                <div
+                  key={row.id}
+                  className="p-2 rounded-lg border border-primary/20 bg-background/70 text-xs space-y-0.5"
+                >
+                  <p className="font-semibold text-primary">{row.title}</p>
+                  {row.description && (
+                    <p className="text-[11px] text-muted-foreground">{row.description}</p>
+                  )}
+                </div>
+              ))}
           </div>
         )}
       </div>

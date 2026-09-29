@@ -87,7 +87,7 @@ export function ContactDialog({
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
   };
 
@@ -109,7 +109,7 @@ export function ContactDialog({
         }
         setSelectedTagIds(syncRes.customer.tags?.map((t) => t.id) || selectedTagIds);
         toast.success(
-          `Sincronizado con éxito: ${syncRes.contractsCount} contrato(s) y sectores: ${syncRes.syncedSectors.join(", ")}`
+          `Sincronizado con éxito: ${syncRes.contractsCount} contrato(s) y sectores: ${syncRes.syncedSectors.join(", ")}`,
         );
         onSuccess?.(syncRes.customer);
       } else {
@@ -129,7 +129,7 @@ export function ContactDialog({
         });
         const syncRes = await customerGateway.syncIsp(created.id, cleanId);
         toast.success(
-          `Contacto creado y sincronizado con ISP: ${syncRes.contractsCount} contrato(s)`
+          `Contacto creado y sincronizado con ISP: ${syncRes.contractsCount} contrato(s)`,
         );
         onSuccess?.(syncRes.customer);
         onOpenChange(false);
@@ -271,7 +271,8 @@ export function ContactDialog({
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1.5">
-              Si quien escribe es un tercero (familiar), la cédula permite vincular y enriquecer con los contratos del titular sin alterar el número de WhatsApp.
+              Si quien escribe es un tercero (familiar), la cédula permite vincular y enriquecer con
+              los contratos del titular sin alterar el número de WhatsApp.
             </p>
           </div>
 
@@ -318,11 +319,16 @@ export function ContactDialog({
             </label>
             <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-border bg-muted/20 dark:bg-muted/10 min-h-[48px] max-h-36 overflow-y-auto">
               {availableTags.length === 0 ? (
-                <span className="text-xs text-muted-foreground">No hay etiquetas creadas en el catálogo.</span>
+                <span className="text-xs text-muted-foreground">
+                  No hay etiquetas creadas en el catálogo.
+                </span>
               ) : (
                 availableTags.map((tag) => {
                   const isSelected = selectedTagIds.includes(tag.id);
-                  const hex = tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff" ? tag.color : "#64748b";
+                  const hex =
+                    tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff"
+                      ? tag.color
+                      : "#64748b";
 
                   return (
                     <button
@@ -339,7 +345,9 @@ export function ContactDialog({
                         className="size-2.5 rounded-full shrink-0 shadow-2xs"
                         style={{ backgroundColor: hex }}
                       />
-                      {isSelected && <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />}
+                      {isSelected && (
+                        <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />
+                      )}
                       <span className="truncate max-w-[160px]">{tag.name}</span>
                     </button>
                   );
@@ -375,21 +383,31 @@ export function ContactDialog({
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-[11px]">
                       <p className="text-muted-foreground">
-                        Sector: <span className="font-semibold text-foreground">{c.sector || "N/A"}</span>
+                        Sector:{" "}
+                        <span className="font-semibold text-foreground">{c.sector || "N/A"}</span>
                       </p>
                       <p className="text-muted-foreground truncate">
-                        OLT: <span className="font-semibold text-foreground">{c.oltName || "Sin OLT"}</span>
-                        {c.pon ? <span className="text-[10px] text-muted-foreground ml-1">(PON {c.pon})</span> : null}
+                        OLT:{" "}
+                        <span className="font-semibold text-foreground">
+                          {c.oltName || "Sin OLT"}
+                        </span>
+                        {c.pon ? (
+                          <span className="text-[10px] text-muted-foreground ml-1">
+                            (PON {c.pon})
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                     {c.serial && (
                       <p className="text-muted-foreground text-[11px] truncate">
-                        Serial / MAC: <span className="font-mono font-medium text-foreground">{c.serial}</span>
+                        Serial / MAC:{" "}
+                        <span className="font-mono font-medium text-foreground">{c.serial}</span>
                       </p>
                     )}
                     {c.address && (
                       <p className="text-muted-foreground text-[11px] pt-1 border-t border-border/40 mt-1 leading-snug break-words">
-                        <span className="font-semibold text-foreground">📍 Dirección:</span> {c.address}
+                        <span className="font-semibold text-foreground">📍 Dirección:</span>{" "}
+                        {c.address}
                       </p>
                     )}
                   </div>
