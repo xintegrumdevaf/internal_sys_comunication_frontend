@@ -267,10 +267,10 @@ export type CaseSchedulingMetadata = {
 };
 
 export function extractSchedulingMetadata(
-  caseDto: CaseDto | null | undefined,
+  caseDto?: CaseDto | { context?: unknown; [key: string]: unknown } | null,
 ): CaseSchedulingMetadata | null {
-  if (!caseDto?.context) return null;
-  const ctx = caseDto.context as unknown as Record<string, unknown>;
+  if (!caseDto || !("context" in caseDto) || !caseDto.context) return null;
+  const ctx = caseDto.context as Record<string, unknown>;
   const metadata = (ctx.schedulingMetadata ??
     (ctx.data as Record<string, unknown> | undefined)?.schedulingMetadata) as
     | CaseSchedulingMetadata

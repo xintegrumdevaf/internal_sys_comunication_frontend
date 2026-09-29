@@ -38,8 +38,11 @@ import type { ZernioSyncStatus } from "@/types/department";
 import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
 import { calculateConversationSla, formatSlaWaitTime } from "@/modules/sla/domain/sla-config";
 import { SlaSettingsModal } from "@/modules/sla/ui/SlaSettingsModal";
+import { ContactDialog } from "@/modules/customers/ui/ContactDialog";
+import { customerGateway } from "@/modules/customers/infrastructure/customer.gateway";
+import type { CustomerDto } from "@/modules/customers/domain/customer";
 
-import { caseStatusLabel, extractSchedulingMetadata, workflowLabel } from "@/modules/cases/domain/case";
+import { caseStatusLabel, extractSchedulingMetadata, workflowLabel, type CaseDto } from "@/modules/cases/domain/case";
 import {
   conversationDisplayName,
   conversationStatusLabel,
@@ -340,6 +343,58 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
     setMobileDetailsOpen(false);
   }, [selectedId]);
   const detailsOpen = detailsOverride ?? Boolean(activeCase);
+
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | null>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [, setLoadingContact] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!selected) {
+      setSelectedCustomer(null);
+      return;
+    }
+    const phone = selected.waPhone;
+    customerGateway
+      .list({ search: phone, limit: 1 })
+      .then((res) => {
+        if (!active) return;
+        const found = res.data?.find(
+          (c) => c.waPhone?.replace(/\D/g, "") === phone.replace(/\D/g, "")
+        );
+        setSelectedCustomer(found ?? null);
+      })
+      .catch(() => {
+        if (active) setSelectedCustomer(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selected?.waPhone]);
+
+  const handleOpenContact = async () => {
+    if (!selected) return;
+    if (selectedCustomer) {
+      setContactDialogOpen(true);
+      return;
+    }
+    setLoadingContact(true);
+    try {
+      const res = await customerGateway.list({ search: selected.waPhone, limit: 1 });
+      const found = res.data?.find(
+        (c) => c.waPhone?.replace(/\D/g, "") === selected.waPhone.replace(/\D/g, "")
+      );
+      if (found) {
+        setSelectedCustomer(found);
+      }
+      setContactDialogOpen(true);
+    } catch {
+      setContactDialogOpen(true);
+    } finally {
+      setLoadingContact(false);
+    }
+  };
 
   const { config: slaConfig } = useSlaConfig();
   const [slaModalOpen, setSlaModalOpen] = useState(false);
@@ -704,7 +759,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
                       )}
                       {c.status === "pending" || c.activeCase?.status === "WAITING_USER" ? (
                         (() => {
-                          const scheduling = extractSchedulingMetadata(c.activeCase);
+                          const scheduling = extractSchedulingMetadata(c.id === selected?.id ? activeCase : (c.activeCase as unknown as CaseDto));
                           const tagLabel = scheduling?.scheduleTag
                             ? `En Espera: ${scheduling.scheduleTag}`
                             : "En Espera";
@@ -1338,7 +1393,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
         customer={selectedCustomer}
         initialPhone={selected?.waPhone}
         initialName={selected?.waProfileName ?? undefined}
-        onSuccess={(saved) => {
+        onSuccess={(saved: CustomerDto) => {
           setSelectedCustomer(saved);
           void reload({ silent: true });
         }}
