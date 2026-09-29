@@ -20,6 +20,7 @@ export type ConversationDto = {
   id: string;
   waPhone: string;
   customerId: string | null;
+  customerName?: string | null;
   activeCaseId: string | null;
   status: ConversationStatus;
   lastActivityAt: string;
@@ -68,9 +69,13 @@ export function formatWaPhone(waPhone: string): string {
  * cae al teléfono formateado — nunca "Cliente" ni un placeholder inventado.
  */
 export function conversationDisplayName(
-  conversation: Pick<ConversationDto, "waPhone" | "waProfileName">,
+  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & { customerName?: string | null },
 ): string {
-  return conversation.waProfileName?.trim() || formatWaPhone(conversation.waPhone);
+  return (
+    conversation.customerName?.trim() ||
+    conversation.waProfileName?.trim() ||
+    formatWaPhone(conversation.waPhone)
+  );
 }
 
 const CONVERSATION_STATUS_LABELS: Record<ConversationStatus, string> = {

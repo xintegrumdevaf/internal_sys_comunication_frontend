@@ -80,7 +80,9 @@ const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
 ];
 
 function initialsFromProfileName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const clean = name.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+  const target = clean || name;
+  const parts = target.trim().split(/\s+/).filter(Boolean);
   return (
     parts
       .slice(0, 2)
@@ -99,16 +101,17 @@ function ConversationAvatar({
   conversation,
   size = "size-11",
 }: {
-  conversation: Pick<ConversationDto, "waPhone" | "waProfileName">;
+  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & { customerName?: string | null };
   size?: string;
 }) {
   const color = avatarColorFromSeed(conversation.waPhone);
+  const name = conversation.customerName?.trim() || conversation.waProfileName?.trim();
   return (
     <div
       className={`${size} rounded-full grid place-items-center shrink-0 font-bold text-sm ${color.bg} ${color.text}`}
     >
-      {conversation.waProfileName ? (
-        initialsFromProfileName(conversation.waProfileName)
+      {name ? (
+        initialsFromProfileName(name)
       ) : (
         <User className="size-1/2" />
       )}
@@ -720,7 +723,13 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
                   }`}
                 >
                   <div className="relative shrink-0">
-                    <ConversationAvatar conversation={c} />
+                    <ConversationAvatar
+                      conversation={
+                        c.id === selected?.id && selectedCustomer?.fullName
+                          ? { ...c, customerName: selectedCustomer.fullName }
+                          : c
+                      }
+                    />
                     {!active && (c.unreadCount ?? 0) > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white ring-2 ring-background">
                         {c.unreadCount > 99 ? "99+" : c.unreadCount}

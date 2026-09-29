@@ -21,6 +21,16 @@ describe("formatWaPhone", () => {
 });
 
 describe("conversationDisplayName", () => {
+  it("prioriza customerName sobre waProfileName si esta definido", () => {
+    expect(
+      conversationDisplayName({
+        waPhone: "593998576466",
+        waProfileName: "Jean",
+        customerName: "FUENTES MEZA JEAN PIERRE",
+      }),
+    ).toBe("FUENTES MEZA JEAN PIERRE");
+  });
+
   it("prioriza el nombre real de perfil de WhatsApp sobre el telefono", () => {
     expect(
       conversationDisplayName({ waPhone: "593998576466", waProfileName: "Sheena Nelson" }),
