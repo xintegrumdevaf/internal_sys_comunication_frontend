@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, ExternalLink, FileText, Image as ImageIcon } from "lucide-react";
+import { Download, ExternalLink, FileText, Image as ImageIcon, Reply } from "lucide-react";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
 import { resolveApiUrl } from "@/shared/http/api-base";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
@@ -158,6 +158,62 @@ export function MessageMediaBody({
       <div className="space-y-1.5 my-1">
         <WhatsAppAudioPlayer mediaUrl={mediaUrl} messageId={message.id} author={message.author} />
         {hasValidCaption ? <p className={captionClassName}>{displayCaption}</p> : null}
+      </div>
+    );
+  }
+
+  // Mensaje Interactivo (botones o lista rápida estilo WhatsApp)
+  const isInteractive =
+    message.type === "interactive" ||
+    (Boolean(message.caption) &&
+      (message.caption!.includes('"type":"buttons"') || message.caption!.includes('"type":"list"')));
+
+  let interactiveData:
+    | { type: "buttons"; buttons: Array<{ id: string; title: string }> }
+    | { type: "list"; buttonText: string; sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }> }
+    | null = null;
+
+  if (isInteractive && message.caption) {
+    try {
+      interactiveData = JSON.parse(message.caption);
+    } catch {
+      interactiveData = null;
+    }
+  }
+
+  if (isInteractive && interactiveData) {
+    return (
+      <div className="space-y-2.5 max-w-sm">
+        {bodyText && <p className="whitespace-pre-wrap leading-relaxed">{bodyText}</p>}
+        {interactiveData.type === "buttons" && interactiveData.buttons?.length > 0 && (
+          <div className="flex flex-col gap-1.5 pt-1">
+            {interactiveData.buttons.map((btn) => (
+              <div
+                key={btn.id}
+                className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-primary/30 bg-background/80 hover:bg-muted/60 transition-colors shadow-2xs text-xs font-semibold text-primary cursor-default select-none"
+              >
+                <Reply className="size-3.5 rotate-180 text-primary/70 shrink-0" />
+                <span className="truncate">{btn.title}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {interactiveData.type === "list" && interactiveData.sections && (
+          <div className="flex flex-col gap-1 pt-1">
+            <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+              📋 {interactiveData.buttonText || "Opciones disponibles"}:
+            </div>
+            {interactiveData.sections.flatMap((s) => s.rows).map((row) => (
+              <div
+                key={row.id}
+                className="p-2 rounded-lg border border-primary/20 bg-background/70 text-xs space-y-0.5"
+              >
+                <p className="font-semibold text-primary">{row.title}</p>
+                {row.description && <p className="text-[11px] text-muted-foreground">{row.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

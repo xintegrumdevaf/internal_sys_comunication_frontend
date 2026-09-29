@@ -295,12 +295,12 @@ export function ContactDialog({
                 <MapPin className="size-3.5 text-muted-foreground" />
                 Dirección / Sector
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={2}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Ej. Bellavista, Calle 3 y Av. Principal"
-                className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-hidden"
+                className="w-full text-xs px-3 py-1.5 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-hidden resize-none"
               />
             </div>
           </div>
@@ -359,28 +359,37 @@ export function ContactDialog({
                 {customer.contracts.map((c) => (
                   <div
                     key={c.id}
-                    className="p-2.5 rounded-lg border border-border bg-background text-xs space-y-0.5"
+                    className="p-3 rounded-xl border border-border/80 bg-background text-xs space-y-1.5 shadow-2xs"
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-primary">#{c.contractNumber}</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-primary text-sm">#{c.contractNumber}</span>
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                           c.status === "active"
-                            ? "bg-emerald-500/15 text-emerald-500"
-                            : "bg-danger/15 text-danger"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-destructive/15 text-destructive"
                         }`}
                       >
                         {c.status}
                       </span>
                     </div>
-                    {c.sector && (
-                      <p className="text-muted-foreground text-[11px]">
-                        Sector: <span className="font-semibold text-foreground">{c.sector}</span>
+                    <div className="grid grid-cols-2 gap-1 text-[11px]">
+                      <p className="text-muted-foreground">
+                        Sector: <span className="font-semibold text-foreground">{c.sector || "N/A"}</span>
+                      </p>
+                      <p className="text-muted-foreground truncate">
+                        OLT: <span className="font-semibold text-foreground">{c.oltName || "Sin OLT"}</span>
+                        {c.pon ? <span className="text-[10px] text-muted-foreground ml-1">(PON {c.pon})</span> : null}
+                      </p>
+                    </div>
+                    {c.serial && (
+                      <p className="text-muted-foreground text-[11px] truncate">
+                        Serial / MAC: <span className="font-mono font-medium text-foreground">{c.serial}</span>
                       </p>
                     )}
-                    {c.oltName && (
-                      <p className="text-muted-foreground text-[11px]">
-                        OLT: {c.oltName} {c.pon ? ` (PON ${c.pon})` : ""}
+                    {c.address && (
+                      <p className="text-muted-foreground text-[11px] pt-1 border-t border-border/40 mt-1 leading-snug break-words">
+                        <span className="font-semibold text-foreground">📍 Dirección:</span> {c.address}
                       </p>
                     )}
                   </div>
