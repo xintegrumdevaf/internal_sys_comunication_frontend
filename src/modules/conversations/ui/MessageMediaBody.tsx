@@ -163,17 +163,12 @@ export function MessageMediaBody({
   }
 
   // Mensaje Interactivo (botones o lista rápida estilo WhatsApp)
-  const isInteractive =
-    message.type === "interactive" ||
-    (Boolean(message.caption) &&
-      (message.caption!.includes('"type":"buttons"') || message.caption!.includes('"type":"list"')));
-
   let interactiveData:
     | { type: "buttons"; buttons: Array<{ id: string; title: string }> }
     | { type: "list"; buttonText: string; sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }> }
     | null = null;
 
-  if (isInteractive && message.caption) {
+  if (message.caption) {
     try {
       interactiveData = JSON.parse(message.caption);
     } catch {
@@ -181,18 +176,57 @@ export function MessageMediaBody({
     }
   }
 
-  if (isInteractive && interactiveData) {
+  // Fallback inteligente para mensajes que piden elegir opción (1 o 2 / 1️⃣ 2️⃣)
+  if (!interactiveData && message.author === "ai" && bodyText) {
+    // 1. Detección de lista numerada con emojis (1️⃣, 2️⃣, ...) o números (1., 2.)
+    const emojiMatches = Array.from(bodyText.matchAll(/([1-9])(?:️⃣|\.)\s*([^\n📍]+)/g));
+    if (emojiMatches.length >= 2) {
+      interactiveData = {
+        type: "buttons",
+        buttons: emojiMatches.map((m) => {
+          const num = m[1];
+          const rawTitle = m[2].trim();
+          const cleanTitle = rawTitle.length > 17 ? rawTitle.slice(0, 16) + "…" : rawTitle;
+          return {
+            id: `option_${num}`,
+            title: `${num}. ${cleanTitle}`.slice(0, 20),
+          };
+        }),
+      };
+    } else {
+      // 2. Detección de mensajes como "número 1 o 2" / "selecciona el número 1 o 2"
+      const asksForOptions =
+        /(?:número\s*1\s*o\s*2|selecciona\s*el\s*número\s*1\s*o\s*2|respondiendo\s*con\s*el\s*número\s*1\s*o\s*2|número\s*1,\s*2)/i.test(
+          bodyText,
+        );
+      if (asksForOptions) {
+        // Extraer si menciona algún sector o nombre (ej. Montserrat)
+        const montserratMatch = /en\s+([A-Za-zÁÉÍÓÚáéíóúñÑ]+)/i.exec(bodyText);
+        const baseName = montserratMatch ? montserratMatch[1].toUpperCase() : "SERVICIO";
+        interactiveData = {
+          type: "buttons",
+          buttons: [
+            { id: "option_1", title: `1. ${baseName}`.slice(0, 20) },
+            { id: "option_2", title: `2. ${baseName}`.slice(0, 20) },
+          ],
+        };
+      }
+    }
+  }
+
+  if (interactiveData) {
+    const cleanedText = bodyText.replace(/\$\{[^}]+\}/g, "").replace(/\s{2,}/g, " ").trim();
     return (
       <div className="space-y-2.5 max-w-sm">
-        {bodyText && <p className="whitespace-pre-wrap leading-relaxed">{bodyText}</p>}
+        {cleanedText && <p className="whitespace-pre-wrap leading-relaxed">{cleanedText}</p>}
         {interactiveData.type === "buttons" && interactiveData.buttons?.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-1">
+          <div className="flex flex-col gap-1.5 pt-1.5 w-full">
             {interactiveData.buttons.map((btn) => (
               <div
                 key={btn.id}
-                className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-primary/30 bg-background/80 hover:bg-muted/60 transition-colors shadow-2xs text-xs font-semibold text-primary cursor-default select-none"
+                className="flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-xs hover:bg-emerald-500/20 transition-all select-none cursor-default"
               >
-                <Reply className="size-3.5 rotate-180 text-primary/70 shrink-0" />
+                <Reply className="size-3.5 rotate-180 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="truncate">{btn.title}</span>
               </div>
             ))}
