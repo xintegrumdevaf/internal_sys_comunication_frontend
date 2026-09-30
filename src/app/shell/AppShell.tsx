@@ -23,6 +23,7 @@ import {
   Power,
   Zap,
   Tag,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -72,6 +73,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   "/conocimiento": BrainCircuit,
   "/prompts": Sparkles,
   "/admin/prompts": Sparkles,
+  "/configuracion": Settings,
 };
 
 /**

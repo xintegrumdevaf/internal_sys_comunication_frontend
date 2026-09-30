@@ -82,6 +82,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
       { label: "Departamentos", to: "/departamentos", adminOnly: true },
       { label: "Automatizaciones", to: "/flujos", adminOnly: true },
       { label: "Prompts IA", to: "/prompts", adminOnly: true },
+      { label: "Configuración", to: "/configuracion", adminOnly: true },
       { label: "Auditoría", to: "/auditoria", adminOnly: true },
     );
   }
