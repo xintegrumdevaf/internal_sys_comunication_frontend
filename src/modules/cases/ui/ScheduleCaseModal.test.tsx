@@ -12,9 +12,7 @@ describe("ScheduleCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <ScheduleCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<ScheduleCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     expect(screen.getByText(/Agendar Seguimiento \/ Poner en Espera/i)).toBeInTheDocument();
     expect(screen.getByText(/Etiqueta de Agendamiento/i)).toBeInTheDocument();
@@ -31,9 +29,7 @@ describe("ScheduleCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <ScheduleCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<ScheduleCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     const select = screen.getByRole("combobox");
     fireEvent.change(select, { target: { value: "MONITOREO" } });

@@ -148,7 +148,11 @@ describe("useCaseActions", () => {
 
     let ok: boolean | undefined;
     await act(async () => {
-      ok = await result.current.complete("case_1", "CLIENT_NO_RESPONSE", "Sin respuesta a plantilla");
+      ok = await result.current.complete(
+        "case_1",
+        "CLIENT_NO_RESPONSE",
+        "Sin respuesta a plantilla",
+      );
     });
 
     expect(ok).toBe(true);

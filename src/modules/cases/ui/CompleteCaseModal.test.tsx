@@ -10,9 +10,7 @@ describe("CompleteCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     expect(screen.getByText(/Cerrar \/ Completar Caso/i)).toBeInTheDocument();
     expect(screen.getByText(/Cierre normal \/ Resuelto/i)).toBeInTheDocument();
@@ -22,22 +20,17 @@ describe("CompleteCaseModal", () => {
     expect(resolvedRadio.checked).toBe(true);
   });
 
-  it("submits with default RESOLVED and resolutionNote", async () => {
+  it("submits with default RESOLVED", async () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
-
-    const textarea = screen.getByPlaceholderText(/solución técnica/i);
-    fireEvent.change(textarea, { target: { value: "Solucionado por reinicio de ONU" } });
+    render(<CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     const submitBtn = screen.getByText(/Confirmar Cierre/i);
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(onConfirm).toHaveBeenCalledWith("RESOLVED", "Solucionado por reinicio de ONU");
+      expect(onConfirm).toHaveBeenCalledWith("RESOLVED");
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
@@ -46,21 +39,16 @@ describe("CompleteCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     const noResponseRadio = screen.getByLabelText(/Cierre por falta de respuesta/i);
     fireEvent.click(noResponseRadio);
-
-    const textarea = screen.getByPlaceholderText(/solución técnica/i);
-    fireEvent.change(textarea, { target: { value: "Cliente no respondió tras 24h" } });
 
     const submitBtn = screen.getByText(/Confirmar Cierre/i);
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(onConfirm).toHaveBeenCalledWith("CLIENT_NO_RESPONSE", "Cliente no respondió tras 24h");
+      expect(onConfirm).toHaveBeenCalledWith("CLIENT_NO_RESPONSE");
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });

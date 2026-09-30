@@ -86,9 +86,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     const q = tagSearch.trim().toLowerCase();
     if (!q) return availableTags;
     return availableTags.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        (t.description ?? "").toLowerCase().includes(q),
+      (t) => t.name.toLowerCase().includes(q) || (t.description ?? "").toLowerCase().includes(q),
     );
   }, [availableTags, tagSearch]);
 
@@ -127,7 +125,8 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
             Agendar Seguimiento / Poner en Espera
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Selecciona una de las etiquetas registradas en el sistema. El caso pasará al estado "En Espera" y generará un recordatorio en la fecha indicada.
+            Selecciona una de las etiquetas registradas en el sistema. El caso pasará al estado "En
+            Espera" y generará un recordatorio en la fecha indicada.
           </DialogDescription>
         </DialogHeader>
 
@@ -171,7 +170,9 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                 onClick={() => setDropdownOpen((prev) => !prev)}
                 className="absolute right-2.5 top-2.5 p-0.5 text-muted-foreground hover:text-foreground transition cursor-pointer"
               >
-                <ChevronDown className={`size-4 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`size-4 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
             </div>
 
@@ -243,7 +244,8 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
           {/* Motivo o Detalle adicional opcional */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground block">
-              Nota / Detalle adicional <span className="text-muted-foreground font-normal">(opcional)</span>
+              Nota / Detalle adicional{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
             </label>
             <input
               type="text"
@@ -277,4 +279,3 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     </Dialog>
   );
 }
-
