@@ -75,10 +75,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
         const prevId = selectedIdRef.current;
         const nextId =
-          prevId && data.some((c) => c.id === prevId)
-            ? prevId
-            : preferred && data.some((c) => c.id === preferred)
-              ? preferred
+          preferred && data.some((c) => c.id === preferred)
+            ? preferred
+            : prevId && data.some((c) => c.id === prevId)
+              ? prevId
               : (data[0]?.id ?? null);
 
         // La conversación activa actual no debe tener conteo no leído en la UI
@@ -130,7 +130,13 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       setActiveChatId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.id, options.departmentId, options.agentId, options.status]);
+  }, [
+    session?.id,
+    options.departmentId,
+    options.agentId,
+    options.status,
+    options.initialConversationId,
+  ]);
 
   const loadThread = useCallback(async (conversationId: string) => {
     const [msgs, convCases] = await Promise.all([

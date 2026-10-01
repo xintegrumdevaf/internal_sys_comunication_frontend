@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   User,
   Phone,
@@ -14,6 +14,7 @@ import {
   X,
   Server,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -35,6 +36,7 @@ interface ContactDialogProps {
   customer?: CustomerDto | null;
   initialPhone?: string;
   initialName?: string;
+  initialNationalId?: string;
   onSuccess?: (saved: CustomerDto) => void;
 }
 
@@ -44,6 +46,7 @@ export function ContactDialog({
   customer,
   initialPhone,
   initialName,
+  initialNationalId,
   onSuccess,
 }: ContactDialogProps) {
   const [fullName, setFullName] = useState("");
@@ -53,23 +56,30 @@ export function ContactDialog({
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagSearch, setTagSearch] = useState("");
 
   const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncingIsp, setSyncingIsp] = useState(false);
 
-  // Cargar catálogo de etiquetas al abrir
+  // Cargar catálogo de etiquetas al abrir y escuchar actualizaciones en vivo
   useEffect(() => {
     if (!open) return;
-    void tagsGateway.list().then((tags) => setAvailableTags(tags));
+    const load = () => {
+      void tagsGateway.list().then((tags) => setAvailableTags(tags));
+    };
+    load();
+    window.addEventListener("tags-updated", load);
+    return () => window.removeEventListener("tags-updated", load);
   }, [open]);
 
   // Inicializar estado del formulario
   useEffect(() => {
+    setTagSearch("");
     if (customer) {
-      setFullName(customer.fullName || "");
-      setWaPhone(customer.waPhone || "");
-      setNationalId(customer.nationalId || "");
+      setFullName(customer.fullName || initialName || "");
+      setWaPhone(customer.waPhone || initialPhone || "");
+      setNationalId(customer.nationalId || initialNationalId || "");
       setEmail(customer.email || "");
       setAddress(customer.address || "");
       setNotes(customer.notes || "");
@@ -77,18 +87,55 @@ export function ContactDialog({
     } else {
       setFullName(initialName || "");
       setWaPhone(initialPhone || "");
-      setNationalId("");
+      setNationalId(initialNationalId || "");
       setEmail("");
       setAddress("");
       setNotes("");
       setSelectedTagIds([]);
     }
-  }, [customer, initialPhone, initialName, open]);
+  }, [customer, initialPhone, initialName, initialNationalId, open]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
+  };
+
+  const unassignedTags = useMemo(() => {
+    return availableTags.filter((t) => !selectedTagIds.includes(t.id));
+  }, [availableTags, selectedTagIds]);
+
+  const filteredUnassignedTags = useMemo(() => {
+    const q = tagSearch.trim().toLowerCase();
+    let list = unassignedTags;
+    if (q) {
+      list = list.filter((t) => t.name.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  }, [unassignedTags, tagSearch]);
+
+  const findExistingCustomer = async (
+    targetNationalId?: string,
+    targetPhone?: string,
+  ): Promise<CustomerDto | null> => {
+    const cleanId = targetNationalId?.trim();
+    const cleanPhone = targetPhone?.replace(/\D/g, "");
+
+    // 1. Probar buscar por cédula
+    if (cleanId) {
+      const res = await customerGateway.list({ search: cleanId, limit: 5 }).catch(() => null);
+      const match = res?.data?.find((c) => c.nationalId?.trim() === cleanId);
+      if (match) return match;
+    }
+
+    // 2. Probar buscar por teléfono de WhatsApp
+    if (cleanPhone) {
+      const res = await customerGateway.list({ search: cleanPhone, limit: 5 }).catch(() => null);
+      const match = res?.data?.find((c) => c.waPhone?.replace(/\D/g, "") === cleanPhone);
+      if (match) return match;
+    }
+
+    return null;
   };
 
   const handleSyncIsp = async () => {
@@ -98,12 +145,36 @@ export function ContactDialog({
       return;
     }
 
+    const phoneToUse = waPhone.trim() || initialPhone?.trim() || "";
+
     setSyncingIsp(true);
     try {
-      if (customer?.id) {
-        const syncRes = await customerGateway.syncIsp(customer.id, cleanId);
+      let targetCustomer = customer;
+      if (!targetCustomer?.id) {
+        targetCustomer = await findExistingCustomer(cleanId, phoneToUse);
+      }
+
+      if (targetCustomer?.id) {
+        if (phoneToUse && targetCustomer.waPhone !== phoneToUse) {
+          targetCustomer = await customerGateway.update(targetCustomer.id, {
+            fullName: fullName.trim() || targetCustomer.fullName || undefined,
+            waPhone: phoneToUse,
+            nationalId: cleanId,
+            email: email.trim() || targetCustomer.email || undefined,
+            address: address.trim() || targetCustomer.address || undefined,
+            notes: notes.trim() || targetCustomer.notes || undefined,
+            tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+          });
+          setWaPhone(phoneToUse);
+        }
+        const syncRes = await customerGateway.syncIsp(targetCustomer.id, cleanId);
         setFullName(syncRes.customer.fullName || fullName);
         setAddress(syncRes.customer.address || address);
+        if (syncRes.customer.waPhone) {
+          setWaPhone(syncRes.customer.waPhone);
+        } else if (phoneToUse) {
+          setWaPhone(phoneToUse);
+        }
         if (syncRes.customer.email) {
           setEmail(syncRes.customer.email);
         }
@@ -114,13 +185,13 @@ export function ContactDialog({
         onSuccess?.(syncRes.customer);
       } else {
         // Si aún no está creado, guardar primero y sincronizar
-        if (!waPhone.trim()) {
+        if (!phoneToUse) {
           toast.error("El número de WhatsApp es requerido para crear el contacto");
           return;
         }
         const created = await customerGateway.create({
           fullName: fullName.trim() || `Contacto ${cleanId}`,
-          waPhone: waPhone.trim(),
+          waPhone: phoneToUse,
           nationalId: cleanId,
           email: email.trim() || null,
           address: address.trim() || null,
@@ -148,7 +219,9 @@ export function ContactDialog({
       toast.error("El nombre del contacto es requerido");
       return;
     }
-    if (!waPhone.trim()) {
+
+    const phoneToUse = waPhone.trim() || initialPhone?.trim() || "";
+    if (!phoneToUse) {
       toast.error("El número de WhatsApp es requerido");
       return;
     }
@@ -156,21 +229,26 @@ export function ContactDialog({
     setLoading(true);
     try {
       let saved: CustomerDto;
-      if (customer?.id) {
-        saved = await customerGateway.update(customer.id, {
+      let targetCustomer = customer;
+      if (!targetCustomer?.id) {
+        targetCustomer = await findExistingCustomer(nationalId, phoneToUse);
+      }
+
+      if (targetCustomer?.id) {
+        saved = await customerGateway.update(targetCustomer.id, {
           fullName: fullName.trim(),
-          waPhone: waPhone.trim(),
+          waPhone: phoneToUse,
           nationalId: nationalId.trim() || null,
           email: email.trim() || null,
           address: address.trim() || null,
           notes: notes.trim() || null,
           tagIds: selectedTagIds,
         });
-        toast.success("Contacto actualizado con éxito");
+        toast.success("Contacto actualizado y vinculado con éxito");
       } else {
         saved = await customerGateway.create({
           fullName: fullName.trim(),
-          waPhone: waPhone.trim(),
+          waPhone: phoneToUse,
           nationalId: nationalId.trim() || null,
           email: email.trim() || null,
           address: address.trim() || null,
@@ -306,53 +384,130 @@ export function ContactDialog({
             </div>
           </div>
 
-          {/* Fila 4: Etiquetas del Catálogo con soporte Claro/Oscuro y alto contraste */}
-          <div>
-            <label className="text-xs font-semibold text-foreground flex items-center justify-between mb-1.5">
-              <span className="flex items-center gap-1.5">
-                <TagIcon className="size-3.5 text-muted-foreground" />
-                Etiquetas asociadas
-              </span>
-              <span className="text-[10px] font-medium text-muted-foreground">
-                {selectedTagIds.length} seleccionada(s)
-              </span>
-            </label>
-            <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-border bg-muted/20 dark:bg-muted/10 min-h-[48px] max-h-36 overflow-y-auto">
-              {availableTags.length === 0 ? (
-                <span className="text-xs text-muted-foreground">
-                  No hay etiquetas creadas en el catálogo.
+          {/* Fila 4: Gestión de Etiquetas */}
+          <div className="space-y-3">
+            {/* 1. Área de Etiquetas ASOCIADAS (Solo las asignadas al contacto) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <TagIcon className="size-3.5 text-primary" />
+                  Etiquetas asociadas
+                </label>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  {selectedTagIds.length} seleccionada(s)
                 </span>
-              ) : (
-                availableTags.map((tag) => {
-                  const isSelected = selectedTagIds.includes(tag.id);
-                  const hex =
-                    tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff"
-                      ? tag.color
-                      : "#64748b";
+              </div>
 
-                  return (
+              <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border border-border bg-muted/20 dark:bg-muted/10 min-h-[44px] items-center">
+                {selectedTagIds.length === 0 ? (
+                  <span className="text-xs text-muted-foreground italic px-1">
+                    Sin etiquetas asociadas. Selecciona etiquetas del catálogo abajo para
+                    agregarlas.
+                  </span>
+                ) : (
+                  availableTags
+                    .filter((t) => selectedTagIds.includes(t.id))
+                    .map((tag) => {
+                      const hex =
+                        tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff"
+                          ? tag.color
+                          : "#64748b";
+
+                      return (
+                        <span
+                          key={tag.id}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary/15 dark:bg-primary/25 border border-primary text-foreground flex items-center gap-1.5 shadow-2xs animate-in fade-in zoom-in-95 duration-150"
+                        >
+                          <span
+                            className="size-2 rounded-full shrink-0 shadow-2xs"
+                            style={{ backgroundColor: hex }}
+                          />
+                          <span className="truncate max-w-[160px]">{tag.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleTag(tag.id)}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/15 rounded p-0.5 transition-colors cursor-pointer ml-0.5"
+                            title={`Remover etiqueta ${tag.name}`}
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </span>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
+            {/* 2. Área para AGREGAR del Catálogo de Etiquetas disponibles */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                  <Plus className="size-3 text-muted-foreground" />
+                  Agregar etiqueta del catálogo
+                </label>
+              </div>
+
+              {/* Buscador de etiquetas no asignadas si hay más de 4 disponibles */}
+              {unassignedTags.length > 4 && (
+                <div className="relative mb-1.5">
+                  <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={tagSearch}
+                    onChange={(e) => setTagSearch(e.target.value)}
+                    placeholder="Buscar etiqueta para agregar..."
+                    className="w-full text-xs pl-8 pr-7 py-1 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-hidden"
+                  />
+                  {tagSearch && (
                     <button
-                      key={tag.id}
                       type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-primary/15 dark:bg-primary/25 border-primary text-foreground dark:text-primary-foreground shadow-xs ring-2 ring-primary/30 scale-[1.02]"
-                          : "bg-background hover:bg-muted/70 text-foreground/80 hover:text-foreground border-border/80 shadow-2xs hover:scale-[1.01]"
-                      }`}
+                      onClick={() => setTagSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                      title="Limpiar búsqueda"
                     >
-                      <span
-                        className="size-2.5 rounded-full shrink-0 shadow-2xs"
-                        style={{ backgroundColor: hex }}
-                      />
-                      {isSelected && (
-                        <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />
-                      )}
-                      <span className="truncate max-w-[160px]">{tag.name}</span>
+                      <X className="size-3" />
                     </button>
-                  );
-                })
+                  )}
+                </div>
               )}
+
+              <div className="flex flex-wrap gap-1.5 p-2 rounded-xl border border-dashed border-border bg-background/50 max-h-32 overflow-y-auto">
+                {unassignedTags.length === 0 ? (
+                  <span className="text-[11px] text-muted-foreground italic px-1 py-0.5">
+                    {availableTags.length === 0
+                      ? "No hay etiquetas creadas en el catálogo."
+                      : "Todas las etiquetas del catálogo están asociadas a este contacto."}
+                  </span>
+                ) : filteredUnassignedTags.length === 0 ? (
+                  <span className="text-[11px] text-muted-foreground italic px-1 py-0.5">
+                    No se encontraron etiquetas disponibles que coincidan con "{tagSearch}".
+                  </span>
+                ) : (
+                  filteredUnassignedTags.map((tag) => {
+                    const hex =
+                      tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff"
+                        ? tag.color
+                        : "#64748b";
+
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium border border-border/80 bg-background hover:bg-primary/10 hover:border-primary/50 text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:scale-[1.02]"
+                        title={`Asignar etiqueta ${tag.name}`}
+                      >
+                        <Plus className="size-3 text-muted-foreground shrink-0" />
+                        <span
+                          className="size-2 rounded-full shrink-0 opacity-70"
+                          style={{ backgroundColor: hex }}
+                        />
+                        <span className="truncate max-w-[150px]">{tag.name}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
 

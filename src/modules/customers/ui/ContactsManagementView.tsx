@@ -8,12 +8,10 @@ import {
   LayoutGrid,
   MessageSquare,
   Edit2,
-  Trash2,
   Phone,
   Mail,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomerDto } from "../domain/customer";
@@ -22,15 +20,14 @@ import { tagsGateway } from "@/modules/tags/infrastructure/tags.gateway";
 import { getTagColorPreset, type TagItem } from "@/modules/tags/domain/tag";
 import { ContactDialog } from "./ContactDialog";
 import { avatarColorFromSeed } from "@/shared/avatar-color";
-import { formatWaPhone } from "@/modules/conversations/domain/conversation";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  formatWaPhone,
+  type ConversationStatus,
+} from "@/modules/conversations/domain/conversation";
+import {
+  listConversations,
+  getConversation,
+} from "@/modules/conversations/infrastructure/conversation.gateway";
 
 export function ContactsManagementView() {
   const navigate = useNavigate();
@@ -55,12 +52,15 @@ export function ContactsManagementView() {
   // Modales
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerDto | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
-  // Cargar catálogo de etiquetas
+  // Cargar catálogo de etiquetas y escuchar actualizaciones en vivo
   useEffect(() => {
-    void tagsGateway.list().then(setAvailableTags);
+    const load = () => {
+      void tagsGateway.list().then(setAvailableTags);
+    };
+    load();
+    window.addEventListener("tags-updated", load);
+    return () => window.removeEventListener("tags-updated", load);
   }, []);
 
   // Cargar contactos
@@ -112,33 +112,47 @@ export function ContactsManagementView() {
     setDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
-    try {
-      await customerGateway.delete(deleteId);
-      toast.success("Contacto eliminado exitosamente");
-      setDeleteId(null);
-      void fetchCustomers();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al eliminar contacto";
-      toast.error(msg);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleOpenChat = (customer: CustomerDto) => {
+  const handleOpenChat = async (customer: CustomerDto) => {
     if (customer.conversationId) {
-      void navigate({
-        to: "/bandeja",
-        search: { conversationId: customer.conversationId },
-      });
-    } else if (customer.waPhone) {
-      void navigate({
-        to: "/bandeja",
-        search: { conversationId: undefined },
-      });
+      try {
+        const conv = await getConversation(customer.conversationId);
+        void navigate({
+          to: "/bandeja",
+          search: { conversationId: conv.id, status: conv.status },
+        });
+        return;
+      } catch {
+        // En caso de que falle la conversación por ID directo, continuar con la búsqueda por teléfono/ID
+      }
+    }
+
+    const cleanPhone = customer.waPhone?.replace(/\D/g, "");
+    try {
+      const statuses: (ConversationStatus | undefined)[] = [
+        "open",
+        "pending",
+        "resolved",
+        "closed",
+      ];
+      for (const st of statuses) {
+        const list = await listConversations({ status: st });
+        const match = list.find((c) => {
+          if (c.customerId && c.customerId === customer.id) return true;
+          if (cleanPhone && c.waPhone.replace(/\D/g, "").endsWith(cleanPhone.slice(-8)))
+            return true;
+          return false;
+        });
+        if (match) {
+          void navigate({
+            to: "/bandeja",
+            search: { conversationId: match.id, status: match.status },
+          });
+          return;
+        }
+      }
+      toast.info("El contacto no tiene una conversación registrada aún.");
+    } catch {
+      toast.error("No se pudo consultar la conversación del contacto.");
     }
   };
 
@@ -392,14 +406,6 @@ export function ContactsManagementView() {
                           >
                             <Edit2 className="size-4" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(c.id)}
-                            className="p-1.5 rounded-lg hover:bg-danger/10 text-danger transition-colors cursor-pointer"
-                            title="Eliminar contacto"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -511,14 +517,6 @@ export function ContactsManagementView() {
                           >
                             <Edit2 className="size-3.5" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteId(c.id)}
-                            className="p-1 rounded-md hover:bg-danger/10 text-danger cursor-pointer"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
                         </div>
                       </div>
 
@@ -605,39 +603,6 @@ export function ContactsManagementView() {
           void fetchCustomers();
         }}
       />
-
-      {/* Diálogo de Confirmación de Eliminación */}
-      <Dialog open={Boolean(deleteId)} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-danger">
-              <ShieldAlert className="size-5" />
-              Eliminar Contacto
-            </DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que deseas eliminar este contacto? Esta acción removerá sus datos
-              asociados y etiquetas.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-2">
-            <button
-              type="button"
-              onClick={() => setDeleteId(null)}
-              className="px-4 py-2 text-xs font-medium rounded-xl border border-border hover:bg-foreground/5 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              disabled={deleting}
-              onClick={handleDeleteConfirm}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-danger text-white hover:bg-danger/90 disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              {deleting ? "Eliminando..." : "Eliminar"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
