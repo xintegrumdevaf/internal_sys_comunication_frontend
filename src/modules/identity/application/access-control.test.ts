@@ -105,12 +105,13 @@ describe("canAccessPath", () => {
     expect(canAccessPath(session, "/campanas")).toBe(true);
   });
 
-  it("bandeja/chat-interno/dashboard son accesibles para cualquier rol autenticado", () => {
+  it("bandeja/chat-interno/dashboard/etiquetas son accesibles para cualquier rol autenticado", () => {
     const session = makeSession({ role: "agent" });
     expect(canAccessPath(session, "/")).toBe(true);
     expect(canAccessPath(session, "/bandeja")).toBe(true);
     expect(canAccessPath(session, "/contactos")).toBe(true);
     expect(canAccessPath(session, "/chat-interno")).toBe(true);
+    expect(canAccessPath(session, "/etiquetas")).toBe(true);
   });
 });
 

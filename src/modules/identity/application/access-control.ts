@@ -40,7 +40,6 @@ const SUPERVISOR_PATHS = new Set([
   "/campanas",
   "/plantillas",
   "/respuestas-rapidas",
-  "/etiquetas",
 ]);
 const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/contactos", "/chat-interno", "/etiquetas"]);
 
