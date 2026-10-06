@@ -18,11 +18,13 @@ type Props = {
 
 export function CompleteCaseModal({ open, onOpenChange, onConfirm, busy }: Props) {
   const [closeReason, setCloseReason] = useState<CloseReason>("RESOLVED");
+  const [resolutionNote, setResolutionNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setCloseReason("RESOLVED");
+      setResolutionNote("");
       setSubmitting(false);
     }
   }, [open]);
@@ -31,7 +33,7 @@ export function CompleteCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     e.preventDefault();
     setSubmitting(true);
     try {
-      const ok = await onConfirm(closeReason);
+      const ok = await onConfirm(closeReason, resolutionNote.trim() || undefined);
       if (ok !== false) {
         onOpenChange(false);
       }
@@ -115,6 +117,20 @@ export function CompleteCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                 </div>
               </label>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground block">
+              Notas de resolución{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </label>
+            <textarea
+              value={resolutionNote}
+              onChange={(e) => setResolutionNote(e.target.value)}
+              placeholder="Ej: Se brindó solución técnica / cliente no volvió a responder al mensaje de confirmación."
+              rows={3}
+              className="w-full text-xs p-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-border">

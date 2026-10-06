@@ -17,6 +17,7 @@ import { Route as BandejaRouteImport } from './routes/bandeja'
 import { Route as CalidadRouteImport } from './routes/calidad'
 import { Route as CampanasRouteImport } from './routes/campanas'
 import { Route as ChatInternoRouteImport } from './routes/chat-interno'
+import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as ConocimientoRouteImport } from './routes/conocimiento'
 import { Route as ContactosRouteImport } from './routes/contactos'
 import { Route as DashboardGerencialRouteImport } from './routes/dashboard-gerencial'
@@ -69,6 +70,11 @@ const CampanasRoute = CampanasRouteImport.update({
 const ChatInternoRoute = ChatInternoRouteImport.update({
   id: '/chat-interno',
   path: '/chat-interno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracionRoute = ConfiguracionRouteImport.update({
+  id: '/configuracion',
+  path: '/configuracion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConocimientoRoute = ConocimientoRouteImport.update({
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/configuracion': typeof ConfiguracionRoute
   '/conocimiento': typeof ConocimientoRoute
   '/contactos': typeof ContactosRoute
   '/dashboard-gerencial': typeof DashboardGerencialRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/configuracion': typeof ConfiguracionRoute
   '/conocimiento': typeof ConocimientoRoute
   '/contactos': typeof ContactosRoute
   '/dashboard-gerencial': typeof DashboardGerencialRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/calidad': typeof CalidadRoute
   '/campanas': typeof CampanasRoute
   '/chat-interno': typeof ChatInternoRoute
+  '/configuracion': typeof ConfiguracionRoute
   '/conocimiento': typeof ConocimientoRoute
   '/contactos': typeof ContactosRoute
   '/dashboard-gerencial': typeof DashboardGerencialRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/calidad'
     | '/campanas'
     | '/chat-interno'
+    | '/configuracion'
     | '/conocimiento'
     | '/contactos'
     | '/dashboard-gerencial'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/calidad'
     | '/campanas'
     | '/chat-interno'
+    | '/configuracion'
     | '/conocimiento'
     | '/contactos'
     | '/dashboard-gerencial'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/calidad'
     | '/campanas'
     | '/chat-interno'
+    | '/configuracion'
     | '/conocimiento'
     | '/contactos'
     | '/dashboard-gerencial'
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   CalidadRoute: typeof CalidadRoute
   CampanasRoute: typeof CampanasRoute
   ChatInternoRoute: typeof ChatInternoRoute
+  ConfiguracionRoute: typeof ConfiguracionRoute
   ConocimientoRoute: typeof ConocimientoRoute
   ContactosRoute: typeof ContactosRoute
   DashboardGerencialRoute: typeof DashboardGerencialRoute
@@ -359,6 +372,13 @@ declare module '@tanstack/react-router' {
       path: '/chat-interno'
       fullPath: '/chat-interno'
       preLoaderRoute: typeof ChatInternoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracion': {
+      id: '/configuracion'
+      path: '/configuracion'
+      fullPath: '/configuracion'
+      preLoaderRoute: typeof ConfiguracionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conocimiento': {
@@ -464,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalidadRoute: CalidadRoute,
   CampanasRoute: CampanasRoute,
   ChatInternoRoute: ChatInternoRoute,
+  ConfiguracionRoute: ConfiguracionRoute,
   ConocimientoRoute: ConocimientoRoute,
   ContactosRoute: ContactosRoute,
   DashboardGerencialRoute: DashboardGerencialRoute,

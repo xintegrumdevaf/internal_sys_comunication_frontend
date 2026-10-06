@@ -4,13 +4,18 @@ import { AppShell } from "@/app/shell/AppShell";
 import { OperationalInbox } from "@/modules/conversations/ui/OperationalInbox";
 import type { ConversationStatus } from "@/modules/conversations/domain/conversation";
 
-const VALID_STATUSES: ConversationStatus[] = ["open", "pending", "resolved", "closed"];
-
 type BandejaSearch = {
   conversationId?: string;
   departmentId?: string;
   status?: ConversationStatus;
 };
+
+const VALID_STATUSES: readonly ConversationStatus[] = [
+  "open",
+  "pending",
+  "resolved",
+  "closed",
+] as const;
 
 export const Route = createFileRoute("/bandeja")({
   validateSearch: (search: Record<string, unknown>): BandejaSearch => ({

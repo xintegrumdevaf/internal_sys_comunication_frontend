@@ -199,6 +199,38 @@ export function OperationalInbox({
   }, [isSupervisorOrAdmin, session?.primaryDepartmentId, departmentId, visibleDepartments]);
 
   const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>("all");
+
+  // Filtrar agentes según el departamento activo y el rol del usuario
+  const visibleAgents = useMemo(() => {
+    return directory.filter((a) => {
+      if (!a.active || a.id === session?.id) return false;
+      if (departmentId) {
+        return a.primaryDepartmentId === departmentId || a.departmentIds.includes(departmentId);
+      }
+      if (!isSupervisorOrAdmin && session) {
+        const myDepts = new Set([session.primaryDepartmentId, ...(session.departmentIds ?? [])]);
+        return (
+          (a.primaryDepartmentId && myDepts.has(a.primaryDepartmentId)) ||
+          a.departmentIds.some((dId) => myDepts.has(dId))
+        );
+      }
+      return true;
+    });
+  }, [directory, session, departmentId, isSupervisorOrAdmin]);
+
+  // Si cambia el departamento y el agente filtrado no pertenece a él, volver a 'all'
+  useEffect(() => {
+    if (departmentId && agentFilter !== "all" && agentFilter !== "mine") {
+      const selectedAgent = directory.find((a) => a.id === agentFilter);
+      if (
+        selectedAgent &&
+        selectedAgent.primaryDepartmentId !== departmentId &&
+        !selectedAgent.departmentIds.includes(departmentId)
+      ) {
+        setAgentFilter("all");
+      }
+    }
+  }, [departmentId, agentFilter, directory]);
   const [statusFilter, setStatusFilter] = useState<ConversationStatus>(initialStatus ?? "open");
   const [search, setSearch] = useState("");
 
@@ -236,26 +268,6 @@ export function OperationalInbox({
     status: statusFilter,
     initialConversationId,
   });
-
-  useEffect(() => {
-    if (initialStatus) {
-      setStatusFilter(initialStatus);
-    }
-  }, [initialStatus]);
-
-  useEffect(() => {
-    if (initialDepartmentId) {
-      setDepartmentId(initialDepartmentId);
-    }
-  }, [initialDepartmentId]);
-
-  useEffect(() => {
-    if (initialConversationId && selected && selected.id === initialConversationId) {
-      if (selected.status && selected.status !== statusFilter) {
-        setStatusFilter(selected.status);
-      }
-    }
-  }, [initialConversationId, selected, statusFilter]);
 
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -379,64 +391,30 @@ export function OperationalInbox({
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [, setLoadingContact] = useState(false);
 
-  const activeCaseNationalId = useMemo(() => {
-    if (!activeCase?.context?.data) return undefined;
-    const data = activeCase.context.data as { client?: { nationalId?: string } };
-    return data.client?.nationalId?.trim() || undefined;
-  }, [activeCase]);
-
   useEffect(() => {
     let active = true;
     if (!selected) {
       setSelectedCustomer(null);
       return;
     }
-
     const phone = selected.waPhone;
-    const customerId = selected.customerId;
-    const cleanPhone = phone?.replace(/\D/g, "");
-
-    (async () => {
-      try {
-        // 1. Por customerId explícito en la conversación
-        if (customerId) {
-          const cust = await customerGateway.getById(customerId).catch(() => null);
-          if (active && cust) {
-            setSelectedCustomer(cust);
-            return;
-          }
-        }
-
-        // 2. Por teléfono de WhatsApp
-        if (cleanPhone) {
-          const res = await customerGateway.list({ search: phone, limit: 5 });
-          const found = res.data?.find((c) => c.waPhone?.replace(/\D/g, "") === cleanPhone);
-          if (active && found) {
-            setSelectedCustomer(found);
-            return;
-          }
-        }
-
-        // 3. Por cédula del caso activo (si el cliente o la IA identificó la cédula)
-        if (activeCaseNationalId) {
-          const res = await customerGateway.list({ search: activeCaseNationalId, limit: 5 });
-          const found = res.data?.find((c) => c.nationalId === activeCaseNationalId);
-          if (active && found) {
-            setSelectedCustomer(found);
-            return;
-          }
-        }
-
+    customerGateway
+      .list({ search: phone, limit: 1 })
+      .then((res) => {
+        if (!active) return;
+        const found = res.data?.find(
+          (c) => c.waPhone?.replace(/\D/g, "") === phone.replace(/\D/g, ""),
+        );
+        setSelectedCustomer(found ?? null);
+      })
+      .catch(() => {
         if (active) setSelectedCustomer(null);
-      } catch {
-        if (active) setSelectedCustomer(null);
-      }
-    })();
+      });
 
     return () => {
       active = false;
     };
-  }, [selected?.id, selected?.customerId, selected?.waPhone, activeCaseNationalId]);
+  }, [selected?.waPhone]);
 
   const handleOpenContact = async () => {
     if (!selected) return;
@@ -446,38 +424,13 @@ export function OperationalInbox({
     }
     setLoadingContact(true);
     try {
-      const phone = selected.waPhone;
-      const cleanPhone = phone?.replace(/\D/g, "");
-
-      if (selected.customerId) {
-        const cust = await customerGateway.getById(selected.customerId).catch(() => null);
-        if (cust) {
-          setSelectedCustomer(cust);
-          setContactDialogOpen(true);
-          return;
-        }
+      const res = await customerGateway.list({ search: selected.waPhone, limit: 1 });
+      const found = res.data?.find(
+        (c) => c.waPhone?.replace(/\D/g, "") === selected.waPhone.replace(/\D/g, ""),
+      );
+      if (found) {
+        setSelectedCustomer(found);
       }
-
-      if (cleanPhone) {
-        const res = await customerGateway.list({ search: phone, limit: 5 });
-        const found = res.data?.find((c) => c.waPhone?.replace(/\D/g, "") === cleanPhone);
-        if (found) {
-          setSelectedCustomer(found);
-          setContactDialogOpen(true);
-          return;
-        }
-      }
-
-      if (activeCaseNationalId) {
-        const res = await customerGateway.list({ search: activeCaseNationalId, limit: 5 });
-        const found = res.data?.find((c) => c.nationalId === activeCaseNationalId);
-        if (found) {
-          setSelectedCustomer(found);
-          setContactDialogOpen(true);
-          return;
-        }
-      }
-
       setContactDialogOpen(true);
     } catch {
       setContactDialogOpen(true);
@@ -734,13 +687,11 @@ export function OperationalInbox({
           >
             <option value="all">Todos los agentes</option>
             <option value="mine">Mis conversaciones</option>
-            {directory
-              .filter((a) => a.active && a.id !== session?.id)
-              .map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
+            {visibleAgents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
           </select>
 
           <button
@@ -1509,7 +1460,6 @@ export function OperationalInbox({
         customer={selectedCustomer}
         initialPhone={selected?.waPhone}
         initialName={selected?.waProfileName ?? undefined}
-        initialNationalId={selectedCustomer?.nationalId ?? activeCaseNationalId}
         onSuccess={(saved: CustomerDto) => {
           setSelectedCustomer(saved);
           void reload({ silent: true });
