@@ -18,11 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  COLOR_SWATCHES,
-  getTagColorPreset,
-  type TagItem,
-} from "../domain/tag";
+import { COLOR_SWATCHES, getTagColorPreset, type TagItem } from "../domain/tag";
 import {
   loadTagsFromStorage,
   createTagInStorage,
@@ -122,9 +118,7 @@ export function TagsManagementView() {
     const q = search.trim().toLowerCase();
     if (!q) return tags;
     return tags.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        (t.description ?? "").toLowerCase().includes(q),
+      (t) => t.name.toLowerCase().includes(q) || (t.description ?? "").toLowerCase().includes(q),
     );
   }, [tags, search]);
 
@@ -190,7 +184,8 @@ export function TagsManagementView() {
             No se encontraron etiquetas {search ? `para "${search}"` : ""}
           </p>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Puedes crear nuevas etiquetas personalizadas para categorizar las atenciones de tus clientes.
+            Puedes crear nuevas etiquetas personalizadas para categorizar las atenciones de tus
+            clientes.
           </p>
           <button
             type="button"
@@ -383,7 +378,11 @@ export function TagsManagementView() {
                 <input
                   type="color"
                   ref={colorInputRef}
-                  value={selectedColor.startsWith("#") && selectedColor.length === 7 ? selectedColor : "#3b82f6"}
+                  value={
+                    selectedColor.startsWith("#") && selectedColor.length === 7
+                      ? selectedColor
+                      : "#3b82f6"
+                  }
                   onChange={(e) => setSelectedColor(e.target.value)}
                   className="sr-only"
                 />
@@ -429,7 +428,8 @@ export function TagsManagementView() {
             {/* Campo Descripción */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
-                Descripción / Uso de la etiqueta <span className="text-muted-foreground font-normal">(opcional)</span>
+                Descripción / Uso de la etiqueta{" "}
+                <span className="text-muted-foreground font-normal">(opcional)</span>
               </label>
               <textarea
                 rows={2}
@@ -473,9 +473,7 @@ export function TagsManagementView() {
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground pt-1 leading-relaxed">
               Estás a punto de eliminar la etiqueta{" "}
-              <strong className="text-foreground font-mono font-bold">
-                "{tagToDelete?.name}"
-              </strong>
+              <strong className="text-foreground font-mono font-bold">"{tagToDelete?.name}"</strong>
               . Esta acción removerá la clasificación de los casos asociados y no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
@@ -502,4 +500,3 @@ export function TagsManagementView() {
     </div>
   );
 }
-

@@ -441,9 +441,7 @@ export function ContactsManagementView() {
           {customers.length === 0 && !loading ? (
             <div className="bg-card border border-border rounded-2xl p-16 text-center space-y-3 w-full">
               <Users className="size-10 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm font-semibold text-foreground">
-                No se encontraron contactos
-              </p>
+              <p className="text-sm font-semibold text-foreground">No se encontraron contactos</p>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 {search
                   ? `No hay resultados para "${search}". Prueba con otro término de búsqueda.`
@@ -484,7 +482,10 @@ export function ContactsManagementView() {
                             {initials}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-bold text-xs text-foreground truncate" title={c.fullName || c.waProfileName || "Sin nombre"}>
+                            <h3
+                              className="font-bold text-xs text-foreground truncate"
+                              title={c.fullName || c.waProfileName || "Sin nombre"}
+                            >
                               {c.fullName || c.waProfileName || "Sin nombre"}
                             </h3>
                             <p className="text-[11px] text-muted-foreground font-mono truncate">
@@ -614,7 +615,8 @@ export function ContactsManagementView() {
               Eliminar Contacto
             </DialogTitle>
             <DialogDescription>
-              ¿Estás seguro de que deseas eliminar este contacto? Esta acción removerá sus datos asociados y etiquetas.
+              ¿Estás seguro de que deseas eliminar este contacto? Esta acción removerá sus datos
+              asociados y etiquetas.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="pt-2">

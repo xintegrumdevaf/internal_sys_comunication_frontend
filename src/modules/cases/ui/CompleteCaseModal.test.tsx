@@ -10,9 +10,7 @@ describe("CompleteCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     expect(screen.getByText(/Cerrar \/ Completar Caso/i)).toBeInTheDocument();
     expect(screen.getByText(/Cierre normal \/ Resuelto/i)).toBeInTheDocument();
@@ -26,9 +24,7 @@ describe("CompleteCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     const textarea = screen.getByPlaceholderText(/solución técnica/i);
     fireEvent.change(textarea, { target: { value: "Solucionado por reinicio de ONU" } });
@@ -46,9 +42,7 @@ describe("CompleteCaseModal", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn().mockResolvedValue(true);
 
-    render(
-      <CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />
-    );
+    render(<CompleteCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     const noResponseRadio = screen.getByLabelText(/Cierre por falta de respuesta/i);
     fireEvent.click(noResponseRadio);

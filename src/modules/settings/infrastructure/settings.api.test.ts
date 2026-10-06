@@ -33,7 +33,7 @@ describe("settingsApi", () => {
     expect(res).toEqual(mockData);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/settings"),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -45,7 +45,7 @@ describe("settingsApi", () => {
     expect(res).toEqual(mockUpdated);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/settings/channels"),
-      expect.objectContaining({ method: "PUT" })
+      expect.objectContaining({ method: "PUT" }),
     );
   });
 
@@ -57,7 +57,7 @@ describe("settingsApi", () => {
     expect(res).toEqual(mockUpdated);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/settings/ai"),
-      expect.objectContaining({ method: "PUT" })
+      expect.objectContaining({ method: "PUT" }),
     );
   });
 
@@ -69,7 +69,7 @@ describe("settingsApi", () => {
     expect(res).toEqual(mockResult);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/settings/test-ai"),
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST" }),
     );
   });
 
@@ -81,7 +81,7 @@ describe("settingsApi", () => {
     expect(res).toEqual(mockResult);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/settings/test-channels"),
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST" }),
     );
   });
 
@@ -93,7 +93,7 @@ describe("settingsApi", () => {
     expect(res).toEqual(mockStatus);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/settings/setup-status"),
-      expect.anything()
+      expect.anything(),
     );
   });
 });

@@ -16,7 +16,8 @@ import {
   UserCheck,
   PanelRightClose,
   Info,
-  ArrowLeft, Edit2,
+  ArrowLeft,
+  Edit2,
   Zap,
   FileText,
 } from "lucide-react";
@@ -42,7 +43,12 @@ import { ContactDialog } from "@/modules/customers/ui/ContactDialog";
 import { customerGateway } from "@/modules/customers/infrastructure/customer.gateway";
 import type { CustomerDto } from "@/modules/customers/domain/customer";
 
-import { caseStatusLabel, extractSchedulingMetadata, workflowLabel, type CaseDto } from "@/modules/cases/domain/case";
+import {
+  caseStatusLabel,
+  extractSchedulingMetadata,
+  workflowLabel,
+  type CaseDto,
+} from "@/modules/cases/domain/case";
 import {
   conversationDisplayName,
   conversationStatusLabel,
@@ -101,7 +107,9 @@ function ConversationAvatar({
   conversation,
   size = "size-11",
 }: {
-  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & { customerName?: string | null };
+  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & {
+    customerName?: string | null;
+  };
   size?: string;
 }) {
   const color = avatarColorFromSeed(conversation.waPhone);
@@ -110,11 +118,7 @@ function ConversationAvatar({
     <div
       className={`${size} rounded-full grid place-items-center shrink-0 font-bold text-sm ${color.bg} ${color.text}`}
     >
-      {name ? (
-        initialsFromProfileName(name)
-      ) : (
-        <User className="size-1/2" />
-      )}
+      {name ? initialsFromProfileName(name) : <User className="size-1/2" />}
     </div>
   );
 }
@@ -155,7 +159,11 @@ function MessageAvatar({
  * FILTROS dentro de esta pantalla (no rutas separadas) — ver
  * docs/skills/ui-ux-design-principles.md.
  */
-export function OperationalInbox({ initialDepartmentId, initialConversationId, initialStatus }: Props) {
+export function OperationalInbox({
+  initialDepartmentId,
+  initialConversationId,
+  initialStatus,
+}: Props) {
   const session = useSession();
   const { data: departments = [] } = useDepartmentsQuery();
   const directory = useDirectoryUsers();
@@ -191,6 +199,38 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
   }, [isSupervisorOrAdmin, session?.primaryDepartmentId, departmentId, visibleDepartments]);
 
   const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>("all");
+
+  // Filtrar agentes según el departamento activo y el rol del usuario
+  const visibleAgents = useMemo(() => {
+    return directory.filter((a) => {
+      if (!a.active || a.id === session?.id) return false;
+      if (departmentId) {
+        return a.primaryDepartmentId === departmentId || a.departmentIds.includes(departmentId);
+      }
+      if (!isSupervisorOrAdmin && session) {
+        const myDepts = new Set([session.primaryDepartmentId, ...(session.departmentIds ?? [])]);
+        return (
+          (a.primaryDepartmentId && myDepts.has(a.primaryDepartmentId)) ||
+          a.departmentIds.some((dId) => myDepts.has(dId))
+        );
+      }
+      return true;
+    });
+  }, [directory, session, departmentId, isSupervisorOrAdmin]);
+
+  // Si cambia el departamento y el agente filtrado no pertenece a él, volver a 'all'
+  useEffect(() => {
+    if (departmentId && agentFilter !== "all" && agentFilter !== "mine") {
+      const selectedAgent = directory.find((a) => a.id === agentFilter);
+      if (
+        selectedAgent &&
+        selectedAgent.primaryDepartmentId !== departmentId &&
+        !selectedAgent.departmentIds.includes(departmentId)
+      ) {
+        setAgentFilter("all");
+      }
+    }
+  }, [departmentId, agentFilter, directory]);
   const [statusFilter, setStatusFilter] = useState<ConversationStatus>(initialStatus ?? "open");
   const [search, setSearch] = useState("");
 
@@ -363,7 +403,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
       .then((res) => {
         if (!active) return;
         const found = res.data?.find(
-          (c) => c.waPhone?.replace(/\D/g, "") === phone.replace(/\D/g, "")
+          (c) => c.waPhone?.replace(/\D/g, "") === phone.replace(/\D/g, ""),
         );
         setSelectedCustomer(found ?? null);
       })
@@ -386,7 +426,7 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
     try {
       const res = await customerGateway.list({ search: selected.waPhone, limit: 1 });
       const found = res.data?.find(
-        (c) => c.waPhone?.replace(/\D/g, "") === selected.waPhone.replace(/\D/g, "")
+        (c) => c.waPhone?.replace(/\D/g, "") === selected.waPhone.replace(/\D/g, ""),
       );
       if (found) {
         setSelectedCustomer(found);
@@ -647,13 +687,11 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
           >
             <option value="all">Todos los agentes</option>
             <option value="mine">Mis conversaciones</option>
-            {directory
-              .filter((a) => a.active && a.id !== session?.id)
-              .map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
+            {visibleAgents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
           </select>
 
           <button
@@ -768,14 +806,22 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
                       )}
                       {c.status === "pending" || c.activeCase?.status === "WAITING_USER" ? (
                         (() => {
-                          const scheduling = extractSchedulingMetadata(c.id === selected?.id ? activeCase : (c.activeCase as unknown as CaseDto));
+                          const scheduling = extractSchedulingMetadata(
+                            c.id === selected?.id
+                              ? activeCase
+                              : (c.activeCase as unknown as CaseDto),
+                          );
                           const tagLabel = scheduling?.scheduleTag
                             ? `En Espera: ${scheduling.scheduleTag}`
                             : "En Espera";
                           return (
                             <span
                               className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30"
-                              title={scheduling?.reminderReason ? `Nota: ${scheduling.reminderReason}` : tagLabel}
+                              title={
+                                scheduling?.reminderReason
+                                  ? `Nota: ${scheduling.reminderReason}`
+                                  : tagLabel
+                              }
                             >
                               <Clock className="size-2.5 text-amber-500" />
                               <span>{tagLabel}</span>
@@ -911,9 +957,15 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
                       </button>
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                      <span>{selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}</span>
-                      <span>{activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}</span>
-                      {activeCase && <span>{` · ${workflowLabel(activeCase.workflowType).label}`}</span>}
+                      <span>
+                        {selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}
+                      </span>
+                      <span>
+                        {activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}
+                      </span>
+                      {activeCase && (
+                        <span>{` · ${workflowLabel(activeCase.workflowType).label}`}</span>
+                      )}
                       {selectedCustomer?.contracts && selectedCustomer.contracts.length > 0 && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20 shrink-0 ml-1">
                           <FileText className="size-2.5" />
@@ -1292,7 +1344,10 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
               <CasePanel
                 caseDto={activeCase}
-                customerName={selectedCustomer?.fullName || (selected ? conversationDisplayName(selected) : undefined)}
+                customerName={
+                  selectedCustomer?.fullName ||
+                  (selected ? conversationDisplayName(selected) : undefined)
+                }
                 customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
                 customerTags={selectedCustomer?.tags}
                 customerContractsCount={selectedCustomer?.contracts?.length}
@@ -1345,11 +1400,14 @@ export function OperationalInbox({ initialDepartmentId, initialConversationId, i
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             <CasePanel
               caseDto={activeCase}
-              customerName={selectedCustomer?.fullName || (selected ? conversationDisplayName(selected) : undefined)}
-                customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
-                customerTags={selectedCustomer?.tags}
-                customerContractsCount={selectedCustomer?.contracts?.length}
-                onOpenContact={() => void handleOpenContact()}
+              customerName={
+                selectedCustomer?.fullName ||
+                (selected ? conversationDisplayName(selected) : undefined)
+              }
+              customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
+              customerTags={selectedCustomer?.tags}
+              customerContractsCount={selectedCustomer?.contracts?.length}
+              onOpenContact={() => void handleOpenContact()}
               busy={busy}
               canWrite={canWriteCase}
               departments={departments}

@@ -25,7 +25,9 @@ export function ZernioSyncCard() {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
         if (status.status === "completed") {
-          toast.success(`Historial sincronizado: ${status.totalMessagesSynced} mensajes importados`);
+          toast.success(
+            `Historial sincronizado: ${status.totalMessagesSynced} mensajes importados`,
+          );
         } else if (status.status === "failed") {
           toast.error(status.lastError || "Error en la sincronización de Zernio");
         }
@@ -85,16 +87,23 @@ export function ZernioSyncCard() {
               }
               className="capitalize"
             >
-              {syncStatus.status === "running" && <RefreshCw className="size-3 mr-1 animate-spin" />}
-              {syncStatus.status === "completed" && <CheckCircle2 className="size-3 mr-1 text-emerald-500" />}
-              {syncStatus.status === "failed" && <AlertCircle className="size-3 mr-1 text-red-500" />}
+              {syncStatus.status === "running" && (
+                <RefreshCw className="size-3 mr-1 animate-spin" />
+              )}
+              {syncStatus.status === "completed" && (
+                <CheckCircle2 className="size-3 mr-1 text-emerald-500" />
+              )}
+              {syncStatus.status === "failed" && (
+                <AlertCircle className="size-3 mr-1 text-red-500" />
+              )}
               {syncStatus.status === "idle" && <Clock className="size-3 mr-1" />}
               {syncStatus.status}
             </Badge>
           )}
         </div>
         <CardDescription className="text-xs">
-          Importa hacia PostgreSQL las conversaciones y mensajes antiguos que ocurrieron antes de conectar el webhook, permitiendo a los asesores ver el contexto previo completo.
+          Importa hacia PostgreSQL las conversaciones y mensajes antiguos que ocurrieron antes de
+          conectar el webhook, permitiendo a los asesores ver el contexto previo completo.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -107,14 +116,19 @@ export function ZernioSyncCard() {
             <Progress value={progressValue} className="h-2" />
             <div className="flex justify-between text-[11px] text-muted-foreground">
               <span>Mensajes importados: {syncStatus?.totalMessagesSynced ?? 0}</span>
-              {syncStatus?.totalItems ? <span>Total conversaciones: {syncStatus.totalItems}</span> : null}
+              {syncStatus?.totalItems ? (
+                <span>Total conversaciones: {syncStatus.totalItems}</span>
+              ) : null}
             </div>
           </div>
         )}
 
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <div className="flex items-center gap-2">
-            <label htmlFor="sync-days" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            <label
+              htmlFor="sync-days"
+              className="text-xs font-medium text-muted-foreground whitespace-nowrap"
+            >
               Ventana de tiempo:
             </label>
             <select
@@ -146,7 +160,8 @@ export function ZernioSyncCard() {
 
           {syncStatus?.completedAt && !isRunning && (
             <span className="text-[11px] text-muted-foreground ml-auto">
-              Última sincronización: {new Date(syncStatus.completedAt).toLocaleString()} ({syncStatus.totalMessagesSynced} msgs)
+              Última sincronización: {new Date(syncStatus.completedAt).toLocaleString()} (
+              {syncStatus.totalMessagesSynced} msgs)
             </span>
           )}
         </div>

@@ -64,7 +64,13 @@ const FALLBACK_PROMPTS_LIST: PromptDto[] = [
     slug: "compose_reply",
     name: "Redacción de Respuesta",
     description: "Genera la respuesta final al cliente en base al resultado del flujo de negocio.",
-    allowedVariables: ["stepOutcome", "templateHint", "missingFields", "workflowType", "clientName"],
+    allowedVariables: [
+      "stepOutcome",
+      "templateHint",
+      "missingFields",
+      "workflowType",
+      "clientName",
+    ],
     versionsCount: 1,
     activeVersion: {
       id: "v1-compose_reply",
@@ -133,7 +139,10 @@ export function usePrompts(initialSlug?: string) {
     try {
       list = await promptService.listPrompts();
     } catch (e) {
-      console.warn("Error al cargar la lista de plantillas de backend, utilizando lista por defecto:", e);
+      console.warn(
+        "Error al cargar la lista de plantillas de backend, utilizando lista por defecto:",
+        e,
+      );
       list = FALLBACK_PROMPTS_LIST;
     }
 

@@ -2,12 +2,20 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Inbox } from "lucide-react";
 import { AppShell } from "@/app/shell/AppShell";
 import { OperationalInbox } from "@/modules/conversations/ui/OperationalInbox";
+import type { ConversationStatus } from "@/modules/conversations/domain/conversation";
 
 type BandejaSearch = {
   conversationId?: string;
   departmentId?: string;
-  status?: string;
+  status?: ConversationStatus;
 };
+
+const VALID_STATUSES: readonly ConversationStatus[] = [
+  "open",
+  "pending",
+  "resolved",
+  "closed",
+] as const;
 
 export const Route = createFileRoute("/bandeja")({
   validateSearch: (search: Record<string, unknown>): BandejaSearch => ({
@@ -20,8 +28,9 @@ export const Route = createFileRoute("/bandeja")({
         ? search.departmentId
         : undefined,
     status:
-      typeof search.status === "string" && search.status.length > 0
-        ? search.status
+      typeof search.status === "string" &&
+      VALID_STATUSES.includes(search.status as ConversationStatus)
+        ? (search.status as ConversationStatus)
         : undefined,
   }),
   component: BandejaPage,
@@ -35,7 +44,7 @@ function BandejaPage() {
       <OperationalInbox
         initialDepartmentId={departmentId}
         initialConversationId={conversationId}
-        initialStatus={status as any}
+        initialStatus={status}
       />
     </AppShell>
   );

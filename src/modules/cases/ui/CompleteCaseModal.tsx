@@ -121,7 +121,8 @@ export function CompleteCaseModal({ open, onOpenChange, onConfirm, busy }: Props
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground block">
-              Notas de resolución <span className="text-muted-foreground font-normal">(opcional)</span>
+              Notas de resolución{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
             </label>
             <textarea
               value={resolutionNote}

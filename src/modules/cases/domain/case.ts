@@ -273,8 +273,7 @@ export function extractSchedulingMetadata(
   const ctx = caseDto.context as Record<string, unknown>;
   const metadata = (ctx.schedulingMetadata ??
     (ctx.data as Record<string, unknown> | undefined)?.schedulingMetadata) as
-    | CaseSchedulingMetadata
-    | undefined;
+    CaseSchedulingMetadata | undefined;
   return metadata ?? null;
 }
 

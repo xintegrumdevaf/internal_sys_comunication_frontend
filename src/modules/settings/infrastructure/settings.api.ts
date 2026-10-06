@@ -19,7 +19,9 @@ export const settingsApi = {
    * Consulta las configuraciones activas del sistema (con secretos enmascarados).
    */
   getSettings: async (): Promise<SystemSettingsData> => {
-    const res = await apiGet<SystemSettingsData | { data: SystemSettingsData }>("/api/admin/settings");
+    const res = await apiGet<SystemSettingsData | { data: SystemSettingsData }>(
+      "/api/admin/settings",
+    );
     return unwrap<SystemSettingsData>(res);
   },
 

@@ -15,7 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ZernioSyncCard } from "./ZernioSyncCard";
@@ -46,6 +53,7 @@ export function SettingsView() {
     zernioAccountId: "",
     zernioWebhookSecret: "",
     zernioBaseUrl: "https://zernio.com/api/v1",
+    messageDebounceMs: 4500,
   });
 
   const [ai, setAi] = useState<AiProviderSettings>({
@@ -258,7 +266,8 @@ export function SettingsView() {
                 <div>
                   <CardTitle className="text-lg">Configuración de Canal de WhatsApp</CardTitle>
                   <CardDescription>
-                    Seleccioná y configurá el proveedor para la recepción y emisión de mensajes en tiempo real.
+                    Seleccioná y configurá el proveedor para la recepción y emisión de mensajes en
+                    tiempo real.
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -286,7 +295,8 @@ export function SettingsView() {
                 <div className="space-y-4">
                   <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 text-xs text-muted-foreground flex items-center justify-between">
                     <span>
-                      Conexión directa con la API oficial de WhatsApp Business Cloud (sin intermediarios).
+                      Conexión directa con la API oficial de WhatsApp Business Cloud (sin
+                      intermediarios).
                     </span>
                     <a
                       href="https://developers.facebook.com/apps"
@@ -305,7 +315,9 @@ export function SettingsView() {
                         id="meta-phone-id"
                         placeholder="Ej: 109876543210987"
                         value={channels.phoneNumberId}
-                        onChange={(e) => setChannels({ ...channels, phoneNumberId: e.target.value })}
+                        onChange={(e) =>
+                          setChannels({ ...channels, phoneNumberId: e.target.value })
+                        }
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -342,7 +354,9 @@ export function SettingsView() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="meta-secret">App Secret (para firma sha256 de webhooks)</Label>
+                      <Label htmlFor="meta-secret">
+                        App Secret (para firma sha256 de webhooks)
+                      </Label>
                       <div className="relative">
                         <Input
                           id="meta-secret"
@@ -357,7 +371,11 @@ export function SettingsView() {
                           onClick={() => setShowMetaSecret(!showMetaSecret)}
                           className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                         >
-                          {showMetaSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          {showMetaSecret ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -395,7 +413,9 @@ export function SettingsView() {
                         id="zernio-account-id"
                         placeholder="Ej: 6a9ec34a77555aae01ec0fde"
                         value={channels.zernioAccountId}
-                        onChange={(e) => setChannels({ ...channels, zernioAccountId: e.target.value })}
+                        onChange={(e) =>
+                          setChannels({ ...channels, zernioAccountId: e.target.value })
+                        }
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -404,7 +424,9 @@ export function SettingsView() {
                         id="zernio-base-url"
                         placeholder="https://zernio.com/api/v1"
                         value={channels.zernioBaseUrl}
-                        onChange={(e) => setChannels({ ...channels, zernioBaseUrl: e.target.value })}
+                        onChange={(e) =>
+                          setChannels({ ...channels, zernioBaseUrl: e.target.value })
+                        }
                       />
                     </div>
                   </div>
@@ -438,7 +460,9 @@ export function SettingsView() {
                         type={showZernioSecret ? "text" : "password"}
                         placeholder="••••••••"
                         value={channels.zernioWebhookSecret}
-                        onChange={(e) => setChannels({ ...channels, zernioWebhookSecret: e.target.value })}
+                        onChange={(e) =>
+                          setChannels({ ...channels, zernioWebhookSecret: e.target.value })
+                        }
                         className="pr-10"
                       />
                       <button
@@ -446,12 +470,77 @@ export function SettingsView() {
                         onClick={() => setShowZernioSecret(!showZernioSecret)}
                         className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                       >
-                        {showZernioSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        {showZernioSecret ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
               )}
+
+              {/* Parámetros Operativos del Buffer / Debounce */}
+              <div className="pt-4 border-t border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="message-debounce" className="text-sm font-semibold">
+                      Tiempo de Espera para Agrupación de Mensajes (Debounce)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Tiempo que espera el sistema tras recibir un mensaje para consolidar ráfagas
+                      consecutivas antes de responder.
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="font-mono text-xs">
+                    {((channels.messageDebounceMs ?? 4500) / 1000).toFixed(1)}s
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                  <div className="md:col-span-2 flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground font-mono">3s</span>
+                    <input
+                      id="message-debounce-slider"
+                      type="range"
+                      min={3000}
+                      max={30000}
+                      step={500}
+                      value={channels.messageDebounceMs ?? 4500}
+                      onChange={(e) =>
+                        setChannels({ ...channels, messageDebounceMs: Number(e.target.value) })
+                      }
+                      className="w-full accent-primary h-2 bg-secondary rounded-lg cursor-pointer"
+                    />
+                    <span className="text-xs text-muted-foreground font-mono">30s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="message-debounce"
+                      type="number"
+                      min={1}
+                      max={60}
+                      step={0.5}
+                      value={Number(((channels.messageDebounceMs ?? 4500) / 1000).toFixed(1))}
+                      onChange={(e) => {
+                        const valSec = parseFloat(e.target.value);
+                        if (!Number.isNaN(valSec)) {
+                          setChannels({
+                            ...channels,
+                            messageDebounceMs: Math.round(valSec * 1000),
+                          });
+                        }
+                      }}
+                      className="w-24 text-right font-mono text-xs"
+                    />
+                    <span className="text-xs text-muted-foreground">segundos</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground italic">
+                  💡 Rango recomendado: 5 a 15 segundos. Evita responder dos veces cuando el cliente
+                  envía varias líneas seguidas para explicar su caso.
+                </p>
+              </div>
 
               {/* Resultado de prueba de conexión */}
               {channelTestResult && (
@@ -487,7 +576,9 @@ export function SettingsView() {
                 disabled={testingChannels}
                 className="gap-2 text-xs"
               >
-                <Zap className={`size-3.5 ${testingChannels ? "animate-spin text-amber-500" : "text-amber-500"}`} />
+                <Zap
+                  className={`size-3.5 ${testingChannels ? "animate-spin text-amber-500" : "text-amber-500"}`}
+                />
                 {testingChannels ? "Verificando conexión..." : "Probar Conexión en Vivo"}
               </Button>
               <Button
@@ -514,7 +605,8 @@ export function SettingsView() {
                 <div>
                   <CardTitle className="text-lg">Configuración de Proveedor de IA</CardTitle>
                   <CardDescription>
-                    Definí el motor de inferencia NLU para clasificación de intenciones, respuestas automáticas y embeddings vectoriales.
+                    Definí el motor de inferencia NLU para clasificación de intenciones, respuestas
+                    automáticas y embeddings vectoriales.
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -542,7 +634,8 @@ export function SettingsView() {
                 <div className="space-y-4">
                   <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 text-xs text-muted-foreground flex items-center justify-between">
                     <span>
-                      Inferencia de alta velocidad mediante Google Gemini API con latencias sub-segundo.
+                      Inferencia de alta velocidad mediante Google Gemini API con latencias
+                      sub-segundo.
                     </span>
                     <a
                       href="https://aistudio.google.com/app/apikey"
@@ -601,7 +694,9 @@ export function SettingsView() {
                         type="number"
                         placeholder="768"
                         value={ai.geminiEmbeddingDimension}
-                        onChange={(e) => setAi({ ...ai, geminiEmbeddingDimension: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setAi({ ...ai, geminiEmbeddingDimension: Number(e.target.value) })
+                        }
                       />
                     </div>
                   </div>
@@ -610,7 +705,8 @@ export function SettingsView() {
                 <div className="space-y-4">
                   <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 text-xs text-muted-foreground flex items-center justify-between">
                     <span>
-                      Ejecución local privada de modelos open-source (Qwen, Llama) sin costos por token.
+                      Ejecución local privada de modelos open-source (Qwen, Llama) sin costos por
+                      token.
                     </span>
                     <a
                       href="https://ollama.com/library"
@@ -660,7 +756,9 @@ export function SettingsView() {
                         type="number"
                         placeholder="2560"
                         value={ai.ollamaEmbeddingDimension}
-                        onChange={(e) => setAi({ ...ai, ollamaEmbeddingDimension: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setAi({ ...ai, ollamaEmbeddingDimension: Number(e.target.value) })
+                        }
                       />
                     </div>
                   </div>
@@ -677,7 +775,9 @@ export function SettingsView() {
                     value={ai.aiCallTimeoutMs}
                     onChange={(e) => setAi({ ...ai, aiCallTimeoutMs: Number(e.target.value) })}
                   />
-                  <p className="text-[11px] text-muted-foreground">Recomendado: 45000ms para llamadas complejas</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Recomendado: 45000ms para llamadas complejas
+                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="quality-timeout">Timeout Supervisión de Calidad (ms)</Label>
@@ -687,22 +787,34 @@ export function SettingsView() {
                     value={ai.aiQualityTimeoutMs}
                     onChange={(e) => setAi({ ...ai, aiQualityTimeoutMs: Number(e.target.value) })}
                   />
-                  <p className="text-[11px] text-muted-foreground">Recomendado: 600000ms (10 min en cola batch)</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Recomendado: 600000ms (10 min en cola batch)
+                  </p>
                 </div>
               </div>
 
               {/* Advertencia de Tradeoff en Embeddings */}
               <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="size-4" />
-                <AlertTitle className="text-xs font-semibold">Regla Crítica de Vectores de Conocimiento</AlertTitle>
+                <AlertTitle className="text-xs font-semibold">
+                  Regla Crítica de Vectores de Conocimiento
+                </AlertTitle>
                 <AlertDescription className="text-xs mt-0.5">
-                  Si cambiás el proveedor o modelo de embeddings (por ejemplo de Ollama 2560 dims a Gemini 768 dims), los documentos y FAQs guardados previamente en <code>n8n_vectors</code> deben volver a indexarse desde la sección <strong>Base de Conocimiento</strong> para que las búsquedas RAG coincidan en dimensión y espacio latente.
+                  Si cambiás el proveedor o modelo de embeddings (por ejemplo de Ollama 2560 dims a
+                  Gemini 768 dims), los documentos y FAQs guardados previamente en{" "}
+                  <code>n8n_vectors</code> deben volver a indexarse desde la sección{" "}
+                  <strong>Base de Conocimiento</strong> para que las búsquedas RAG coincidan en
+                  dimensión y espacio latente.
                 </AlertDescription>
               </Alert>
 
               {/* Resultado de prueba de IA */}
               {aiTestResult && (
-                <Alert variant={aiTestResult.ok ? (aiTestResult.warning ? "default" : "default") : "destructive"}>
+                <Alert
+                  variant={
+                    aiTestResult.ok ? (aiTestResult.warning ? "default" : "default") : "destructive"
+                  }
+                >
                   <div className="flex items-center gap-2">
                     {aiTestResult.ok ? (
                       <CheckCircle2 className="size-4 text-emerald-500" />
@@ -710,7 +822,9 @@ export function SettingsView() {
                       <AlertTriangle className="size-4 text-red-500" />
                     )}
                     <AlertTitle className="text-sm font-semibold">
-                      {aiTestResult.ok ? "Verificación de IA exitosa" : "Error de verificación de IA"}
+                      {aiTestResult.ok
+                        ? "Verificación de IA exitosa"
+                        : "Error de verificación de IA"}
                     </AlertTitle>
                   </div>
                   <AlertDescription className="text-xs mt-1">
@@ -727,7 +841,9 @@ export function SettingsView() {
                 disabled={testingAi}
                 className="gap-2 text-xs"
               >
-                <Zap className={`size-3.5 ${testingAi ? "animate-spin text-amber-500" : "text-amber-500"}`} />
+                <Zap
+                  className={`size-3.5 ${testingAi ? "animate-spin text-amber-500" : "text-amber-500"}`}
+                />
                 {testingAi ? "Probando conexión con IA..." : "Probar Conexión en Vivo"}
               </Button>
               <Button

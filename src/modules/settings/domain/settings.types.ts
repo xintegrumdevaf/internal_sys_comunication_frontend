@@ -1,4 +1,4 @@
-﻿export type ChannelProvider = "meta" | "zernio";
+export type ChannelProvider = "meta" | "zernio";
 export type AiProvider = "gemini" | "ollama";
 
 export interface WhatsAppChannelSettings {
@@ -12,6 +12,7 @@ export interface WhatsAppChannelSettings {
   zernioAccountId: string;
   zernioWebhookSecret: string;
   zernioBaseUrl: string;
+  messageDebounceMs?: number;
 }
 
 export interface AiProviderSettings {

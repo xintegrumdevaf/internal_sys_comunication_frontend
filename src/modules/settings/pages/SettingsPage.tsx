@@ -5,7 +5,7 @@ import { SettingsView } from "../ui/SettingsView";
 export function SettingsPage() {
   return (
     <AppShell title="Configuración del Sistema" icon={Settings}>
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="w-full">
         <SettingsView />
       </div>
     </AppShell>

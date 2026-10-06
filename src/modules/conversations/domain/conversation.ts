@@ -69,7 +69,9 @@ export function formatWaPhone(waPhone: string): string {
  * cae al teléfono formateado — nunca "Cliente" ni un placeholder inventado.
  */
 export function conversationDisplayName(
-  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & { customerName?: string | null },
+  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & {
+    customerName?: string | null;
+  },
 ): string {
   return (
     conversation.customerName?.trim() ||
