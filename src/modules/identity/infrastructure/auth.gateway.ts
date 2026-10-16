@@ -13,8 +13,14 @@ export async function login(email: string, password: string): Promise<AgentDto> 
   return normalizeAgent(agent);
 }
 
-export function logout(): Promise<void> {
-  return apiPost<void>("/api/auth/logout");
+export async function logout(): Promise<void> {
+  try {
+    await apiPost<void>("/api/auth/logout");
+  } finally {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+    }
+  }
 }
 
 /** Sesion actual segun la cookie real — null si no hay sesion (401/403). */

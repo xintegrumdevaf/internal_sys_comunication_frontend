@@ -65,7 +65,10 @@ async function parseEnvelope<T>(res: Response, raw = false): Promise<T> {
   if (raw) {
     return json as T;
   }
-  const body = json as { data?: T } | undefined;
+  const body = json as { data?: T; token?: string } | undefined;
+  if (body && typeof body === "object" && typeof body.token === "string" && typeof window !== "undefined") {
+    localStorage.setItem("auth_token", body.token);
+  }
   return (body?.data ?? (json as T)) as T;
 }
 
@@ -81,6 +84,12 @@ function buildHeaders(agentId?: string | null, isFormData = false): HeadersInit 
   const headers: Record<string, string> = {};
   if (!isFormData) {
     headers["Content-Type"] = "application/json";
+  }
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
   if (agentId) headers["x-agent-id"] = agentId;
   return headers;
