@@ -31,7 +31,7 @@ export function useCampaignWizard() {
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [importSummary, setImportSummary] = useState({ total: 0, valid: 0, invalid: 0 });
 
-  // Step 3 state: Enrutamiento del chat
+  // Configuración de enrutamiento por defecto para campañas masivas
   const [routingConfig, setRoutingConfig] = useState<ChatRoutingConfig>({
     chatStatus: "closed",
     departmentName: "",

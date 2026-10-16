@@ -391,19 +391,19 @@ export function OperationalInbox({
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [, setLoadingContact] = useState(false);
 
+  const selectedPhone = selected?.waPhone;
   useEffect(() => {
     let active = true;
-    if (!selected) {
+    if (!selectedPhone) {
       setSelectedCustomer(null);
       return;
     }
-    const phone = selected.waPhone;
     customerGateway
-      .list({ search: phone, limit: 1 })
+      .list({ search: selectedPhone, limit: 1 })
       .then((res) => {
         if (!active) return;
         const found = res.data?.find(
-          (c) => c.waPhone?.replace(/\D/g, "") === phone.replace(/\D/g, ""),
+          (c) => c.waPhone?.replace(/\D/g, "") === selectedPhone.replace(/\D/g, ""),
         );
         setSelectedCustomer(found ?? null);
       })
@@ -414,7 +414,7 @@ export function OperationalInbox({
     return () => {
       active = false;
     };
-  }, [selected?.waPhone]);
+  }, [selectedPhone]);
 
   const handleOpenContact = async () => {
     if (!selected) return;

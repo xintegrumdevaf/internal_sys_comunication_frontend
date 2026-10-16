@@ -40,8 +40,8 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
         .getDepartments()
         .then((data) => {
           setDepartments(data || []);
-          if (data && data.length > 0 && !departmentId) {
-            setDepartmentId(data[0].id);
+          if (data && data.length > 0) {
+            setDepartmentId((prev) => prev || data[0].id);
           }
         })
         .catch((err) => console.error("Error cargando departamentos:", err));

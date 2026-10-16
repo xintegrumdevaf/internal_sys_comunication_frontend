@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Users,
@@ -64,36 +64,45 @@ export function ContactsManagementView() {
   }, []);
 
   // Cargar contactos
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const hasTagsParam =
-        tagFilter === "WITH_TAGS" ? true : tagFilter === "NO_TAGS" ? false : undefined;
-      const tagIdParam = tagIdFilter !== "ALL" ? tagIdFilter : undefined;
+  const searchRef = useRef(search);
+  searchRef.current = search;
 
-      const res = await customerGateway.list({
-        search: search.trim() || undefined,
-        hasTags: hasTagsParam,
-        tagId: tagIdParam,
-        startDate: dateFilter || undefined,
-        page,
-        limit: 15,
-      });
+  const fetchCustomers = useCallback(
+    async (customSearch?: string) => {
+      setLoading(true);
+      try {
+        const hasTagsParam =
+          tagFilter === "WITH_TAGS" ? true : tagFilter === "NO_TAGS" ? false : undefined;
+        const tagIdParam = tagIdFilter !== "ALL" ? tagIdFilter : undefined;
+        const currentSearch = (
+          customSearch !== undefined ? customSearch : searchRef.current
+        ).trim();
 
-      setCustomers(res.data || []);
-      setTotal(res.pagination?.total || 0);
-      setTotalPages(res.pagination?.totalPages || 1);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al cargar contactos";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const res = await customerGateway.list({
+          search: currentSearch || undefined,
+          hasTags: hasTagsParam,
+          tagId: tagIdParam,
+          startDate: dateFilter || undefined,
+          page,
+          limit: 15,
+        });
+
+        setCustomers(res.data || []);
+        setTotal(res.pagination?.total || 0);
+        setTotalPages(res.pagination?.totalPages || 1);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al cargar contactos";
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dateFilter, page, tagFilter, tagIdFilter],
+  );
 
   useEffect(() => {
     void fetchCustomers();
-  }, [page, tagFilter, tagIdFilter, dateFilter]);
+  }, [fetchCustomers]);
 
   // Manejo de búsqueda con enter o botón
   const handleSearchSubmit = (e: React.FormEvent) => {

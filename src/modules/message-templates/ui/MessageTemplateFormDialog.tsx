@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   AlertCircle,
   Bold,
@@ -75,7 +75,7 @@ export function MessageTemplateFormDialog({
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setCategory("MARKETING");
     setName("");
     setLanguage("pt_BR");
@@ -93,13 +93,13 @@ export function MessageTemplateFormDialog({
     } else {
       setConnectionId("");
     }
-  };
+  }, [connections]);
 
   useEffect(() => {
     if (isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
   useEffect(() => {
     if (

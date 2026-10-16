@@ -22,7 +22,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   MessageSquare,
   Users,
-  GitBranch,
   Upload,
   Download,
   HelpCircle,
@@ -37,7 +36,6 @@ import { useCampaignWizard } from "../application/use-campaign-wizard";
 import { useCreateCampaign } from "../application/use-campaigns";
 import { useMessageTemplates } from "@/modules/message-templates/application/use-message-templates";
 import { templateCategoryLabel } from "@/modules/message-templates/domain/message-template";
-import { useDepartmentsQuery, useDirectoryUsers } from "@/modules/identity/application/use-session";
 
 type CampaignWizardDialogProps = {
   open: boolean;
@@ -53,8 +51,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
   const wizard = useCampaignWizard();
   const { createCampaign, isSubmitting } = useCreateCampaign();
   const { templates: availableTemplates, loading: loadingTemplates } = useMessageTemplates();
-  const { data: realDepartments, isLoading: loadingDepts } = useDepartmentsQuery();
-  const realDirectoryUsers = useDirectoryUsers();
 
   const approvedTemplates = useMemo(() => {
     return availableTemplates.filter((t) => t.status === "APPROVED");
@@ -114,7 +110,7 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
             Nueva campaña
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configura el mensaje, los destinatarios y el enrutamiento de los chats.
+            Configura el mensaje y los destinatarios para el envío masivo.
           </p>
         </DialogHeader>
 
@@ -158,27 +154,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
               {wizard.step2Pending && (
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
               )}
-            </button>
-
-            <button
-              type="button"
-              className={cx(
-                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left",
-                wizard.activeStep === 3
-                  ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                  : "hover:bg-muted/80 text-muted-foreground",
-              )}
-              onClick={() => wizard.setActiveStep(3)}
-            >
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <GitBranch className="w-4 h-4" />
-                  Enrutamiento
-                </div>
-                <span className="text-[9px] uppercase tracking-wider opacity-70 ml-6">
-                  AVANZADO
-                </span>
-              </div>
             </button>
           </div>
 
@@ -678,241 +653,6 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Right Live Preview Panel */}
-                <div className="h-full min-h-[340px]">
-                  <CampaignPreviewPanel
-                    messageText={wizard.messageText}
-                    name={wizard.name}
-                    selectedTemplate={wizard.selectedTemplate}
-                    variableValues={wizard.templateVariableValues}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: ENRUTAMIENTO DEL CHAT (AVANZADO) */}
-            {wizard.activeStep === 3 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-                <div className="space-y-4">
-                  <p className="text-xs text-muted-foreground">
-                    Define cómo se crea el chat de cada contacto. Vale para toda la campaña.
-                  </p>
-
-                  {/* Estado del chat al crear */}
-                  <div>
-                    <label className="text-xs font-semibold text-foreground block mb-2">
-                      Estado del chat al crear
-                    </label>
-                    <div className="grid grid-cols-3 gap-2 p-1 rounded-xl border border-border bg-muted/10">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: "open" }))
-                        }
-                        className={cx(
-                          "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5",
-                          wizard.routingConfig.chatStatus === "open"
-                            ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
-                            : "text-muted-foreground hover:bg-muted",
-                        )}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        Abierto
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: "pending" }))
-                        }
-                        className={cx(
-                          "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5",
-                          wizard.routingConfig.chatStatus === "pending"
-                            ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
-                            : "text-muted-foreground hover:bg-muted",
-                        )}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-amber-500" />
-                        En espera
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, chatStatus: "closed" }))
-                        }
-                        className={cx(
-                          "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5",
-                          wizard.routingConfig.chatStatus === "closed"
-                            ? "bg-primary/15 text-primary border border-primary/30"
-                            : "text-muted-foreground hover:bg-muted",
-                        )}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-primary" />
-                        Cerrado
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Departamento */}
-                  <div>
-                    <label className="text-xs font-semibold text-foreground block mb-1.5">
-                      Departamento
-                    </label>
-                    <Select
-                      value={wizard.routingConfig.departmentName || "Ninguno"}
-                      onValueChange={(val) =>
-                        wizard.setRoutingConfig((prev) => ({
-                          ...prev,
-                          departmentName: val === "Ninguno" ? "" : val,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="w-full text-xs">
-                        <SelectValue
-                          placeholder={
-                            loadingDepts ? "Cargando departamentos..." : "Selecciona departamento"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80">
-                        <SelectItem value="Ninguno" className="cursor-pointer">
-                          <span className="text-muted-foreground italic">Ninguno</span>
-                        </SelectItem>
-                        {realDepartments && realDepartments.length > 0 ? (
-                          realDepartments
-                            .filter((d) => d.active !== false)
-                            .map((dept) => (
-                              <SelectItem
-                                key={dept.id}
-                                value={dept.name}
-                                className="text-xs cursor-pointer py-2"
-                              >
-                                <span className="font-semibold">{dept.name}</span>
-                              </SelectItem>
-                            ))
-                        ) : (
-                          <div className="px-2 py-1 text-xs text-muted-foreground italic">
-                            Sin departamentos configurados
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Usuario */}
-                  <div>
-                    <label className="text-xs font-semibold text-foreground block mb-1.5">
-                      Usuario asignado
-                    </label>
-                    <Select
-                      value={wizard.routingConfig.assignedUserName || "Ninguno"}
-                      onValueChange={(val) =>
-                        wizard.setRoutingConfig((prev) => ({
-                          ...prev,
-                          assignedUserName: val === "Ninguno" ? "" : val,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="w-full text-xs">
-                        <SelectValue placeholder="Buscar usuario..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card text-card-foreground border-border shadow-2xl z-[9999] max-h-80">
-                        <SelectItem value="Ninguno" className="cursor-pointer">
-                          <span className="text-muted-foreground italic">Ninguno</span>
-                        </SelectItem>
-                        {realDirectoryUsers && realDirectoryUsers.length > 0 ? (
-                          realDirectoryUsers.map((user) => (
-                            <SelectItem
-                              key={user.id}
-                              value={user.name}
-                              className="text-xs cursor-pointer py-2"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold">{user.name}</span>
-                                {user.departmentName && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    ({user.departmentName})
-                                  </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-2 py-1 text-xs text-muted-foreground italic">
-                            Sin usuarios registrados
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Switches */}
-                  <div className="p-3.5 rounded-xl border border-border bg-muted/10 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5 pr-4">
-                        <div className="text-xs font-semibold">Mantener asignado al usuario</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Devuelve el chat directamente a la bandeja del usuario cuando el contacto
-                          responda, omitiendo el chatbot.
-                        </div>
-                      </div>
-                      <Switch
-                        checked={wizard.routingConfig.keepAssigned}
-                        onCheckedChange={(val) =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, keepAssigned: val }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <div className="space-y-0.5 pr-4">
-                        <div className="text-xs font-semibold">
-                          Delegar a motor de IA (NetOps AI)
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          El chat será atendido por el motor de automatización e IA cuando el
-                          contacto responda.
-                        </div>
-                      </div>
-                      <Switch
-                        checked={wizard.routingConfig.delegateToBot}
-                        onCheckedChange={(val) =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, delegateToBot: val }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <div className="space-y-0.5 pr-4">
-                        <div className="flex items-center gap-1">
-                          <div className="text-xs font-semibold">Forzar actualización del chat</div>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs text-xs">
-                                Reclona el enrutamiento incluso en chats que ya existían
-                                previamente.
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Reaplica el enrutamiento incluso en chats ya existentes.
-                        </div>
-                      </div>
-                      <Switch
-                        checked={wizard.routingConfig.forceChatUpdate}
-                        onCheckedChange={(val) =>
-                          wizard.setRoutingConfig((prev) => ({ ...prev, forceChatUpdate: val }))
-                        }
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Right Live Preview Panel */}

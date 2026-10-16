@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BrainCircuit,
   FileText,
@@ -33,16 +33,18 @@ export function KnowledgeBasePage() {
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  const loadData = async (deptFilter: string = departmentFilter) => {
+  const deptFilterRef = useRef(departmentFilter);
+  deptFilterRef.current = departmentFilter;
+
+  const loadData = useCallback(async (deptFilter?: string) => {
     setLoading(true);
+    const filter = deptFilter ?? deptFilterRef.current;
     try {
       const [docsData, faqsData, metricsData, deptsData] = await Promise.all([
-        knowledgeService.getDocuments(deptFilter !== "global" ? deptFilter : undefined),
-        knowledgeService.getFaqs(deptFilter !== "global" ? deptFilter : undefined),
+        knowledgeService.getDocuments(filter !== "global" ? filter : undefined),
+        knowledgeService.getFaqs(filter !== "global" ? filter : undefined),
         knowledgeService.getMetrics(),
-        departments.length === 0
-          ? departmentService.getDepartments()
-          : Promise.resolve(departments),
+        departmentService.getDepartments(),
       ]);
       setDocuments(docsData);
       setFaqs(faqsData);
@@ -50,16 +52,16 @@ export function KnowledgeBasePage() {
       if (deptsData && deptsData.length > 0) {
         setDepartments(deptsData);
       }
-    } catch (e) {
+    } catch {
       toast.error("Error al cargar la información de la Base de Conocimiento");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadData(departmentFilter);
-  }, [departmentFilter]);
+  }, [departmentFilter, loadData]);
 
   const handleDepartmentFilterChange = (newDept: string) => {
     setDepartmentFilter(newDept);
