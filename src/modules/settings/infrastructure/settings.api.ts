@@ -5,6 +5,8 @@ import type {
   AiProviderSettings,
   SystemSetupStatus,
   TestConnectionResult,
+  AiProvider,
+  ListAiModelsResult,
 } from "../domain/settings.types";
 
 function unwrap<T>(response: unknown): T {

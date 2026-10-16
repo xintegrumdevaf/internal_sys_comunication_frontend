@@ -41,6 +41,8 @@ import type {
   AiProviderSettings,
   SystemSetupStatus,
   TestConnectionResult,
+  AiModelInfo,
+  ListAiModelsResult,
 } from "../domain/settings.types";
 import { toast } from "sonner";
 
@@ -272,12 +274,12 @@ export function SettingsView() {
   const [customOllamaEmbedding, setCustomOllamaEmbedding] = useState(false);
 
   const selectedGeminiInference =
-    geminiModels.inferenceModels.find((m) => m.id === ai.geminiModel) ||
-    DEFAULT_GEMINI_MODELS.inferenceModels.find((m) => m.id === ai.geminiModel);
+    geminiModels.inferenceModels.find((m: AiModelInfo) => m.id === ai.geminiModel) ||
+    DEFAULT_GEMINI_MODELS.inferenceModels.find((m: AiModelInfo) => m.id === ai.geminiModel);
 
   const selectedOllamaInference =
-    ollamaModels.inferenceModels.find((m) => m.id === ai.ollamaModel) ||
-    DEFAULT_OLLAMA_MODELS.inferenceModels.find((m) => m.id === ai.ollamaModel);
+    ollamaModels.inferenceModels.find((m: AiModelInfo) => m.id === ai.ollamaModel) ||
+    DEFAULT_OLLAMA_MODELS.inferenceModels.find((m: AiModelInfo) => m.id === ai.ollamaModel);
 
   const [showMetaToken, setShowMetaToken] = useState(false);
   const [showMetaSecret, setShowMetaSecret] = useState(false);
@@ -382,9 +384,7 @@ export function SettingsView() {
           baseUrl: ai.ollamaBaseUrl,
         });
         setOllamaModels(res);
-        toast.success(
-          `Modelos de Ollama detectados: ${res.inferenceModels.length} instalados.`,
-        );
+        toast.success(`Modelos de Ollama detectados: ${res.inferenceModels.length} instalados.`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al consultar modelos compatibles");
@@ -911,7 +911,11 @@ export function SettingsView() {
                             className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
                             title={showGeminiKey ? "Ocultar API Key" : "Mostrar API Key"}
                           >
-                            {showGeminiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            {showGeminiKey ? (
+                              <EyeOff className="size-4" />
+                            ) : (
+                              <Eye className="size-4" />
+                            )}
                           </button>
                         </div>
                         <Button
@@ -922,7 +926,9 @@ export function SettingsView() {
                           disabled={fetchingModels}
                           className="gap-1.5 text-xs whitespace-nowrap cursor-pointer"
                         >
-                          <RefreshCw className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`} />
+                          <RefreshCw
+                            className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`}
+                          />
                           {fetchingModels ? "Consultando..." : "Cargar Modelos"}
                         </Button>
                       </div>
@@ -956,35 +962,47 @@ export function SettingsView() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              <SelectLabel className="text-[11px] font-bold text-primary">🚀 Recomendados (Rápido y Balanceado)</SelectLabel>
+                              <SelectLabel className="text-[11px] font-bold text-primary">
+                                🚀 Recomendados (Rápido y Balanceado)
+                              </SelectLabel>
                               {geminiModels.inferenceModels
-                                .filter((m) => m.tier === "balanced")
-                                .map((m) => (
+                                .filter((m: AiModelInfo) => m.tier === "balanced")
+                                .map((m: AiModelInfo) => (
                                   <SelectItem key={m.id} value={m.id} className="text-xs">
                                     <span className="font-medium">{m.name}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                    <span className="text-[10px] text-muted-foreground ml-1.5">
+                                      ({m.tierLabel})
+                                    </span>
                                   </SelectItem>
                                 ))}
                             </SelectGroup>
                             <SelectGroup>
-                              <SelectLabel className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">⚡ Ultra Económicos (Más Baratos)</SelectLabel>
+                              <SelectLabel className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                ⚡ Ultra Económicos (Más Baratos)
+                              </SelectLabel>
                               {geminiModels.inferenceModels
-                                .filter((m) => m.tier === "economy")
-                                .map((m) => (
+                                .filter((m: AiModelInfo) => m.tier === "economy")
+                                .map((m: AiModelInfo) => (
                                   <SelectItem key={m.id} value={m.id} className="text-xs">
                                     <span className="font-medium">{m.name}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                    <span className="text-[10px] text-muted-foreground ml-1.5">
+                                      ({m.tierLabel})
+                                    </span>
                                   </SelectItem>
                                 ))}
                             </SelectGroup>
                             <SelectGroup>
-                              <SelectLabel className="text-[11px] font-bold text-violet-600 dark:text-violet-400">🧠 Máxima Potencia (Mayor Razonamiento)</SelectLabel>
+                              <SelectLabel className="text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                                🧠 Máxima Potencia (Mayor Razonamiento)
+                              </SelectLabel>
                               {geminiModels.inferenceModels
-                                .filter((m) => m.tier === "performance")
-                                .map((m) => (
+                                .filter((m: AiModelInfo) => m.tier === "performance")
+                                .map((m: AiModelInfo) => (
                                   <SelectItem key={m.id} value={m.id} className="text-xs">
                                     <span className="font-medium">{m.name}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                    <span className="text-[10px] text-muted-foreground ml-1.5">
+                                      ({m.tierLabel})
+                                    </span>
                                   </SelectItem>
                                 ))}
                             </SelectGroup>
@@ -994,7 +1012,13 @@ export function SettingsView() {
                       {selectedGeminiInference && (
                         <div className="flex items-center gap-1.5 mt-1">
                           <Badge
-                            variant={selectedGeminiInference.costTier === 1 ? "secondary" : selectedGeminiInference.costTier === 3 ? "destructive" : "default"}
+                            variant={
+                              selectedGeminiInference.costTier === 1
+                                ? "secondary"
+                                : selectedGeminiInference.costTier === 3
+                                  ? "destructive"
+                                  : "default"
+                            }
                             className="text-[10px] py-0 px-1.5"
                           >
                             {selectedGeminiInference.tierLabel}
@@ -1028,7 +1052,9 @@ export function SettingsView() {
                         <Select
                           value={ai.geminiEmbeddingModel}
                           onValueChange={(val) => {
-                            const found = geminiModels.embeddingModels.find((m) => m.id === val);
+                            const found = geminiModels.embeddingModels.find(
+                              (m: AiModelInfo) => m.id === val,
+                            );
                             setAi({
                               ...ai,
                               geminiEmbeddingModel: val,
@@ -1040,10 +1066,12 @@ export function SettingsView() {
                             <SelectValue placeholder="Seleccioná modelo de embeddings" />
                           </SelectTrigger>
                           <SelectContent>
-                            {geminiModels.embeddingModels.map((m) => (
+                            {geminiModels.embeddingModels.map((m: AiModelInfo) => (
                               <SelectItem key={m.id} value={m.id} className="text-xs">
                                 <span>{m.name}</span>
-                                <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                <span className="text-[10px] text-muted-foreground ml-1.5">
+                                  ({m.tierLabel})
+                                </span>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1102,7 +1130,9 @@ export function SettingsView() {
                           disabled={fetchingModels}
                           className="gap-1.5 text-xs whitespace-nowrap cursor-pointer"
                         >
-                          <RefreshCw className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`} />
+                          <RefreshCw
+                            className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`}
+                          />
                           {fetchingModels ? "Consultando..." : "Cargar Modelos"}
                         </Button>
                       </div>
@@ -1136,35 +1166,47 @@ export function SettingsView() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              <SelectLabel className="text-[11px] font-bold text-primary">🚀 Equilibrados (7B - 14B)</SelectLabel>
+                              <SelectLabel className="text-[11px] font-bold text-primary">
+                                🚀 Equilibrados (7B - 14B)
+                              </SelectLabel>
                               {ollamaModels.inferenceModels
-                                .filter((m) => m.tier === "balanced")
-                                .map((m) => (
+                                .filter((m: AiModelInfo) => m.tier === "balanced")
+                                .map((m: AiModelInfo) => (
                                   <SelectItem key={m.id} value={m.id} className="text-xs">
                                     <span className="font-medium">{m.name}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                    <span className="text-[10px] text-muted-foreground ml-1.5">
+                                      ({m.tierLabel})
+                                    </span>
                                   </SelectItem>
                                 ))}
                             </SelectGroup>
                             <SelectGroup>
-                              <SelectLabel className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">🟢 Ligeros (hasta 4B / Menor VRAM)</SelectLabel>
+                              <SelectLabel className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                🟢 Ligeros (hasta 4B / Menor VRAM)
+                              </SelectLabel>
                               {ollamaModels.inferenceModels
-                                .filter((m) => m.tier === "economy")
-                                .map((m) => (
+                                .filter((m: AiModelInfo) => m.tier === "economy")
+                                .map((m: AiModelInfo) => (
                                   <SelectItem key={m.id} value={m.id} className="text-xs">
                                     <span className="font-medium">{m.name}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                    <span className="text-[10px] text-muted-foreground ml-1.5">
+                                      ({m.tierLabel})
+                                    </span>
                                   </SelectItem>
                                 ))}
                             </SelectGroup>
                             <SelectGroup>
-                              <SelectLabel className="text-[11px] font-bold text-violet-600 dark:text-violet-400">🧠 Alta Potencia (más de 14B / GPU)</SelectLabel>
+                              <SelectLabel className="text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                                🧠 Alta Potencia (más de 14B / GPU)
+                              </SelectLabel>
                               {ollamaModels.inferenceModels
-                                .filter((m) => m.tier === "performance")
-                                .map((m) => (
+                                .filter((m: AiModelInfo) => m.tier === "performance")
+                                .map((m: AiModelInfo) => (
                                   <SelectItem key={m.id} value={m.id} className="text-xs">
                                     <span className="font-medium">{m.name}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                    <span className="text-[10px] text-muted-foreground ml-1.5">
+                                      ({m.tierLabel})
+                                    </span>
                                   </SelectItem>
                                 ))}
                             </SelectGroup>
@@ -1174,7 +1216,13 @@ export function SettingsView() {
                       {selectedOllamaInference && (
                         <div className="flex items-center gap-1.5 mt-1">
                           <Badge
-                            variant={selectedOllamaInference.costTier === 1 ? "secondary" : selectedOllamaInference.costTier === 3 ? "destructive" : "default"}
+                            variant={
+                              selectedOllamaInference.costTier === 1
+                                ? "secondary"
+                                : selectedOllamaInference.costTier === 3
+                                  ? "destructive"
+                                  : "default"
+                            }
                             className="text-[10px] py-0 px-1.5"
                           >
                             {selectedOllamaInference.tierLabel}
@@ -1208,7 +1256,9 @@ export function SettingsView() {
                         <Select
                           value={ai.ollamaEmbeddingModel}
                           onValueChange={(val) => {
-                            const found = ollamaModels.embeddingModels.find((m) => m.id === val);
+                            const found = ollamaModels.embeddingModels.find(
+                              (m: AiModelInfo) => m.id === val,
+                            );
                             setAi({
                               ...ai,
                               ollamaEmbeddingModel: val,
@@ -1220,10 +1270,12 @@ export function SettingsView() {
                             <SelectValue placeholder="Seleccioná modelo de embeddings" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ollamaModels.embeddingModels.map((m) => (
+                            {ollamaModels.embeddingModels.map((m: AiModelInfo) => (
                               <SelectItem key={m.id} value={m.id} className="text-xs">
                                 <span>{m.name}</span>
-                                <span className="text-[10px] text-muted-foreground ml-1.5">({m.tierLabel})</span>
+                                <span className="text-[10px] text-muted-foreground ml-1.5">
+                                  ({m.tierLabel})
+                                </span>
                               </SelectItem>
                             ))}
                           </SelectContent>
