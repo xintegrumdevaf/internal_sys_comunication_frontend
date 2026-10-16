@@ -51,3 +51,26 @@ export interface SystemSettingsData {
   channels: WhatsAppChannelSettings;
   ai: AiProviderSettings;
 }
+
+export type AiModelType = "inference" | "embedding";
+export type AiModelTier = "economy" | "balanced" | "performance" | "specialized";
+
+export interface AiModelInfo {
+  id: string;
+  name: string;
+  provider: AiProvider;
+  type: AiModelType;
+  tier: AiModelTier;
+  tierLabel: string;
+  description?: string;
+  recommended?: boolean;
+  costTier: 1 | 2 | 3;
+  contextWindow?: number;
+  defaultDimension?: number;
+}
+
+export interface ListAiModelsResult {
+  provider: AiProvider;
+  inferenceModels: AiModelInfo[];
+  embeddingModels: AiModelInfo[];
+}

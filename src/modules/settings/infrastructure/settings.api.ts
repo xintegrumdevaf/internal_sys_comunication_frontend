@@ -82,4 +82,18 @@ export const settingsApi = {
     );
     return unwrap<TestConnectionResult>(res);
   },
+  /**
+   * Consulta dinámicamente los modelos compatibles directamente de Gemini u Ollama.
+   */
+  listAiModels: async (payload: {
+    provider?: AiProvider;
+    apiKey?: string;
+    baseUrl?: string;
+  }): Promise<ListAiModelsResult> => {
+    const res = await apiPost<ListAiModelsResult | { data: ListAiModelsResult }>(
+      "/api/admin/settings/ai/models",
+      payload,
+    );
+    return unwrap<ListAiModelsResult>(res);
+  },
 };
