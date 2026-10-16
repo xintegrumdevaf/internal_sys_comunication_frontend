@@ -46,9 +46,17 @@ jobs:
       - name: Trigger Coolify Webhook (Test)
         if: github.ref == 'refs/heads/test'
         run: |
-          curl -L -X GET "${{ secrets.COOLIFY_WEBHOOK_TEST }}"
+          AUTH_HEADER=()
+          if [ -n "${{ secrets.COOLIFY_API_TOKEN }}" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}")
+          fi
+          curl -sS --max-time 60 -X GET "${{ secrets.COOLIFY_WEBHOOK_TEST }}" "${AUTH_HEADER[@]}"
 
       - name: Trigger Coolify Webhook (Main)
         if: github.ref == 'refs/heads/main'
         run: |
-          curl -L -X GET "${{ secrets.COOLIFY_WEBHOOK_MAIN }}"
+          AUTH_HEADER=()
+          if [ -n "${{ secrets.COOLIFY_API_TOKEN }}" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}")
+          fi
+          curl -sS --max-time 60 -X GET "${{ secrets.COOLIFY_WEBHOOK_MAIN }}" "${AUTH_HEADER[@]}"
