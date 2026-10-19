@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { useDepartmentsAdmin } from "@/modules/identity/application/use-departments-admin";
+import * as agentDirectoryGateway from "@/modules/identity/infrastructure/agent-directory.gateway";
 import type {
   DepartmentCase,
   DepartmentHandlingMode,
@@ -72,6 +73,7 @@ export function DepartmentsDirectoryPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [deletedCaseIds, setDeletedCaseIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [autoSlugEnabled, setAutoSlugEnabled] = useState(true);
 
@@ -124,6 +126,7 @@ export function DepartmentsDirectoryPanel() {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setDeletedCaseIds([]);
     setAutoSlugEnabled(true);
     setFormOpen(true);
   };
@@ -132,6 +135,7 @@ export function DepartmentsDirectoryPanel() {
     const dept = departments.find((d) => d.id === deptId);
     if (!dept) return;
     setEditingId(deptId);
+    setDeletedCaseIds([]);
 
     let initialCases: CaseItemForm[] = dept.cases
       ? dept.cases.map((c) => ({
@@ -186,6 +190,7 @@ export function DepartmentsDirectoryPanel() {
   const closeForm = () => {
     setFormOpen(false);
     setEditingId(null);
+    setDeletedCaseIds([]);
     setForm(emptyForm);
   };
 
@@ -206,6 +211,10 @@ export function DepartmentsDirectoryPanel() {
   };
 
   const handleRemoveCase = (index: number) => {
+    const targetCase = form.cases[index];
+    if (targetCase?.id) {
+      setDeletedCaseIds((prev) => [...prev, targetCase.id!]);
+    }
     setForm((prev) => ({
       ...prev,
       cases: prev.cases.filter((_, idx) => idx !== index),
@@ -240,8 +249,17 @@ export function DepartmentsDirectoryPanel() {
     };
 
     if (editingId) {
+      if (deletedCaseIds.length > 0) {
+        await Promise.allSettled(
+          deletedCaseIds.map((caseId) => agentDirectoryGateway.deleteDepartmentCase(caseId)),
+        );
+      }
       const ok = await updateDepartment(editingId, payload);
       if (ok) {
+        setCasesCache((prev) => ({
+          ...prev,
+          [editingId]: validCases as DepartmentCase[],
+        }));
         closeForm();
       }
       return;
