@@ -11,11 +11,14 @@ import {
   ChevronDown,
   Sparkles,
   HelpCircle,
+  FileSpreadsheet,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { useDepartmentsAdmin } from "@/modules/identity/application/use-departments-admin";
 import * as agentDirectoryGateway from "@/modules/identity/infrastructure/agent-directory.gateway";
 import type {
+  Department,
   DepartmentCase,
   DepartmentHandlingMode,
   DepartmentVisibility,
@@ -24,6 +27,7 @@ import {
   departmentVisibilityLabel,
   departmentHandlingModeLabel,
 } from "@/modules/identity/domain/department";
+import { DepartmentCasesBulkImportModal } from "./DepartmentCasesBulkImportModal";
 
 type CaseItemForm = {
   id?: string;
@@ -81,6 +85,15 @@ export function DepartmentsDirectoryPanel() {
   const [casesCache, setCasesCache] = useState<Record<string, DepartmentCase[]>>({});
   const [expandedDeptId, setExpandedDeptId] = useState<string | null>(null);
   const [loadingCasesFor, setLoadingCasesFor] = useState<string | null>(null);
+
+  // Estado para la modal de carga masiva de casos vía Excel
+  const [bulkImportTarget, setBulkImportTarget] = useState<{
+    targetType: "department" | "form";
+    deptId?: string;
+    deptName?: string;
+    deptSlug?: string;
+    existingCasesCount?: number;
+  } | null>(null);
 
   useEffect(() => {
     if (autoSlugEnabled && form.name) {
@@ -192,6 +205,138 @@ export function DepartmentsDirectoryPanel() {
     setEditingId(null);
     setDeletedCaseIds([]);
     setForm(emptyForm);
+  };
+
+  const openBulkImportForDepartment = (dept: Department) => {
+    const existing = casesCache[dept.id] ?? dept.cases ?? [];
+    setBulkImportTarget({
+      targetType: "department",
+      deptId: dept.id,
+      deptName: dept.name,
+      deptSlug: dept.slug,
+      existingCasesCount: existing.length,
+    });
+  };
+
+  const openBulkImportForForm = () => {
+    setBulkImportTarget({
+      targetType: "form",
+      deptName: form.name.trim() || (editingId ? "Departamento actual" : "Nuevo Departamento"),
+      deptSlug: form.slug.trim(),
+      existingCasesCount: form.cases.length,
+    });
+  };
+
+  const handleImportCases = async (
+    newCases: Array<{
+      label: string;
+      description: string;
+      handlingMode: DepartmentHandlingMode;
+      workflowType?: string;
+      active?: boolean;
+    }>,
+    strategy: "append" | "replace",
+  ) => {
+    if (!bulkImportTarget) return;
+
+    if (bulkImportTarget.targetType === "form") {
+      if (strategy === "replace") {
+        const idsToDelete = form.cases.filter((c) => c.id).map((c) => c.id!);
+        if (idsToDelete.length > 0) {
+          setDeletedCaseIds((prev) => [...prev, ...idsToDelete]);
+        }
+        setForm((prev) => ({
+          ...prev,
+          cases: newCases.map((c) => ({
+            label: c.label,
+            description: c.description,
+            handlingMode: c.handlingMode,
+            workflowType: c.workflowType || "GENERAL_INQUIRY",
+            active: true,
+          })),
+        }));
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          cases: [
+            ...prev.cases,
+            ...newCases.map((c) => ({
+              label: c.label,
+              description: c.description,
+              handlingMode: c.handlingMode,
+              workflowType: c.workflowType || "GENERAL_INQUIRY",
+              active: true,
+            })),
+          ],
+        }));
+      }
+      toast.success(
+        `Se ${strategy === "replace" ? "reemplazaron por" : "agregaron"} ${newCases.length} casos en el formulario. Recuerda guardar el departamento.`,
+      );
+      setBulkImportTarget(null);
+      return;
+    }
+
+    const deptId = bulkImportTarget.deptId!;
+    const dept = departments.find((d) => d.id === deptId);
+    if (!dept) return;
+
+    let existingCases: DepartmentCase[] = casesCache[deptId] ?? dept.cases ?? [];
+    if (existingCases.length === 0) {
+      try {
+        const fetched = await getDepartmentCases(deptId);
+        if (fetched && fetched.length > 0) {
+          existingCases = fetched;
+        }
+      } catch {
+        // Ignorar
+      }
+    }
+
+    let finalCases: Array<{
+      id?: string;
+      label: string;
+      description: string;
+      handlingMode: DepartmentHandlingMode;
+      workflowType?: string;
+      active?: boolean;
+    }> = [];
+
+    if (strategy === "append") {
+      finalCases = [
+        ...existingCases.map((c) => ({
+          id: c.id,
+          label: c.label,
+          description: c.description,
+          handlingMode: c.handlingMode,
+          workflowType: c.workflowType || "GENERAL_INQUIRY",
+          active: c.active ?? true,
+        })),
+        ...newCases,
+      ];
+    } else {
+      finalCases = newCases;
+    }
+
+    const ok = await updateDepartment(deptId, {
+      cases: finalCases,
+    });
+
+    if (ok) {
+      try {
+        const updated = await getDepartmentCases(deptId);
+        setCasesCache((prev) => ({
+          ...prev,
+          [deptId]: updated,
+        }));
+      } catch {
+        // fallback
+      }
+      toast.success(
+        `Carga masiva completada: ${newCases.length} casos ${strategy === "replace" ? "reemplazados" : "agregados"} en ${dept.name}`,
+      );
+      setBulkImportTarget(null);
+    }
   };
 
   const handleAddCase = () => {
@@ -397,24 +542,41 @@ export function DepartmentsDirectoryPanel() {
                   esta área según la intención del cliente.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleAddCase}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-bold uppercase hover:bg-primary/20 transition-colors shadow-xs cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                Agregar Motivo/Caso
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openBulkImportForForm}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors shadow-xs cursor-pointer"
+                >
+                  <FileSpreadsheet className="size-3.5" />
+                  Carga masiva Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddCase}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-bold uppercase hover:bg-primary/20 transition-colors shadow-xs cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  Agregar Motivo/Caso
+                </button>
+              </div>
             </div>
 
             {form.cases.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center text-xs text-muted-foreground space-y-1">
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center text-xs text-muted-foreground space-y-2">
                 <p className="font-medium text-foreground">Sin casos configurados aún</p>
                 <p className="text-[11px]">
                   Agrega al menos un caso (ej. <em>Cancelación de Contrato</em>,{" "}
-                  <em>Lentitud de Internet</em>) para que el modelo de IA aprenda cuándo transferir
-                  a esta área.
+                  <em>Lentitud de Internet</em>) o realiza una carga masiva desde un archivo Excel.
                 </p>
+                <button
+                  type="button"
+                  onClick={openBulkImportForForm}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors shadow-xs cursor-pointer"
+                >
+                  <FileSpreadsheet className="size-3.5" />
+                  Importar casos desde Excel
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -684,13 +846,23 @@ export function DepartmentsDirectoryPanel() {
                                   Motivos y Casos que Resuelve ({casesCount})
                                 </h4>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => openEdit(d.id)}
-                                className="text-[11px] text-primary hover:underline font-bold"
-                              >
-                                Administrar casos en formulario
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => openBulkImportForDepartment(d)}
+                                  className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold hover:underline cursor-pointer"
+                                >
+                                  <FileSpreadsheet className="size-3.5" />
+                                  Carga masiva Excel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(d.id)}
+                                  className="text-[11px] text-primary hover:underline font-bold cursor-pointer"
+                                >
+                                  Administrar casos en formulario
+                                </button>
+                              </div>
                             </div>
 
                             {loadingCasesFor === d.id ? (
@@ -699,9 +871,19 @@ export function DepartmentsDirectoryPanel() {
                                 <span>Cargando motivos atendidos...</span>
                               </div>
                             ) : casesCount === 0 ? (
-                              <div className="p-4 rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground">
-                                Este departamento aún no tiene casos configurados. Puedes hacer clic
-                                en "Editar" para agregarlos y entrenar a la IA.
+                              <div className="p-4 rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground space-y-2">
+                                <p>
+                                  Este departamento aún no tiene casos configurados. Puedes hacer clic
+                                  en "Editar" para agregarlos o usar una carga masiva desde Excel.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => openBulkImportForDepartment(d)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors shadow-xs cursor-pointer"
+                                >
+                                  <FileSpreadsheet className="size-3.5" />
+                                  Carga masiva desde Excel
+                                </button>
                               </div>
                             ) : (
                               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -750,6 +932,16 @@ export function DepartmentsDirectoryPanel() {
           </div>
         </div>
       )}
+
+      {/* Modal de Carga Masiva desde Excel */}
+      <DepartmentCasesBulkImportModal
+        open={Boolean(bulkImportTarget)}
+        onClose={() => setBulkImportTarget(null)}
+        departmentName={bulkImportTarget?.deptName}
+        departmentSlug={bulkImportTarget?.deptSlug}
+        existingCasesCount={bulkImportTarget?.existingCasesCount ?? 0}
+        onImport={handleImportCases}
+      />
     </div>
   );
 }

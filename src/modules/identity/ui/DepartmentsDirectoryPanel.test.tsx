@@ -176,4 +176,56 @@ describe("DepartmentsDirectoryPanel", () => {
       });
     });
   });
+
+  it("permite abrir el modal de carga masiva desde la fila expandida de un departamento", async () => {
+    vi.mocked(useSessionModule.useDepartmentsQuery).mockReturnValue({
+      data: [
+        {
+          id: "dept-1",
+          name: "Soporte Técnico",
+          slug: "soporte",
+          visibility: "shared",
+          active: true,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          cases: [
+            {
+              id: "c-1",
+              label: "Lentitud de Internet",
+              description: "cuando navega lento",
+              handlingMode: "ai_assisted",
+            },
+          ],
+        },
+      ],
+    } as unknown as ReturnType<typeof useSessionModule.useDepartmentsQuery>);
+
+    renderWithClient(<DepartmentsDirectoryPanel />);
+
+    const expandBtn = screen.getByTitle(/Ver casos atendidos/i);
+    fireEvent.click(expandBtn);
+
+    const bulkBtn = screen.getByRole("button", { name: /Carga masiva Excel/i });
+    expect(bulkBtn).toBeInTheDocument();
+    fireEvent.click(bulkBtn);
+
+    expect(screen.getByText(/Carga Masiva de Motivos y Casos/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Soporte Técnico").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("permite abrir la carga masiva desde el formulario de departamento", async () => {
+    vi.mocked(useSessionModule.useDepartmentsQuery).mockReturnValue({
+      data: [],
+    } as unknown as ReturnType<typeof useSessionModule.useDepartmentsQuery>);
+
+    renderWithClient(<DepartmentsDirectoryPanel />);
+
+    const newBtn = screen.getByRole("button", { name: /Nuevo departamento/i });
+    fireEvent.click(newBtn);
+
+    const bulkFormBtns = screen.getAllByRole("button", { name: /Carga masiva Excel/i });
+    expect(bulkFormBtns.length).toBeGreaterThan(0);
+    fireEvent.click(bulkFormBtns[0]);
+
+    expect(screen.getByText(/Carga Masiva de Motivos y Casos/i)).toBeInTheDocument();
+  });
 });
