@@ -202,9 +202,19 @@ export function DepartmentCasesBulkImportModal({
                 Estructura compatible con tu formato Excel
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Columnas requeridas: <code className="font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded">Nombre del caso</code>,{" "}
-                <code className="font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded">Tipo de atención</code> (IA / Humano),{" "}
-                <code className="font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded">¿Cómo lo dice el cliente?</code>.
+                Columnas requeridas:{" "}
+                <code className="font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded">
+                  Nombre del caso
+                </code>
+                ,{" "}
+                <code className="font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded">
+                  Tipo de atención
+                </code>{" "}
+                (IA / Humano),{" "}
+                <code className="font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded">
+                  ¿Cómo lo dice el cliente?
+                </code>
+                .
               </p>
             </div>
             <button
@@ -344,7 +354,9 @@ export function DepartmentCasesBulkImportModal({
                           Agregar a los existentes
                         </div>
                         <div className="text-[10px] text-muted-foreground leading-tight">
-                          Conserva los {existingCasesCount} casos actuales y suma los {parsedCases.length} nuevos (Total: {existingCasesCount + parsedCases.length}).
+                          Conserva los {existingCasesCount} casos actuales y suma los{" "}
+                          {parsedCases.length} nuevos (Total:{" "}
+                          {existingCasesCount + parsedCases.length}).
                         </div>
                       </div>
                     </label>
@@ -369,7 +381,8 @@ export function DepartmentCasesBulkImportModal({
                           Reemplazar casos actuales
                         </div>
                         <div className="text-[10px] text-muted-foreground leading-tight">
-                          Elimina los {existingCasesCount} casos anteriores y deja únicamente los {parsedCases.length} del archivo Excel.
+                          Elimina los {existingCasesCount} casos anteriores y deja únicamente los{" "}
+                          {parsedCases.length} del archivo Excel.
                         </div>
                       </div>
                     </label>
@@ -483,7 +496,9 @@ export function DepartmentCasesBulkImportModal({
             ) : (
               <>
                 <Plus className="size-3.5" />
-                <span>Importar {parsedCases.length} {parsedCases.length === 1 ? "Caso" : "Casos"}</span>
+                <span>
+                  Importar {parsedCases.length} {parsedCases.length === 1 ? "Caso" : "Casos"}
+                </span>
               </>
             )}
           </button>
