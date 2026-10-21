@@ -66,7 +66,12 @@ async function parseEnvelope<T>(res: Response, raw = false): Promise<T> {
     return json as T;
   }
   const body = json as { data?: T; token?: string } | undefined;
-  if (body && typeof body === "object" && typeof body.token === "string" && typeof window !== "undefined") {
+  if (
+    body &&
+    typeof body === "object" &&
+    typeof body.token === "string" &&
+    typeof window !== "undefined"
+  ) {
     localStorage.setItem("auth_token", body.token);
   }
   return (body?.data ?? (json as T)) as T;
