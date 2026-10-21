@@ -21,11 +21,7 @@ describe("DepartmentCasesBulkImportModal", () => {
 
   it("no renderiza nada si open es false", () => {
     const { container } = render(
-      <DepartmentCasesBulkImportModal
-        open={false}
-        onClose={vi.fn()}
-        onImport={vi.fn()}
-      />,
+      <DepartmentCasesBulkImportModal open={false} onClose={vi.fn()} onImport={vi.fn()} />,
     );
     expect(container.firstChild).toBeNull();
   });

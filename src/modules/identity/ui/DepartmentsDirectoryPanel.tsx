@@ -873,8 +873,9 @@ export function DepartmentsDirectoryPanel() {
                             ) : casesCount === 0 ? (
                               <div className="p-4 rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground space-y-2">
                                 <p>
-                                  Este departamento aún no tiene casos configurados. Puedes hacer clic
-                                  en "Editar" para agregarlos o usar una carga masiva desde Excel.
+                                  Este departamento aún no tiene casos configurados. Puedes hacer
+                                  clic en "Editar" para agregarlos o usar una carga masiva desde
+                                  Excel.
                                 </p>
                                 <button
                                   type="button"

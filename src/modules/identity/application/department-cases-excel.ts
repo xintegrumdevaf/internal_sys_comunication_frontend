@@ -20,12 +20,7 @@ export function buildDepartmentCasesWorkbook(departmentName?: string): {
 } {
   const wb = XLSX.utils.book_new();
 
-  const headers = [
-    "N°",
-    "Nombre del caso",
-    "Tipo de atención",
-    "¿Cómo lo dice el cliente?",
-  ];
+  const headers = ["N°", "Nombre del caso", "Tipo de atención", "¿Cómo lo dice el cliente?"];
 
   const sampleRows = [
     [
@@ -57,17 +52,15 @@ export function buildDepartmentCasesWorkbook(departmentName?: string): {
   const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
 
   // Configuración de ancho de columnas para máxima legibilidad
-  ws["!cols"] = [
-    { wch: 6 },
-    { wch: 36 },
-    { wch: 22 },
-    { wch: 70 },
-  ];
+  ws["!cols"] = [{ wch: 6 }, { wch: 36 }, { wch: 22 }, { wch: 70 }];
 
   XLSX.utils.book_append_sheet(wb, ws, "Casos y Motivos");
 
   const cleanName = departmentName
-    ? `_${departmentName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")}`
+    ? `_${departmentName
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")}`
     : "";
   const filename = `plantilla_casos_departamento${cleanName}.xlsx`;
 
@@ -123,7 +116,9 @@ export async function parseDepartmentCasesExcel(
   for (let r = 0; r < Math.min(rows.length, 5); r++) {
     const row = rows[r] || [];
     for (let c = 0; c < row.length; c++) {
-      const cell = String(row[c] || "").trim().toLowerCase();
+      const cell = String(row[c] || "")
+        .trim()
+        .toLowerCase();
       const norm = cell.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
       if (
@@ -173,10 +168,18 @@ export async function parseDepartmentCasesExcel(
     descCol = 3;
   } else {
     // Si no se reconoció explícitamente alguna columna auxiliar, inferir posiciones contiguas
-    if (modeCol === -1 && rows[headerRowIndex]?.length && rows[headerRowIndex].length > labelCol + 1) {
+    if (
+      modeCol === -1 &&
+      rows[headerRowIndex]?.length &&
+      rows[headerRowIndex].length > labelCol + 1
+    ) {
       modeCol = labelCol + 1;
     }
-    if (descCol === -1 && rows[headerRowIndex]?.length && rows[headerRowIndex].length > (modeCol !== -1 ? modeCol : labelCol) + 1) {
+    if (
+      descCol === -1 &&
+      rows[headerRowIndex]?.length &&
+      rows[headerRowIndex].length > (modeCol !== -1 ? modeCol : labelCol) + 1
+    ) {
       descCol = (modeCol !== -1 ? modeCol : labelCol) + 1;
     }
   }

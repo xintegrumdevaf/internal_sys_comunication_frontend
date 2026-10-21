@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import {
-  buildDepartmentCasesWorkbook,
-  parseDepartmentCasesExcel,
-} from "./department-cases-excel";
+import { buildDepartmentCasesWorkbook, parseDepartmentCasesExcel } from "./department-cases-excel";
 
 describe("department-cases-excel", () => {
   describe("buildDepartmentCasesWorkbook", () => {
@@ -41,12 +38,7 @@ describe("department-cases-excel", () => {
           "Asistido por IA",
           "- Cuándo debo pagar\n- hasta qué fecha tengo",
         ],
-        [
-          3,
-          "Reclamo de Factura",
-          "Directo a Humano",
-          "- Cobro indebido\n- No estoy de acuerdo",
-        ],
+        [3, "Reclamo de Factura", "Directo a Humano", "- Cobro indebido\n- No estoy de acuerdo"],
       ];
 
       const wb = XLSX.utils.book_new();
