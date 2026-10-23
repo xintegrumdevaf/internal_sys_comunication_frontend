@@ -73,16 +73,23 @@ export function DashboardOverview() {
   // Mapeo de casos activos por departamento
   const deptCasesMap = useMemo(() => {
     const map = new Map<string, number>();
-    const byDept = (
-      distribution as unknown as { byDepartment?: Array<{ departmentId?: string; count: number }> }
-    )?.byDepartment;
-    if (byDept) {
+    const byDept = (distribution as any)?.byDepartment;
+    if (byDept && byDept.length > 0) {
       for (const d of byDept) {
         if (d.departmentId) map.set(d.departmentId, d.count);
       }
     }
+    // Fallback a los casos activos de departments
+    if (departments && departments.length > 0) {
+      for (const d of departments as any[]) {
+        if (!map.has(d.id)) {
+          const count = d.activeCases ?? d.active_cases ?? d.casesCount ?? 0;
+          map.set(d.id, count);
+        }
+      }
+    }
     return map;
-  }, [distribution]);
+  }, [distribution, departments]);
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -227,11 +234,12 @@ export function DashboardOverview() {
                     ? "—"
                     : (() => {
                         const waitSec =
-                          overview?.avgQueueWaitTimeSeconds ??
-                          (overview as unknown as { avgQueueWaitSec?: number })?.avgQueueWaitSec;
-                        return waitSec != null && waitSec > 0
-                          ? `${Math.round(waitSec)} seg`
-                          : "0 seg";
+                        overview?.avgQueueWaitTimeSeconds ??
+                        (overview as unknown as { avgQueueWaitSec?: number })?.avgQueueWaitSec;
+                      if (waitSec == null || waitSec <= 0) return "0 seg";
+                      if (waitSec < 60) return `${Math.round(waitSec)} seg`;
+                      if (waitSec < 3600) return `${(waitSec / 60).toFixed(1)} min`;
+                      return `${(waitSec / 3600).toFixed(1)} h`;
                       })()}
                 </p>
                 <p className="text-[11px] mt-1 text-muted-foreground">

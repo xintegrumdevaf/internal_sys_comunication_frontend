@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ShieldAlert,
   AlertTriangle,
   Clock,
   Bot,
@@ -71,11 +72,20 @@ import {
 } from "@/modules/identity/application/access-control";
 import { useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
 
-type Props = {
-  /** Preselecciona un departamento (deep-link desde la campana de notificaciones o el menú lateral). */
+export type InboxTab =
+  | "open"
+  | "unassigned"
+  | "unattended"
+  | "pending"
+  | "resolved"
+  | "closed";
+
+export type Props = {
   initialDepartmentId?: string;
   initialConversationId?: string | null;
   initialStatus?: ConversationStatus;
+  initialTab?: InboxTab;
+  initialFilter?: "unassigned" | "unattended";
 };
 
 const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
@@ -163,7 +173,12 @@ export function OperationalInbox({
   initialDepartmentId,
   initialConversationId,
   initialStatus,
+  initialTab,
+  initialFilter,
 }: Props) {
+  const [activeTab, setActiveTab] = useState<InboxTab>(
+    initialTab ?? (initialFilter ? (initialFilter as InboxTab) : (initialStatus as InboxTab) ?? "open"),
+  );
   const session = useSession();
   const { data: departments = [] } = useDepartmentsQuery();
   const directory = useDirectoryUsers();
@@ -231,7 +246,14 @@ export function OperationalInbox({
       }
     }
   }, [departmentId, agentFilter, directory]);
-  const [statusFilter, setStatusFilter] = useState<ConversationStatus>(initialStatus ?? "open");
+  const backendStatus: ConversationStatus =
+    activeTab === "pending"
+      ? "pending"
+      : activeTab === "resolved"
+        ? "resolved"
+        : activeTab === "closed"
+          ? "closed"
+          : "open";
   const [search, setSearch] = useState("");
 
   const agentIdParam =
@@ -265,7 +287,7 @@ export function OperationalInbox({
   } = useOperationalInbox({
     departmentId,
     agentId: agentIdParam,
-    status: statusFilter,
+    status: "all",
     initialConversationId,
   });
 
@@ -279,7 +301,7 @@ export function OperationalInbox({
   ) => {
     const ok = await schedule(scheduledAt, scheduleTag, reminderReason);
     if (ok !== false) {
-      setStatusFilter("pending");
+      setActiveTab("pending");
       await reload({ silent: true });
     }
     return ok;
@@ -453,10 +475,67 @@ export function OperationalInbox({
     return conversations.filter((c) => calculateConversationSla(c, slaConfig).isBreached).length;
   }, [conversations, slaConfig]);
 
+  const openConversations = useMemo(
+    () => conversations.filter((c) => c.status === "open"),
+    [conversations],
+  );
+
+  const openCount = openConversations.length;
+
+  const unassignedCount = useMemo(
+    () => openConversations.filter((c) => !c.activeCase?.assignedAgentId).length,
+    [openConversations],
+  );
+
+  const unattendedCount = useMemo(
+    () =>
+      openConversations.filter(
+        (c) => (c.unreadCount ?? 0) > 0 || calculateConversationSla(c, slaConfig).isBreached,
+      ).length,
+    [openConversations, slaConfig],
+  );
+
+  const pendingCount = useMemo(
+    () => conversations.filter((c) => c.status === "pending").length,
+    [conversations],
+  );
+
+  const resolvedCount = useMemo(
+    () => conversations.filter((c) => c.status === "resolved").length,
+    [conversations],
+  );
+
+  const closedCount = useMemo(
+    () => conversations.filter((c) => c.status === "closed").length,
+    [conversations],
+  );
+
   const filteredConversations = useMemo(() => {
-    let list = conversations;
+    let list: ConversationDto[] = [];
+    if (activeTab === "open") {
+      list = openConversations;
+    } else if (activeTab === "unassigned") {
+      // Estrictamente abiertas y sin agente asignado
+      list = openConversations.filter((c) => !c.activeCase?.assignedAgentId);
+    } else if (activeTab === "unattended") {
+      // Estrictamente abiertas con cliente en espera o SLA vencido
+      list = openConversations.filter(
+        (c) => (c.unreadCount ?? 0) > 0 || calculateConversationSla(c, slaConfig).isBreached,
+      );
+    } else if (activeTab === "pending") {
+      // Casos en pausa, agendados o esperando respuesta del cliente
+      list = conversations.filter((c) => c.status === "pending");
+    } else if (activeTab === "resolved") {
+      list = conversations.filter((c) => c.status === "resolved");
+    } else if (activeTab === "closed") {
+      list = conversations.filter((c) => c.status === "closed");
+    }
+
     if (slaAlertsOnly) {
       list = list.filter((c) => calculateConversationSla(c, slaConfig).isBreached);
+    }
+    if (agentFilter === "unassigned") {
+      list = list.filter((c) => !c.activeCase?.assignedAgentId);
     }
     const q = search.trim().toLowerCase();
     if (!q) return list;
@@ -465,7 +544,7 @@ export function OperationalInbox({
         c.waPhone.toLowerCase().includes(q) ||
         (c.lastMessagePreview?.body ?? "").toLowerCase().includes(q),
     );
-  }, [conversations, search, slaAlertsOnly, slaConfig]);
+  }, [conversations, openConversations, activeTab, slaAlertsOnly, slaConfig, agentFilter, search]);
 
   const assignedAgentName = useMemo(() => {
     if (activeCase?.assignedAgentName) return activeCase.assignedAgentName;
@@ -610,28 +689,69 @@ export function OperationalInbox({
         </div>
       )}
 
-      {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
+            {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
       <div
         className={`bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs ${
           selectedId ? "hidden lg:block" : "block"
         }`}
       >
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1">
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors ${
-                  statusFilter === tab.value
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1 overflow-x-auto max-w-full">
+            {[
+              { value: "open" as InboxTab, label: "Abiertas", badge: openCount },
+              {
+                value: "unassigned" as InboxTab,
+                label: "En cola",
+                badge: unassignedCount,
+                badgeColor: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+              },
+              {
+                value: "unattended" as InboxTab,
+                label: "Demoradas",
+                badge: unattendedCount,
+                badgeColor: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
+              },
+              {
+                value: "pending" as InboxTab,
+                label: "En espera",
+                badge: pendingCount,
+                badgeColor: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+              },
+              {
+                value: "resolved" as InboxTab,
+                label: "Resueltas",
+                badge: resolvedCount,
+                badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+              },
+              { value: "closed" as InboxTab, label: "Cerradas", badge: closedCount },
+            ].map((tab) => {
+              const isActive = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {tab.badge != null && tab.badge > 0 && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold ${
+                        isActive
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : tab.badgeColor ?? "bg-muted text-foreground"
+                      }`}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
@@ -645,54 +765,44 @@ export function OperationalInbox({
           <ZernioSyncControl />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/60">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
-            Área:
-          </span>
-          {isSupervisorOrAdmin && (
-            <button
-              type="button"
-              onClick={() => setDepartmentId(undefined)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                !departmentId
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                  : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-              }`}
+        <div className="flex flex-wrap items-center gap-2.5 pt-1 border-t border-border/60">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Área:
+            </span>
+            <select
+              value={departmentId ?? "all"}
+              onChange={(e) => setDepartmentId(e.target.value === "all" ? undefined : e.target.value)}
+              className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20 max-w-[180px] truncate cursor-pointer"
             >
-              Todas
-            </button>
-          )}
-          {visibleDepartments.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              onClick={() => setDepartmentId(d.id)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                departmentId === d.id
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                  : "bg-background text-muted-foreground hover:bg-foreground/5 ring-1 ring-border"
-              }`}
-            >
-              {d.name}
-            </button>
-          ))}
+              {isSupervisorOrAdmin && <option value="all">Todas las áreas</option>}
+              {visibleDepartments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0 ml-2">
-            Agente:
-          </span>
-          <select
-            value={agentFilter}
-            onChange={(e) => setAgentFilter(e.target.value)}
-            className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="all">Todos los agentes</option>
-            <option value="mine">Mis conversaciones</option>
-            {visibleAgents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Agente:
+            </span>
+            <select
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+              className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20 max-w-[180px] truncate cursor-pointer"
+            >
+              <option value="all">Todos los agentes</option>
+              <option value="mine">Mis conversaciones</option>
+              <option value="unassigned">Sin asignar (En cola)</option>
+              {visibleAgents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <button
             type="button"
@@ -704,23 +814,20 @@ export function OperationalInbox({
                   ? "bg-danger/10 text-danger ring-1 ring-danger/30 hover:bg-danger/20 animate-pulse"
                   : "bg-background text-muted-foreground ring-1 ring-border hover:bg-foreground/5"
             }`}
-            title="Filtrar conversaciones con alertas de no respuesta superadas"
+            title={
+              breachedSlaCount > 0
+                ? `${breachedSlaCount} conversaciones con SLA vencido`
+                : "Sin alertas de SLA activas"
+            }
           >
-            <Clock className="size-3" />
-            <span>Sin Respuesta ({breachedSlaCount})</span>
+            <ShieldAlert className="size-3.5" />
+            <span>Alertas SLA</span>
+            {breachedSlaCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">
+                {breachedSlaCount}
+              </span>
+            )}
           </button>
-
-          {isSupervisorOrAdmin && (
-            <button
-              type="button"
-              onClick={() => setSlaModalOpen(true)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary hover:bg-primary/20 ring-1 ring-primary/30 flex items-center gap-1 cursor-pointer shrink-0"
-              title="Configurar tiempo límite de respuesta SLA"
-            >
-              <Clock className="size-3" />
-              <span>SLA Admin ({slaConfig.responseThresholdMinutes}m)</span>
-            </button>
-          )}
         </div>
       </div>
 

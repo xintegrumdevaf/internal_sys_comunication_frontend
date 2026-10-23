@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MessageSquare, Star, Users, UserCheck, ShieldAlert } from "lucide-react";
+import { MessageSquare, Star, Users, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { AgentPerformanceDto } from "../domain/analytics.types";
 import { initialsFromName } from "@/modules/identity/domain/session";
 
@@ -48,17 +48,27 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
 
   const formatFrt = (ms: number | null) => {
     if (ms === null || ms === undefined) return "—";
-    const minutes = ms / 60000;
-    if (minutes < 1) {
+    if (ms < 60000) {
       const seconds = Math.round(ms / 1000);
       return `${seconds}s`;
     }
-    return `${minutes.toFixed(1)}m`;
+    const minutes = ms / 60000;
+    if (minutes < 60) {
+      return `${minutes.toFixed(1)}m`;
+    }
+    return `${(minutes / 60).toFixed(1)}h`;
   };
 
   const formatAht = (minutes: number | null) => {
     if (minutes === null || minutes === undefined) return "—";
-    return `${minutes.toFixed(1)}m`;
+    if (minutes < 1) {
+      const seconds = Math.round(minutes * 60);
+      return `${seconds}s`;
+    }
+    if (minutes < 60) {
+      return `${minutes.toFixed(1)}m`;
+    }
+    return `${(minutes / 60).toFixed(1)}h`;
   };
 
   const formatPercent = (val: number | null) => {
@@ -96,7 +106,6 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
       return <span className="text-muted-foreground text-xs">—</span>;
     }
 
-    // Normalizado a 100 o escala 1-5
     const isFiveScale = score <= 5;
     const isGood = isFiveScale ? score >= 4.2 : score >= 80;
     const isMedium = isFiveScale ? score >= 3.5 : score >= 65;
@@ -139,6 +148,12 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
               <th className="py-2.5 px-3">Agente</th>
               <th className="py-2.5 px-3">Rol</th>
               <th className="py-2.5 px-3">Carga en Vivo</th>
+              <th className="py-2.5 px-3" title="Casos asignados en el período">
+                Asignados
+              </th>
+              <th className="py-2.5 px-3" title="Casos asignados activos donde el cliente espera respuesta">
+                Desatendidos
+              </th>
               <th className="py-2.5 px-3" title="First Response Time">
                 FRT
               </th>
@@ -178,6 +193,42 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
                   {getCapacityBadge(agent.activeCasesNow, agent.maxCapacityThreshold)}
                 </td>
 
+                {/* Casos Asignados */}
+                <td className="py-3 px-3">
+                  <div className="flex flex-col">
+                    <span className="font-mono font-bold text-foreground text-xs">
+                      {agent.casesAssigned}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {agent.casesCompleted} resueltos
+                    </span>
+                  </div>
+                </td>
+
+                {/* Desatendidos */}
+                <td className="py-3 px-3">
+                  {(agent.unattendedActiveCases ?? 0) > 0 ? (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 w-fit">
+                        <AlertTriangle className="size-3" />
+                        {agent.unattendedActiveCases}
+                      </span>
+                      {agent.maxPendingWaitMinutes != null && agent.maxPendingWaitMinutes > 0 && (
+                        <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold font-mono">
+                          {agent.maxPendingWaitMinutes >= 60
+                            ? `${(agent.maxPendingWaitMinutes / 60).toFixed(1)}h espera`
+                            : `${agent.maxPendingWaitMinutes}m espera`}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-semibold">
+                      <CheckCircle2 className="size-3" />
+                      0
+                    </span>
+                  )}
+                </td>
+
                 {/* FRT */}
                 <td className="py-3 px-3 font-mono font-medium text-foreground">
                   {formatFrt(agent.avgFirstResponseTimeMs)}
@@ -213,7 +264,7 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
 
             {agents.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-xs text-muted-foreground">
+                <td colSpan={10} className="py-8 text-center text-xs text-muted-foreground">
                   No hay datos de rendimiento de agentes para los filtros seleccionados.
                 </td>
               </tr>

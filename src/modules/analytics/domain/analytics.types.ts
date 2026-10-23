@@ -11,6 +11,16 @@ export type AnalyticsOverviewDto = {
   avgResolutionTimeMinutes: number | null;
   avgQueueWaitTimeSeconds: number | null;
   escalationRate: number;
+  escalatedCases?: number;
+  unassignedCases?: number;
+  unattendedCases?: number;
+};
+
+export type DepartmentDistributionItem = {
+  departmentId: string;
+  departmentName: string;
+  count: number;
+  percentage: number;
 };
 
 export type CasesDistributionDto = {
@@ -18,6 +28,7 @@ export type CasesDistributionDto = {
   byWorkflow: Array<{ workflowType: string; count: number; percentage: number }>;
   byFinalStatus: Array<{ status: string; count: number; percentage: number }>;
   topEscalationReasons: Array<{ reason: string; count: number; percentage: number }>;
+  byDepartment?: DepartmentDistributionItem[];
 };
 
 export type AIEfficiencyDto = {
@@ -51,6 +62,8 @@ export type AgentPerformanceDto = {
   avgCordialityScore: number | null;
   criticalAlertsCount: number;
   openCoachingNotesCount: number;
+  unattendedActiveCases?: number;
+  maxPendingWaitMinutes?: number | null;
 };
 
 export type InfrastructureAlertDto = {

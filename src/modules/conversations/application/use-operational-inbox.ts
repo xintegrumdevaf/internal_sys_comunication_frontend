@@ -20,7 +20,7 @@ type InboxOptions = {
   /** Filtra por agente asignado (puede ser "a mí mismo" o cualquier otro agente). undefined = todos. */
   agentId?: string;
   /** Filtra por estado de conversación. Por defecto "open" (las que requieren atención). */
-  status?: ConversationStatus;
+  status?: ConversationStatus | "all";
   /** Prefiere esta conversación al cargar (deep-link desde menciones internas / notificaciones). */
   initialConversationId?: string | null;
 };
@@ -58,7 +58,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         let data = await conversationGateway.listConversations({
           departmentId: options.departmentId,
           userId: options.agentId,
-          status: options.status ?? "open",
+          status: options.status === "all" ? undefined : (options.status ?? "open"),
         });
 
         const preferred = options.initialConversationId;
