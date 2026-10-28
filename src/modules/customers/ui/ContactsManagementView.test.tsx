@@ -71,4 +71,86 @@ describe("ContactsManagementView", () => {
       expect(screen.getByText("Nombre completo *")).toBeInTheDocument();
     });
   });
+
+  it("permite abrir el modal de edición de un contacto existente sin teléfono", async () => {
+    vi.spyOn(tagsGateway, "list").mockResolvedValue([]);
+    vi.spyOn(customerGateway, "list").mockResolvedValue({
+      data: [
+        {
+          id: "cust-no-phone",
+          fullName: "CAMPOS BERMEO GERMAN GREGORIO",
+          waPhone: null,
+          nationalId: "1204910853",
+          email: null,
+          createdAt: "2026-10-02T18:43:00.000Z",
+          updatedAt: "2026-10-02T18:43:00.000Z",
+          tags: [],
+          contracts: [],
+          address: null,
+          notes: null,
+        },
+      ],
+      pagination: { total: 1, page: 1, limit: 15, totalPages: 1 },
+    });
+
+    render(<ContactsManagementView />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CAMPOS BERMEO GERMAN GREGORIO")).toBeInTheDocument();
+    });
+
+    const editBtn = screen.getByTitle("Editar contacto");
+    fireEvent.click(editBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Editar Contacto")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("CAMPOS BERMEO GERMAN GREGORIO")).toBeInTheDocument();
+    });
+  });
+
+  it("permite abrir el diálogo de confirmación y eliminar un contacto", async () => {
+    vi.spyOn(tagsGateway, "list").mockResolvedValue([]);
+    vi.spyOn(customerGateway, "list").mockResolvedValue({
+      data: [
+        {
+          id: "cust-to-delete",
+          fullName: "Cliente Para Eliminar",
+          waPhone: "593999999999",
+          nationalId: "0102030405",
+          email: null,
+          createdAt: "2026-10-02T18:43:00.000Z",
+          updatedAt: "2026-10-02T18:43:00.000Z",
+          tags: [],
+          contracts: [],
+          address: null,
+          notes: null,
+        },
+      ],
+      pagination: { total: 1, page: 1, limit: 15, totalPages: 1 },
+    });
+    const deleteSpy = vi.spyOn(customerGateway, "delete").mockResolvedValue(undefined);
+
+    render(<ContactsManagementView />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Cliente Para Eliminar")).toBeInTheDocument();
+    });
+
+    const deleteBtn = screen.getByTitle("Eliminar contacto");
+    fireEvent.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Eliminar Contacto")).toBeInTheDocument();
+      expect(
+        screen.getByText(/¿Estás seguro de que deseas eliminar este contacto?/i),
+      ).toBeInTheDocument();
+    });
+
+    const confirmBtn = screen.getByRole("button", { name: "Eliminar" });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledWith("cust-to-delete");
+    });
+  });
 });

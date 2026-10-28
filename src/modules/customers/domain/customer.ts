@@ -53,7 +53,7 @@ export type ListCustomersResponse = {
 
 export type CreateCustomerPayload = {
   fullName: string;
-  waPhone: string;
+  waPhone?: string | null;
   nationalId?: string | null;
   email?: string | null;
   address?: string | null;

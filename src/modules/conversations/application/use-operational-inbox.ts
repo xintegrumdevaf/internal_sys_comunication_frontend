@@ -247,6 +247,29 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         event.type === "MESSAGE_SENT" ||
         event.type === "MESSAGE_STATUS_UPDATED"
       ) {
+        if (
+          event.type === "MESSAGE_STATUS_UPDATED" &&
+          (event as { status?: string }).status === "failed"
+        ) {
+          const errRaw = String((event as { errorMessage?: string }).errorMessage || "");
+          const is24h =
+            errRaw.toLowerCase().includes("24 horas") ||
+            errRaw.toLowerCase().includes("24-hour") ||
+            errRaw.toLowerCase().includes("131047") ||
+            errRaw.toLowerCase().includes("re-engagement") ||
+            errRaw.toLowerCase().includes("plantilla") ||
+            errRaw.toLowerCase().includes("template");
+          if (is24h) {
+            toast.error(
+              "Ventana de 24h de WhatsApp cerrada: No se pudo entregar el mensaje. Debes enviar una plantilla aprobada (Template) para reabrir la conversación.",
+              { duration: 8000 },
+            );
+          } else {
+            toast.error(`Fallo al entregar mensaje en WhatsApp: ${errRaw || "Error de entrega"}`, {
+              duration: 5000,
+            });
+          }
+        }
         if (event.conversationId === selectedIdRef.current) {
           void loadThread(event.conversationId);
           void conversationGateway.markAsRead(event.conversationId).catch(() => {});
@@ -316,6 +339,32 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo enviar");
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendTemplate = async (
+    templateName: string,
+    languageCode = "es",
+    parameters: string[] = [],
+  ): Promise<boolean> => {
+    if (!selectedId) return false;
+    setSending(true);
+    try {
+      const message = await conversationGateway.sendTemplate(
+        selectedId,
+        templateName,
+        languageCode,
+        parameters,
+      );
+      setMessages((prev) => [...prev, message]);
+      await refreshActiveCase();
+      toast.success("Plantilla enviada exitosamente");
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al enviar plantilla");
       return false;
     } finally {
       setSending(false);
@@ -393,6 +442,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     busy: sending || caseActions.busy,
     reload,
     sendReply,
+    sendTemplate,
     takeControl,
     claim: () => (activeCase ? caseActions.claim(activeCase.id) : Promise.resolve(false)),
     assign: (agentUserId: string) =>

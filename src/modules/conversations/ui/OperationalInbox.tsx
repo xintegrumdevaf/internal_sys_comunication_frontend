@@ -32,6 +32,7 @@ import { CompleteCaseModal } from "@/modules/cases/ui/CompleteCaseModal";
 import { ScheduleCaseModal } from "@/modules/cases/ui/ScheduleCaseModal";
 import type { CloseReason } from "@/modules/cases/infrastructure/case.gateway";
 import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
+import { SendTemplateModal } from "@/modules/conversations/ui/SendTemplateModal";
 import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
 import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
@@ -163,6 +164,59 @@ function MessageAvatar({
  * FILTROS dentro de esta pantalla (no rutas separadas) — ver
  * docs/skills/ui-ux-design-principles.md.
  */
+
+function formatDeliveryError(errorMessage?: string | null) {
+  if (!errorMessage) {
+    return {
+      is24h: false,
+      short: "Fallo de entrega",
+      detail: "Error de entrega en WhatsApp / Meta",
+    };
+  }
+  let raw = errorMessage;
+  try {
+    const parsed = JSON.parse(errorMessage);
+    if (typeof parsed === "object" && parsed !== null) {
+      raw = parsed.explanation || parsed.details || parsed.message || parsed.title || errorMessage;
+      if (parsed.code === 131047 || String(parsed.code) === "131047") {
+        return {
+          is24h: true,
+          short: "Ventana 24h cerrada (Requiere plantilla)",
+          detail:
+            "Han pasado más de 24 horas desde el último mensaje del cliente. WhatsApp exige enviar una plantilla aprobada (Template) para reabrir el chat.",
+        };
+      }
+    }
+  } catch {
+    // Si no es JSON válido, se conserva el errorMessage original como texto plano
+  }
+
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes("131047") ||
+    lower.includes("24 horas") ||
+    lower.includes("24-hour") ||
+    lower.includes("24h") ||
+    lower.includes("re-engagement") ||
+    lower.includes("customer service window") ||
+    lower.includes("template") ||
+    lower.includes("plantilla")
+  ) {
+    return {
+      is24h: true,
+      short: "Ventana 24h cerrada (Requiere plantilla)",
+      detail:
+        "Han pasado más de 24 horas desde el último mensaje del cliente. WhatsApp exige enviar una plantilla aprobada (Template) para reabrir el chat.",
+    };
+  }
+
+  return {
+    is24h: false,
+    short: "Fallo de entrega",
+    detail: raw,
+  };
+}
+
 export function OperationalInbox({
   initialDepartmentId,
   initialConversationId,
@@ -279,6 +333,7 @@ export function OperationalInbox({
     reactivateAutomation,
     advanceCase,
     sendReply,
+    sendTemplate,
   } = useOperationalInbox({
     departmentId,
     agentId: agentIdParam,
@@ -398,6 +453,7 @@ export function OperationalInbox({
   // siendo predecible.
   const [detailsOverride, setDetailsOverride] = useState<boolean | null>(null);
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   useEffect(() => {
     setDetailsOverride(null);
     setMobileDetailsOpen(false);
@@ -580,6 +636,27 @@ export function OperationalInbox({
       session?.role === "manager" ||
       session?.role === "admin");
 
+  const is24hWindowClosed = useMemo(() => {
+    const hasRecent24hFailure = messages.some(
+      (m) => m.status === "failed" && formatDeliveryError(m.errorMessage).is24h,
+    );
+    if (hasRecent24hFailure) return true;
+
+    const customerMessages = messages.filter(
+      (m) => m.author === "customer" || m.direction === "inbound",
+    );
+    if (customerMessages.length === 0) {
+      return true;
+    }
+    const lastCustomerMsg = customerMessages[customerMessages.length - 1];
+    if (lastCustomerMsg) {
+      const diffMs = Date.now() - new Date(lastCustomerMsg.createdAt).getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      return diffHours >= 24;
+    }
+    return false;
+  }, [messages]);
+
   const isAssignedToMe = Boolean(
     activeCase?.assignedAgentId && activeCase.assignedAgentId === session?.id,
   );
@@ -592,6 +669,12 @@ export function OperationalInbox({
     (activeCase?.status === "ESCALATED" || activeCase?.status === "HUMAN_ACTIVE");
 
   const isAutomationActive = useMemo(() => {
+    // Si no hay caso activo (conversación nueva, sin flujo activo o vacía),
+    // la IA no está respondiendo y el agente puede escribir directamente:
+    if (!activeCase && !selected?.activeCase) {
+      return false;
+    }
+
     // 1. Si el caso está en atención humana activa o fue transferido a un humano:
     if (activeCase?.status === "HUMAN_ACTIVE" || selected?.activeCase?.status === "HUMAN_ACTIVE") {
       return false;
@@ -610,7 +693,7 @@ export function OperationalInbox({
       return false;
     }
 
-    // Por defecto, toda conversación no tomada por un humano está en manos del Asistente IA
+    // Por defecto, toda conversación con caso activo no tomado por un humano está en manos del Asistente IA
     return true;
   }, [activeCase, selected?.activeCase, automationState]);
 
@@ -1038,6 +1121,28 @@ export function OperationalInbox({
                   </button>
                   <div className="relative shrink-0">
                     <ConversationAvatar conversation={selected} size="size-8 sm:size-9" />
+                    {is24hWindowClosed && (
+                      <div className="px-3.5 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-medium text-[11px] min-w-0">
+                          <Clock className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span className="truncate">
+                            <strong className="font-bold text-amber-700 dark:text-amber-300">
+                              Ventana de 24h inactiva:
+                            </strong>{" "}
+                            Han pasado más de 24h desde el último mensaje del cliente. Los mensajes
+                            de texto libre fallarán; envía una plantilla aprobada.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsTemplateModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-600 text-white text-[10px] font-bold tracking-wide shadow-xs hover:bg-amber-700 transition shrink-0"
+                        >
+                          <FileText className="size-3" />
+                          Plantillas
+                        </button>
+                      </div>
+                    )}
                     {isAutomationActive && (
                       <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.5 ring-2 ring-background">
                         <Bot className="size-2 sm:size-2.5" />
@@ -1082,7 +1187,13 @@ export function OperationalInbox({
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                  {isAutomationActive || activeCase?.status !== "HUMAN_ACTIVE" ? (
+                  {!activeCase && !selected?.activeCase ? (
+                    <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
+                      <UserCheck className="size-3 sm:size-3.5" />
+                      <span className="hidden sm:inline">Atención directa</span>
+                      <span className="sm:hidden">Directo</span>
+                    </span>
+                  ) : isAutomationActive ? (
                     <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
                       <Bot className="size-3 sm:size-3.5 text-emerald-500 animate-pulse shrink-0" />
                       <span className="hidden sm:inline">Asistente IA</span>
@@ -1270,11 +1381,13 @@ export function OperationalInbox({
                             {!fromCustomer &&
                               (m.status === "failed" ? (
                                 <span
-                                  className="inline-flex items-center gap-1 text-rose-500 font-medium cursor-help"
-                                  title={m.errorMessage || "Error de entrega en WhatsApp / Zernio"}
+                                  className="inline-flex items-center gap-1 text-rose-500 font-semibold cursor-help"
+                                  title={formatDeliveryError(m.errorMessage).detail}
                                 >
-                                  <AlertCircle className="size-3.5 text-rose-500" />
-                                  <span className="text-[9px]">Fallo</span>
+                                  <AlertCircle className="size-3.5 text-rose-500 shrink-0" />
+                                  <span className="text-[9px] font-bold">
+                                    {formatDeliveryError(m.errorMessage).short}
+                                  </span>
                                 </span>
                               ) : m.status === "delivered" || m.status === "read" ? (
                                 <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
@@ -1282,6 +1395,29 @@ export function OperationalInbox({
                                 <CheckCheck className="size-3.5 text-sky-500/70 dark:text-sky-400/70" />
                               ))}
                           </div>
+                          {!fromCustomer &&
+                            m.status === "failed" &&
+                            formatDeliveryError(m.errorMessage).is24h && (
+                              <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] flex flex-col gap-1.5 shadow-xs">
+                                <div className="flex items-center gap-1.5 font-bold text-rose-800 dark:text-rose-200">
+                                  <AlertTriangle className="size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                                  <span>Ventana de WhatsApp (24h) cerrada</span>
+                                </div>
+                                <p className="text-[10px] text-rose-700/90 dark:text-rose-300/90 leading-relaxed">
+                                  El mensaje no pudo entregarse porque pasaron más de 24h desde el
+                                  último mensaje del cliente. Debes enviar una plantilla aprobada
+                                  (Template) para reabrir el chat.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsTemplateModalOpen(true)}
+                                  className="self-start inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] shadow-xs hover:bg-rose-700 transition"
+                                >
+                                  <FileText className="size-3" />
+                                  Enviar plantilla aprobada
+                                </button>
+                              </div>
+                            )}
                         </div>
                         {!fromCustomer && (
                           <MessageAvatar
@@ -1351,6 +1487,15 @@ export function OperationalInbox({
                       position="top-left"
                       buttonClassName="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0 disabled:opacity-40"
                     />
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setIsTemplateModalOpen(true)}
+                      title="Enviar plantilla aprobada de WhatsApp"
+                      className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0"
+                    >
+                      <FileText className="size-4" />
+                    </button>
                     <button
                       type="button"
                       disabled={busy || isAutomationActive}
@@ -1551,6 +1696,12 @@ export function OperationalInbox({
 
       <SlaSettingsModal open={slaModalOpen} onOpenChange={setSlaModalOpen} />
 
+      <SendTemplateModal
+        open={isTemplateModalOpen}
+        onOpenChange={setIsTemplateModalOpen}
+        onConfirm={sendTemplate}
+        busy={busy}
+      />
       <CompleteCaseModal
         open={completeModalOpen}
         onOpenChange={setCompleteModalOpen}
