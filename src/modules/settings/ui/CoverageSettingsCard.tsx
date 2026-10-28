@@ -24,13 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
   coverageApi,
   type CoverageZoneDto,
@@ -89,8 +83,7 @@ export function CoverageSettingsCard() {
       });
       await loadZones();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Error al procesar el archivo KML/KMZ";
+      const message = err instanceof Error ? err.message : "Error al procesar el archivo KML/KMZ";
       toast.error(message, { id: toastId });
     } finally {
       setUploading(false);
@@ -129,8 +122,7 @@ export function CoverageSettingsCard() {
       toast.success(`Memoria recargada: ${res.activeZonesCount} zonas de cobertura activas`);
       await loadZones();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Error al recargar zonas en memoria";
+      const message = err instanceof Error ? err.message : "Error al recargar zonas en memoria";
       toast.error(message);
     } finally {
       setReloading(false);
@@ -215,14 +207,17 @@ export function CoverageSettingsCard() {
             <div>
               <div className="flex items-center gap-2">
                 <Compass className="size-5 text-primary" />
-                <CardTitle className="text-xl">Zonas de Cobertura y Factibilidad (KML / KMZ)</CardTitle>
+                <CardTitle className="text-xl">
+                  Zonas de Cobertura y Factibilidad (KML / KMZ)
+                </CardTitle>
                 <Badge variant="outline" className="text-xs">
                   Flujo de Ventas WhatsApp
                 </Badge>
               </div>
               <CardDescription className="text-sm mt-1">
-                Administra los polígonos de tu red de fibra óptica. Cuando un cliente comparta su ubicación en WhatsApp,
-                el sistema verificará automáticamente en menos de un segundo si tienes factibilidad técnica para venderle.
+                Administra los polígonos de tu red de fibra óptica. Cuando un cliente comparta su
+                ubicación en WhatsApp, el sistema verificará automáticamente en menos de un segundo
+                si tienes factibilidad técnica para venderle.
               </CardDescription>
             </div>
 
@@ -253,7 +248,9 @@ export function CoverageSettingsCard() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <div className="p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase font-semibold">Sectores Activos</p>
+                <p className="text-[11px] text-muted-foreground uppercase font-semibold">
+                  Sectores Activos
+                </p>
                 <p className="text-2xl font-bold mt-0.5 text-foreground">{zones.length}</p>
                 <span className="text-[10px] text-muted-foreground">Polígonos indexados</span>
               </div>
@@ -264,11 +261,18 @@ export function CoverageSettingsCard() {
 
             <div className="p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase font-semibold">Ciudades Cubiertas</p>
-                <p className="text-lg font-bold mt-0.5 text-foreground truncate max-w-[170px]" title={cities.join(", ")}>
+                <p className="text-[11px] text-muted-foreground uppercase font-semibold">
+                  Ciudades Cubiertas
+                </p>
+                <p
+                  className="text-lg font-bold mt-0.5 text-foreground truncate max-w-[170px]"
+                  title={cities.join(", ")}
+                >
                   {cities.length > 0 ? cities.join(", ") : "Sin definir"}
                 </p>
-                <span className="text-[10px] text-muted-foreground">{cities.length} ciudad(es) registradas</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {cities.length} ciudad(es) registradas
+                </span>
               </div>
               <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                 <Building2 className="size-6" />
@@ -277,13 +281,20 @@ export function CoverageSettingsCard() {
 
             <div className="p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase font-semibold">Velocidad de Verificación</p>
+                <p className="text-[11px] text-muted-foreground uppercase font-semibold">
+                  Velocidad de Verificación
+                </p>
                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
                   <Zap className="size-4" /> &lt; 1 ms (Instantáneo)
                 </p>
-                <span className="text-[10px] text-muted-foreground">Motor geométrico en memoria RAM</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Motor geométrico en memoria RAM
+                </span>
               </div>
-              <Badge variant="secondary" className="text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+              <Badge
+                variant="secondary"
+                className="text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+              >
                 100% Activo
               </Badge>
             </div>
@@ -310,20 +321,25 @@ export function CoverageSettingsCard() {
                 </p>
                 <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground leading-relaxed">
                   <li>
-                    Abre tu mapa en <strong>Google Earth Pro</strong> o <strong>Google My Maps</strong> donde tengas dibujados los polígonos de tus sectores de fibra.
+                    Abre tu mapa en <strong>Google Earth Pro</strong> o{" "}
+                    <strong>Google My Maps</strong> donde tengas dibujados los polígonos de tus
+                    sectores de fibra.
                   </li>
                   <li>
                     Haz clic derecho sobre la carpeta de sectores o el mapa completo y selecciona{" "}
                     <strong>"Guardar lugar como..."</strong> (Save Place As...).
                   </li>
                   <li>
-                    Selecciona formato <strong>KML</strong> o <strong>KMZ</strong> y guarda el archivo en tu equipo.
+                    Selecciona formato <strong>KML</strong> o <strong>KMZ</strong> y guarda el
+                    archivo en tu equipo.
                   </li>
                   <li>
-                    Arrastra el archivo a la caja punteada de abajo o presiona el botón <strong>"Subir Archivo KML / KMZ"</strong>.
+                    Arrastra el archivo a la caja punteada de abajo o presiona el botón{" "}
+                    <strong>"Subir Archivo KML / KMZ"</strong>.
                   </li>
                   <li>
-                    ¡Listo! El sistema reconocerá automáticamente los nombres de cada barrio, sector y ciudad para asignarlos al flujo de ventas.
+                    ¡Listo! El sistema reconocerá automáticamente los nombres de cada barrio, sector
+                    y ciudad para asignarlos al flujo de ventas.
                   </li>
                 </ol>
               </div>
@@ -352,7 +368,8 @@ export function CoverageSettingsCard() {
                 Arrastra tu archivo .kml o .kmz aquí o haz clic para seleccionarlo
               </h4>
               <p className="text-xs text-muted-foreground max-w-md">
-                Soporta mapas exportados desde Google Earth, Google My Maps y QGIS con carpetas por ciudad y nombres de sectores.
+                Soporta mapas exportados desde Google Earth, Google My Maps y QGIS con carpetas por
+                ciudad y nombres de sectores.
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <Badge variant="outline" className="text-[10px] bg-background">
@@ -373,14 +390,17 @@ export function CoverageSettingsCard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MapPin className="size-4 text-primary" />
-                <h4 className="font-semibold text-sm">Radar y Verificador de Factibilidad en Vivo</h4>
+                <h4 className="font-semibold text-sm">
+                  Radar y Verificador de Factibilidad en Vivo
+                </h4>
               </div>
               <Badge variant="outline" className="text-[10px] bg-background">
                 Simulador de Clientes
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Comprueba en tiempo real si una dirección, coordenadas o link de WhatsApp cae dentro de tu cobertura:
+              Comprueba en tiempo real si una dirección, coordenadas o link de WhatsApp cae dentro
+              de tu cobertura:
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2">
@@ -401,7 +421,11 @@ export function CoverageSettingsCard() {
                 disabled={testing || !testInput.trim()}
                 className="gap-2 text-xs shrink-0 cursor-pointer"
               >
-                {testing ? <RefreshCw className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+                {testing ? (
+                  <RefreshCw className="size-3.5 animate-spin" />
+                ) : (
+                  <Search className="size-3.5" />
+                )}
                 Verificar Cobertura
               </Button>
             </div>
@@ -484,7 +508,8 @@ export function CoverageSettingsCard() {
                         <div className="flex items-center justify-between text-muted-foreground">
                           <span>Coordenadas Validadas:</span>
                           <span className="font-mono">
-                            {testResult.queryCoordinates.lat.toFixed(5)}, {testResult.queryCoordinates.lng.toFixed(5)}
+                            {testResult.queryCoordinates.lat.toFixed(5)},{" "}
+                            {testResult.queryCoordinates.lng.toFixed(5)}
                           </span>
                         </div>
                       )}
@@ -495,7 +520,9 @@ export function CoverageSettingsCard() {
                         Respuesta automática de WhatsApp que recibirá el prospecto:
                       </span>
                       <p className="text-foreground italic">
-                        "¡Buenas noticias! Confirmamos que contamos con cobertura de fibra óptica en tu sector ({testResult.zoneName}). En este momento te transferimos con un especialista en ventas para coordinar tu plan e instalación."
+                        "¡Buenas noticias! Confirmamos que contamos con cobertura de fibra óptica en
+                        tu sector ({testResult.zoneName}). En este momento te transferimos con un
+                        especialista en ventas para coordinar tu plan e instalación."
                       </p>
                     </div>
                   </>
@@ -509,7 +536,8 @@ export function CoverageSettingsCard() {
                             Ubicación Fuera de Cobertura
                           </h5>
                           <p className="text-xs text-muted-foreground">
-                            {testResult.reason || "Las coordenadas no coinciden con ningún polígono activo en el archivo KML."}
+                            {testResult.reason ||
+                              "Las coordenadas no coinciden con ningún polígono activo en el archivo KML."}
                           </p>
                         </div>
                       </div>
@@ -523,7 +551,9 @@ export function CoverageSettingsCard() {
                         Respuesta automática de WhatsApp:
                       </span>
                       <p className="text-muted-foreground italic">
-                        "Por el momento lamentamos informarte que aún no contamos con cobertura de fibra óptica en tu zona. Hemos guardado tus datos para notificarte apenas expandamos nuestra red a tu sector."
+                        "Por el momento lamentamos informarte que aún no contamos con cobertura de
+                        fibra óptica en tu zona. Hemos guardado tus datos para notificarte apenas
+                        expandamos nuestra red a tu sector."
                       </p>
                     </div>
                   </>
@@ -540,7 +570,8 @@ export function CoverageSettingsCard() {
                   <Layers className="size-4 text-primary" /> Sectores y Polígonos Registrados
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Filtra por ciudad o busca por nombre de barrio para inspeccionar las zonas operativas.
+                  Filtra por ciudad o busca por nombre de barrio para inspeccionar las zonas
+                  operativas.
                 </p>
               </div>
 
@@ -571,7 +602,9 @@ export function CoverageSettingsCard() {
                   Todas las Ciudades ({zones.length})
                 </button>
                 {cities.map((city) => {
-                  const count = zones.filter((z) => z.city?.toLowerCase() === city.toLowerCase()).length;
+                  const count = zones.filter(
+                    (z) => z.city?.toLowerCase() === city.toLowerCase(),
+                  ).length;
                   return (
                     <button
                       key={city}
@@ -612,7 +645,10 @@ export function CoverageSettingsCard() {
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-xs truncate max-w-[180px]" title={zone.name}>
+                        <span
+                          className="font-semibold text-xs truncate max-w-[180px]"
+                          title={zone.name}
+                        >
                           {zone.name}
                         </span>
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 shrink-0">
@@ -629,8 +665,12 @@ export function CoverageSettingsCard() {
                       <button
                         type="button"
                         onClick={() => {
-                          setTestInput(`${zone.center.lat.toFixed(5)}, ${zone.center.lng.toFixed(5)}`);
-                          void handleRunTest(`${zone.center.lat.toFixed(5)}, ${zone.center.lng.toFixed(5)}`);
+                          setTestInput(
+                            `${zone.center.lat.toFixed(5)}, ${zone.center.lng.toFixed(5)}`,
+                          );
+                          void handleRunTest(
+                            `${zone.center.lat.toFixed(5)}, ${zone.center.lng.toFixed(5)}`,
+                          );
                         }}
                         className="text-primary hover:underline font-medium cursor-pointer"
                       >

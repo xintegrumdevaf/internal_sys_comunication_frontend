@@ -32,10 +32,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type {
-  WhatsAppChannelSettings,
-  TestConnectionResult,
-} from "../domain/settings.types";
+import type { WhatsAppChannelSettings, TestConnectionResult } from "../domain/settings.types";
 
 export interface WhatsAppChannelsCardProps {
   channels: WhatsAppChannelSettings;
@@ -66,7 +63,10 @@ export function WhatsAppChannelsCard({
   const [showGuide, setShowGuide] = useState(false);
 
   // Debounce en segundos
-  const currentSeconds = Math.max(2, Math.min(30, Math.round((channels.messageDebounceMs ?? 4500) / 1000)));
+  const currentSeconds = Math.max(
+    2,
+    Math.min(30, Math.round((channels.messageDebounceMs ?? 4500) / 1000)),
+  );
 
   const debouncePresets = [
     {
@@ -81,7 +81,8 @@ export function WhatsAppChannelsCard({
       title: "Recomendado (7s)",
       badge: "Más Popular",
       recommended: true,
-      description: "El balance ideal. Da tiempo para 2 o 3 líneas consecutivas sin que el bot interrumpa.",
+      description:
+        "El balance ideal. Da tiempo para 2 o 3 líneas consecutivas sin que el bot interrumpa.",
       icon: Sparkles,
     },
     {
@@ -138,7 +139,10 @@ export function WhatsAppChannelsCard({
             <div className="space-y-1 pr-6">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm">Zernio (Modo Coexistencia)</span>
-                <Badge variant="secondary" className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                >
                   Recomendado
                 </Badge>
               </div>
@@ -211,14 +215,15 @@ export function WhatsAppChannelsCard({
                     {testingChannels
                       ? "Verificando..."
                       : channelTestResult?.ok
-                      ? "Conectado"
-                      : channelTestResult
-                      ? "Error de Conexión"
-                      : "Sin probar aún"}
+                        ? "Conectado"
+                        : channelTestResult
+                          ? "Error de Conexión"
+                          : "Sin probar aún"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Comprueba si tu cuenta de Zernio responde y las credenciales son válidas antes de guardar.
+                  Comprueba si tu cuenta de Zernio responde y las credenciales son válidas antes de
+                  guardar.
                 </p>
               </div>
               <Button
@@ -232,7 +237,9 @@ export function WhatsAppChannelsCard({
                 <Zap
                   className={`size-4 ${testingChannels ? "animate-spin text-amber-300" : "text-amber-300"}`}
                 />
-                {testingChannels ? "Verificando con Zernio..." : "⚡ Probar Conexión con Zernio Ahora"}
+                {testingChannels
+                  ? "Verificando con Zernio..."
+                  : "⚡ Probar Conexión con Zernio Ahora"}
               </Button>
             </div>
 
@@ -292,7 +299,11 @@ export function WhatsAppChannelsCard({
                   <HelpCircle className="size-4 text-primary" />
                   <span>¿Dónde encuentro estos datos en mi consola de Zernio?</span>
                 </div>
-                {showGuide ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                {showGuide ? (
+                  <ChevronUp className="size-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                )}
               </button>
               {showGuide && (
                 <div className="p-4 pt-1 border-t border-border/60 text-xs text-muted-foreground space-y-2 bg-background/60">
@@ -306,19 +317,24 @@ export function WhatsAppChannelsCard({
                         className="text-primary underline font-medium inline-flex items-center gap-0.5"
                       >
                         zernio.com <ExternalLink className="size-3" />
-                      </a>.
+                      </a>
+                      .
                     </li>
                     <li>
-                      En la sección <strong>Canales / Cuentas</strong>, asegúrate de haber vinculado el número de WhatsApp de la empresa (escaneando el QR con tu app de WhatsApp).
+                      En la sección <strong>Canales / Cuentas</strong>, asegúrate de haber vinculado
+                      el número de WhatsApp de la empresa (escaneando el QR con tu app de WhatsApp).
                     </li>
                     <li>
                       Copia el <strong>Account ID</strong> de tu canal conectado y pégalo abajo.
                     </li>
                     <li>
-                      En <strong>Configuración de Desarrollador / API</strong>, genera tu <strong>API Key</strong> y copia el <strong>Webhook Secret</strong>.
+                      En <strong>Configuración de Desarrollador / API</strong>, genera tu{" "}
+                      <strong>API Key</strong> y copia el <strong>Webhook Secret</strong>.
                     </li>
                     <li>
-                      Pégalos en los campos siguientes y haz clic en <strong>"Probar Conexión con Zernio Ahora"</strong> para validar que todo funcione antes de guardar.
+                      Pégalos en los campos siguientes y haz clic en{" "}
+                      <strong>"Probar Conexión con Zernio Ahora"</strong> para validar que todo
+                      funcione antes de guardar.
                     </li>
                   </ol>
                 </div>
@@ -334,7 +350,9 @@ export function WhatsAppChannelsCard({
                     <Label htmlFor="zernio-account-id" className="text-xs font-semibold">
                       Zernio Account ID
                     </Label>
-                    <span className="text-[11px] text-muted-foreground">ID del número vinculado</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      ID del número vinculado
+                    </span>
                   </div>
                   <Input
                     id="zernio-account-id"
@@ -387,7 +405,9 @@ export function WhatsAppChannelsCard({
                     type={showZernioKey ? "text" : "password"}
                     placeholder="••••••••••••••••••••••••••••••••"
                     value={channels.zernioApiKey}
-                    onChange={(e) => setChannels((prev) => ({ ...prev, zernioApiKey: e.target.value }))}
+                    onChange={(e) =>
+                      setChannels((prev) => ({ ...prev, zernioApiKey: e.target.value }))
+                    }
                     className="pr-10 font-mono text-xs"
                   />
                   <button
@@ -399,7 +419,8 @@ export function WhatsAppChannelsCard({
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Autoriza a nuestro sistema para despachar mensajes hacia WhatsApp a través de Zernio.
+                  Autoriza a nuestro sistema para despachar mensajes hacia WhatsApp a través de
+                  Zernio.
                 </p>
               </div>
 
@@ -431,7 +452,8 @@ export function WhatsAppChannelsCard({
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Garantiza que los mensajes entrantes que recibimos provienen auténticamente de Zernio.
+                  Garantiza que los mensajes entrantes que recibimos provienen auténticamente de
+                  Zernio.
                 </p>
               </div>
             </div>
@@ -455,10 +477,10 @@ export function WhatsAppChannelsCard({
                     {testingChannels
                       ? "Verificando..."
                       : channelTestResult?.ok
-                      ? "Conectado"
-                      : channelTestResult
-                      ? "Error de Conexión"
-                      : "Sin probar aún"}
+                        ? "Conectado"
+                        : channelTestResult
+                          ? "Error de Conexión"
+                          : "Sin probar aún"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -526,7 +548,9 @@ export function WhatsAppChannelsCard({
                     id="meta-phone-id"
                     placeholder="Ej: 104593829102938"
                     value={channels.phoneNumberId}
-                    onChange={(e) => setChannels((prev) => ({ ...prev, phoneNumberId: e.target.value }))}
+                    onChange={(e) =>
+                      setChannels((prev) => ({ ...prev, phoneNumberId: e.target.value }))
+                    }
                     className="font-mono text-xs"
                   />
                 </div>
@@ -554,7 +578,9 @@ export function WhatsAppChannelsCard({
                     type={showMetaToken ? "text" : "password"}
                     placeholder="EAAG..."
                     value={channels.accessToken}
-                    onChange={(e) => setChannels((prev) => ({ ...prev, accessToken: e.target.value }))}
+                    onChange={(e) =>
+                      setChannels((prev) => ({ ...prev, accessToken: e.target.value }))
+                    }
                     className="pr-10 font-mono text-xs"
                   />
                   <button
@@ -578,7 +604,9 @@ export function WhatsAppChannelsCard({
                       type={showMetaSecret ? "text" : "password"}
                       placeholder="••••••••••••••••"
                       value={channels.appSecret}
-                      onChange={(e) => setChannels((prev) => ({ ...prev, appSecret: e.target.value }))}
+                      onChange={(e) =>
+                        setChannels((prev) => ({ ...prev, appSecret: e.target.value }))
+                      }
                       className="pr-10 font-mono text-xs"
                     />
                     <button
@@ -598,7 +626,9 @@ export function WhatsAppChannelsCard({
                     id="meta-verify"
                     placeholder="Token personalizado de verificación"
                     value={channels.verifyToken}
-                    onChange={(e) => setChannels((prev) => ({ ...prev, verifyToken: e.target.value }))}
+                    onChange={(e) =>
+                      setChannels((prev) => ({ ...prev, verifyToken: e.target.value }))
+                    }
                     className="font-mono text-xs"
                   />
                 </div>
@@ -621,8 +651,9 @@ export function WhatsAppChannelsCard({
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-                Cuando un cliente escribe en ráfaga (ej: <em>"Hola"</em> ➡️ <em>"Tengo una duda"</em> ➡️ <em>"Sobre mi internet"</em>),
-                el sistema espera este tiempo tras el último mensaje para responder a todo junto de manera natural.
+                Cuando un cliente escribe en ráfaga (ej: <em>"Hola"</em> ➡️{" "}
+                <em>"Tengo una duda"</em> ➡️ <em>"Sobre mi internet"</em>), el sistema espera este
+                tiempo tras el último mensaje para responder a todo junto de manera natural.
               </p>
             </div>
           </div>
@@ -645,7 +676,9 @@ export function WhatsAppChannelsCard({
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Icon className={`size-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                        <Icon
+                          className={`size-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
+                        />
                         <span className="font-semibold text-xs">{preset.title}</span>
                       </div>
                       <Badge
@@ -728,7 +761,9 @@ export function WhatsAppChannelsCard({
               <div className="flex justify-start">
                 <div className="bg-muted px-3 py-1.5 rounded-2xl rounded-tl-sm max-w-[80%] text-foreground">
                   <p>Hola buenas tardes</p>
-                  <span className="text-[9px] text-muted-foreground block text-right">10:00 AM</span>
+                  <span className="text-[9px] text-muted-foreground block text-right">
+                    10:00 AM
+                  </span>
                 </div>
               </div>
 
@@ -736,7 +771,9 @@ export function WhatsAppChannelsCard({
               <div className="flex justify-start">
                 <div className="bg-muted px-3 py-1.5 rounded-2xl rounded-tl-sm max-w-[80%] text-foreground">
                   <p>Quiero saber qué planes de internet tienen</p>
-                  <span className="text-[9px] text-muted-foreground block text-right">10:00 AM (+1s)</span>
+                  <span className="text-[9px] text-muted-foreground block text-right">
+                    10:00 AM (+1s)
+                  </span>
                 </div>
               </div>
 
@@ -744,7 +781,8 @@ export function WhatsAppChannelsCard({
               <div className="flex items-center gap-2 py-1 px-2 text-[11px] text-muted-foreground italic">
                 <Clock className="size-3 text-primary animate-pulse" />
                 <span>
-                  El sistema espera <strong>{currentSeconds} segundos</strong> desde el último mensaje para consolidar...
+                  El sistema espera <strong>{currentSeconds} segundos</strong> desde el último
+                  mensaje para consolidar...
                 </span>
               </div>
 
@@ -755,7 +793,8 @@ export function WhatsAppChannelsCard({
                     <Sparkles className="size-3" /> Asistente de IA
                   </div>
                   <p className="leading-snug">
-                    ¡Hola! Con gusto te ayudo. Disponemos de planes de fibra óptica de 100, 300 y 500 Mbps con instalación incluida. ¿Para qué sector lo necesitas?
+                    ¡Hola! Con gusto te ayudo. Disponemos de planes de fibra óptica de 100, 300 y
+                    500 Mbps con instalación incluida. ¿Para qué sector lo necesitas?
                   </p>
                   <span className="text-[9px] opacity-75 block text-right">
                     10:00 AM (+{currentSeconds + 1}s)
@@ -769,7 +808,8 @@ export function WhatsAppChannelsCard({
 
       <CardFooter className="flex flex-col sm:flex-row items-center justify-between border-t border-border pt-4 gap-3">
         <p className="text-xs text-muted-foreground">
-          Recuerda guardar los cambios para que se apliquen en tiempo real a las nuevas conversaciones.
+          Recuerda guardar los cambios para que se apliquen en tiempo real a las nuevas
+          conversaciones.
         </p>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button

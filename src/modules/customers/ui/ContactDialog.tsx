@@ -185,13 +185,9 @@ export function ContactDialog({
         onSuccess?.(syncRes.customer);
       } else {
         // Si aún no está creado, guardar primero y sincronizar
-        if (!phoneToUse) {
-          toast.error("El número de WhatsApp es requerido para crear el contacto");
-          return;
-        }
         const created = await customerGateway.create({
           fullName: fullName.trim() || `Contacto ${cleanId}`,
-          waPhone: phoneToUse,
+          waPhone: phoneToUse || null,
           nationalId: cleanId,
           email: email.trim() || null,
           address: address.trim() || null,
@@ -215,14 +211,17 @@ export function ContactDialog({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
       toast.error("El nombre del contacto es requerido");
       return;
     }
 
-    const phoneToUse = waPhone.trim() || initialPhone?.trim() || "";
-    if (!phoneToUse) {
-      toast.error("El número de WhatsApp es requerido");
+    const cleanPhone = waPhone.trim() || initialPhone?.trim() || "";
+    const cleanNationalId = nationalId.trim() || initialNationalId?.trim() || "";
+
+    if (!customer && !cleanPhone && !cleanNationalId) {
+      toast.error("Ingresa al menos el número de WhatsApp o la cédula del contacto");
       return;
     }
 
@@ -230,26 +229,26 @@ export function ContactDialog({
     try {
       let saved: CustomerDto;
       let targetCustomer = customer;
-      if (!targetCustomer?.id) {
-        targetCustomer = await findExistingCustomer(nationalId, phoneToUse);
+      if (!targetCustomer?.id && (cleanNationalId || cleanPhone)) {
+        targetCustomer = await findExistingCustomer(cleanNationalId, cleanPhone);
       }
 
       if (targetCustomer?.id) {
         saved = await customerGateway.update(targetCustomer.id, {
-          fullName: fullName.trim(),
-          waPhone: phoneToUse,
-          nationalId: nationalId.trim() || null,
+          fullName: trimmedName,
+          waPhone: cleanPhone || null,
+          nationalId: cleanNationalId || null,
           email: email.trim() || null,
           address: address.trim() || null,
           notes: notes.trim() || null,
           tagIds: selectedTagIds,
         });
-        toast.success("Contacto actualizado y vinculado con éxito");
+        toast.success("Contacto actualizado con éxito");
       } else {
         saved = await customerGateway.create({
-          fullName: fullName.trim(),
-          waPhone: phoneToUse,
-          nationalId: nationalId.trim() || null,
+          fullName: trimmedName,
+          waPhone: cleanPhone || null,
+          nationalId: cleanNationalId || null,
           email: email.trim() || null,
           address: address.trim() || null,
           notes: notes.trim() || null,
@@ -302,11 +301,10 @@ export function ContactDialog({
             <div>
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
                 <Phone className="size-3.5 text-muted-foreground" />
-                WhatsApp / Teléfono *
+                WhatsApp / Teléfono
               </label>
               <input
                 type="text"
-                required
                 value={waPhone}
                 onChange={(e) => setWaPhone(e.target.value)}
                 placeholder="Ej. 593995200769"

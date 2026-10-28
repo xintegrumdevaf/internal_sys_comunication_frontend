@@ -329,7 +329,10 @@ export type CaseSummaryDto = {
 const WORKFLOW_LABELS: Record<string, { label: string; cls: string }> = {
   SUPPORT_INTERNET: { label: "Soporte", cls: "bg-red-100 text-red-700" },
   BILLING_BALANCE: { label: "Facturación", cls: "bg-green-100 text-green-700" },
-  SALES: { label: "Ventas / Cobertura", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" },
+  SALES: {
+    label: "Ventas / Cobertura",
+    cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
+  },
   SALES_PACKAGES: { label: "Ventas", cls: "bg-amber-100 text-amber-700" },
   GENERAL_INQUIRY: { label: "Consulta", cls: "bg-blue-100 text-blue-700" },
   UNCLASSIFIED: { label: "Sin clasificar", cls: "bg-purple-100 text-purple-700" },

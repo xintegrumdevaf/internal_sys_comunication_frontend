@@ -69,6 +69,19 @@ export async function replyAsHuman(
   return withMediaUrls([message])[0]!;
 }
 
+export async function sendTemplate(
+  conversationId: string,
+  templateName: string,
+  languageCode = "es",
+  parameters: string[] = [],
+): Promise<MessageDto> {
+  const message = await apiPost<MessageDto>(`/api/conversations/${conversationId}/template`, {
+    templateName,
+    languageCode,
+    parameters,
+  });
+  return withMediaUrls([message])[0]!;
+}
 export function takeControl(conversationId: string, agentUserId: string): Promise<ConversationDto> {
   return apiPost<ConversationDto>(`/api/conversations/${conversationId}/take-control`, {
     agentUserId,

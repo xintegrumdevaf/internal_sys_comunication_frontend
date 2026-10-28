@@ -128,7 +128,11 @@ export function ContactsManagementView() {
       await customerGateway.delete(deleteId);
       toast.success("Contacto eliminado exitosamente");
       setDeleteId(null);
-      void fetchCustomers();
+      if (customers.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        void fetchCustomers();
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al eliminar contacto";
       toast.error(msg);
@@ -137,17 +141,27 @@ export function ContactsManagementView() {
     }
   };
 
-  const handleOpenChat = (customer: CustomerDto) => {
+  const handleOpenChat = async (customer: CustomerDto) => {
     if (customer.conversationId) {
       void navigate({
         to: "/bandeja",
         search: { conversationId: customer.conversationId },
       });
-    } else if (customer.waPhone) {
-      void navigate({
-        to: "/bandeja",
-        search: { conversationId: undefined },
-      });
+      return;
+    }
+    if (customer.waPhone) {
+      try {
+        const res = await customerGateway.openOrCreateConversation(customer.id);
+        void navigate({
+          to: "/bandeja",
+          search: { conversationId: res.conversationId },
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al abrir conversación";
+        toast.error(msg);
+      }
+    } else {
+      toast.error("El contacto no tiene número de WhatsApp registrado");
     }
   };
 
@@ -625,7 +639,8 @@ export function ContactsManagementView() {
             </DialogTitle>
             <DialogDescription>
               ¿Estás seguro de que deseas eliminar este contacto? Esta acción removerá sus datos
-              asociados y etiquetas.
+              asociados y contratos técnicos. Las conversaciones registradas se mantendrán en la
+              bandeja desvinculadas del contacto.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="pt-2">
