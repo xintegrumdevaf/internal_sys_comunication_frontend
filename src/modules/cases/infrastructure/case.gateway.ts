@@ -95,11 +95,17 @@ export function cancelCase(caseId: string, reason: string, agentUserId: string):
 
 export function transferCase(
   caseId: string,
-  toDepartmentId: string,
+  toDepartmentId: string | undefined,
   reason: string,
   agentUserId: string,
+  toAgentId?: string,
 ): Promise<CaseDto> {
-  return apiPost<CaseDto>(`/api/cases/${caseId}/transfer`, { toDepartmentId, reason, agentUserId });
+  return apiPost<CaseDto>(`/api/cases/${caseId}/transfer`, {
+    toDepartmentId,
+    reason,
+    agentUserId,
+    toAgentId,
+  });
 }
 
 export function disableAutomation(caseId: string, reason: string, agentUserId: string) {

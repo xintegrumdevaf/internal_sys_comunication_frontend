@@ -1319,11 +1319,49 @@ export function OperationalInbox({
                   const day = dayLabel(m.createdAt);
                   const showDaySeparator = day !== lastRenderedDay;
                   lastRenderedDay = day;
-                  const senderKey = showDaySeparator ? "" : m.author;
+
+                  if (m.author === "system") {
+                    return (
+                      <div key={m.id}>
+                        {showDaySeparator && (
+                          <div className="flex justify-center my-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-foreground/5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                              {day}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-center my-2.5 px-4">
+                          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/80 text-muted-foreground text-[11px] font-medium border border-border/60 shadow-xs max-w-[85%] text-center leading-normal">
+                            <Info className="size-3.5 shrink-0 text-primary" />
+                            <span>{m.body}</span>
+                            <span className="text-[9px] opacity-70 ml-1 whitespace-nowrap">
+                              {messageClock(m.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const messageAgentName =
+                    m.agentName ||
+                    (m.agentId ? directory.find((a) => a.id === m.agentId)?.name : null) ||
+                    (m.agentId && session && m.agentId === session.id
+                      ? session.name || "Tú"
+                      : null) ||
+                    (isAssignedToMe && !m.agentId ? "Tú" : null) ||
+                    (!m.agentId ? assignedAgentName : null) ||
+                    "Agente";
+
+                  const senderKey = showDaySeparator
+                    ? ""
+                    : m.author === "agent"
+                      ? `agent_${m.agentId || m.agentName || "unknown"}`
+                      : m.author;
                   // El nombre del cliente ya se muestra en el encabezado del chat: repetirlo en
-                  // cada burbuja es ruido. Del lado del equipo sí distinguimos IA vs. agente humano.
+                  // cada burbuja es ruido. Del lado del equipo sí distinguimos IA vs. agentes humanos individuales.
                   const showSenderLabel = !fromCustomer && senderKey !== lastRenderedSender;
-                  lastRenderedSender = m.author;
+                  lastRenderedSender = senderKey;
                   return (
                     <div key={m.id}>
                       {showDaySeparator && (
@@ -1357,7 +1395,7 @@ export function OperationalInbox({
                               {fromCustomer
                                 ? conversationDisplayName(selected)
                                 : m.author === "agent"
-                                  ? (assignedAgentName ?? "Agente")
+                                  ? messageAgentName
                                   : "Asistente IA"}
                             </p>
                           )}
@@ -1423,7 +1461,7 @@ export function OperationalInbox({
                           <MessageAvatar
                             author={m.author}
                             conversation={selected}
-                            agentName={assignedAgentName}
+                            agentName={m.author === "agent" ? messageAgentName : assignedAgentName}
                           />
                         )}
                       </div>
@@ -1604,6 +1642,7 @@ export function OperationalInbox({
                 busy={busy}
                 canWrite={canWriteCase}
                 departments={departments}
+                agents={directory}
                 assignedAgentName={assignedAgentName}
                 onOpenSummary={() => {
                   if (activeCase) void loadCaseSummary(activeCase.id);
@@ -1612,7 +1651,9 @@ export function OperationalInbox({
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
-                onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
+                onTransfer={(toDepartmentId, reason, toAgentId) =>
+                  void transfer(toDepartmentId, reason, toAgentId)
+                }
                 onDisableAutomation={(reason) => void disableAutomation(reason)}
                 onReactivateAutomation={() => void reactivateAutomation()}
                 onAdvance={(entities) => void advanceCase(entities)}
@@ -1660,6 +1701,7 @@ export function OperationalInbox({
               busy={busy}
               canWrite={canWriteCase}
               departments={departments}
+              agents={directory}
               assignedAgentName={assignedAgentName}
               onOpenSummary={() => {
                 if (activeCase) void loadCaseSummary(activeCase.id);
@@ -1668,7 +1710,9 @@ export function OperationalInbox({
               onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
-              onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
+              onTransfer={(toDepartmentId, reason, toAgentId) =>
+                void transfer(toDepartmentId, reason, toAgentId)
+              }
               onDisableAutomation={(reason) => void disableAutomation(reason)}
               onReactivateAutomation={() => void reactivateAutomation()}
               onAdvance={(entities) => void advanceCase(entities)}
