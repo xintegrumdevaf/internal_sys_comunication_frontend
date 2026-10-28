@@ -139,7 +139,30 @@ export function useCaseActions(
     return run("avanzar el caso", () => caseGateway.advanceCase(caseId, { entities }), successMsg);
   };
 
+    const syncData = (caseId: string) => {
+    if (!session) return Promise.resolve(false);
+    return run(
+      "actualizar datos",
+      () => caseGateway.syncCaseData(caseId),
+      "Datos del cliente, contratos y saldo actualizados desde el ISP",
+    );
+  };
+
+  const diagnose = (caseId: string) => {
+    if (!session) return Promise.resolve(false);
+    return run(
+      "diagnosticar conexión",
+      () => caseGateway.diagnoseCase(caseId),
+      "Diagnóstico de red ejecutado exitosamente",
+    );
+  };
+
+  const syncBalance = syncData;
+
   return {
+    syncData,
+    diagnose,
+    syncBalance,
     busy,
     claim,
     assign,

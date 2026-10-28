@@ -1,7 +1,9 @@
+import { cn } from "@/lib/utils";
 import { resolveTagHex, type TagItem } from "@/modules/tags/domain/tag";
 import { useState } from "react";
 import {
   Activity,
+  RefreshCw,
   AlertTriangle,
   Bot,
   Calendar,
@@ -382,6 +384,9 @@ export function CasePanel({
   onDisableAutomation,
   onReactivateAutomation,
   onAdvance,
+  onSyncData,
+  onSyncBalance,
+  onDiagnose,
 }: {
   caseDto: CaseDto | null;
   /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
@@ -417,6 +422,32 @@ export function CasePanel({
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [diagnosticAnswer, setDiagnosticAnswer] = useState("");
   const [continuingDiagnostic, setContinuingDiagnostic] = useState(false);
+  const [syncingData, setSyncingData] = useState(false);
+  const [diagnosing, setDiagnosing] = useState(false);
+
+
+
+  const handleSyncData = async () => {
+    const fn = onSyncData || onSyncBalance;
+    if (!fn) return;
+    setSyncingData(true);
+    try {
+      await fn();
+    } finally {
+      setSyncingData(false);
+    }
+  };
+
+  const handleDiagnose = async () => {
+    if (!onDiagnose) return;
+    setDiagnosing(true);
+    try {
+      await onDiagnose();
+    } finally {
+      setDiagnosing(false);
+    }
+  };
+
 
   const canManage = canManageProp ?? canWrite;
   const currentState = caseDto
@@ -424,6 +455,9 @@ export function CasePanel({
     : undefined;
   const contextData = (caseDto?.context?.data ?? {}) as Record<string, unknown>;
   const rawContext = caseDto?.context as unknown as Record<string, unknown> | undefined;
+  const contract = (contextData.contract ?? rawContext?.contract) as
+    { sector?: string; oltName?: string; pon?: string | number; serial?: string } | undefined;
+  const isSupportCase = caseDto?.workflowType === "SUPPORT_INTERNET";
   const pendingContracts = (contextData.pendingContracts ?? rawContext?.pendingContracts) as
     PendingContractItem[] | undefined;
 
@@ -727,8 +761,37 @@ export function CasePanel({
           <DataRow label="Atendido por" value={handlerLabel} />
         </div>
 
-        <SectionLabel icon={Wrench}>Datos técnicos</SectionLabel>
+        <div className="flex items-center justify-between">
+          <SectionLabel icon={Wrench}>Datos técnicos</SectionLabel>
+          {(onSyncData || onSyncBalance) && (
+            <button
+              type="button"
+              disabled={busy || syncingData || diagnosing}
+              onClick={() => void handleSyncData()}
+              title="Actualizar datos técnicos, contratos y saldo del cliente desde el ISP / Excel"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition font-mono border border-border/50"
+            >
+              <RefreshCw className={cn("size-2.5", syncingData && "animate-spin")} />
+              <span>{syncingData ? "Actualizando..." : "Actualizar"}</span>
+            </button>
+          )}
+        </div>
         <CaseContextBody caseDto={caseDto} />
+
+        {isSupportCase && Boolean(contract?.sector && contract?.serial) && onDiagnose && (
+          <div className="pt-1">
+            <button
+              type="button"
+              disabled={busy || diagnosing || syncingData}
+              onClick={() => void handleDiagnose()}
+              title="Ejecutar diagnóstico en caliente contra MikroTik y OLT"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/25 text-[11px] font-semibold transition disabled:opacity-50"
+            >
+              <Activity className={cn("size-3 text-blue-600 dark:text-blue-400", diagnosing && "animate-spin")} />
+              <span>{diagnosing ? "Diagnosticando red..." : "Diagnosticar conexión"}</span>
+            </button>
+          </div>
+        )}
 
         <button
           type="button"

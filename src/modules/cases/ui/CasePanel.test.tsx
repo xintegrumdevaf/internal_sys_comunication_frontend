@@ -279,4 +279,96 @@ describe("CasePanel - Desambiguación de Contratos", () => {
       answer: "Luz roja LOS encendida",
     });
   });
+
+  it("invoca onSyncData al pulsar el botón Actualizar", () => {
+    const onSyncDataMock = vi.fn();
+    render(
+      <CasePanel
+        caseDto={mockCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onSyncData={onSyncDataMock}
+      />,
+    );
+
+    const updateBtn = screen.getByRole("button", { name: /Actualizar/i });
+    fireEvent.click(updateBtn);
+    expect(onSyncDataMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("muestra el botón Diagnosticar conexión en SUPPORT_INTERNET y llama a onDiagnose", () => {
+    const onDiagnoseMock = vi.fn();
+    const supportWithContract: CaseDto = {
+      ...mockCase,
+      workflowType: "SUPPORT_INTERNET",
+      context: {
+        workflowType: "SUPPORT_INTERNET",
+        data: {
+          contract: {
+            sector: "pomasqui",
+            serial: "SERIAL1234",
+          },
+        },
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={supportWithContract}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onDiagnose={onDiagnoseMock}
+      />,
+    );
+
+    const diagBtn = screen.getByRole("button", { name: /Diagnosticar conexión/i });
+    expect(diagBtn).toBeInTheDocument();
+    fireEvent.click(diagBtn);
+    expect(onDiagnoseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("no muestra el botón Diagnosticar conexión si el caso es de facturación (BILLING_BALANCE)", () => {
+    const billingCase: CaseDto = {
+      ...mockCase,
+      workflowType: "BILLING_BALANCE",
+      context: {
+        workflowType: "BILLING_BALANCE",
+        data: {
+          balance: { hasDebt: true, amount: 25 },
+        },
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={billingCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onDiagnose={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Diagnosticar conexión/i })).not.toBeInTheDocument();
+  });
 });

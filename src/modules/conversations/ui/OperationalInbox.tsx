@@ -283,6 +283,9 @@ export function OperationalInbox({
     disableAutomation,
     reactivateAutomation,
     advanceCase,
+    syncCaseData,
+    diagnoseCase,
+    syncBalance,
     sendReply,
   } = useOperationalInbox({
     departmentId,
@@ -1467,6 +1470,9 @@ export function OperationalInbox({
                   if (activeCase) void loadCaseSummary(activeCase.id);
                   setSummaryOpen(true);
                 }}
+                onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+                onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+                onDiagnose={() => void diagnoseCase()}
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
@@ -1523,7 +1529,10 @@ export function OperationalInbox({
                 if (activeCase) void loadCaseSummary(activeCase.id);
                 setSummaryOpen(true);
               }}
-              onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
+              onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+                onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+                onDiagnose={() => void diagnoseCase()}
+                onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
               onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}
