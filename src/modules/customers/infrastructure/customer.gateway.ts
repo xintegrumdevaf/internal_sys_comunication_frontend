@@ -45,7 +45,7 @@ export const customerGateway = {
     return apiPost<{ conversationId: string }>(`/api/customers/${id}/conversation`, {});
   },
 
-    syncIsp: async (id: string, nationalId?: string): Promise<SyncIspResponse["data"]> => {
+  syncIsp: async (id: string, nationalId?: string): Promise<SyncIspResponse["data"]> => {
     return apiPost<SyncIspResponse["data"]>(`/api/customers/${id}/sync-isp`, {
       nationalId,
     });
