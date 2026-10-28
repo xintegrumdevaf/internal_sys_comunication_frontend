@@ -137,17 +137,27 @@ export function ContactsManagementView() {
     }
   };
 
-  const handleOpenChat = (customer: CustomerDto) => {
+  const handleOpenChat = async (customer: CustomerDto) => {
     if (customer.conversationId) {
       void navigate({
         to: "/bandeja",
         search: { conversationId: customer.conversationId },
       });
-    } else if (customer.waPhone) {
-      void navigate({
-        to: "/bandeja",
-        search: { conversationId: undefined },
-      });
+      return;
+    }
+    if (customer.waPhone) {
+      try {
+        const res = await customerGateway.openOrCreateConversation(customer.id);
+        void navigate({
+          to: "/bandeja",
+          search: { conversationId: res.conversationId },
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al abrir conversación";
+        toast.error(msg);
+      }
+    } else {
+      toast.error("El contacto no tiene número de WhatsApp registrado");
     }
   };
 

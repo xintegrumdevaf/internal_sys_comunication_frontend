@@ -41,7 +41,11 @@ export const customerGateway = {
     return apiDelete(`/api/customers/${id}`);
   },
 
-  syncIsp: async (id: string, nationalId?: string): Promise<SyncIspResponse["data"]> => {
+  openOrCreateConversation: async (id: string): Promise<{ conversationId: string }> => {
+    return apiPost<{ conversationId: string }>(`/api/customers/${id}/conversation`, {});
+  },
+
+    syncIsp: async (id: string, nationalId?: string): Promise<SyncIspResponse["data"]> => {
     return apiPost<SyncIspResponse["data"]>(`/api/customers/${id}/sync-isp`, {
       nationalId,
     });
