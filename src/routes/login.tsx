@@ -1,3 +1,4 @@
+import { GoTicketLogo } from "@/components/common/GoTicketLogo";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ShieldCheck, LogIn, MessageCircle, Zap, Eye, EyeOff } from "lucide-react";
@@ -40,12 +41,7 @@ function LoginPage() {
       <div className="hidden lg:flex flex-col justify-between p-12 bg-card border-r border-border relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle_at_20%_20%,var(--color-primary)_0,transparent_50%),radial-gradient(circle_at_80%_80%,var(--color-primary)_0,transparent_50%)]" />
         <div className="relative">
-          <h1 className="font-extrabold tracking-tighter text-3xl uppercase">
-            NetOps <span className="text-primary">AI</span>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-2 tracking-wide">
-            WhatsApp Ops Platform · ISP
-          </p>
+          <GoTicketLogo size="lg" showSubtitle={true} />
         </div>
 
         <div className="relative space-y-6 max-w-md">
@@ -60,16 +56,14 @@ function LoginPage() {
         </div>
 
         <div className="relative text-[10px] text-muted-foreground tracking-widest uppercase">
-          v2.0 · isp-customer-service-api · © 2026 NetOps
+          v2.0 · GoTicket · Sistema de Comunicación Interna © 2026
         </div>
       </div>
 
       <div className="flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8">
-            <h1 className="font-extrabold tracking-tighter text-2xl uppercase">
-              NetOps <span className="text-primary">AI</span>
-            </h1>
+            <GoTicketLogo size="md" showSubtitle={true} />
           </div>
 
           <div className="mb-8">

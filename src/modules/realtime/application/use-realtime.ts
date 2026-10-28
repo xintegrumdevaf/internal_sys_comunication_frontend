@@ -64,7 +64,7 @@ function flashDocumentTitle(text: string): void {
       document.title = originalTitle;
       return;
     }
-    document.title = toggle ? `🔔 ${text}` : `💬 NetOps AI`;
+    document.title = toggle ? `🔔 ${text}` : `💬 GoTicket`;
     toggle = !toggle;
   }, 1000);
 }
@@ -137,7 +137,7 @@ export function sendTestDesktopNotification(): void {
 
   if (Notification.permission === "granted") {
     playNotificationSound();
-    sendDesktopNotification("Notificación de prueba — NetOps AI", {
+    sendDesktopNotification("Notificación de prueba — GoTicket", {
       body: "¡Las notificaciones del navegador están funcionando correctamente incluso al minimizar!",
       tag: `test-notification-${Date.now()}`,
       renotify: true,
@@ -166,9 +166,9 @@ export function useRealtimeSession(userId: string | null): void {
   useEffect(() => {
     if (typeof document === "undefined") return;
     if (unreadCount > 0) {
-      document.title = `(${unreadCount}) NetOps AI`;
+      document.title = `(${unreadCount}) GoTicket`;
     } else {
-      document.title = "NetOps AI";
+      document.title = "GoTicket";
     }
   }, [unreadCount]);
 

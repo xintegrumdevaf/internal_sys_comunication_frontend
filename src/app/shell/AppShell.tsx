@@ -1,3 +1,4 @@
+import { GoTicketLogo } from "@/components/common/GoTicketLogo";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Inbox,
@@ -169,14 +170,10 @@ export function AppShell({
           className="flex items-center gap-2.5 min-w-0 group"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-black tracking-tight shadow-xs group-hover:scale-105 transition-transform">
-            N
-          </div>
+          <GoTicketLogo variant="mark" size="md" />
           <div className="min-w-0">
-            <h1 className="font-extrabold tracking-tight text-base text-foreground flex items-center gap-1">
-              NetOps <span className="text-primary">AI</span>
-            </h1>
-            <p className="text-[10px] text-muted-foreground tracking-wide font-medium truncate">
+            <GoTicketLogo size="xs" showSubtitle={false} />
+            <p className="text-[10px] text-muted-foreground tracking-wide font-medium truncate mt-0.5">
               {session.roleLabel}
             </p>
           </div>

@@ -75,14 +75,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NetOps AI — Plataforma de Atención WhatsApp para ISP" },
+      { title: "GoTicket – Sistema de Comunicación Interna" },
       {
         name: "description",
         content:
           "Orquestación de Soporte Técnico, Cartera y UTGA con agentes de IA sobre WhatsApp. Bandeja unificada, flujos n8n, handover humano y campañas masivas.",
       },
-      { name: "author", content: "NetOps AI" },
-      { property: "og:title", content: "NetOps AI — Plataforma de Atención WhatsApp para ISP" },
+      { name: "author", content: "GoTicket" },
+      { property: "og:title", content: "GoTicket – Sistema de Comunicación Interna" },
       {
         property: "og:description",
         content:
@@ -114,7 +114,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('netops_theme')||'system';var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==='system'&&d)){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('goticket_theme')||localStorage.getItem('netops_theme')||'system';var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==='system'&&d)){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
           }}
         />
         <HeadContent />
@@ -131,7 +131,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <ThemeProvider defaultTheme="system" storageKey="netops_theme">
+    <ThemeProvider defaultTheme="system" storageKey="goticket_theme">
       <QueryClientProvider client={queryClient}>
         <Outlet />
         <Toaster richColors position="top-right" />

@@ -47,20 +47,20 @@
 :root {
   --radius: 0.75rem;
 
-  /* WhatsApp Web Light Palette */
-  --background: hsl(210 20% 96%); /* #F0F2F5 */
-  --foreground: hsl(204 33% 10%); /* #111B21 */
+  /* GoTicket Brand Palette - Light Mode */
+  --background: hsl(180 18% 96%); /* #F1F6F6 Clean Mint-Slate background */
+  --foreground: hsl(216 83% 7%); /* #030E20 Deep Midnight Navy from logo text */
   --card: hsl(0 0% 100%); /* #FFFFFF */
-  --card-foreground: hsl(204 33% 10%);
-  --card-elevated: hsl(0 0% 98%);
+  --card-foreground: hsl(216 83% 7%);
+  --card-elevated: hsl(180 20% 98%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(204 33% 10%);
+  --popover-foreground: hsl(216 83% 7%);
 
-  --muted: hsl(210 20% 93%); /* #E5E9EC Superficie tenue para badges y elementos muted */
-  --muted-foreground: hsl(206 12% 45%); /* #667781 Texto secundario */
+  --muted: hsl(180 16% 92%); /* #E5EEEE */
+  --muted-foreground: hsl(216 25% 42%); /* #51667F Refined cool navy */
 
-  --primary: hsl(168 100% 33%); /* #00A884 Signature WhatsApp Green */
-  --primary-hover: hsl(168 100% 28%); /* #008F6F */
+  --primary: hsl(168 100% 28%); /* #008F72 Rich Emerald Teal */
+  --primary-hover: hsl(168 100% 24%); /* #007A61 */
   --primary-foreground: hsl(0 0% 100%);
 
   --danger: hsl(354 84% 65%); /* #F15C6D */
@@ -68,32 +68,32 @@
   --warning: hsl(38 92% 50%); /* Amber #F59E0B */
   --info: hsl(217 91% 55%); /* Blue #3B82F6 */
 
-  --border: hsl(204 15% 91%); /* #E9EDEF */
-  --input: hsl(204 15% 91%);
-  --ring: hsl(168 100% 33%);
+  --border: hsl(180 15% 88%); /* #DCE6E5 */
+  --input: hsl(180 15% 88%);
+  --ring: hsl(168 100% 28%);
 
-  /* WhatsApp Chat Bubbles Light */
-  --chat-out-bg: hsl(110 92% 91%); /* #D9FDD3 Outgoing message */
-  --chat-out-fg: hsl(204 33% 10%);
-  --chat-in-bg: hsl(0 0% 100%); /* #FFFFFF Incoming message */
-  --chat-in-fg: hsl(204 33% 10%);
+  /* GoTicket Chat Bubbles Light */
+  --chat-out-bg: hsl(165 70% 90%); /* #D3F7ED Fresh mint outgoing message */
+  --chat-out-fg: hsl(216 83% 7%);
+  --chat-in-bg: hsl(0 0% 100%);
+  --chat-in-fg: hsl(216 83% 7%);
 }
 
 .dark {
-  /* WhatsApp Web Dark Palette */
-  --background: hsl(202 31% 7%); /* #0C1317 Ultra deep WhatsApp dark */
-  --foreground: hsl(204 20% 93%); /* #E9EDEF Crisp high contrast text */
-  --card: hsl(204 23% 16%); /* #202C33 Panels and cards */
-  --card-foreground: hsl(204 20% 93%);
-  --card-elevated: hsl(203 26% 20%); /* #2A3942 Hover & elevated cards */
-  --popover: hsl(204 23% 16%);
-  --popover-foreground: hsl(204 20% 93%);
+  /* GoTicket Brand Palette - Dark Mode (Derived directly from #030E20 logo background) */
+  --background: hsl(216 83% 7%); /* #030E20 Official logo deep midnight navy */
+  --foreground: hsl(180 33% 97%); /* #F4FAFA Crisp ice-mint high contrast text */
+  --card: hsl(216 68% 10%); /* #08172D Deep navy card surface */
+  --card-foreground: hsl(180 33% 97%);
+  --card-elevated: hsl(216 58% 14%); /* #0F223D Elevated cards, hover and modals */
+  --popover: hsl(216 68% 10%);
+  --popover-foreground: hsl(180 33% 97%);
 
-  --muted: hsl(203 26% 20%); /* #2A3942 Superficie oscura tenue para elementos muted */
-  --muted-foreground: hsl(202 11% 57%); /* #8696A0 Texto secundario */
+  --muted: hsl(216 50% 15%); /* #13253F Subtle chips & badges */
+  --muted-foreground: hsl(211 25% 64%); /* #89A2BF Secondary text with cool navy tone */
 
-  --primary: hsl(168 100% 33%); /* #00A884 WhatsApp Emerald */
-  --primary-hover: hsl(168 100% 38%); /* #00C298 */
+  --primary: hsl(168 100% 30%); /* #009778 Official logo emerald/teal */
+  --primary-hover: hsl(168 95% 36%); /* #02B892 Glowing hover */
   --primary-foreground: hsl(0 0% 100%);
 
   --danger: hsl(354 84% 65%);
@@ -101,15 +101,15 @@
   --warning: hsl(38 92% 55%);
   --info: hsl(217 91% 65%);
 
-  --border: hsl(203 22% 21%); /* #2A3942 Clean dark borders */
-  --input: hsl(203 22% 21%);
-  --ring: hsl(168 100% 33%);
+  --border: hsl(216 48% 17%); /* #162B4A Clean contrast borders */
+  --input: hsl(216 48% 17%);
+  --ring: hsl(168 100% 30%);
 
-  /* WhatsApp Chat Bubbles Dark */
-  --chat-out-bg: hsl(168 100% 18%); /* #005C4B Outgoing message dark */
-  --chat-out-fg: hsl(204 20% 93%);
-  --chat-in-bg: hsl(204 23% 16%); /* #202C33 Incoming message dark */
-  --chat-in-fg: hsl(204 20% 93%);
+  /* GoTicket Chat Bubbles Dark */
+  --chat-out-bg: hsl(168 95% 18%); /* #025A48 Dark emerald bubble */
+  --chat-out-fg: hsl(180 33% 97%);
+  --chat-in-bg: hsl(216 68% 10%); /* #08172D Incoming bubble */
+  --chat-in-fg: hsl(180 33% 97%);
 }
 
 @keyframes fadeUp {
