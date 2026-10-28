@@ -167,13 +167,12 @@ export function AppShell({
       <div className="p-4 border-b border-border flex items-center justify-between bg-card shrink-0">
         <Link
           to={session.landing}
-          className="flex items-center gap-2.5 min-w-0 group"
+          className="flex items-center gap-2.5 min-w-0 group py-0.5"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <GoTicketLogo variant="mark" size="md" />
-          <div className="min-w-0">
-            <GoTicketLogo size="xs" showSubtitle={false} />
-            <p className="text-[10px] text-muted-foreground tracking-wide font-medium truncate mt-0.5">
+          <div className="min-w-0 flex flex-col justify-center">
+            <GoTicketLogo size="sm" showSubtitle={false} />
+            <p className="text-[10px] text-muted-foreground tracking-wide font-medium truncate mt-1">
               {session.roleLabel}
             </p>
           </div>

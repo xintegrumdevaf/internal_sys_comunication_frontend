@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/shared/theme/ThemeToggle";
 import { GoTicketLogo } from "@/components/common/GoTicketLogo";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -37,7 +38,11 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans grid lg:grid-cols-2">
+    <div className="min-h-screen bg-background text-foreground font-sans grid lg:grid-cols-2 relative">
+      {/* Selector de tema rápido en login */}
+      <div className="absolute top-4 right-4 z-30">
+        <ThemeToggle variant="dropdown" />
+      </div>
       <div className="hidden lg:flex flex-col justify-between p-12 bg-card border-r border-border relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle_at_20%_20%,var(--color-primary)_0,transparent_50%),radial-gradient(circle_at_80%_80%,var(--color-primary)_0,transparent_50%)]" />
         <div className="relative">
