@@ -237,6 +237,7 @@ export function WhatsAppAudioPlayer({
       <audio
         ref={audioRef}
         src={mediaUrl}
+        crossOrigin="use-credentials"
         preload="metadata"
         onLoadedMetadata={() => {
           if (audioRef.current && isFinite(audioRef.current.duration)) {

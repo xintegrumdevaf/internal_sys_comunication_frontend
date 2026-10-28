@@ -199,6 +199,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     if (!selected) return null;
     return (
       cases.find((c) => c.id === selected.activeCaseId) ??
+      cases.find((c) => c.status === "WAITING_USER" || c.status === "ACTIVE") ??
       cases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
       cases[0] ??
       null

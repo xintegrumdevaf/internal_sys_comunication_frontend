@@ -103,10 +103,21 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
     { amount?: number; reference?: string; status?: string } | undefined;
 
   // 5. Planes y Ofertas (Ventas / Comercial)
+  const isSalesCase = caseDto.workflowType === "SALES" || caseDto.workflowType === "SALES_PACKAGES";
   const requestedSpeed = data.requestedSpeed as string | undefined;
   const currentPlan = data.currentPlan as { name?: string; speed?: string } | undefined;
   const offer = data.offer as
     { name?: string; price?: number | string; speed?: string } | undefined;
+  const address = (data.address || data.direccion) as string | undefined;
+  const coverage = data.coverage as {
+    hasCoverage?: boolean;
+    zoneName?: string;
+    city?: string;
+    reason?: string;
+    matchType?: string;
+    addressProvided?: string;
+  } | undefined;
+  const coordinates = (data.coordinates ?? (data.lat && data.lng ? { lat: data.lat, lng: data.lng } : undefined)) as { lat: number; lng: number } | undefined;
 
   // 6. Telemetría de la ONU (Normalizada o Cruda)
   const rawTech = (data.technical ??
@@ -141,8 +152,7 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
     technical?.channel ||
     ((rawTech?.state as Record<string, unknown> | undefined)?.channel as string | undefined);
 
-  const isSupportCase =
-    caseDto.workflowType === "SUPPORT_INTERNET" || Boolean(contract?.serial || contract?.oltName);
+  const isSupportCase = caseDto.workflowType === "SUPPORT_INTERNET";
 
   const powerVal =
     technical?.opticalPowerDbm !== undefined
@@ -159,6 +169,10 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
 
   const hasAnyData = Boolean(
     isSupportCase ||
+    isSalesCase ||
+    address ||
+    coverage ||
+    coordinates ||
     contract?.sector ||
     contract?.oltName ||
     contract?.serial ||
@@ -235,8 +249,52 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
         <DataRow label="Estado pago" value={paymentStatusLabel(payment.status)} />
       )}
 
-      {/* Telemetría técnica ONU - Power y MAC SIEMPRE VISIBLES */}
-      {(isSupportCase || technical || rawTech || brand || onuModel || onuSerial) && (
+      {/* Factibilidad y Cobertura (Ventas) */}
+      {(isSalesCase || address || coverage || coordinates) && (
+        <div className="pt-2 border-t border-border/40 mt-2 space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary pb-0.5">
+            Factibilidad y Cobertura
+          </p>
+          {address && <DataRow label="Dirección ingresada" value={address} />}
+          {coverage && (
+            <div className="flex justify-between gap-2 items-center py-0.5">
+              <span className="text-muted-foreground">Estado cobertura</span>
+              <span
+                className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                  coverage.hasCoverage
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                }`}
+              >
+                {coverage.hasCoverage ? "Con cobertura" : "Sin cobertura directa"}
+              </span>
+            </div>
+          )}
+          {coverage?.zoneName && <DataRow label="Zona / KML" value={coverage.zoneName} />}
+          {coverage?.city && <DataRow label="Ciudad" value={coverage.city} />}
+          {coordinates && (
+            <div className="flex justify-between gap-2 items-center py-0.5">
+              <span className="text-muted-foreground">Coordenadas GPS</span>
+              <a
+                href={`https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline font-semibold text-[10px]"
+              >
+                {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)} ↗
+              </a>
+            </div>
+          )}
+          {coverage?.reason && (
+            <p className="text-[10px] text-muted-foreground italic pt-1 leading-snug">
+              {coverage.reason}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Telemetría técnica ONU (Solo Soporte) */}
+      {isSupportCase && (
         <>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">
             Lectura real del equipo (ONU)

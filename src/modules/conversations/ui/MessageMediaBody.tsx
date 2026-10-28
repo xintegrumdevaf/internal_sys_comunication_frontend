@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, ExternalLink, FileText, Image as ImageIcon, Reply } from "lucide-react";
+import { Download, ExternalLink, FileText, Image as ImageIcon, MapPin, Navigation, Reply } from "lucide-react";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
 import { resolveApiUrl } from "@/shared/http/api-base";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
@@ -20,10 +20,18 @@ export function MessageMediaBody({
   captionClassName = "mt-2 whitespace-pre-wrap text-[12px] leading-snug",
 }: Props) {
   const [iframeError, setIframeError] = useState(false);
+  const buildMediaUrl = (target?: string | null) => {
+    if (!target) return undefined;
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      return resolveApiUrl(`/api/media?url=${encodeURIComponent(target)}`);
+    }
+    return resolveApiUrl(`/api/media/${target}`);
+  };
+
   const mediaUrl = message.mediaUrl
-    ? resolveApiUrl(message.mediaUrl)
+    ? buildMediaUrl(message.mediaUrl)
     : message.mediaId
-      ? resolveApiUrl(`/api/media/${message.mediaId}`)
+      ? buildMediaUrl(message.mediaId)
       : undefined;
 
   const isPdf =
@@ -46,6 +54,114 @@ export function MessageMediaBody({
   const caption = message.caption?.trim() || "";
   const bodyText = message.body?.trim() || "";
   const displayCaption = caption || (bodyText && bodyText !== message.filename ? bodyText : "");
+
+
+  // Detección estricta de mensaje de ubicación (solo para mensajes de tipo location o con coordenadas reales)
+  const rawContent = `${message.body || ""} ${message.mediaId || ""} ${message.filename || ""} ${message.caption || ""}`;
+  const coordMatch = rawContent.match(/([-+]?\d{1,2}\.\d+)\s*,\s*([-+]?\d{1,3}\.\d+)/);
+  const hasCoordinates = Boolean(coordMatch);
+  const isCustomerPin = message.author === "customer" && (hasCoordinates || /location|ubicaci[oó]n|📍/i.test(message.body || ""));
+  const isLocation = message.type === "location" || isCustomerPin || (hasCoordinates && Boolean(message.mediaId?.includes("maps")));
+
+  if (isLocation) {
+    let lat: number | null = null;
+    let lng: number | null = null;
+
+    if (coordMatch?.[1] && coordMatch[2]) {
+      lat = Number.parseFloat(coordMatch[1]);
+      lng = Number.parseFloat(coordMatch[2]);
+    } else if (message.filename) {
+      const fnMatch = message.filename.match(/([-+]?\d{1,2}\.\d+)\s*,\s*([-+]?\d{1,3}\.\d+)/);
+      if (fnMatch?.[1] && fnMatch[2]) {
+        lat = Number.parseFloat(fnMatch[1]);
+        lng = Number.parseFloat(fnMatch[2]);
+      }
+    }
+
+    const mapsUrl =
+      (message.mediaId?.startsWith("http") ? message.mediaId : null) ||
+      (lat !== null && lng !== null ? `https://www.google.com/maps?q=${lat},${lng}` : "https://www.google.com/maps");
+
+    let locationTitle = "Ubicación GPS compartida";
+    let locationAddress = "";
+
+    if (message.caption && message.caption !== "Ubicación compartida" && !message.caption.startsWith("Ubicación GPS")) {
+      locationTitle = message.caption;
+    } else if (bodyText) {
+      const parts = bodyText.split(" - ").map((p) => p.trim());
+      const nonGpsParts = parts.filter(
+        (p) => !p.startsWith("Ubicación GPS") && !p.startsWith("http") && p !== "📍 Location",
+      );
+      if (nonGpsParts.length > 0) {
+        locationTitle = nonGpsParts[0];
+        if (nonGpsParts.length > 1) {
+          locationAddress = nonGpsParts.slice(1).join(" - ");
+        }
+      }
+    }
+
+    const embedUrl =
+      lat !== null && lng !== null
+        ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.004}%2C${lat - 0.0025}%2C${lng + 0.004}%2C${lat + 0.0025}&layer=mapnik&marker=${lat}%2C${lng}`
+        : null;
+
+    return (
+      <div className="space-y-1.5 my-1 max-w-xs select-none">
+        <div
+          onClick={() => window.open(mapsUrl, "_blank")}
+          className="rounded-2xl overflow-hidden border border-border/80 bg-background/80 hover:bg-background/95 transition shadow-sm cursor-pointer group"
+        >
+          {/* Vista previa del Mapa */}
+          <div className="relative w-full h-44 bg-muted/40 overflow-hidden border-b border-border/60 flex items-center justify-center">
+            {embedUrl ? (
+              <iframe
+                src={embedUrl}
+                title="Vista previa del mapa"
+                className="w-full h-full pointer-events-none scale-100 origin-top"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-background flex flex-col items-center justify-center gap-2">
+                <div className="size-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
+                  <MapPin className="size-6 animate-bounce" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground">Ubicación compartida</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-transparent group-hover:bg-black/5 transition-colors" />
+            <div className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+              <MapPin className="size-3 text-red-400" />
+              <span>MAPA</span>
+              <ExternalLink className="size-2.5 opacity-80" />
+            </div>
+          </div>
+
+          {/* Barra de información inferior estilo WhatsApp */}
+          <div className="p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Navigation className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-xs truncate text-foreground group-hover:text-primary transition-colors">
+                  {locationTitle}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-medium">
+                  {locationAddress || (lat !== null && lng !== null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "Toca para abrir en Google Maps")}
+                </p>
+              </div>
+            </div>
+            <div
+              className="size-8 rounded-full bg-foreground/5 group-hover:bg-primary group-hover:text-primary-foreground flex items-center justify-center shrink-0 transition-colors"
+              title="Abrir en Google Maps"
+            >
+              <ExternalLink className="size-4" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Tarjeta de Documento / PDF estilo WhatsApp
   if (isDocument) {
