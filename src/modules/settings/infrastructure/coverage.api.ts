@@ -27,7 +27,9 @@ function unwrap<T>(res: unknown): T {
 
 export const coverageApi = {
   getZones: async (): Promise<CoverageZoneDto[]> => {
-    const res = await apiGet<CoverageZoneDto[] | { data: CoverageZoneDto[] }>("/api/coverage/zones");
+    const res = await apiGet<CoverageZoneDto[] | { data: CoverageZoneDto[] }>(
+      "/api/coverage/zones",
+    );
     return unwrap<CoverageZoneDto[]>(res);
   },
 

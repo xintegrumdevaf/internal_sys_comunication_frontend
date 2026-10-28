@@ -109,15 +109,19 @@ function CaseContextBody({ caseDto }: { caseDto: CaseDto }) {
   const offer = data.offer as
     { name?: string; price?: number | string; speed?: string } | undefined;
   const address = (data.address || data.direccion) as string | undefined;
-  const coverage = data.coverage as {
-    hasCoverage?: boolean;
-    zoneName?: string;
-    city?: string;
-    reason?: string;
-    matchType?: string;
-    addressProvided?: string;
-  } | undefined;
-  const coordinates = (data.coordinates ?? (data.lat && data.lng ? { lat: data.lat, lng: data.lng } : undefined)) as { lat: number; lng: number } | undefined;
+  const coverage = data.coverage as
+    | {
+        hasCoverage?: boolean;
+        zoneName?: string;
+        city?: string;
+        reason?: string;
+        matchType?: string;
+        addressProvided?: string;
+      }
+    | undefined;
+  const coordinates = (data.coordinates ??
+    (data.lat && data.lng ? { lat: data.lat, lng: data.lng } : undefined)) as
+    { lat: number; lng: number } | undefined;
 
   // 6. Telemetría de la ONU (Normalizada o Cruda)
   const rawTech = (data.technical ??

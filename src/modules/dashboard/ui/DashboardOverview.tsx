@@ -26,6 +26,7 @@ import {
 import { getDashboard } from "@/modules/dashboard/infrastructure/dashboard.gateway";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 import type { DashboardDto } from "@/modules/dashboard/domain/dashboard";
+import type { DepartmentDto } from "@/modules/identity/domain/department";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
 import { relativeTime } from "@/shared/datetime";
@@ -73,7 +74,7 @@ export function DashboardOverview() {
   // Mapeo de casos activos por departamento
   const deptCasesMap = useMemo(() => {
     const map = new Map<string, number>();
-    const byDept = (distribution as any)?.byDepartment;
+    const byDept = distribution?.byDepartment;
     if (byDept && byDept.length > 0) {
       for (const d of byDept) {
         if (d.departmentId) map.set(d.departmentId, d.count);
@@ -81,7 +82,9 @@ export function DashboardOverview() {
     }
     // Fallback a los casos activos de departments
     if (departments && departments.length > 0) {
-      for (const d of departments as any[]) {
+      for (const d of departments as Array<
+        DepartmentDto & { activeCases?: number; active_cases?: number; casesCount?: number }
+      >) {
         if (!map.has(d.id)) {
           const count = d.activeCases ?? d.active_cases ?? d.casesCount ?? 0;
           map.set(d.id, count);
@@ -234,12 +237,12 @@ export function DashboardOverview() {
                     ? "—"
                     : (() => {
                         const waitSec =
-                        overview?.avgQueueWaitTimeSeconds ??
-                        (overview as unknown as { avgQueueWaitSec?: number })?.avgQueueWaitSec;
-                      if (waitSec == null || waitSec <= 0) return "0 seg";
-                      if (waitSec < 60) return `${Math.round(waitSec)} seg`;
-                      if (waitSec < 3600) return `${(waitSec / 60).toFixed(1)} min`;
-                      return `${(waitSec / 3600).toFixed(1)} h`;
+                          overview?.avgQueueWaitTimeSeconds ??
+                          (overview as unknown as { avgQueueWaitSec?: number })?.avgQueueWaitSec;
+                        if (waitSec == null || waitSec <= 0) return "0 seg";
+                        if (waitSec < 60) return `${Math.round(waitSec)} seg`;
+                        if (waitSec < 3600) return `${(waitSec / 60).toFixed(1)} min`;
+                        return `${(waitSec / 3600).toFixed(1)} h`;
                       })()}
                 </p>
                 <p className="text-[11px] mt-1 text-muted-foreground">

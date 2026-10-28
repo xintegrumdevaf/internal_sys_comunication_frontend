@@ -72,13 +72,7 @@ import {
 } from "@/modules/identity/application/access-control";
 import { useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
 
-export type InboxTab =
-  | "open"
-  | "unassigned"
-  | "unattended"
-  | "pending"
-  | "resolved"
-  | "closed";
+export type InboxTab = "open" | "unassigned" | "unattended" | "pending" | "resolved" | "closed";
 
 export type Props = {
   initialDepartmentId?: string;
@@ -177,7 +171,8 @@ export function OperationalInbox({
   initialFilter,
 }: Props) {
   const [activeTab, setActiveTab] = useState<InboxTab>(
-    initialTab ?? (initialFilter ? (initialFilter as InboxTab) : (initialStatus as InboxTab) ?? "open"),
+    initialTab ??
+      (initialFilter ? (initialFilter as InboxTab) : ((initialStatus as InboxTab) ?? "open")),
   );
   const session = useSession();
   const { data: departments = [] } = useDepartmentsQuery();
@@ -689,7 +684,7 @@ export function OperationalInbox({
         </div>
       )}
 
-            {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
+      {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
       <div
         className={`bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs ${
           selectedId ? "hidden lg:block" : "block"
@@ -743,7 +738,7 @@ export function OperationalInbox({
                       className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold ${
                         isActive
                           ? "bg-primary-foreground/20 text-primary-foreground"
-                          : tab.badgeColor ?? "bg-muted text-foreground"
+                          : (tab.badgeColor ?? "bg-muted text-foreground")
                       }`}
                     >
                       {tab.badge}
@@ -772,7 +767,9 @@ export function OperationalInbox({
             </span>
             <select
               value={departmentId ?? "all"}
-              onChange={(e) => setDepartmentId(e.target.value === "all" ? undefined : e.target.value)}
+              onChange={(e) =>
+                setDepartmentId(e.target.value === "all" ? undefined : e.target.value)
+              }
               className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20 max-w-[180px] truncate cursor-pointer"
             >
               {isSupervisorOrAdmin && <option value="all">Todas las áreas</option>}

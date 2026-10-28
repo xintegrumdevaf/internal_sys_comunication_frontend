@@ -121,11 +121,23 @@ export function AISettingsCard({
   };
 
   // Modelos disponibles reales
-  const activeOllamaInference = ollamaModels?.inferenceModels || [];
-  const activeOllamaEmbeddings = ollamaModels?.embeddingModels || [];
+  const activeOllamaInference = useMemo(
+    () => ollamaModels?.inferenceModels || [],
+    [ollamaModels?.inferenceModels],
+  );
+  const activeOllamaEmbeddings = useMemo(
+    () => ollamaModels?.embeddingModels || [],
+    [ollamaModels?.embeddingModels],
+  );
 
-  const activeGeminiInference = geminiModels?.inferenceModels || [];
-  const activeGeminiEmbeddings = geminiModels?.embeddingModels || [];
+  const activeGeminiInference = useMemo(
+    () => geminiModels?.inferenceModels || [],
+    [geminiModels?.inferenceModels],
+  );
+  const activeGeminiEmbeddings = useMemo(
+    () => geminiModels?.embeddingModels || [],
+    [geminiModels?.embeddingModels],
+  );
 
   // Filtrado de modelos Gemini por potencia/uso y búsqueda
   const filteredGeminiInference = useMemo(() => {
@@ -175,7 +187,8 @@ export function AISettingsCard({
           flow: "Flujo de Soporte Técnico",
           confidence: 0.98,
           explanation: "Detectó problemas de conectividad o falla física en la fibra óptica / ONT.",
-          sampleReply: "¡Hola! Lamento el inconveniente. Veo que reportas fallas en tu conexión. ¿La luz 'LOS' en tu módem está encendida en color rojo o parpadeando?",
+          sampleReply:
+            "¡Hola! Lamento el inconveniente. Veo que reportas fallas en tu conexión. ¿La luz 'LOS' en tu módem está encendida en color rojo o parpadeando?",
         });
       } else if (
         lower.includes("plan") ||
@@ -190,7 +203,8 @@ export function AISettingsCard({
           flow: "Flujo de Ventas y Cobertura",
           confidence: 0.97,
           explanation: "Detectó interés comercial o consulta de nuevos planes residenciales.",
-          sampleReply: "¡Hola! Con gusto te ayudo a contratar. Por favor compártenos tu ubicación o dirección exacta para verificar si tenemos cobertura de fibra en tu sector.",
+          sampleReply:
+            "¡Hola! Con gusto te ayudo a contratar. Por favor compártenos tu ubicación o dirección exacta para verificar si tenemos cobertura de fibra en tu sector.",
         });
       } else if (
         lower.includes("pago") ||
@@ -203,16 +217,20 @@ export function AISettingsCard({
           intent: "BILLING",
           flow: "Flujo de Facturación y Cobranzas",
           confidence: 0.96,
-          explanation: "Detectó consulta de saldo, cuentas bancarias o reporte de comprobante de pago.",
-          sampleReply: "¡Hola! Puedes consultar tu saldo o reportar tu pago aquí. Por favor indícanos tu número de cédula o código de cliente.",
+          explanation:
+            "Detectó consulta de saldo, cuentas bancarias o reporte de comprobante de pago.",
+          sampleReply:
+            "¡Hola! Puedes consultar tu saldo o reportar tu pago aquí. Por favor indícanos tu número de cédula o código de cliente.",
         });
       } else {
         setSimResult({
           intent: "GENERAL_INQUIRY",
           flow: "Consulta General / Base de Conocimiento RAG",
           confidence: 0.89,
-          explanation: "Consulta informativa general resuelta mediante búsqueda en documentos de FAQs.",
-          sampleReply: "¡Hola! Gracias por comunicarte con nosotros. ¿En qué podemos ayudarte el día de hoy?",
+          explanation:
+            "Consulta informativa general resuelta mediante búsqueda en documentos de FAQs.",
+          sampleReply:
+            "¡Hola! Gracias por comunicarte con nosotros. ¿En qué podemos ayudarte el día de hoy?",
         });
       }
       setSimulating(false);
@@ -225,14 +243,17 @@ export function AISettingsCard({
         <div>
           <div className="flex items-center gap-2">
             <Sparkles className="size-5 text-primary" />
-            <CardTitle className="text-xl">Motor de Inteligencia Artificial (NLU & Embeddings)</CardTitle>
+            <CardTitle className="text-xl">
+              Motor de Inteligencia Artificial (NLU & Embeddings)
+            </CardTitle>
             <Badge variant="outline" className="text-xs">
               {ai.provider === "gemini" ? "Google Gemini (Nube)" : "Ollama (Local)"}
             </Badge>
           </div>
           <CardDescription className="text-sm mt-1">
-            Configura el motor inteligente que comprende los mensajes de los clientes en WhatsApp, clasifica
-            sus intenciones (Soporte, Ventas, Pagos) y redacta respuestas sobre las plantillas del negocio.
+            Configura el motor inteligente que comprende los mensajes de los clientes en WhatsApp,
+            clasifica sus intenciones (Soporte, Ventas, Pagos) y redacta respuestas sobre las
+            plantillas del negocio.
           </CardDescription>
         </div>
 
@@ -251,7 +272,9 @@ export function AISettingsCard({
               <div className="flex items-center gap-2.5">
                 <div
                   className={`p-2 rounded-lg ${
-                    ai.provider === "gemini" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    ai.provider === "gemini"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   <Cloud className="size-5" />
@@ -261,13 +284,17 @@ export function AISettingsCard({
                   <p className="text-xs text-muted-foreground">Nube de Alta Velocidad</p>
                 </div>
               </div>
-              <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-600 text-xs gap-1">
+              <Badge
+                variant="default"
+                className="bg-emerald-600 hover:bg-emerald-600 text-xs gap-1"
+              >
                 <Check className="size-3" /> Recomendado
               </Badge>
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Inferencia ultra-rápida (menos de 1 segundo) sin necesidad de tener un servidor potente ni tarjeta gráfica dedicada.
+              Inferencia ultra-rápida (menos de 1 segundo) sin necesidad de tener un servidor
+              potente ni tarjeta gráfica dedicada.
             </p>
 
             <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-4 text-[11px] text-muted-foreground">
@@ -296,7 +323,9 @@ export function AISettingsCard({
               <div className="flex items-center gap-2.5">
                 <div
                   className={`p-2 rounded-lg ${
-                    ai.provider === "ollama" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    ai.provider === "ollama"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   <Server className="size-5" />
@@ -312,7 +341,8 @@ export function AISettingsCard({
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Los mensajes se procesan en tu propio servidor sin salir a internet. Consulta directamente los modelos descargados en tu máquina.
+              Los mensajes se procesan en tu propio servidor sin salir a internet. Consulta
+              directamente los modelos descargados en tu máquina.
             </p>
 
             <div className="mt-3 pt-3 border-t border-border/60 flex items-center gap-4 text-[11px] text-muted-foreground">
@@ -340,8 +370,8 @@ export function AISettingsCard({
             {showGuide
               ? "Ocultar guía paso a paso"
               : ai.provider === "gemini"
-              ? "¿Cómo obtener tu Gemini API Key gratis en 2 minutos?"
-              : "¿Cómo conectar Ollama en tu servidor local?"}
+                ? "¿Cómo obtener tu Gemini API Key gratis en 2 minutos?"
+                : "¿Cómo conectar Ollama en tu servidor local?"}
             {showGuide ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
           </button>
 
@@ -366,13 +396,19 @@ export function AISettingsCard({
                       e inicia sesión con cualquier cuenta de Google.
                     </li>
                     <li>
-                      Haz clic en el botón azul <strong>"Create API Key"</strong> y selecciona un proyecto (o crea uno nuevo en 5 segundos).
+                      Haz clic en el botón azul <strong>"Create API Key"</strong> y selecciona un
+                      proyecto (o crea uno nuevo en 5 segundos).
                     </li>
                     <li>
-                      Copia el código que comienza con <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">AIzaSy...</code> y pégalo abajo.
+                      Copia el código que comienza con{" "}
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">
+                        AIzaSy...
+                      </code>{" "}
+                      y pégalo abajo.
                     </li>
                     <li>
-                      Haz clic en <strong>"Cargar Modelos"</strong> para traer el catálogo completo de modelos disponibles para tu cuenta.
+                      Haz clic en <strong>"Cargar Modelos"</strong> para traer el catálogo completo
+                      de modelos disponibles para tu cuenta.
                     </li>
                   </ol>
                 </>
@@ -384,17 +420,22 @@ export function AISettingsCard({
                   <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground leading-relaxed">
                     <li>
                       Asegúrate de que Ollama esté corriendo en{" "}
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">http://localhost:11434</code> (o la IP donde esté instalado).
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">
+                        http://localhost:11434
+                      </code>{" "}
+                      (o la IP donde esté instalado).
                     </li>
                     <li>
                       Para descargar nuevos modelos a tu máquina, usa la terminal:
                       <pre className="mt-1 p-2 bg-muted rounded font-mono text-[11px] text-foreground">
-                        ollama pull qwen3.5:9b
-ollama pull qwen3-embedding:4b
+                        ollama pull qwen3.5:9b ollama pull qwen3-embedding:4b
                       </pre>
                     </li>
                     <li>
-                      Haz clic en el botón <strong>"Cargar Modelos"</strong> abajo para que el sistema consulte tu endpoint <code className="bg-muted px-1 py-0.5 rounded font-mono">/api/tags</code> e importe los modelos instalados.
+                      Haz clic en el botón <strong>"Cargar Modelos"</strong> abajo para que el
+                      sistema consulte tu endpoint{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded font-mono">/api/tags</code> e
+                      importe los modelos instalados.
                     </li>
                   </ol>
                 </>
@@ -413,7 +454,10 @@ ollama pull qwen3-embedding:4b
             {/* Campo API Key */}
             <div className="p-4 rounded-xl border border-border bg-card space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="gemini-key" className="text-sm font-semibold flex items-center gap-1.5">
+                <Label
+                  htmlFor="gemini-key"
+                  className="text-sm font-semibold flex items-center gap-1.5"
+                >
                   <Cloud className="size-4 text-primary" /> Gemini API Key
                   <span className="text-rose-500 font-bold">*</span>
                 </Label>
@@ -455,12 +499,15 @@ ollama pull qwen3-embedding:4b
                   disabled={fetchingModels || !ai.geminiApiKey?.trim()}
                   className="gap-1.5 text-xs whitespace-nowrap cursor-pointer shrink-0"
                 >
-                  <RefreshCw className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`} />
+                  <RefreshCw
+                    className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`}
+                  />
                   {fetchingModels ? "Consultando catálogo..." : "Cargar Modelos"}
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                El botón <strong>"Cargar Modelos"</strong> consulta directamente la API de Google con tu clave y devuelve todos los modelos disponibles en tu cuenta.
+                El botón <strong>"Cargar Modelos"</strong> consulta directamente la API de Google
+                con tu clave y devuelve todos los modelos disponibles en tu cuenta.
               </p>
             </div>
 
@@ -469,7 +516,8 @@ ollama pull qwen3-embedding:4b
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    <Brain className="size-4 text-primary" /> Catálogo de Modelos Gemini ({activeGeminiInference.length} disponibles)
+                    <Brain className="size-4 text-primary" /> Catálogo de Modelos Gemini (
+                    {activeGeminiInference.length} disponibles)
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     Clasificados por potencia y tipo de uso para atención por WhatsApp:
@@ -557,45 +605,65 @@ ollama pull qwen3-embedding:4b
                             isSelected
                               ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
                               : isSpecialized
-                              ? "border-border/60 bg-muted/10 hover:border-amber-500/50 hover:bg-amber-500/5"
-                              : "border-border bg-card hover:border-primary/50 hover:bg-muted/20"
+                                ? "border-border/60 bg-muted/10 hover:border-amber-500/50 hover:bg-amber-500/5"
+                                : "border-border bg-card hover:border-primary/50 hover:bg-muted/20"
                           }`}
                         >
                           <div>
                             <div className="flex items-center justify-between mb-1.5 gap-2">
-                              <span className="font-bold text-xs truncate max-w-[160px]" title={m.name}>
+                              <span
+                                className="font-bold text-xs truncate max-w-[160px]"
+                                title={m.name}
+                              >
                                 {m.name}
                               </span>
                               {m.recommended ? (
-                                <Badge variant="default" className="bg-emerald-600 text-[10px] py-0 px-1.5 shrink-0">
+                                <Badge
+                                  variant="default"
+                                  className="bg-emerald-600 text-[10px] py-0 px-1.5 shrink-0"
+                                >
                                   Recomendado NLU
                                 </Badge>
                               ) : isSpecialized ? (
-                                <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] py-0 px-1.5 shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className="text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] py-0 px-1.5 shrink-0"
+                                >
                                   {m.tierLabel.includes("Imágenes") ? "Imagen" : "Audio / Voz"}
                                 </Badge>
                               ) : m.tier === "performance" ? (
-                                <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20 text-[10px] py-0 px-1.5 shrink-0">
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20 text-[10px] py-0 px-1.5 shrink-0"
+                                >
                                   Máxima Potencia
                                 </Badge>
                               ) : m.tier === "economy" ? (
-                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 text-[10px] py-0 px-1.5 shrink-0">
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 text-[10px] py-0 px-1.5 shrink-0"
+                                >
                                   Ultra Ligero
                                 </Badge>
                               ) : (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 shrink-0">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px] py-0 px-1.5 shrink-0"
+                                >
                                   Flash Rápido
                                 </Badge>
                               )}
                             </div>
 
                             <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
-                              {m.description || "Modelo de inferencia disponible en tu cuenta de Google AI Studio."}
+                              {m.description ||
+                                "Modelo de inferencia disponible en tu cuenta de Google AI Studio."}
                             </p>
 
                             {isSpecialized && (
                               <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1 font-medium">
-                                <AlertTriangle className="size-3" /> Especializado (no recomendado para chat de texto)
+                                <AlertTriangle className="size-3" /> Especializado (no recomendado
+                                para chat de texto)
                               </p>
                             )}
                           </div>
@@ -622,7 +690,10 @@ ollama pull qwen3-embedding:4b
               ) : (
                 <div className="p-6 rounded-xl border border-dashed text-center text-xs text-muted-foreground space-y-2">
                   <Cloud className="size-8 mx-auto text-muted-foreground/40" />
-                  <p>Ingresa tu Gemini API Key y haz clic en <strong>"Cargar Modelos"</strong> para traer todos los modelos de tu cuenta.</p>
+                  <p>
+                    Ingresa tu Gemini API Key y haz clic en <strong>"Cargar Modelos"</strong> para
+                    traer todos los modelos de tu cuenta.
+                  </p>
                 </div>
               )}
             </div>
@@ -632,7 +703,8 @@ ollama pull qwen3-embedding:4b
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    <Layers className="size-4 text-primary" /> Memoria y Búsqueda Inteligente (Embeddings)
+                    <Layers className="size-4 text-primary" /> Memoria y Búsqueda Inteligente
+                    (Embeddings)
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     Modelos vectoriales de Google disponibles para indexar tu base de conocimiento:
@@ -652,14 +724,21 @@ ollama pull qwen3-embedding:4b
                   <Input
                     placeholder="text-embedding-004"
                     value={ai.geminiEmbeddingModel}
-                    onChange={(e) => setAi((prev) => ({ ...prev, geminiEmbeddingModel: e.target.value }))}
+                    onChange={(e) =>
+                      setAi((prev) => ({ ...prev, geminiEmbeddingModel: e.target.value }))
+                    }
                     className="font-mono text-xs"
                   />
                   <Input
                     type="number"
                     placeholder="768"
                     value={ai.geminiEmbeddingDimension}
-                    onChange={(e) => setAi((prev) => ({ ...prev, geminiEmbeddingDimension: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setAi((prev) => ({
+                        ...prev,
+                        geminiEmbeddingDimension: Number(e.target.value),
+                      }))
+                    }
                   />
                 </div>
               ) : activeGeminiEmbeddings.length > 0 ? (
@@ -718,7 +797,8 @@ ollama pull qwen3-embedding:4b
                         </Badge>
                       </h5>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Modelo oficial de Google optimizado para búsqueda semántica y recuperación RAG en español.
+                        Modelo oficial de Google optimizado para búsqueda semántica y recuperación
+                        RAG en español.
                       </p>
                     </div>
                   </div>
@@ -738,7 +818,10 @@ ollama pull qwen3-embedding:4b
           <div className="space-y-5">
             {/* URL Base */}
             <div className="p-4 rounded-xl border border-border bg-card space-y-2">
-              <Label htmlFor="ollama-url" className="text-sm font-semibold flex items-center gap-1.5">
+              <Label
+                htmlFor="ollama-url"
+                className="text-sm font-semibold flex items-center gap-1.5"
+              >
                 <Server className="size-4 text-primary" /> Dirección de Ollama (Base URL)
               </Label>
               <div className="flex items-center gap-2">
@@ -757,12 +840,16 @@ ollama pull qwen3-embedding:4b
                   disabled={fetchingModels || !ai.ollamaBaseUrl?.trim()}
                   className="gap-1.5 text-xs whitespace-nowrap cursor-pointer shrink-0"
                 >
-                  <RefreshCw className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`} />
+                  <RefreshCw
+                    className={`size-3.5 ${fetchingModels ? "animate-spin text-primary" : ""}`}
+                  />
                   {fetchingModels ? "Consultando Ollama..." : "Cargar Modelos"}
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                El botón <strong>"Cargar Modelos"</strong> consulta directamente tu Ollama local (<code className="font-mono">/api/tags</code>) para listar los modelos que realmente tienes descargados en tu máquina.
+                El botón <strong>"Cargar Modelos"</strong> consulta directamente tu Ollama local (
+                <code className="font-mono">/api/tags</code>) para listar los modelos que realmente
+                tienes descargados en tu máquina.
               </p>
             </div>
 
@@ -771,7 +858,8 @@ ollama pull qwen3-embedding:4b
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    <Brain className="size-4 text-primary" /> Modelos Instalados en tu Ollama ({activeOllamaInference.length})
+                    <Brain className="size-4 text-primary" /> Modelos Instalados en tu Ollama (
+                    {activeOllamaInference.length})
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     Clasificados por potencia y arquitectura:
@@ -855,13 +943,20 @@ ollama pull qwen3-embedding:4b
                         >
                           <div>
                             <div className="flex items-center justify-between mb-1.5 gap-2">
-                              <span className="font-bold text-xs truncate max-w-[170px]" title={m.name}>
+                              <span
+                                className="font-bold text-xs truncate max-w-[170px]"
+                                title={m.name}
+                              >
                                 {m.name}
                               </span>
                               <Badge
-                                variant={isSelected ? "default" : isVision ? "outline" : "secondary"}
+                                variant={
+                                  isSelected ? "default" : isVision ? "outline" : "secondary"
+                                }
                                 className={`text-[10px] py-0 px-1.5 shrink-0 ${
-                                  isVision ? "border-amber-500/40 text-amber-600 dark:text-amber-400" : ""
+                                  isVision
+                                    ? "border-amber-500/40 text-amber-600 dark:text-amber-400"
+                                    : ""
                                 }`}
                               >
                                 {isVision ? "Visión / Multimodal" : m.tierLabel || "Instalado"}
@@ -907,7 +1002,8 @@ ollama pull qwen3-embedding:4b
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    <Layers className="size-4 text-primary" /> Modelo de Embeddings Local ({activeOllamaEmbeddings.length})
+                    <Layers className="size-4 text-primary" /> Modelo de Embeddings Local (
+                    {activeOllamaEmbeddings.length})
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     Modelo vectorial que indexa tus documentos en la base de datos PostgreSQL local:
@@ -927,14 +1023,21 @@ ollama pull qwen3-embedding:4b
                   <Input
                     placeholder="qwen3-embedding:4b"
                     value={ai.ollamaEmbeddingModel}
-                    onChange={(e) => setAi((prev) => ({ ...prev, ollamaEmbeddingModel: e.target.value }))}
+                    onChange={(e) =>
+                      setAi((prev) => ({ ...prev, ollamaEmbeddingModel: e.target.value }))
+                    }
                     className="font-mono text-xs"
                   />
                   <Input
                     type="number"
                     placeholder="2560"
                     value={ai.ollamaEmbeddingDimension}
-                    onChange={(e) => setAi((prev) => ({ ...prev, ollamaEmbeddingDimension: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setAi((prev) => ({
+                        ...prev,
+                        ollamaEmbeddingDimension: Number(e.target.value),
+                      }))
+                    }
                   />
                 </div>
               ) : activeOllamaEmbeddings.length > 0 ? (
@@ -1015,7 +1118,8 @@ ollama pull qwen3-embedding:4b
               <Clock className="size-4 text-primary" /> Tiempos de Espera y Paciencia del Asistente
             </Label>
             <p className="text-xs text-muted-foreground">
-              Define cuánto tiempo espera el sistema antes de considerar que una respuesta tardó demasiado.
+              Define cuánto tiempo espera el sistema antes de considerar que una respuesta tardó
+              demasiado.
             </p>
           </div>
 
@@ -1025,7 +1129,9 @@ ollama pull qwen3-embedding:4b
               <div className="flex items-center justify-between">
                 <div>
                   <h5 className="font-semibold text-xs">Paciencia para Respuestas al Cliente</h5>
-                  <p className="text-[11px] text-muted-foreground">Tiempo límite para responder en WhatsApp</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Tiempo límite para responder en WhatsApp
+                  </p>
                 </div>
                 <Badge variant="secondary" className="font-mono text-xs">
                   {currentTimeoutSec} seg
@@ -1090,7 +1196,9 @@ ollama pull qwen3-embedding:4b
               <div className="flex items-center justify-between">
                 <div>
                   <h5 className="font-semibold text-xs">Auditoría Nocturna de Calidad</h5>
-                  <p className="text-[11px] text-muted-foreground">Límite para analizar conversaciones del día</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Límite para analizar conversaciones del día
+                  </p>
                 </div>
                 <Badge variant="secondary" className="font-mono text-xs">
                   {currentQualityMin} min
@@ -1156,7 +1264,11 @@ ollama pull qwen3-embedding:4b
         <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 flex items-start gap-3">
           <Lightbulb className="size-4 shrink-0 mt-0.5" />
           <div className="text-xs leading-relaxed">
-            <strong className="font-semibold">Nota sobre la memoria del asistente:</strong> Si decides cambiar el modelo de embeddings (por ejemplo de Ollama a Gemini), recuerda ir a la pestaña <strong>"Base de Conocimiento"</strong> y presionar <strong>"Sincronizar Documentos"</strong> para que las preguntas frecuentes y manuales se adapten automáticamente al nuevo modelo.
+            <strong className="font-semibold">Nota sobre la memoria del asistente:</strong> Si
+            decides cambiar el modelo de embeddings (por ejemplo de Ollama a Gemini), recuerda ir a
+            la pestaña <strong>"Base de Conocimiento"</strong> y presionar{" "}
+            <strong>"Sincronizar Documentos"</strong> para que las preguntas frecuentes y manuales
+            se adapten automáticamente al nuevo modelo.
           </div>
         </div>
 
@@ -1165,14 +1277,17 @@ ollama pull qwen3-embedding:4b
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Play className="size-4 text-primary" />
-              <h4 className="font-semibold text-sm">Simulador de Clasificación de Mensajes en Vivo</h4>
+              <h4 className="font-semibold text-sm">
+                Simulador de Clasificación de Mensajes en Vivo
+              </h4>
             </div>
             <Badge variant="outline" className="text-[10px] bg-background">
               Sandbox Interactivo
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Escribe cualquier mensaje de prueba como si fueras un cliente en WhatsApp para ver cómo lo interpretará la IA:
+            Escribe cualquier mensaje de prueba como si fueras un cliente en WhatsApp para ver cómo
+            lo interpretará la IA:
           </p>
 
           <div className="flex flex-col sm:flex-row gap-2">
@@ -1228,7 +1343,10 @@ ollama pull qwen3-embedding:4b
                   </Badge>
                   <span className="text-xs font-semibold">{simResult.flow}</span>
                 </div>
-                <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">
+                <Badge
+                  variant="outline"
+                  className="text-emerald-600 dark:text-emerald-400 font-mono text-[11px]"
+                >
                   ✓ Confianza: {Math.round(simResult.confidence * 100)}%
                 </Badge>
               </div>
@@ -1265,7 +1383,9 @@ ollama pull qwen3-embedding:4b
                 <AlertTriangle className="size-4 text-rose-500 shrink-0" />
               )}
               <AlertTitle className="text-xs font-semibold">
-                {aiTestResult.ok ? "Conexión con IA exitosa" : "Error al conectar con el proveedor de IA"}
+                {aiTestResult.ok
+                  ? "Conexión con IA exitosa"
+                  : "Error al conectar con el proveedor de IA"}
               </AlertTitle>
               {aiTestResult.latencyMs > 0 && (
                 <Badge variant="outline" className="ml-auto text-[10px] font-mono">
@@ -1288,7 +1408,9 @@ ollama pull qwen3-embedding:4b
           disabled={testingAi}
           className="gap-2 text-xs cursor-pointer"
         >
-          <Zap className={`size-3.5 ${testingAi ? "animate-spin text-amber-500" : "text-amber-500"}`} />
+          <Zap
+            className={`size-3.5 ${testingAi ? "animate-spin text-amber-500" : "text-amber-500"}`}
+          />
           {testingAi ? "Probando conexión con IA..." : "Probar Conexión en Vivo"}
         </Button>
 

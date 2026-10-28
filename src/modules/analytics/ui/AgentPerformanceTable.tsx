@@ -151,7 +151,10 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
               <th className="py-2.5 px-3" title="Casos asignados en el período">
                 Asignados
               </th>
-              <th className="py-2.5 px-3" title="Casos asignados activos donde el cliente espera respuesta">
+              <th
+                className="py-2.5 px-3"
+                title="Casos asignados activos donde el cliente espera respuesta"
+              >
                 Desatendidos
               </th>
               <th className="py-2.5 px-3" title="First Response Time">
@@ -223,8 +226,7 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
                     </div>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-semibold">
-                      <CheckCircle2 className="size-3" />
-                      0
+                      <CheckCircle2 className="size-3" />0
                     </span>
                   )}
                 </td>

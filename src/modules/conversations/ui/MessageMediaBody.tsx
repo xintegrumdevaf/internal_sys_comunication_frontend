@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Download, ExternalLink, FileText, Image as ImageIcon, MapPin, Navigation, Reply } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  FileText,
+  Image as ImageIcon,
+  MapPin,
+  Navigation,
+  Reply,
+} from "lucide-react";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
 import { resolveApiUrl } from "@/shared/http/api-base";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
@@ -55,13 +63,17 @@ export function MessageMediaBody({
   const bodyText = message.body?.trim() || "";
   const displayCaption = caption || (bodyText && bodyText !== message.filename ? bodyText : "");
 
-
   // Detección estricta de mensaje de ubicación (solo para mensajes de tipo location o con coordenadas reales)
   const rawContent = `${message.body || ""} ${message.mediaId || ""} ${message.filename || ""} ${message.caption || ""}`;
   const coordMatch = rawContent.match(/([-+]?\d{1,2}\.\d+)\s*,\s*([-+]?\d{1,3}\.\d+)/);
   const hasCoordinates = Boolean(coordMatch);
-  const isCustomerPin = message.author === "customer" && (hasCoordinates || /location|ubicaci[oó]n|📍/i.test(message.body || ""));
-  const isLocation = message.type === "location" || isCustomerPin || (hasCoordinates && Boolean(message.mediaId?.includes("maps")));
+  const isCustomerPin =
+    message.author === "customer" &&
+    (hasCoordinates || /location|ubicaci[oó]n|📍/i.test(message.body || ""));
+  const isLocation =
+    message.type === "location" ||
+    isCustomerPin ||
+    (hasCoordinates && Boolean(message.mediaId?.includes("maps")));
 
   if (isLocation) {
     let lat: number | null = null;
@@ -80,12 +92,18 @@ export function MessageMediaBody({
 
     const mapsUrl =
       (message.mediaId?.startsWith("http") ? message.mediaId : null) ||
-      (lat !== null && lng !== null ? `https://www.google.com/maps?q=${lat},${lng}` : "https://www.google.com/maps");
+      (lat !== null && lng !== null
+        ? `https://www.google.com/maps?q=${lat},${lng}`
+        : "https://www.google.com/maps");
 
     let locationTitle = "Ubicación GPS compartida";
     let locationAddress = "";
 
-    if (message.caption && message.caption !== "Ubicación compartida" && !message.caption.startsWith("Ubicación GPS")) {
+    if (
+      message.caption &&
+      message.caption !== "Ubicación compartida" &&
+      !message.caption.startsWith("Ubicación GPS")
+    ) {
       locationTitle = message.caption;
     } else if (bodyText) {
       const parts = bodyText.split(" - ").map((p) => p.trim());
@@ -125,7 +143,9 @@ export function MessageMediaBody({
                 <div className="size-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
                   <MapPin className="size-6 animate-bounce" />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground">Ubicación compartida</span>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Ubicación compartida
+                </span>
               </div>
             )}
             <div className="absolute inset-0 bg-transparent group-hover:bg-black/5 transition-colors" />
@@ -147,7 +167,10 @@ export function MessageMediaBody({
                   {locationTitle}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-medium">
-                  {locationAddress || (lat !== null && lng !== null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "Toca para abrir en Google Maps")}
+                  {locationAddress ||
+                    (lat !== null && lng !== null
+                      ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+                      : "Toca para abrir en Google Maps")}
                 </p>
               </div>
             </div>

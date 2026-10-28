@@ -43,10 +43,7 @@ export const Route = createFileRoute("/bandeja")({
         typeof search.departmentId === "string" && search.departmentId.length > 0
           ? search.departmentId
           : undefined,
-      status:
-        typeof search.status === "string"
-          ? (search.status as ConversationStatus)
-          : undefined,
+      status: typeof search.status === "string" ? (search.status as ConversationStatus) : undefined,
       tab: resolvedTab,
       filter: rawFilter === "unassigned" || rawFilter === "unattended" ? rawFilter : undefined,
     };
