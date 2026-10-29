@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Server,
   Network,
@@ -17,6 +17,8 @@ import {
   HardDrive,
   Eye,
   EyeOff,
+  Upload,
+  Download,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +59,67 @@ export function NetworkSettingsCard() {
   const [testingOltId, setTestingOltId] = useState<string | null>(null);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
   const [loadingPassId, setLoadingPassId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTriggerImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    e.target.value = "";
+
+    try {
+      setImporting(true);
+      const text = await file.text();
+      let json: unknown;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        toast.error("El archivo seleccionado no es un JSON válido");
+        return;
+      }
+
+      const res = await settingsApi.importNetworkTopology(json);
+      toast.success(res.message || "Topología importada exitosamente");
+      await loadRouters();
+    } catch (err) {
+      toast.error("Error al importar topología", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const res = await settingsApi.exportNetworkTopology();
+      const exportData = res.data || res;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute(
+        "download",
+        `network-topology-${new Date().toISOString().slice(0, 10)}.json`
+      );
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      toast.success("Topología exportada exitosamente");
+    } catch (err) {
+      toast.error("Error al exportar topología", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const toggleRevealRouterPassword = async (routerId: string) => {
     if (revealedPasswords[routerId]) {
@@ -479,6 +542,35 @@ export function NetworkSettingsCard() {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".json,application/json"
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={exporting || loading}
+            className="gap-2"
+            title="Exportar respaldo de la topología en JSON"
+          >
+            <Download className={`size-4 ${exporting ? "animate-bounce" : ""}`} />
+            Exportar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTriggerImport}
+            disabled={importing || loading}
+            className="gap-2"
+            title="Importar routers y OLTs desde un archivo JSON"
+          >
+            <Upload className={`size-4 ${importing ? "animate-pulse" : ""}`} />
+            {importing ? "Importando..." : "Importar JSON"}
+          </Button>
           <Button
             variant="outline"
             size="sm"

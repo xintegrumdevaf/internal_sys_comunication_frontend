@@ -250,4 +250,27 @@ export const settingsApi = {
     );
     return unwrap<TestNetworkConnectionResult>(res);
   },
+
+  /**
+   * Importa en lote routers y OLTs desde una topología JSON.
+   */
+  importNetworkTopology: async (
+    payload: unknown,
+  ): Promise<{ success: boolean; message: string; data?: any }> => {
+    const res = await apiPost<{ success: boolean; message: string; data?: any }>(
+      "/api/admin/settings/network/import",
+      payload,
+    );
+    return unwrap<{ success: boolean; message: string; data?: any }>(res);
+  },
+
+  /**
+   * Exporta la topología de red completa en formato JSON.
+   */
+  exportNetworkTopology: async (): Promise<{ success: boolean; data: { exportedAt: string; routers: any[] } }> => {
+    const res = await apiGet<{ success: boolean; data: { exportedAt: string; routers: any[] } }>(
+      "/api/admin/settings/network/export",
+    );
+    return unwrap<{ success: boolean; data: { exportedAt: string; routers: any[] } }>(res);
+  },
 };
