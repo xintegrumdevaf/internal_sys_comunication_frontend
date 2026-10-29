@@ -101,12 +101,13 @@ export function NetworkSettingsCard() {
       setExporting(true);
       const res = await settingsApi.exportNetworkTopology();
       const exportData = res.data || res;
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const dataStr =
+        "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute(
         "download",
-        `network-topology-${new Date().toISOString().slice(0, 10)}.json`
+        `network-topology-${new Date().toISOString().slice(0, 10)}.json`,
       );
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();

@@ -256,21 +256,28 @@ export const settingsApi = {
    */
   importNetworkTopology: async (
     payload: unknown,
-  ): Promise<{ success: boolean; message: string; data?: any }> => {
-    const res = await apiPost<{ success: boolean; message: string; data?: any }>(
+  ): Promise<{ success: boolean; message: string; data?: unknown }> => {
+    const res = await apiPost<{ success: boolean; message: string; data?: unknown }>(
       "/api/admin/settings/network/import",
       payload,
     );
-    return unwrap<{ success: boolean; message: string; data?: any }>(res);
+    return unwrap<{ success: boolean; message: string; data?: unknown }>(res);
   },
 
   /**
    * Exporta la topología de red completa en formato JSON.
    */
-  exportNetworkTopology: async (): Promise<{ success: boolean; data: { exportedAt: string; routers: any[] } }> => {
-    const res = await apiGet<{ success: boolean; data: { exportedAt: string; routers: any[] } }>(
-      "/api/admin/settings/network/export",
-    );
-    return unwrap<{ success: boolean; data: { exportedAt: string; routers: any[] } }>(res);
+  exportNetworkTopology: async (): Promise<{
+    success: boolean;
+    data: { exportedAt: string; routers: NetworkRouterConfig[] };
+  }> => {
+    const res = await apiGet<{
+      success: boolean;
+      data: { exportedAt: string; routers: NetworkRouterConfig[] };
+    }>("/api/admin/settings/network/export");
+    return unwrap<{
+      success: boolean;
+      data: { exportedAt: string; routers: NetworkRouterConfig[] };
+    }>(res);
   },
 };
