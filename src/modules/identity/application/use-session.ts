@@ -159,7 +159,9 @@ export function useMyAvailability() {
 
     await mutation.mutateAsync({
       activeDepartmentIds: nextList,
-      ...(shouldEnableAutoAssign !== undefined ? { autoAssignEnabled: shouldEnableAutoAssign } : {}),
+      ...(shouldEnableAutoAssign !== undefined
+        ? { autoAssignEnabled: shouldEnableAutoAssign }
+        : {}),
     });
     toast.success("Colas de atención actualizadas");
   };

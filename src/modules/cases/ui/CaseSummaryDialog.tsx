@@ -37,6 +37,7 @@ import {
   onuRunStateLabel,
   onuSignalQuality,
 } from "@/modules/cases/domain/case";
+import type { CaseDto } from "@/modules/cases/domain/case";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 
 function isOnuTechnicalData(value: unknown): value is SupportInternetDiagnosticTechnical {
@@ -74,6 +75,13 @@ function humanizeResultKey(key: string): string {
   const spaced = key.replace(/([a-z])([A-Z])/g, "$1 $2");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
+
+type ExtendedContractCardItem = ContractCardItem & {
+  sectorNom?: string;
+  sector_nom?: string;
+  barrioNom?: string;
+  barrio_nom?: string;
+};
 
 type ContractCardItem = {
   id?: string;
@@ -165,16 +173,30 @@ function renderValueFriendly(key: string, value: unknown) {
               </p>
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] pt-1 text-muted-foreground font-mono">
-              {(c.sectorNom || (c as Record<string, unknown>).sector_nom) && (
+              {(c as ExtendedContractCardItem).sectorNom ||
+              (c as ExtendedContractCardItem).sector_nom ? (
                 <span>
-                  Sector: <b className="text-foreground">{(c.sectorNom || (c as Record<string, unknown>).sector_nom) as string}</b>
+                  Sector:{" "}
+                  <b className="text-foreground">
+                    {String(
+                      (c as ExtendedContractCardItem).sectorNom ||
+                        (c as ExtendedContractCardItem).sector_nom,
+                    )}
+                  </b>
                 </span>
-              )}
-              {(c.barrioNom || (c as Record<string, unknown>).barrio_nom) && (
+              ) : null}
+              {(c as ExtendedContractCardItem).barrioNom ||
+              (c as ExtendedContractCardItem).barrio_nom ? (
                 <span>
-                  Barrio: <b className="text-foreground">{(c.barrioNom || (c as Record<string, unknown>).barrio_nom) as string}</b>
+                  Barrio:{" "}
+                  <b className="text-foreground">
+                    {String(
+                      (c as ExtendedContractCardItem).barrioNom ||
+                        (c as ExtendedContractCardItem).barrio_nom,
+                    )}
+                  </b>
                 </span>
-              )}
+              ) : null}
               {(c.router?.sector || c.sector) && (
                 <span>
                   Router: <b className="text-foreground">{c.router?.sector || c.sector}</b>
@@ -290,8 +312,8 @@ function getTimelineEntryDetail(entry: CaseTimelineEntryDto): string | null {
     const out = entry.output as Record<string, unknown> | undefined;
     if (out) {
       if (entry.action === "DIAGNOSTIC" || entry.action === "CONTINUE_DIAGNOSTIC") {
-        const diag = (out.diagnostic as { status?: string; result?: string } | string | undefined);
-        const result = typeof diag === "string" ? diag : (diag?.result || diag?.status);
+        const diag = out.diagnostic as { status?: string; result?: string } | string | undefined;
+        const result = typeof diag === "string" ? diag : diag?.result || diag?.status;
         return result ? `Resultado: ${result}` : "Diagnóstico completado";
       }
       if (entry.action === "VALIDATE_CLIENT") {
@@ -314,16 +336,22 @@ function getTimelineEntryDetail(entry: CaseTimelineEntryDto): string | null {
       if (entry.action === "DATA_SYNCED") {
         const c = p.contract as { id?: string; sector?: string; contractCode?: string } | undefined;
         const cCode = c?.contractCode || c?.id;
-        return c?.sector ? `Datos sincronizados: Sector ${c.sector}${cCode ? ` (Contrato #${cCode})` : ""}` : "Datos de cliente actualizados";
+        return c?.sector
+          ? `Datos sincronizados: Sector ${c.sector}${cCode ? ` (Contrato #${cCode})` : ""}`
+          : "Datos de cliente actualizados";
       }
       if (entry.action === "CASE_COMPLETED") {
         return p.closeReason ? `Caso finalizado (${String(p.closeReason)})` : "Caso finalizado";
       }
       if (entry.action === "CASE_SCHEDULED") {
-        return p.scheduledAt ? `Agendado para: ${new Date(String(p.scheduledAt)).toLocaleString("es-EC")}` : "Seguimiento agendado";
+        return p.scheduledAt
+          ? `Agendado para: ${new Date(String(p.scheduledAt)).toLocaleString("es-EC")}`
+          : "Seguimiento agendado";
       }
       if (entry.action === "CASE_CREATED") {
-        return p.workflowType ? `Caso creado: ${String(p.workflowType)}` : "Caso creado en el sistema";
+        return p.workflowType
+          ? `Caso creado: ${String(p.workflowType)}`
+          : "Caso creado en el sistema";
       }
     }
   }
@@ -333,66 +361,112 @@ function getTimelineEntryDetail(entry: CaseTimelineEntryDto): string | null {
 function renderTimelineExpandedBody(entry: CaseTimelineEntryDto) {
   const isExecution = entry.kind === "execution";
   const rawPayload = isExecution ? (entry.output ?? entry.error) : entry.payload;
+  const eventPayload =
+    entry.kind === "event" && entry.payload && typeof entry.payload === "object"
+      ? (entry.payload as Record<string, unknown>)
+      : null;
+  const execOutput =
+    entry.kind === "execution" && entry.output && typeof entry.output === "object"
+      ? (entry.output as Record<string, unknown>)
+      : null;
+  const execError = entry.kind === "execution" ? entry.error : null;
 
   return (
     <div className="space-y-2 mt-2 pt-2 border-t border-border/50 text-[11px] font-sans">
       {/* Detalle amigable estructurado */}
-      {entry.kind === "event" && entry.payload && typeof entry.payload === "object" && (() => {
-        const p = entry.payload as Record<string, unknown>;
-        const contract = p.contract as Record<string, unknown> | undefined;
-        const balance = p.balance as Record<string, unknown> | undefined;
-        return (
-          <div className="space-y-1 bg-muted/30 p-2 rounded border border-border/40 text-[10px]">
-            {p.nationalId && <p><span className="text-muted-foreground font-semibold">Cédula:</span> {String(p.nationalId)}</p>}
-            {contract && (
-              <p>
-                <span className="text-muted-foreground font-semibold">Contrato:</span> {String(contract.contractCode || contract.id || "N/A")} |
-                <span className="text-muted-foreground font-semibold"> Sector:</span> {String(contract.sector || "N/A")} |
-                <span className="text-muted-foreground font-semibold"> OLT:</span> {String(contract.oltName || "N/A")} (PON {String(contract.pon || "N/A")})
-              </p>
-            )}
-            {balance && (
-              <p>
-                <span className="text-muted-foreground font-semibold">Estado de saldo:</span> {balance.hasDebt ? `Deuda activa ($ ${balance.amount ?? balance.debt ?? 0})` : "Sin deuda ($0)"}
-              </p>
-            )}
-            {p.closeReason && <p><span className="text-muted-foreground font-semibold">Motivo de cierre:</span> {String(p.closeReason)}</p>}
-            {p.diagnostic && <p><span className="text-muted-foreground font-semibold">Diagnóstico:</span> {String(p.diagnostic)}</p>}
-          </div>
-        );
-      })()}
+      {eventPayload
+        ? (() => {
+            const contract = eventPayload.contract as Record<string, unknown> | undefined;
+            const balance = eventPayload.balance as Record<string, unknown> | undefined;
+            return (
+              <div className="space-y-1 bg-muted/30 p-2 rounded border border-border/40 text-[10px]">
+                {eventPayload.nationalId ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Cédula:</span>{" "}
+                    {String(eventPayload.nationalId)}
+                  </p>
+                ) : null}
+                {contract ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Contrato:</span>{" "}
+                    {String(contract.contractCode || contract.id || "N/A")} |
+                    <span className="text-muted-foreground font-semibold"> Sector:</span>{" "}
+                    {String(contract.sector || "N/A")} |
+                    <span className="text-muted-foreground font-semibold"> OLT:</span>{" "}
+                    {String(contract.oltName || "N/A")} (PON {String(contract.pon || "N/A")})
+                  </p>
+                ) : null}
+                {balance ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Estado de saldo:</span>{" "}
+                    {balance.hasDebt
+                      ? `Deuda activa ($ ${balance.amount ?? balance.debt ?? 0})`
+                      : "Sin deuda ($0)"}
+                  </p>
+                ) : null}
+                {eventPayload.closeReason ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Motivo de cierre:</span>{" "}
+                    {String(eventPayload.closeReason)}
+                  </p>
+                ) : null}
+                {eventPayload.diagnostic ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Diagnóstico:</span>{" "}
+                    {String(eventPayload.diagnostic)}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })()
+        : null}
 
-      {entry.kind === "execution" && entry.output && typeof entry.output === "object" && (() => {
-        const out = entry.output as Record<string, unknown>;
-        return (
-          <div className="space-y-1 bg-muted/30 p-2 rounded border border-border/40 text-[10px]">
-            {out.diagnostic && (
-              <p><span className="text-muted-foreground font-semibold">Diagnóstico OLT:</span> {typeof out.diagnostic === "string" ? out.diagnostic : JSON.stringify(out.diagnostic)}</p>
-            )}
-            {out.instruction && (
-              <p className="italic text-muted-foreground">"{String(out.instruction)}"</p>
-            )}
-            {out.found !== undefined && (
-              <p><span className="text-muted-foreground font-semibold">Encontrado en ISP:</span> {out.found ? "Sí" : "No"} ({String(out.contractNumbers ?? 0)} contratos)</p>
-            )}
-            {out.hasDebt !== undefined && (
-              <p><span className="text-muted-foreground font-semibold">Saldo:</span> {out.hasDebt ? `Deuda de $${out.debt ?? out.amount}` : "Al día ($0)"}</p>
-            )}
-          </div>
-        );
-      })()}
+      {execOutput
+        ? (() => {
+            return (
+              <div className="space-y-1 bg-muted/30 p-2 rounded border border-border/40 text-[10px]">
+                {execOutput.diagnostic ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Diagnóstico OLT:</span>{" "}
+                    {typeof execOutput.diagnostic === "string"
+                      ? execOutput.diagnostic
+                      : JSON.stringify(execOutput.diagnostic)}
+                  </p>
+                ) : null}
+                {execOutput.instruction ? (
+                  <p className="italic text-muted-foreground">"{String(execOutput.instruction)}"</p>
+                ) : null}
+                {execOutput.found !== undefined ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Encontrado en ISP:</span>{" "}
+                    {execOutput.found ? "Sí" : "No"} ({String(execOutput.contractNumbers ?? 0)}{" "}
+                    contratos)
+                  </p>
+                ) : null}
+                {execOutput.hasDebt !== undefined ? (
+                  <p>
+                    <span className="text-muted-foreground font-semibold">Saldo:</span>{" "}
+                    {execOutput.hasDebt
+                      ? `Deuda de $${execOutput.debt ?? execOutput.amount}`
+                      : "Al día ($0)"}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })()
+        : null}
 
       {/* Error si existió */}
-      {isExecution && entry.error && (
+      {execError ? (
         <div className="p-2 bg-red-500/10 border border-red-500/25 rounded text-red-600 dark:text-red-400 font-mono text-[10px]">
-          {typeof entry.error === "object" && entry.error !== null && "message" in entry.error
-            ? String((entry.error as { message: unknown }).message)
-            : JSON.stringify(entry.error)}
+          {typeof execError === "object" && execError !== null && "message" in execError
+            ? String((execError as { message: unknown }).message)
+            : JSON.stringify(execError)}
         </div>
-      )}
+      ) : null}
 
       {/* JSON completo colapsable para auditoría técnica */}
-      {rawPayload && (
+      {rawPayload ? (
         <details className="mt-1">
           <summary className="cursor-pointer text-[9px] text-primary hover:underline font-semibold select-none">
             Ver datos crudos del hito (JSON)
@@ -401,7 +475,7 @@ function renderTimelineExpandedBody(entry: CaseTimelineEntryDto) {
             {JSON.stringify(rawPayload, null, 2)}
           </pre>
         </details>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -463,8 +537,16 @@ export function CaseSummaryDialog({
                   serial?: string;
                 }
               | undefined;
-            const sectorNom = contract?.sectorNom || contract?.sector_nom || (summary.results?.sectorNom as string | undefined) || (summary.results?.sector_nom as string | undefined);
-            const barrioNom = contract?.barrioNom || contract?.barrio_nom || (summary.results?.barrioNom as string | undefined) || (summary.results?.barrio_nom as string | undefined);
+            const sectorNom =
+              contract?.sectorNom ||
+              contract?.sector_nom ||
+              (summary.results?.sectorNom as string | undefined) ||
+              (summary.results?.sector_nom as string | undefined);
+            const barrioNom =
+              contract?.barrioNom ||
+              contract?.barrio_nom ||
+              (summary.results?.barrioNom as string | undefined) ||
+              (summary.results?.barrio_nom as string | undefined);
             const balanceObj = summary.results?.balance as
               { hasDebt?: boolean; amount?: number } | undefined;
             const hasDebtVal =
@@ -568,11 +650,20 @@ export function CaseSummaryDialog({
                   t.status === "FAILED",
               ) || timeline?.some((t) => t.action === "DIAGNOSTIC" && t.status === "FAILED");
 
-            const diagExecution = timeline?.find((t) => (t.action === "DIAGNOSTIC" || t.action === "CONTINUE_DIAGNOSTIC") && t.kind === "execution") as
-              | { output?: { technical?: { _history?: unknown[]; failedStep?: string; error?: string } } }
+            const diagExecution = timeline?.find(
+              (t) =>
+                (t.action === "DIAGNOSTIC" || t.action === "CONTINUE_DIAGNOSTIC") &&
+                t.kind === "execution",
+            ) as
+              | {
+                  output?: {
+                    technical?: { _history?: unknown[]; failedStep?: string; error?: string };
+                  };
+                }
               | undefined;
 
-            const caseTech = (caseDto?.context?.data as Record<string, unknown> | undefined)?.technical as Record<string, unknown> | undefined;
+            const caseTech = (caseDto?.context?.data as Record<string, unknown> | undefined)
+              ?.technical as Record<string, unknown> | undefined;
 
             const rawHistory =
               rawTech?._history ||
@@ -589,55 +680,77 @@ export function CaseSummaryDialog({
                   error?: string;
                 }>)
               : [];
-            const failedStep = (rawTech?.failedStep as string | undefined) || (caseTech?.failedStep as string | undefined) || diagExecution?.output?.technical?.failedStep;
-            const oltError = (rawTech?.error as string | undefined) || (caseTech?.error as string | undefined) || diagExecution?.output?.technical?.error;
+            const failedStep =
+              (rawTech?.failedStep as string | undefined) ||
+              (caseTech?.failedStep as string | undefined) ||
+              diagExecution?.output?.technical?.failedStep;
+            const oltError =
+              (rawTech?.error as string | undefined) ||
+              (caseTech?.error as string | undefined) ||
+              diagExecution?.output?.technical?.error;
 
             // Si hay historial de comandos explícito se usa; si no, se sintetizan las etapas con la telemetría disponible
-            const stepsToShow = historySteps.length > 0
-              ? historySteps
-              : (technical || rawTech || diagnosticResult || isSupportCase)
-                ? [
-                    {
-                      step: "login",
-                      command: contract?.pon ? `interface gpon 0/${contract.pon}` : "interface gpon 0/1",
-                      raw: `Conexión a OLT ${brand || contract?.oltName || "pifo"} en puerto GPON ${contract?.pon || "1"}\nOLT-PIFO(config-pon-0/1)#`,
-                      success: true,
-                    },
-                    {
-                      step: "rows",
-                      command: "show onu info",
-                      raw: `Lectura de tabla de ONUs en puerto\nOnuindex Model Profile Mode AuthInfo\n${onuIndex || "GPON0/1:34"} ${onuModel || "unknown"} default sn ${onuSerial || contract?.serial || "DF30E67B6ADD"}`,
-                      success: true,
-                    },
-                    {
-                      step: "onu",
-                      command: `find serial ${onuSerial || contract?.serial || "DF30E67B6ADD"}`,
-                      raw: `ONU localizada en índice ${onuIndex || "GPON0/1:34"} (Serial: ${onuSerial || contract?.serial || "DF30E67B6ADD"})`,
-                      success: true,
-                    },
-                    {
-                      step: "state",
-                      command: `show onu state ${(technical as any)?.onuId || 34}`,
-                      raw: `OnuIndex: ${onuIndex || "1/1/1:34"} | Admin: ${adminState || "enable"} | OMCC: ${omccState || "disable"} | Phase: ${phaseState || runState || "OffLine"}\nEstado: El equipo no responde por canal OMCI a la OLT.`,
-                      success: !(phaseState === "offline" || runState === "Offline" || phaseState === "OffLine"),
-                      error: (phaseState === "offline" || runState === "Offline" || phaseState === "OffLine") ? "Phase State: OffLine (Sin enlace físico)" : undefined,
-                    },
-                    {
-                      step: "power",
-                      command: `show pon onu ${(technical as any)?.onuId || 34} rx-power`,
-                      raw: `Rx power: N/A\nLectura óptica no disponible: La OLT no recibe haz de luz desde la ONU.`,
-                      success: powerFormatted.isMeasured,
-                      error: !powerFormatted.isMeasured ? "Potencia óptica N/A (Equipo apagado / sin luz)" : undefined,
-                    },
-                    {
-                      step: "mac",
-                      command: `show mac address-table pon ${contract?.pon || "1"}`,
-                      raw: `Consulta tabla MAC en puerto PON\nTotal tramas aprendidas para ONU: 0`,
-                      success: macFormatted.isFound,
-                      error: !macFormatted.isFound ? "Sin tráfico Ethernet: el equipo no transmite datos" : undefined,
-                    },
-                  ]
-                : [];
+            const stepsToShow =
+              historySteps.length > 0
+                ? historySteps
+                : technical || rawTech || diagnosticResult || isSupportCase
+                  ? [
+                      {
+                        step: "login",
+                        command: contract?.pon
+                          ? `interface gpon 0/${contract.pon}`
+                          : "interface gpon 0/1",
+                        raw: `Conexión a OLT ${brand || contract?.oltName || "pifo"} en puerto GPON ${contract?.pon || "1"}\nOLT-PIFO(config-pon-0/1)#`,
+                        success: true,
+                      },
+                      {
+                        step: "rows",
+                        command: "show onu info",
+                        raw: `Lectura de tabla de ONUs en puerto\nOnuindex Model Profile Mode AuthInfo\n${onuIndex || "GPON0/1:34"} ${onuModel || "unknown"} default sn ${onuSerial || contract?.serial || "DF30E67B6ADD"}`,
+                        success: true,
+                      },
+                      {
+                        step: "onu",
+                        command: `find serial ${onuSerial || contract?.serial || "DF30E67B6ADD"}`,
+                        raw: `ONU localizada en índice ${onuIndex || "GPON0/1:34"} (Serial: ${onuSerial || contract?.serial || "DF30E67B6ADD"})`,
+                        success: true,
+                      },
+                      {
+                        step: "state",
+                        command: `show onu state ${((technical as unknown as Record<string, unknown>)?.onuId as string | number | undefined) || 34}`,
+                        raw: `OnuIndex: ${onuIndex || "1/1/1:34"} | Admin: ${adminState || "enable"} | OMCC: ${omccState || "disable"} | Phase: ${phaseState || runState || "OffLine"}\nEstado: El equipo no responde por canal OMCI a la OLT.`,
+                        success: !(
+                          phaseState === "offline" ||
+                          runState === "Offline" ||
+                          phaseState === "OffLine"
+                        ),
+                        error:
+                          phaseState === "offline" ||
+                          runState === "Offline" ||
+                          phaseState === "OffLine"
+                            ? "Phase State: OffLine (Sin enlace físico)"
+                            : undefined,
+                      },
+                      {
+                        step: "power",
+                        command: `show pon onu ${((technical as unknown as Record<string, unknown>)?.onuId as string | number | undefined) || 34} rx-power`,
+                        raw: `Rx power: N/A\nLectura óptica no disponible: La OLT no recibe haz de luz desde la ONU.`,
+                        success: powerFormatted.isMeasured,
+                        error: !powerFormatted.isMeasured
+                          ? "Potencia óptica N/A (Equipo apagado / sin luz)"
+                          : undefined,
+                      },
+                      {
+                        step: "mac",
+                        command: `show mac address-table pon ${contract?.pon || "1"}`,
+                        raw: `Consulta tabla MAC en puerto PON\nTotal tramas aprendidas para ONU: 0`,
+                        success: macFormatted.isFound,
+                        error: !macFormatted.isFound
+                          ? "Sin tráfico Ethernet: el equipo no transmite datos"
+                          : undefined,
+                      },
+                    ]
+                  : [];
 
             const otherResults = Object.entries(summary.results ?? {}).filter(
               ([key]) =>
@@ -767,7 +880,9 @@ export function CaseSummaryDialog({
                       {contract?.sector && (
                         <div className="flex justify-between gap-3 px-3 py-1.5">
                           <span className="text-muted-foreground">Router MikroTik</span>
-                          <span className="text-right font-medium font-mono">{contract.sector}</span>
+                          <span className="text-right font-medium font-mono">
+                            {contract.sector}
+                          </span>
                         </div>
                       )}
                       {contract?.oltName && (
@@ -920,7 +1035,9 @@ export function CaseSummaryDialog({
                           <span className="flex items-center gap-1.5 justify-end">
                             {powerFormatted.isMeasured ? (
                               <>
-                                <span className="font-semibold font-mono">{powerFormatted.text}</span>
+                                <span className="font-semibold font-mono">
+                                  {powerFormatted.text}
+                                </span>
                                 {quality && (
                                   <span
                                     className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
@@ -1009,8 +1126,10 @@ export function CaseSummaryDialog({
                           )}
                           <div className="space-y-2">
                             {stepsToShow.map((step, idx) => {
-                              const isFailed = step.success === false || (failedStep && step.step === failedStep);
-                              const stepTitle = STEP_META[step.step || ""]?.label || step.step || "comando";
+                              const isFailed =
+                                step.success === false || (failedStep && step.step === failedStep);
+                              const stepTitle =
+                                STEP_META[step.step || ""]?.label || step.step || "comando";
                               const stepDesc = STEP_META[step.step || ""]?.desc;
 
                               return (
@@ -1018,27 +1137,31 @@ export function CaseSummaryDialog({
                                   key={idx}
                                   className={cn(
                                     "p-2.5 bg-background border rounded-md space-y-1.5 transition",
-                                    isFailed ? "border-amber-500/50 bg-amber-500/5" : "border-border"
+                                    isFailed
+                                      ? "border-amber-500/50 bg-amber-500/5"
+                                      : "border-border",
                                   )}
                                 >
                                   <div className="flex justify-between items-center text-[11px]">
                                     <div className="flex items-center gap-2">
-                                      <span className={cn(
-                                        "size-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
-                                        isFailed ? "bg-amber-500 text-white" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                      )}>
+                                      <span
+                                        className={cn(
+                                          "size-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                                          isFailed
+                                            ? "bg-amber-500 text-white"
+                                            : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+                                        )}
+                                      >
                                         {idx + 1}
                                       </span>
-                                      <span className="font-bold text-foreground">
-                                        {stepTitle}
-                                      </span>
+                                      <span className="font-bold text-foreground">{stepTitle}</span>
                                     </div>
                                     <span
                                       className={cn(
                                         "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase",
                                         isFailed
                                           ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
                                       )}
                                     >
                                       {isFailed ? "Detenido / Alerta" : "Completado"}
@@ -1123,7 +1246,8 @@ export function CaseSummaryDialog({
                   <div>
                     <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <Clock className="size-3.5" /> Línea de tiempo del caso ({timeline.length} hitos)
+                        <Clock className="size-3.5" /> Línea de tiempo del caso ({timeline.length}{" "}
+                        hitos)
                       </span>
                       <span className="text-[10px] text-muted-foreground/70 normal-case font-normal">
                         (clic en cualquier hito para desplegar detalle)
@@ -1154,7 +1278,11 @@ export function CaseSummaryDialog({
                                 <span
                                   className={cn(
                                     "size-2 rounded-full shrink-0",
-                                    isFailed ? "bg-red-500" : isSuccess ? "bg-emerald-500" : "bg-primary"
+                                    isFailed
+                                      ? "bg-red-500"
+                                      : isSuccess
+                                        ? "bg-emerald-500"
+                                        : "bg-primary",
                                   )}
                                 />
                                 <span className="truncate">{caseStepLabel(entry.action)}</span>
@@ -1168,7 +1296,7 @@ export function CaseSummaryDialog({
                                       ? "bg-red-500/10 text-red-600 border border-red-500/20"
                                       : isSuccess
                                         ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                        : "bg-muted text-muted-foreground"
+                                        : "bg-muted text-muted-foreground",
                                   )}
                                 >
                                   {caseStepStatusLabel(entry.status)}

@@ -1,3 +1,4 @@
+import type { ContractDto } from "@/modules/customers/domain/customer";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CasePanel } from "./CasePanel";
@@ -392,6 +393,13 @@ describe("CasePanel - Desambiguación de Contratos", () => {
         caseDto={caseWithoutContract}
         busy={false}
         canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
         onDiagnose={vi.fn()}
       />,
     );
@@ -407,6 +415,13 @@ describe("CasePanel - Desambiguación de Contratos", () => {
         caseDto={mockCase}
         busy={false}
         canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
       />,
     );
     expect(screen.queryByRole("button", { name: /Diagnosticar conexi/i })).not.toBeInTheDocument();
@@ -445,7 +460,14 @@ describe("CasePanel - Desambiguación de Contratos", () => {
         caseDto={mockCase}
         busy={false}
         canWrite={true}
-        customerContracts={customerContracts}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        customerContracts={customerContracts as unknown as ContractDto[]}
         onDiagnose={onDiagnoseMock}
       />,
     );

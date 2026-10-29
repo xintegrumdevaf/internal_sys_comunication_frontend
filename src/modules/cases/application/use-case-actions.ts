@@ -139,7 +139,7 @@ export function useCaseActions(
     return run("avanzar el caso", () => caseGateway.advanceCase(caseId, { entities }), successMsg);
   };
 
-    const syncData = (caseId: string) => {
+  const syncData = (caseId: string) => {
     if (!session) return Promise.resolve(false);
     return run(
       "actualizar datos",
@@ -148,11 +148,11 @@ export function useCaseActions(
     );
   };
 
-  const diagnose = (caseId: string) => {
+  const diagnose = (caseId: string, contractId?: string) => {
     if (!session) return Promise.resolve(false);
     return run(
       "diagnosticar conexión",
-      () => caseGateway.diagnoseCase(caseId),
+      () => caseGateway.diagnoseCase(caseId, contractId),
       "Diagnóstico de red ejecutado exitosamente",
     );
   };

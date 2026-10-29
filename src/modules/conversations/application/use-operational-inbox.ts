@@ -467,13 +467,12 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       activeCase ? caseActions.disableAutomation(activeCase.id, reason) : Promise.resolve(false),
     reactivateAutomation: () =>
       activeCase ? caseActions.reactivateAutomation(activeCase.id) : Promise.resolve(false),
-        advanceCase: (entities: Record<string, unknown>) =>
+    advanceCase: (entities: Record<string, unknown>) =>
       activeCase ? caseActions.advance(activeCase.id, entities) : Promise.resolve(false),
-    syncCaseData: () =>
-      activeCase ? caseActions.syncData(activeCase.id) : Promise.resolve(false),
+    syncCaseData: () => (activeCase ? caseActions.syncData(activeCase.id) : Promise.resolve(false)),
     syncBalance: () =>
       activeCase ? caseActions.syncBalance(activeCase.id) : Promise.resolve(false),
-    diagnoseCase: () =>
-      activeCase ? caseActions.diagnose(activeCase.id) : Promise.resolve(false),
+    diagnoseCase: (contractId?: string) =>
+      activeCase ? caseActions.diagnose(activeCase.id, contractId) : Promise.resolve(false),
   };
 }

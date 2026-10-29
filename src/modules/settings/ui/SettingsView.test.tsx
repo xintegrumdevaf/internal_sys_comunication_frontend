@@ -4,7 +4,7 @@ import { SettingsView } from "./SettingsView";
 import { settingsApi } from "../infrastructure/settings.api";
 
 vi.mock("@/modules/identity/application/use-session", () => ({
-  useSession: () => ({ session: { role: "admin" } }),
+  useSession: () => ({ role: "admin" }),
 }));
 
 describe("SettingsView - Integración de Tabs", () => {

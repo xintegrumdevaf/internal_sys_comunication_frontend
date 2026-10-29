@@ -51,7 +51,9 @@ export function NetworkSettingsCard() {
   const [routers, setRouters] = useState<NetworkRouterConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [testingRouterId, setTestingRouterId] = useState<string | null>(null);
-  const [connectionResults, setConnectionResults] = useState<Record<string, TestNetworkConnectionResult>>({});
+  const [connectionResults, setConnectionResults] = useState<
+    Record<string, TestNetworkConnectionResult>
+  >({});
   const [testingOltId, setTestingOltId] = useState<string | null>(null);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
   const [loadingPassId, setLoadingPassId] = useState<string | null>(null);
@@ -134,7 +136,9 @@ export function NetworkSettingsCard() {
   });
 
   const [oltModalOpen, setOltModalOpen] = useState(false);
-  const [selectedRouterForOlt, setSelectedRouterForOlt] = useState<NetworkRouterConfig | null>(null);
+  const [selectedRouterForOlt, setSelectedRouterForOlt] = useState<NetworkRouterConfig | null>(
+    null,
+  );
   const [editingOlt, setEditingOlt] = useState<NetworkOltConfig | null>(null);
   const [oltForm, setOltForm] = useState({
     name: "",
@@ -315,7 +319,11 @@ export function NetworkSettingsCard() {
   };
 
   const handleDeleteRouter = async (router: NetworkRouterConfig) => {
-    if (!confirm(`¿Estás seguro de eliminar el router '${router.displayName}' y todas sus OLTs asociadas?`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de eliminar el router '${router.displayName}' y todas sus OLTs asociadas?`,
+      )
+    ) {
       return;
     }
     try {
@@ -421,15 +429,35 @@ export function NetworkSettingsCard() {
   const getBrandBadge = (brand: string) => {
     switch (brand) {
       case "huawei":
-        return <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">HUAWEI</Badge>;
+        return (
+          <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+            HUAWEI
+          </Badge>
+        );
       case "v-sol":
-        return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">V-SOL</Badge>;
+        return (
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+            V-SOL
+          </Badge>
+        );
       case "c-data":
-        return <Badge className="bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800">C-DATA</Badge>;
+        return (
+          <Badge className="bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800">
+            C-DATA
+          </Badge>
+        );
       case "kingtype":
-        return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">KINGTYPE</Badge>;
+        return (
+          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+            KINGTYPE
+          </Badge>
+        );
       default:
-        return <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-800">{brand.toUpperCase()}</Badge>;
+        return (
+          <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-800">
+            {brand.toUpperCase()}
+          </Badge>
+        );
     }
   };
 
@@ -446,11 +474,18 @@ export function NetworkSettingsCard() {
             <CardTitle className="text-xl">Infraestructura de Red: Routers y OLTs</CardTitle>
           </div>
           <CardDescription className="mt-1 text-sm text-muted-foreground">
-            Topología técnica de routers de borde (MikroTik) y cabeceras ópticas (OLTs). Las credenciales están protegidas con cifrado en reposo AES-256-GCM.
+            Topología técnica de routers de borde (MikroTik) y cabeceras ópticas (OLTs). Las
+            credenciales están protegidas con cifrado en reposo AES-256-GCM.
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadRouters} disabled={loading} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadRouters}
+            disabled={loading}
+            className="gap-2"
+          >
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
             Recargar
           </Button>
@@ -534,7 +569,10 @@ export function NetworkSettingsCard() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                          <span>Usuario SSH: <strong className="font-mono text-foreground">{router.username}</strong></span>
+                          <span>
+                            Usuario SSH:{" "}
+                            <strong className="font-mono text-foreground">{router.username}</strong>
+                          </span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <span>Clave:</span>
@@ -545,7 +583,11 @@ export function NetworkSettingsCard() {
                               type="button"
                               onClick={() => toggleRevealRouterPassword(router.id)}
                               disabled={loadingPassId === router.id}
-                              title={revealedPasswords[router.id] ? "Ocultar clave" : "Ver clave descifrada"}
+                              title={
+                                revealedPasswords[router.id]
+                                  ? "Ocultar clave"
+                                  : "Ver clave descifrada"
+                              }
                               className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
                             >
                               {loadingPassId === router.id ? (
@@ -571,10 +613,10 @@ export function NetworkSettingsCard() {
                           isTesting
                             ? "bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400 animate-pulse"
                             : testRes?.success
-                            ? "bg-gradient-to-r from-emerald-500/15 to-teal-500/10 hover:from-emerald-500/25 hover:to-teal-500/20 border-emerald-500/40 hover:border-emerald-500/70 text-emerald-600 dark:text-emerald-400 shadow-xs shadow-emerald-500/10"
-                            : testRes
-                            ? "bg-gradient-to-r from-rose-500/15 to-red-500/10 hover:from-rose-500/25 hover:to-red-500/20 border-rose-500/40 hover:border-rose-500/70 text-rose-600 dark:text-rose-400 shadow-xs shadow-rose-500/10"
-                            : "bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-orange-500/20 hover:to-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-500/35 hover:border-amber-500/60 shadow-amber-500/5 hover:shadow-amber-500/15 active:scale-[0.98]"
+                              ? "bg-gradient-to-r from-emerald-500/15 to-teal-500/10 hover:from-emerald-500/25 hover:to-teal-500/20 border-emerald-500/40 hover:border-emerald-500/70 text-emerald-600 dark:text-emerald-400 shadow-xs shadow-emerald-500/10"
+                              : testRes
+                                ? "bg-gradient-to-r from-rose-500/15 to-red-500/10 hover:from-rose-500/25 hover:to-red-500/20 border-rose-500/40 hover:border-rose-500/70 text-rose-600 dark:text-rose-400 shadow-xs shadow-rose-500/10"
+                                : "bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:via-orange-500/20 hover:to-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-500/35 hover:border-amber-500/60 shadow-amber-500/5 hover:shadow-amber-500/15 active:scale-[0.98]"
                         }`}
                       >
                         {isTesting ? (
@@ -590,12 +632,12 @@ export function NetworkSettingsCard() {
                           {isTesting
                             ? "Probando..."
                             : testRes?.success
-                            ? `${testRes.latencyMs}ms (Todo OK)`
-                            : testRes
-                            ? testRes.details?.router?.success
-                              ? "Fallo OLT"
-                              : "Fallo Router"
-                            : "Probar Conexión (Router + OLTs)"}
+                              ? `${testRes.latencyMs}ms (Todo OK)`
+                              : testRes
+                                ? testRes.details?.router?.success
+                                  ? "Fallo OLT"
+                                  : "Fallo Router"
+                                : "Probar Conexión (Router + OLTs)"}
                         </span>
                       </Button>
 
@@ -647,124 +689,147 @@ export function NetworkSettingsCard() {
 
                     {!router.olts || router.olts.length === 0 ? (
                       <div className="p-3 text-center text-xs text-muted-foreground bg-muted/20 rounded-md border border-dashed">
-                        No hay OLTs registradas en este router. Haz clic en "Agregar OLT" para conectar una.
+                        No hay OLTs registradas en este router. Haz clic en "Agregar OLT" para
+                        conectar una.
                       </div>
                     ) : (
-                      <ScrollArea className={(router.olts?.length || 0) > 3 ? "max-h-[320px] pr-2.5" : ""}>
+                      <ScrollArea
+                        className={(router.olts?.length || 0) > 3 ? "max-h-[320px] pr-2.5" : ""}
+                      >
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                        {router.olts.map((olt) => (
-                          <div
-                            key={olt.id}
-                            className="p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col justify-between"
-                          >
-                            <div>
-                              <div className="flex items-center justify-between gap-1 mb-1.5">
-                                <span className="font-medium text-sm truncate" title={olt.displayName}>
-                                  {olt.displayName || olt.name}
-                                </span>
-                                {getBrandBadge(olt.brand)}
-                              </div>
-                              <div className="space-y-0.5 text-xs text-muted-foreground font-mono">
-                                <div>IP: <span className="text-foreground">{olt.ip}</span></div>
-                                <div>User: <span className="text-foreground font-semibold">{olt.username}</span></div>
-                                <div className="flex items-center gap-1">
-                                  <span>Clave:</span>
-                                  <span className="text-foreground">
-                                    {revealedPasswords[olt.id] || "••••••••"}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleRevealOltPassword(router.id, olt.id)}
-                                    disabled={loadingPassId === olt.id}
-                                    title={revealedPasswords[olt.id] ? "Ocultar clave" : "Ver clave descifrada"}
-                                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                          {router.olts.map((olt) => (
+                            <div
+                              key={olt.id}
+                              className="p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col justify-between"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-1 mb-1.5">
+                                  <span
+                                    className="font-medium text-sm truncate"
+                                    title={olt.displayName}
                                   >
-                                    {loadingPassId === olt.id ? (
-                                      <RefreshCw className="size-3 animate-spin" />
-                                    ) : revealedPasswords[olt.id] ? (
-                                      <EyeOff className="size-3 text-amber-500" />
-                                    ) : (
-                                      <Eye className="size-3" />
-                                    )}
-                                  </button>
+                                    {olt.displayName || olt.name}
+                                  </span>
+                                  {getBrandBadge(olt.brand)}
                                 </div>
-                                {olt.slot && <div>Slot: <span className="text-foreground">{olt.slot}</span></div>}
+                                <div className="space-y-0.5 text-xs text-muted-foreground font-mono">
+                                  <div>
+                                    IP: <span className="text-foreground">{olt.ip}</span>
+                                  </div>
+                                  <div>
+                                    User:{" "}
+                                    <span className="text-foreground font-semibold">
+                                      {olt.username}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>Clave:</span>
+                                    <span className="text-foreground">
+                                      {revealedPasswords[olt.id] || "••••••••"}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleRevealOltPassword(router.id, olt.id)}
+                                      disabled={loadingPassId === olt.id}
+                                      title={
+                                        revealedPasswords[olt.id]
+                                          ? "Ocultar clave"
+                                          : "Ver clave descifrada"
+                                      }
+                                      className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                                    >
+                                      {loadingPassId === olt.id ? (
+                                        <RefreshCw className="size-3 animate-spin" />
+                                      ) : revealedPasswords[olt.id] ? (
+                                        <EyeOff className="size-3 text-amber-500" />
+                                      ) : (
+                                        <Eye className="size-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                  {olt.slot && (
+                                    <div>
+                                      Slot: <span className="text-foreground">{olt.slot}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
 
-                            {/* Error inline si falló la OLT */}
-                            {oltResults[olt.id] && !oltResults[olt.id]?.success && (
-                              <div className="mt-2 p-2 rounded-md bg-destructive/10 text-destructive text-[11px] leading-tight flex items-start gap-1.5">
-                                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                                <span>{oltResults[olt.id]?.error || oltResults[olt.id]?.message}</span>
-                              </div>
-                            )}
+                              {/* Error inline si falló la OLT */}
+                              {oltResults[olt.id] && !oltResults[olt.id]?.success && (
+                                <div className="mt-2 p-2 rounded-md bg-destructive/10 text-destructive text-[11px] leading-tight flex items-start gap-1.5">
+                                  <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                                  <span>
+                                    {oltResults[olt.id]?.error || oltResults[olt.id]?.message}
+                                  </span>
+                                </div>
+                              )}
 
-                            <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-border/30">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleTestOlt(router, olt)}
-                                disabled={testingOltId === olt.id}
-                                className={`h-7 px-2.5 text-[11px] gap-1.5 font-semibold rounded-md transition-all duration-200 border shadow-2xs group ${
-                                  testingOltId === olt.id
-                                    ? "bg-sky-500/20 border-sky-500/50 text-sky-600 dark:text-sky-300 animate-pulse"
-                                    : oltResults[olt.id]?.success
-                                    ? "bg-gradient-to-r from-emerald-500/15 to-teal-500/10 hover:from-emerald-500/25 hover:to-teal-500/20 border-emerald-500/40 hover:border-emerald-500/70 text-emerald-600 dark:text-emerald-400"
-                                    : oltResults[olt.id]
-                                    ? "bg-gradient-to-r from-rose-500/15 to-red-500/10 hover:from-rose-500/25 hover:to-red-500/20 border-rose-500/40 hover:border-rose-500/70 text-rose-600 dark:text-rose-400"
-                                    : "bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-blue-500/15 hover:from-sky-500/25 hover:via-cyan-500/20 hover:to-blue-500/25 text-sky-700 dark:text-sky-300 border-sky-500/35 hover:border-sky-500/60 shadow-sky-500/5 hover:shadow-sky-500/15 active:scale-[0.97]"
-                                }`}
-                                title="Probar login y credenciales en la OLT"
-                              >
-                                {testingOltId === olt.id ? (
-                                  <RefreshCw className="size-3 animate-spin text-sky-500" />
-                                ) : oltResults[olt.id]?.success ? (
-                                  <CheckCircle2 className="size-3 text-emerald-500" />
-                                ) : oltResults[olt.id] ? (
-                                  <AlertTriangle className="size-3 text-rose-500" />
-                                ) : (
-                                  <Zap className="size-3 text-sky-500 fill-sky-500/30 group-hover:scale-110 transition-transform" />
-                                )}
-                                <span>
-                                  {testingOltId === olt.id
-                                    ? "Probando..."
-                                    : oltResults[olt.id]?.success
-                                    ? `${oltResults[olt.id]?.latencyMs}ms (Login OK)`
-                                    : oltResults[olt.id]
-                                    ? "Fallo OLT"
-                                    : "Probar OLT"}
-                                </span>
-                              </Button>
-
-                              <div className="flex items-center gap-0.5">
+                              <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-border/30">
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => openOltModal(router, olt)}
-                                  className="size-7 p-0"
-                                  title="Editar OLT"
+                                  onClick={() => handleTestOlt(router, olt)}
+                                  disabled={testingOltId === olt.id}
+                                  className={`h-7 px-2.5 text-[11px] gap-1.5 font-semibold rounded-md transition-all duration-200 border shadow-2xs group ${
+                                    testingOltId === olt.id
+                                      ? "bg-sky-500/20 border-sky-500/50 text-sky-600 dark:text-sky-300 animate-pulse"
+                                      : oltResults[olt.id]?.success
+                                        ? "bg-gradient-to-r from-emerald-500/15 to-teal-500/10 hover:from-emerald-500/25 hover:to-teal-500/20 border-emerald-500/40 hover:border-emerald-500/70 text-emerald-600 dark:text-emerald-400"
+                                        : oltResults[olt.id]
+                                          ? "bg-gradient-to-r from-rose-500/15 to-red-500/10 hover:from-rose-500/25 hover:to-red-500/20 border-rose-500/40 hover:border-rose-500/70 text-rose-600 dark:text-rose-400"
+                                          : "bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-blue-500/15 hover:from-sky-500/25 hover:via-cyan-500/20 hover:to-blue-500/25 text-sky-700 dark:text-sky-300 border-sky-500/35 hover:border-sky-500/60 shadow-sky-500/5 hover:shadow-sky-500/15 active:scale-[0.97]"
+                                  }`}
+                                  title="Probar login y credenciales en la OLT"
                                 >
-                                  <Edit2 className="size-3.5" />
+                                  {testingOltId === olt.id ? (
+                                    <RefreshCw className="size-3 animate-spin text-sky-500" />
+                                  ) : oltResults[olt.id]?.success ? (
+                                    <CheckCircle2 className="size-3 text-emerald-500" />
+                                  ) : oltResults[olt.id] ? (
+                                    <AlertTriangle className="size-3 text-rose-500" />
+                                  ) : (
+                                    <Zap className="size-3 text-sky-500 fill-sky-500/30 group-hover:scale-110 transition-transform" />
+                                  )}
+                                  <span>
+                                    {testingOltId === olt.id
+                                      ? "Probando..."
+                                      : oltResults[olt.id]?.success
+                                        ? `${oltResults[olt.id]?.latencyMs}ms (Login OK)`
+                                        : oltResults[olt.id]
+                                          ? "Fallo OLT"
+                                          : "Probar OLT"}
+                                  </span>
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteOlt(router.id, olt)}
-                                  className="size-7 p-0 text-destructive hover:text-destructive"
-                                  title="Eliminar OLT"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                </Button>
+
+                                <div className="flex items-center gap-0.5">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => openOltModal(router, olt)}
+                                    className="size-7 p-0"
+                                    title="Editar OLT"
+                                  >
+                                    <Edit2 className="size-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeleteOlt(router.id, olt)}
+                                    className="size-7 p-0 text-destructive hover:text-destructive"
+                                    title="Eliminar OLT"
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </div>
                               </div>
+                              {oltResults[olt.id] && !oltResults[olt.id]?.success && (
+                                <div className="mt-2 p-2 rounded bg-destructive/10 text-destructive text-[11px] leading-tight">
+                                  {oltResults[olt.id]?.error || oltResults[olt.id]?.message}
+                                </div>
+                              )}
                             </div>
-                            {oltResults[olt.id] && !oltResults[olt.id]?.success && (
-                              <div className="mt-2 p-2 rounded bg-destructive/10 text-destructive text-[11px] leading-tight">
-                                {oltResults[olt.id]?.error || oltResults[olt.id]?.message}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          ))}
                         </div>
                       </ScrollArea>
                     )}
@@ -780,9 +845,12 @@ export function NetworkSettingsCard() {
       <Dialog open={routerModalOpen} onOpenChange={setRouterModalOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>{editingRouter ? "Editar Router MikroTik" : "Registrar Nuevo Router"}</DialogTitle>
+            <DialogTitle>
+              {editingRouter ? "Editar Router MikroTik" : "Registrar Nuevo Router"}
+            </DialogTitle>
             <DialogDescription>
-              Configura los parámetros de acceso SSH al router. Las credenciales se cifrarán automáticamente en la bóveda de seguridad.
+              Configura los parámetros de acceso SSH al router. Las credenciales se cifrarán
+              automáticamente en la bóveda de seguridad.
             </DialogDescription>
           </DialogHeader>
 
@@ -853,7 +921,11 @@ export function NetworkSettingsCard() {
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                     title={showPassword ? "Ocultar clave" : "Ver clave actual"}
                   >
-                    {showPassword ? <EyeOff className="size-3 text-amber-500" /> : <Eye className="size-3" />}
+                    {showPassword ? (
+                      <EyeOff className="size-3 text-amber-500" />
+                    ) : (
+                      <Eye className="size-3" />
+                    )}
                     <span className="text-[10px]">{showPassword ? "Ocultar" : "Revelar"}</span>
                   </button>
                 </div>
@@ -890,7 +962,9 @@ export function NetworkSettingsCard() {
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>
-              {editingOlt ? "Editar Cabecera OLT" : `Agregar OLT a ${selectedRouterForOlt?.displayName}`}
+              {editingOlt
+                ? "Editar Cabecera OLT"
+                : `Agregar OLT a ${selectedRouterForOlt?.displayName}`}
             </DialogTitle>
             <DialogDescription>
               Configura los parámetros de la OLT interna alcanzable a través del router MikroTik.
@@ -987,7 +1061,9 @@ export function NetworkSettingsCard() {
                 <Input
                   id="olt-pass"
                   type={showPassword ? "text" : "password"}
-                  placeholder={editingOlt ? "Dejar en blanco para no cambiar" : "Contraseña de la OLT"}
+                  placeholder={
+                    editingOlt ? "Dejar en blanco para no cambiar" : "Contraseña de la OLT"
+                  }
                   value={oltForm.password}
                   onChange={(e) => setOltForm({ ...oltForm, password: e.target.value })}
                   className="font-mono text-sm"

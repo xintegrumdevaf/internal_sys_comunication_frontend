@@ -59,11 +59,12 @@ export function toSessionUser(agent: AgentDto, departments: DepartmentDto[]): Se
         ? [agent.primaryDepartmentId]
         : [];
 
-  const rawActive = Array.isArray(agent.activeDepartmentIds) && agent.activeDepartmentIds.length > 0
-    ? agent.activeDepartmentIds
-    : agent.primaryDepartmentId
-      ? [agent.primaryDepartmentId]
-      : departmentIds;
+  const rawActive =
+    Array.isArray(agent.activeDepartmentIds) && agent.activeDepartmentIds.length > 0
+      ? agent.activeDepartmentIds
+      : agent.primaryDepartmentId
+        ? [agent.primaryDepartmentId]
+        : departmentIds;
 
   return {
     id: agent.id,

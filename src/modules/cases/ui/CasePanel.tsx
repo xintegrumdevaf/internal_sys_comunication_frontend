@@ -1,3 +1,4 @@
+import type { ContractDto } from "@/modules/customers/domain/customer";
 import { cn } from "@/lib/utils";
 import { resolveTagHex, type TagItem } from "@/modules/tags/domain/tag";
 import { useState, useMemo } from "react";
@@ -74,7 +75,18 @@ function CaseContextBody({
   onSelectContract,
 }: {
   caseDto: CaseDto;
-  activeContract?: ContractDto | { id?: string; contractNumber?: string; sector?: string | null; oltName?: string | null; pon?: string | null; serial?: string | null; sectorNom?: string; barrioNom?: string };
+  activeContract?:
+    | ContractDto
+    | {
+        id?: string;
+        contractNumber?: string;
+        sector?: string | null;
+        oltName?: string | null;
+        pon?: string | number | null;
+        serial?: string | null;
+        sectorNom?: string;
+        barrioNom?: string;
+      };
   customerContracts?: ContractDto[];
   onSelectContract?: (id: string) => void;
 }) {
@@ -82,8 +94,13 @@ function CaseContextBody({
   const rawContext = caseDto.context as unknown as Record<string, unknown> | undefined;
 
   // 1. Contrato y Red
-  const contract = (activeContract ?? data.contract ?? rawContext?.contract ?? customerContracts?.[0]) as
+  const contract = (activeContract ??
+    data.contract ??
+    rawContext?.contract ??
+    customerContracts?.[0]) as
     | {
+        contractNumber?: string;
+        id?: string;
         sector?: string;
         sectorNom?: string;
         sector_nom?: string;
@@ -95,8 +112,16 @@ function CaseContextBody({
       }
     | undefined;
 
-  const sectorNom = contract?.sectorNom || contract?.sector_nom || (data.sectorNom as string | undefined) || (data.sector_nom as string | undefined);
-  const barrioNom = contract?.barrioNom || contract?.barrio_nom || (data.barrioNom as string | undefined) || (data.barrio_nom as string | undefined);
+  const sectorNom =
+    contract?.sectorNom ||
+    contract?.sector_nom ||
+    (data.sectorNom as string | undefined) ||
+    (data.sector_nom as string | undefined);
+  const barrioNom =
+    contract?.barrioNom ||
+    contract?.barrio_nom ||
+    (data.barrioNom as string | undefined) ||
+    (data.barrio_nom as string | undefined);
 
   // 2. Deuda y Estado Financiero
   const balance = (data.balance ?? rawContext?.balance) as
@@ -231,15 +256,17 @@ function CaseContextBody({
         <div className="p-2 mb-2 rounded-lg bg-muted/40 border border-border/60 space-y-1.5 font-sans">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
-              <Layers className="size-3 text-primary" /> Contratos del cliente ({customerContracts.length})
+              <Layers className="size-3 text-primary" /> Contratos del cliente (
+              {customerContracts.length})
             </span>
             <span className="text-[9px] text-muted-foreground">Clic para alternar</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {customerContracts.map((c) => {
               const isSelected =
-                activeContract && (activeContract.id === c.id || activeContract.contractNumber === c.contractNumber);
-              const label = c.contractNumber ? "#" + c.contractNumber : (c.sector || "Contrato");
+                activeContract &&
+                (activeContract.id === c.id || activeContract.contractNumber === c.contractNumber);
+              const label = c.contractNumber ? "#" + c.contractNumber : c.sector || "Contrato";
               const sectorBadge = c.sector ? c.sector.toUpperCase() : null;
               return (
                 <button
@@ -250,7 +277,7 @@ function CaseContextBody({
                     "px-2.5 py-1 rounded-md text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95",
                     isSelected
                       ? "bg-primary text-primary-foreground border-primary ring-1 ring-primary/30"
-                      : "bg-background/80 text-foreground border-border hover:bg-muted"
+                      : "bg-background/80 text-foreground border-border hover:bg-muted",
                   )}
                 >
                   <span>{label}</span>
@@ -258,7 +285,9 @@ function CaseContextBody({
                     <span
                       className={cn(
                         "px-1 py-0.2 rounded text-[9px] font-mono uppercase",
-                        isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                        isSelected
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       {sectorBadge}
@@ -274,7 +303,12 @@ function CaseContextBody({
 
       {/* Contrato activo seleccionado */}
       {contract?.contractNumber && (
-        <DataRow label="Contrato activo" value={"#" + contract.contractNumber + (contract.sector ? " (" + contract.sector + ")" : "")} />
+        <DataRow
+          label="Contrato activo"
+          value={
+            "#" + contract.contractNumber + (contract.sector ? " (" + contract.sector + ")" : "")
+          }
+        />
       )}
       {/* Sector y Barrio Geográfico (Excel real) */}
       {sectorNom && <DataRow label="Sector" value={sectorNom} />}
@@ -502,6 +536,7 @@ export function CasePanel({
   onSyncData?: () => void | Promise<unknown>;
   onSyncBalance?: () => void | Promise<unknown>;
   onDiagnose?: (contractId?: string) => void | Promise<unknown>;
+  customerContracts?: ContractDto[];
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferDept, setTransferDept] = useState("");
@@ -518,17 +553,29 @@ export function CasePanel({
   const contextData = (caseDto?.context?.data ?? {}) as Record<string, unknown>;
   const rawContext = caseDto?.context as unknown as Record<string, unknown> | undefined;
   const contextContract = (contextData.contract ?? rawContext?.contract) as
-    | { sector?: string; oltName?: string; pon?: string | number; serial?: string; id?: string; contractNumber?: string; sectorNom?: string; barrioNom?: string }
+    | {
+        sector?: string;
+        oltName?: string;
+        pon?: string | number;
+        serial?: string;
+        id?: string;
+        contractNumber?: string;
+        sectorNom?: string;
+        barrioNom?: string;
+      }
     | undefined;
 
   const activeContract = useMemo(() => {
     if (selectedContractId && customerContracts) {
       const found = customerContracts.find(
-        (c) => c.id === selectedContractId || c.contractNumber === selectedContractId
+        (c: ContractDto) => c.id === selectedContractId || c.contractNumber === selectedContractId,
       );
       if (found) return found;
     }
-    if (contextContract && (contextContract.sector || contextContract.serial || contextContract.id)) {
+    if (
+      contextContract &&
+      (contextContract.sector || contextContract.serial || contextContract.id)
+    ) {
       return contextContract;
     }
     if (customerContracts && customerContracts.length > 0) {
@@ -538,8 +585,6 @@ export function CasePanel({
   }, [selectedContractId, customerContracts, contextContract]);
 
   const contract = activeContract ?? contextContract;
-
-
 
   const handleSyncData = async () => {
     const fn = onSyncData || onSyncBalance;
@@ -562,7 +607,6 @@ export function CasePanel({
     }
   };
 
-
   const canManage = canManageProp ?? canWrite;
   const currentState = caseDto
     ? (caseDto.workflowInstance?.currentState ?? caseDto.currentState)
@@ -570,7 +614,7 @@ export function CasePanel({
   const hasTechnicalData = Boolean(
     contract?.serial ||
     contract?.sector ||
-    (customerContractsCount !== undefined && customerContractsCount > 0)
+    (customerContractsCount !== undefined && customerContractsCount > 0),
   );
   const isSupportCase = caseDto?.workflowType === "SUPPORT_INTERNET";
   const pendingContracts = (contextData.pendingContracts ?? rawContext?.pendingContracts) as
@@ -917,7 +961,12 @@ export function CasePanel({
                 (busy || diagnosing || syncingData) && "opacity-50 cursor-wait",
               )}
             >
-              <Activity className={cn("size-3 text-blue-600 dark:text-blue-400", diagnosing && "animate-spin")} />
+              <Activity
+                className={cn(
+                  "size-3 text-blue-600 dark:text-blue-400",
+                  diagnosing && "animate-spin",
+                )}
+              />
               <span>
                 {diagnosing
                   ? "Diagnosticando red..."

@@ -1663,7 +1663,7 @@ export function OperationalInbox({
               customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
               customerTags={selectedCustomer?.tags}
               customerContractsCount={selectedCustomer?.contracts?.length}
-                customerContracts={selectedCustomer?.contracts}
+              customerContracts={selectedCustomer?.contracts}
               onOpenContact={() => void handleOpenContact()}
               busy={busy}
               canWrite={canWriteCase}
@@ -1674,9 +1674,9 @@ export function OperationalInbox({
                 setSummaryOpen(true);
               }}
               onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
-                onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
-                onDiagnose={(contractId) => void diagnoseCase(contractId)}
-                onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
+              onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+              onDiagnose={(contractId) => void diagnoseCase(contractId)}
+              onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
               onTransfer={(toDepartmentId, reason) => void transfer(toDepartmentId, reason)}

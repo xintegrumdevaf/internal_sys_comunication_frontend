@@ -276,7 +276,9 @@ export function AppShell({
               <div className="px-3.5 py-2.5 border-b border-border bg-muted/10 space-y-2">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                   <span>Colas activas (Turno)</span>
-                  <span className="text-[9px] font-normal lowercase">{activeQueuesCount} activas</span>
+                  <span className="text-[9px] font-normal lowercase">
+                    {activeQueuesCount} activas
+                  </span>
                 </div>
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
                   {userDepartments.map((dept) => {
@@ -488,7 +490,9 @@ export function AppShell({
                       <div className="flex items-center gap-2">
                         <span
                           className={`size-2.5 rounded-full ${
-                            autoAssignEnabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                            autoAssignEnabled
+                              ? "bg-emerald-500 animate-pulse"
+                              : "bg-muted-foreground/60"
                           }`}
                         />
                         <div>
@@ -496,7 +500,9 @@ export function AppShell({
                             {autoAssignEnabled ? "Disponible" : "En pausa"}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
-                            {autoAssignEnabled ? "Recibiendo casos automáticos" : "Pausado (no recibe casos)"}
+                            {autoAssignEnabled
+                              ? "Recibiendo casos automáticos"
+                              : "Pausado (no recibe casos)"}
                           </div>
                         </div>
                       </div>
@@ -511,7 +517,9 @@ export function AppShell({
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
                         <span>Colas de atención</span>
-                        <span className="text-[9px] font-normal lowercase">{activeQueuesCount} activas</span>
+                        <span className="text-[9px] font-normal lowercase">
+                          {activeQueuesCount} activas
+                        </span>
                       </div>
                       <div className="space-y-1.5">
                         {userDepartments.map((dept) => {

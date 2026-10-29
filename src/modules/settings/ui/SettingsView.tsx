@@ -196,7 +196,7 @@ const DEFAULT_OLLAMA_MODELS: ListAiModelsResult = {
 };
 
 export function SettingsView() {
-  const { session } = useSession();
+  const session = useSession();
   const isAdmin = session?.role === "admin";
   const defaultTab = isAdmin ? "channels" : "network";
   const [loading, setLoading] = useState(true);

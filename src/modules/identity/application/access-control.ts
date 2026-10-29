@@ -1,5 +1,9 @@
 import type { DepartmentDto } from "@/modules/identity/domain/department";
-import { isSupervisor, isSupportManager, type SessionUser } from "@/modules/identity/domain/session";
+import {
+  isSupervisor,
+  isSupportManager,
+  type SessionUser,
+} from "@/modules/identity/domain/session";
 
 export function isSupervisorSession(session: SessionUser | null | undefined): boolean {
   return isSupervisor(session);

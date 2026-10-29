@@ -7,6 +7,9 @@ import type {
   TestConnectionResult,
   AiProvider,
   ListAiModelsResult,
+  NetworkRouterConfig,
+  NetworkOltConfig,
+  TestNetworkConnectionResult,
 } from "../domain/settings.types";
 
 function unwrap<T>(response: unknown): T {
@@ -111,9 +114,14 @@ export const settingsApi = {
   /**
    * Registra un nuevo router MikroTik.
    */
-  createNetworkRouter: async (
-    payload: { name: string; displayName: string; host: string; port: number; username: string; password?: string }
-  ): Promise<NetworkRouterConfig> => {
+  createNetworkRouter: async (payload: {
+    name: string;
+    displayName: string;
+    host: string;
+    port: number;
+    username: string;
+    password?: string;
+  }): Promise<NetworkRouterConfig> => {
     const res = await apiPost<NetworkRouterConfig | { data: NetworkRouterConfig }>(
       "/api/admin/settings/network/routers",
       payload,
@@ -126,7 +134,14 @@ export const settingsApi = {
    */
   updateNetworkRouter: async (
     id: string,
-    payload: Partial<{ displayName: string; host: string; port: number; username: string; password?: string; isActive: boolean }>
+    payload: Partial<{
+      displayName: string;
+      host: string;
+      port: number;
+      username: string;
+      password?: string;
+      isActive: boolean;
+    }>,
   ): Promise<NetworkRouterConfig> => {
     const res = await apiPut<NetworkRouterConfig | { data: NetworkRouterConfig }>(
       `/api/admin/settings/network/routers/${id}`,
@@ -147,7 +162,15 @@ export const settingsApi = {
    */
   createNetworkOlt: async (
     routerId: string,
-    payload: { name: string; displayName?: string; ip: string; brand: string; username?: string; password?: string; slot?: string }
+    payload: {
+      name: string;
+      displayName?: string;
+      ip: string;
+      brand: string;
+      username?: string;
+      password?: string;
+      slot?: string;
+    },
   ): Promise<NetworkOltConfig> => {
     const res = await apiPost<NetworkOltConfig | { data: NetworkOltConfig }>(
       `/api/admin/settings/network/routers/${routerId}/olts`,
@@ -162,7 +185,15 @@ export const settingsApi = {
   updateNetworkOlt: async (
     routerId: string,
     oltId: string,
-    payload: Partial<{ displayName: string; ip: string; brand: string; username?: string; password?: string; slot?: string; isActive: boolean }>
+    payload: Partial<{
+      displayName: string;
+      ip: string;
+      brand: string;
+      username?: string;
+      password?: string;
+      slot?: string;
+      isActive: boolean;
+    }>,
   ): Promise<NetworkOltConfig> => {
     const res = await apiPut<NetworkOltConfig | { data: NetworkOltConfig }>(
       `/api/admin/settings/network/routers/${routerId}/olts/${oltId}`,
@@ -183,7 +214,7 @@ export const settingsApi = {
    */
   getRouterPassword: async (routerId: string): Promise<string> => {
     const res = await apiGet<{ success: boolean; password: string }>(
-      `/api/admin/settings/network/routers/${routerId}/password`
+      `/api/admin/settings/network/routers/${routerId}/password`,
     );
     return res.password;
   },
@@ -193,7 +224,7 @@ export const settingsApi = {
    */
   getOltPassword: async (routerId: string, oltId: string): Promise<string> => {
     const res = await apiGet<{ success: boolean; password: string }>(
-      `/api/admin/settings/network/routers/${routerId}/olts/${oltId}/password`
+      `/api/admin/settings/network/routers/${routerId}/olts/${oltId}/password`,
     );
     return res.password;
   },
@@ -201,20 +232,18 @@ export const settingsApi = {
   /**
    * Prueba conectividad SSH en vivo con un router MikroTik.
    */
-  testNetworkConnection: async (
-    payload: {
-      type?: "router" | "olt";
-      host?: string;
-      port?: number;
-      username?: string;
-      password?: string;
-      routerId?: string;
-      routerName?: string;
-      oltId?: string;
-      oltName?: string;
-      validateOlts?: boolean;
-    }
-  ): Promise<TestNetworkConnectionResult> => {
+  testNetworkConnection: async (payload: {
+    type?: "router" | "olt";
+    host?: string;
+    port?: number;
+    username?: string;
+    password?: string;
+    routerId?: string;
+    routerName?: string;
+    oltId?: string;
+    oltName?: string;
+    validateOlts?: boolean;
+  }): Promise<TestNetworkConnectionResult> => {
     const res = await apiPost<TestNetworkConnectionResult | { data: TestNetworkConnectionResult }>(
       "/api/admin/settings/network/test-connection",
       payload,
