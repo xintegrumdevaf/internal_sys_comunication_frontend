@@ -74,3 +74,54 @@ export interface ListAiModelsResult {
   inferenceModels: AiModelInfo[];
   embeddingModels: AiModelInfo[];
 }
+
+export type OltBrand = "v-sol" | "huawei" | "c-data" | "kingtype" | "s/m";
+
+export interface NetworkOltConfig {
+  id: string;
+  routerId: string;
+  name: string;
+  displayName: string;
+  ip: string;
+  brand: OltBrand;
+  username: string;
+  password?: string;
+  hasPassword: boolean;
+  slot?: string | null;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface NetworkRouterConfig {
+  id: string;
+  name: string;
+  displayName: string;
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  hasPassword: boolean;
+  isActive: boolean;
+  olts: NetworkOltConfig[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TestNetworkConnectionResult {
+  success: boolean;
+  latencyMs: number;
+  message: string;
+  error?: string;
+  details?: {
+    router?: { success: boolean; latencyMs: number };
+    olts?: Array<{
+      id: string;
+      name: string;
+      displayName?: string | null;
+      success: boolean;
+      latencyMs: number;
+      error?: string;
+    }>;
+  };
+}

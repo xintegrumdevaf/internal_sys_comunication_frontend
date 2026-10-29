@@ -123,3 +123,22 @@ export type AdvanceCasePayload = {
 export function advanceCase(caseId: string, payload: AdvanceCasePayload): Promise<CaseDto> {
   return apiPost<CaseDto>(`/api/cases/${caseId}/advance`, payload);
 }
+
+export function syncCaseBalance(
+  caseId: string,
+): Promise<{ caseId: string; hasDebt: boolean; amount: number; nationalId: string }> {
+  return apiPost(`/api/cases/${caseId}/sync-balance`);
+}
+
+export function syncCaseData(
+  caseId: string,
+): Promise<{ caseId: string; nationalId: string; contract?: unknown; balance?: unknown }> {
+  return apiPost(`/api/cases/${caseId}/sync-data`);
+}
+
+export function diagnoseCase(
+  caseId: string,
+  contractId?: string,
+): Promise<{ caseId: string; status: string; diagnostic?: string; technical?: unknown }> {
+  return apiPost(`/api/cases/${caseId}/diagnose`, contractId ? { contractId } : {});
+}

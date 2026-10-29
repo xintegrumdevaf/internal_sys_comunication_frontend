@@ -1,5 +1,9 @@
 import type { DepartmentDto } from "@/modules/identity/domain/department";
-import { isSupervisor, type SessionUser } from "@/modules/identity/domain/session";
+import {
+  isSupervisor,
+  isSupportManager,
+  type SessionUser,
+} from "@/modules/identity/domain/session";
 
 export function isSupervisorSession(session: SessionUser | null | undefined): boolean {
   return isSupervisor(session);
@@ -46,6 +50,7 @@ const AUTHENTICATED_PATHS = new Set(["/", "/bandeja", "/contactos", "/chat-inter
 export function canAccessPath(session: SessionUser | null | undefined, pathname: string): boolean {
   if (!session) return pathname === "/login";
   if (session.role === "admin") return true;
+  if (pathname === "/configuracion") return isSupportManager(session);
   if (ADMIN_ONLY_PATHS.has(pathname)) return false;
   if (SUPERVISOR_PATHS.has(pathname)) return isSupervisor(session);
   if (AUTHENTICATED_PATHS.has(pathname)) return true;

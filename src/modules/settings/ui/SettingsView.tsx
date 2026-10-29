@@ -1,6 +1,9 @@
+import { useSession } from "@/modules/identity/application/use-session";
+import { isSupportManager } from "@/modules/identity/domain/session";
 import { useState, useEffect } from "react";
 import {
   MessageSquare,
+  Server,
   Bot,
   CheckCircle2,
   AlertTriangle,
@@ -39,6 +42,7 @@ import { ZernioSyncCard } from "./ZernioSyncCard";
 import { WhatsAppChannelsCard } from "./WhatsAppChannelsCard";
 import { AISettingsCard } from "./AISettingsCard";
 import { CoverageSettingsCard } from "./CoverageSettingsCard";
+import { NetworkSettingsCard } from "./NetworkSettingsCard";
 import { settingsApi } from "../infrastructure/settings.api";
 import type {
   WhatsAppChannelSettings,
@@ -192,6 +196,9 @@ const DEFAULT_OLLAMA_MODELS: ListAiModelsResult = {
 };
 
 export function SettingsView() {
+  const session = useSession();
+  const isAdmin = session?.role === "admin";
+  const defaultTab = isAdmin ? "channels" : "network";
   const [loading, setLoading] = useState(true);
   const [savingChannels, setSavingChannels] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
@@ -454,15 +461,23 @@ export function SettingsView() {
       </div>
 
       {/* Tabs Principales de Configuración */}
-      <Tabs defaultValue="channels" className="space-y-6">
-        <TabsList className="grid grid-cols-3 max-w-xl">
-          <TabsTrigger value="channels" className="gap-2">
-            <MessageSquare className="size-4" />
-            Canales de Mensajería
-          </TabsTrigger>
-          <TabsTrigger value="ai" className="gap-2">
-            <Bot className="size-4" />
-            Inteligencia Artificial
+      <Tabs defaultValue={defaultTab} className="space-y-6">
+        <TabsList className={`grid max-w-2xl ${isAdmin ? "grid-cols-4" : "grid-cols-2"}`}>
+          {isAdmin && (
+            <TabsTrigger value="channels" className="gap-2">
+              <MessageSquare className="size-4" />
+              Canales de Mensajería
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="ai" className="gap-2">
+              <Bot className="size-4" />
+              Inteligencia Artificial
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="network" className="gap-2">
+            <Server className="size-4" />
+            Routers y OLTs
           </TabsTrigger>
           <TabsTrigger value="coverage" className="gap-2">
             <MapPin className="size-4" />
@@ -501,6 +516,11 @@ export function SettingsView() {
             handleFetchAiModels={handleFetchAiModels}
             fetchingModels={fetchingModels}
           />
+        </TabsContent>
+
+        {/* --- Pestaña: Infraestructura de Red (Routers y OLTs) --- */}
+        <TabsContent value="network" className="space-y-6">
+          <NetworkSettingsCard />
         </TabsContent>
 
         {/* --- Pestaña: Cobertura Geográfica (KML) --- */}

@@ -9,6 +9,8 @@ export type AgentDto = {
   primaryDepartmentId: string | null;
   /** Departamentos a los que pertenece el agente (multidepartamento). */
   departmentIds: string[];
+  /** Colas activas en las que el agente atiende en su turno actual. */
+  activeDepartmentIds?: string[];
   active: boolean;
   /** Opt-in al pool de auto-asignación de su área principal. Default false. */
   autoAssignEnabled: boolean;

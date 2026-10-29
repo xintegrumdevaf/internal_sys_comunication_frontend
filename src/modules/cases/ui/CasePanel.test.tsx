@@ -1,3 +1,4 @@
+import type { ContractDto } from "@/modules/customers/domain/customer";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CasePanel } from "./CasePanel";
@@ -278,5 +279,214 @@ describe("CasePanel - Desambiguación de Contratos", () => {
     expect(onAdvanceMock).toHaveBeenCalledWith({
       answer: "Luz roja LOS encendida",
     });
+  });
+
+  it("invoca onSyncData al pulsar el botón Actualizar", () => {
+    const onSyncDataMock = vi.fn();
+    render(
+      <CasePanel
+        caseDto={mockCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onSyncData={onSyncDataMock}
+      />,
+    );
+
+    const updateBtn = screen.getByRole("button", { name: /Actualizar/i });
+    fireEvent.click(updateBtn);
+    expect(onSyncDataMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("muestra el botón Diagnosticar conexión en SUPPORT_INTERNET y llama a onDiagnose", () => {
+    const onDiagnoseMock = vi.fn();
+    const supportWithContract: CaseDto = {
+      ...mockCase,
+      workflowType: "SUPPORT_INTERNET",
+      context: {
+        workflowType: "SUPPORT_INTERNET",
+        data: {
+          contract: {
+            sector: "pomasqui",
+            serial: "SERIAL1234",
+          },
+        },
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={supportWithContract}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onDiagnose={onDiagnoseMock}
+      />,
+    );
+
+    const diagBtn = screen.getByRole("button", { name: /Diagnosticar conexión/i });
+    expect(diagBtn).toBeInTheDocument();
+    fireEvent.click(diagBtn);
+    expect(onDiagnoseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("muestra el botón Diagnosticar conexión activo si hay datos técnicos en facturación (BILLING_BALANCE)", () => {
+    const onDiagnoseMock = vi.fn();
+    const billingCase: CaseDto = {
+      ...mockCase,
+      workflowType: "BILLING_BALANCE",
+      context: {
+        workflowType: "BILLING_BALANCE",
+        data: {
+          balance: { hasDebt: true, amount: 25 },
+          contract: { sector: "PIFO", serial: "SN1234" },
+        },
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={billingCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onDiagnose={onDiagnoseMock}
+      />,
+    );
+
+    const diagBtn = screen.getByRole("button", { name: /Diagnosticar conexi/i });
+    expect(diagBtn).toBeInTheDocument();
+    expect(diagBtn).not.toBeDisabled();
+    fireEvent.click(diagBtn);
+    expect(onDiagnoseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("desactiva el botón Diagnosticar conexión si no hay datos técnicos ni contrato", () => {
+    const caseWithoutContract: CaseDto = {
+      ...mockCase,
+      context: {
+        workflowType: "BILLING_BALANCE",
+        data: {},
+      },
+    };
+
+    render(
+      <CasePanel
+        caseDto={caseWithoutContract}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        onDiagnose={vi.fn()}
+      />,
+    );
+
+    const diagBtn = screen.getByRole("button", { name: /Diagnóstico no disponible/i });
+    expect(diagBtn).toBeInTheDocument();
+    expect(diagBtn).toBeDisabled();
+  });
+
+  it("no muestra el botón Diagnosticar conexión si no se provee onDiagnose", () => {
+    render(
+      <CasePanel
+        caseDto={mockCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Diagnosticar conexi/i })).not.toBeInTheDocument();
+  });
+  it("muestra el selector de contratos si el cliente tiene múltiples contratos y envía el id al diagnosticar", () => {
+    const onDiagnoseMock = vi.fn();
+    const customerContracts = [
+      {
+        id: "contract-1",
+        customerId: "cust-1",
+        contractNumber: "5279",
+        sector: "PIFO",
+        oltName: "pifo",
+        pon: "1",
+        serial: "DF30E67B6ADD",
+        routerModel: null,
+        status: "activo",
+        createdAt: "2026-01-01",
+      },
+      {
+        id: "contract-2",
+        customerId: "cust-1",
+        contractNumber: "5280",
+        sector: "MTK",
+        oltName: "mtk-olt",
+        pon: "2",
+        serial: "SERIALMTK99",
+        routerModel: null,
+        status: "activo",
+        createdAt: "2026-01-01",
+      },
+    ];
+
+    render(
+      <CasePanel
+        caseDto={mockCase}
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+        customerContracts={customerContracts as unknown as ContractDto[]}
+        onDiagnose={onDiagnoseMock}
+      />,
+    );
+
+    // Debe mostrar los botones de ambos contratos
+    const btnContract1 = screen.getByRole("button", { name: /^#5279/i });
+    const btnContract2 = screen.getByRole("button", { name: /^#5280/i });
+    expect(btnContract1).toBeInTheDocument();
+    expect(btnContract2).toBeInTheDocument();
+
+    // Al hacer clic en el segundo contrato (#5280)
+    fireEvent.click(btnContract2);
+
+    // El botón de diagnóstico ahora indica el contrato #5280
+    const diagBtn = screen.getByRole("button", { name: /Diagnosticar contrato #5280/i });
+    expect(diagBtn).toBeInTheDocument();
+
+    // Al hacer clic en diagnosticar, debe llamar a onDiagnose con "contract-2"
+    fireEvent.click(diagBtn);
+    expect(onDiagnoseMock).toHaveBeenCalledWith("contract-2");
   });
 });

@@ -27,11 +27,12 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { canAccessPath, modulesForSession } from "@/modules/identity/application/access-control";
 import {
   useAuth,
+  useDepartmentsQuery,
   useMyAvailability,
   useSession,
   useSessionLoading,
@@ -96,10 +97,15 @@ export function AppShell({
   const { logout } = useAuth();
   const {
     autoAssignEnabled,
+    activeDepartmentIds,
     setAvailability,
     toggleAvailability,
+    toggleDepartmentQueue,
     updating: updatingAvailability,
   } = useMyAvailability();
+  const { data: allDepartments } = useDepartmentsQuery();
+  const [queueMenuOpen, setQueueMenuOpen] = useState(false);
+  const queueMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -108,6 +114,53 @@ export function AppShell({
 
   useRealtimeSession(session?.id ?? null);
   const connected = useRealtimeConnected();
+
+  const activeIds = useMemo(() => {
+    return activeDepartmentIds ?? session?.activeDepartmentIds ?? [];
+  }, [activeDepartmentIds, session?.activeDepartmentIds]);
+
+  // Departamentos asociados a este agente (principal + membresías o todos si es admin)
+  const userDepartments = useMemo(() => {
+    if (!session || !Array.isArray(allDepartments)) return [];
+    if (session.role === "admin") {
+      const ids = new Set([
+        ...(session.primaryDepartmentId ? [session.primaryDepartmentId] : []),
+        ...(session.departmentIds ?? []),
+      ]);
+      return ids.size > 0 ? allDepartments.filter((d) => ids.has(d.id)) : allDepartments;
+    }
+    const ids = new Set([
+      ...(session.primaryDepartmentId ? [session.primaryDepartmentId] : []),
+      ...(session.departmentIds ?? []),
+    ]);
+    return allDepartments.filter((d) => ids.has(d.id));
+  }, [session, allDepartments]);
+
+  const activeQueuesCount = useMemo(() => {
+    return userDepartments.filter((d) => activeIds.includes(d.id)).length;
+  }, [userDepartments, activeIds]);
+
+  const queueSummaryLabel = useMemo(() => {
+    if (!autoAssignEnabled) return "En pausa";
+    if (activeQueuesCount === 0) return "Sin colas";
+    if (activeQueuesCount === 1) {
+      const activeDept = userDepartments.find((d) => activeIds.includes(d.id));
+      return activeDept ? activeDept.name : "1 cola";
+    }
+    return `${activeQueuesCount} colas`;
+  }, [autoAssignEnabled, activeQueuesCount, userDepartments, activeIds]);
+
+  // Cerrar popover de colas al hacer clic afuera
+  useEffect(() => {
+    if (!queueMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (queueMenuRef.current && !queueMenuRef.current.contains(e.target as Node)) {
+        setQueueMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [queueMenuOpen]);
 
   // Cerrar menú móvil al cambiar de ruta
   useEffect(() => {
@@ -219,6 +272,52 @@ export function AppShell({
                 aria-label="Disponibilidad para asignación automática"
               />
             </div>
+            {userDepartments.length > 1 && (
+              <div className="px-3.5 py-2.5 border-b border-border bg-muted/10 space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Colas activas (Turno)</span>
+                  <span className="text-[9px] font-normal lowercase">
+                    {activeQueuesCount} activas
+                  </span>
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+                  {userDepartments.map((dept) => {
+                    const isPrimary = dept.id === session?.primaryDepartmentId;
+                    const isQueueActive = activeIds.includes(dept.id);
+                    return (
+                      <div
+                        key={dept.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/70 text-xs shadow-2xs"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="font-semibold text-foreground truncate flex items-center gap-1.5">
+                            <span>{dept.name}</span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                                isPrimary
+                                  ? "bg-primary/10 text-primary border border-primary/20"
+                                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              }`}
+                            >
+                              {isPrimary ? "Principal" : "Suplente"}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {isQueueActive ? "Recibiendo casos" : "Pausada"}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={isQueueActive}
+                          disabled={updatingAvailability}
+                          onCheckedChange={() => void toggleDepartmentQueue(dept.id)}
+                          aria-label={`Activar cola ${dept.name}`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setChangePasswordOpen(true)}
@@ -328,33 +427,141 @@ export function AppShell({
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Toggle de Disponibilidad / Asignación en Header */}
-            <button
-              type="button"
-              disabled={updatingAvailability}
-              onClick={() => void toggleAvailability()}
-              title={
-                autoAssignEnabled
-                  ? "Disponible para asignación automática (clic para pausar)"
-                  : "En pausa / Desconectado de asignación (clic para activar)"
-              }
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold transition-all shadow-xs cursor-pointer ${
-                autoAssignEnabled
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
-                  : "bg-background border-border text-foreground/80 hover:bg-foreground/5 hover:text-foreground"
-              }`}
-            >
-              <span
-                className={`size-2 rounded-full ${
+            {userDepartments.length <= 1 ? (
+              <button
+                type="button"
+                disabled={updatingAvailability}
+                onClick={() => void toggleAvailability()}
+                title={
                   autoAssignEnabled
-                    ? "bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20"
-                    : "bg-amber-500"
+                    ? "Disponible para asignación automática (clic para pausar)"
+                    : "En pausa / Desconectado de asignación (clic para activar)"
+                }
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold transition-all shadow-xs cursor-pointer ${
+                  autoAssignEnabled
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                    : "bg-background border-border text-foreground/80 hover:bg-foreground/5 hover:text-foreground"
                 }`}
-              />
-              <span className="hidden sm:inline font-bold">
-                {autoAssignEnabled ? "Disponible" : "En pausa"}
-              </span>
-              <Power className="size-3 ml-0.5 text-muted-foreground" />
-            </button>
+              >
+                <span
+                  className={`size-2 rounded-full ${
+                    autoAssignEnabled
+                      ? "bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20"
+                      : "bg-amber-500"
+                  }`}
+                />
+                <span className="hidden sm:inline font-bold">
+                  {autoAssignEnabled ? "Disponible" : "En pausa"}
+                </span>
+                <Power className="size-3 ml-0.5 text-muted-foreground" />
+              </button>
+            ) : (
+              <div className="relative" ref={queueMenuRef}>
+                <button
+                  type="button"
+                  disabled={updatingAvailability}
+                  onClick={() => setQueueMenuOpen((v) => !v)}
+                  title="Gestionar disponibilidad y colas de atención (suplencia / turnos)"
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold transition-all shadow-xs cursor-pointer ${
+                    autoAssignEnabled
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                      : "bg-background border-border text-foreground/80 hover:bg-foreground/5 hover:text-foreground"
+                  }`}
+                >
+                  <span
+                    className={`size-2 rounded-full ${
+                      autoAssignEnabled
+                        ? "bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20"
+                        : "bg-amber-500"
+                    }`}
+                  />
+                  <span className="hidden sm:inline font-bold">
+                    {autoAssignEnabled ? `Disponible · ${queueSummaryLabel}` : "En pausa"}
+                  </span>
+                  <ChevronDown
+                    className="size-3 ml-0.5 text-muted-foreground transition-transform duration-200"
+                    style={{ transform: queueMenuOpen ? "rotate(180deg)" : "none" }}
+                  />
+                </button>
+
+                {queueMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50 animate-fade-up p-3 space-y-3">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`size-2.5 rounded-full ${
+                            autoAssignEnabled
+                              ? "bg-emerald-500 animate-pulse"
+                              : "bg-muted-foreground/60"
+                          }`}
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-foreground">
+                            {autoAssignEnabled ? "Disponible" : "En pausa"}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {autoAssignEnabled
+                              ? "Recibiendo casos automáticos"
+                              : "Pausado (no recibe casos)"}
+                          </div>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={autoAssignEnabled}
+                        disabled={updatingAvailability}
+                        onCheckedChange={(checked) => void setAvailability(checked)}
+                        aria-label="Disponibilidad global"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
+                        <span>Colas de atención</span>
+                        <span className="text-[9px] font-normal lowercase">
+                          {activeQueuesCount} activas
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {userDepartments.map((dept) => {
+                          const isPrimary = dept.id === session?.primaryDepartmentId;
+                          const isQueueActive = activeIds.includes(dept.id);
+                          return (
+                            <div
+                              key={dept.id}
+                              className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/60 transition-colors"
+                            >
+                              <div className="min-w-0 pr-2">
+                                <div className="text-xs font-semibold text-foreground truncate flex items-center gap-1.5">
+                                  <span>{dept.name}</span>
+                                  <span
+                                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                                      isPrimary
+                                        ? "bg-primary/10 text-primary border border-primary/20"
+                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                    }`}
+                                  >
+                                    {isPrimary ? "Principal" : "Suplente"}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {isQueueActive ? "Asignación activa" : "Inactivo en esta cola"}
+                                </div>
+                              </div>
+                              <Switch
+                                checked={isQueueActive}
+                                disabled={updatingAvailability}
+                                onCheckedChange={() => void toggleDepartmentQueue(dept.id)}
+                                aria-label={`Activar cola ${dept.name}`}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-[11px] text-muted-foreground font-medium">
               {connected ? (

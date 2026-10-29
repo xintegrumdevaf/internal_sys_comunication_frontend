@@ -332,6 +332,9 @@ export function OperationalInbox({
     disableAutomation,
     reactivateAutomation,
     advanceCase,
+    syncCaseData,
+    diagnoseCase,
+    syncBalance,
     sendReply,
     sendTemplate,
   } = useOperationalInbox({
@@ -1638,6 +1641,7 @@ export function OperationalInbox({
                 customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
                 customerTags={selectedCustomer?.tags}
                 customerContractsCount={selectedCustomer?.contracts?.length}
+                customerContracts={selectedCustomer?.contracts}
                 onOpenContact={() => void handleOpenContact()}
                 busy={busy}
                 canWrite={canWriteCase}
@@ -1648,6 +1652,9 @@ export function OperationalInbox({
                   if (activeCase) void loadCaseSummary(activeCase.id);
                   setSummaryOpen(true);
                 }}
+                onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+                onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+                onDiagnose={(contractId) => void diagnoseCase(contractId)}
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
@@ -1697,6 +1704,7 @@ export function OperationalInbox({
               customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
               customerTags={selectedCustomer?.tags}
               customerContractsCount={selectedCustomer?.contracts?.length}
+              customerContracts={selectedCustomer?.contracts}
               onOpenContact={() => void handleOpenContact()}
               busy={busy}
               canWrite={canWriteCase}
@@ -1707,6 +1715,9 @@ export function OperationalInbox({
                 if (activeCase) void loadCaseSummary(activeCase.id);
                 setSummaryOpen(true);
               }}
+              onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+              onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
+              onDiagnose={(contractId) => void diagnoseCase(contractId)}
               onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}

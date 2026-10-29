@@ -17,6 +17,8 @@ export type SessionUser = {
   primaryDepartmentId: string | null;
   /** Departamentos a los que pertenece el agente. */
   departmentIds: string[];
+  /** Colas de departamentos activas en este turno. */
+  activeDepartmentIds?: string[];
   departmentSlug: string | null;
   departmentName: string | null;
   roleLabel: string;
@@ -57,6 +59,13 @@ export function toSessionUser(agent: AgentDto, departments: DepartmentDto[]): Se
         ? [agent.primaryDepartmentId]
         : [];
 
+  const rawActive =
+    Array.isArray(agent.activeDepartmentIds) && agent.activeDepartmentIds.length > 0
+      ? agent.activeDepartmentIds
+      : agent.primaryDepartmentId
+        ? [agent.primaryDepartmentId]
+        : departmentIds;
+
   return {
     id: agent.id,
     name: agent.name,
@@ -66,6 +75,7 @@ export function toSessionUser(agent: AgentDto, departments: DepartmentDto[]): Se
     active: agent.active,
     primaryDepartmentId: agent.primaryDepartmentId,
     departmentIds,
+    activeDepartmentIds: rawActive,
     departmentSlug: department?.slug ?? null,
     departmentName: department?.name ?? null,
     roleLabel: roleLabel(agent.role, department?.name ?? null),
@@ -81,4 +91,22 @@ export function isSupervisor(user: Pick<SessionUser, "role"> | null | undefined)
 
 export function isAdminRole(user: Pick<SessionUser, "role"> | null | undefined): boolean {
   return user?.role === "admin";
+}
+
+export function isSupportManager(user: SessionUser | null | undefined): boolean {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "manager") {
+    const slug = (user.departmentSlug || "").toLowerCase();
+    const name = (user.departmentName || "").toLowerCase();
+    return (
+      slug === "support" ||
+      slug === "soporte" ||
+      slug === "soporte-tecnico" ||
+      slug === "tecnico" ||
+      name.includes("soporte") ||
+      name.includes("support")
+    );
+  }
+  return false;
 }
