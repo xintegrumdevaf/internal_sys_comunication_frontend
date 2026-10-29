@@ -238,6 +238,11 @@ export function NetworkSettingsCard() {
     try {
       setTestingOltId(olt.id);
       const res = await settingsApi.testNetworkConnection({
+        type: "olt",
+        host: router.host,
+        ip: olt.ip,
+        port: router.port,
+        username: router.username,
         routerId: router.id,
         routerName: router.name,
         oltId: olt.id,
@@ -269,8 +274,14 @@ export function NetworkSettingsCard() {
     try {
       setTestingRouterId(router.id);
       const res = await settingsApi.testNetworkConnection({
+        type: "router",
+        host: router.host,
+        ip: router.host,
+        port: router.port,
+        username: router.username,
         routerId: router.id,
         routerName: router.name,
+        validateOlts: true,
       });
       setConnectionResults((prev) => ({ ...prev, [router.id]: res }));
 
