@@ -8,6 +8,7 @@ export type AgentRaw = {
   role?: AgentRole;
   primaryDepartmentId?: string | null;
   departmentIds?: string[] | null;
+  activeDepartmentIds?: string[] | null;
   active?: boolean;
   createdAt?: string;
   autoAssignEnabled?: boolean | null;
@@ -28,6 +29,10 @@ export function normalizeAgent(raw: AgentRaw): AgentDto {
         ? [raw.primaryDepartmentId]
         : [];
 
+  const rawActiveDepartmentIds = Array.isArray(raw.activeDepartmentIds)
+    ? raw.activeDepartmentIds.filter((d): d is string => typeof d === "string")
+    : undefined;
+
   return {
     id: raw.id,
     name: raw.name ?? "",
@@ -35,6 +40,7 @@ export function normalizeAgent(raw: AgentRaw): AgentDto {
     role: raw.role ?? "agent",
     primaryDepartmentId: raw.primaryDepartmentId ?? null,
     departmentIds,
+    activeDepartmentIds: rawActiveDepartmentIds,
     active: raw.active ?? true,
     autoAssignEnabled: Boolean(raw.autoAssignEnabled),
     mustChangePassword: Boolean(raw.mustChangePassword),

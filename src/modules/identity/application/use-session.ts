@@ -126,10 +126,12 @@ export function useMyAvailability() {
   const session = useSession();
 
   const mutation = useMutation({
-    mutationFn: (autoAssignEnabled: boolean) => authGateway.updateMyAvailability(autoAssignEnabled),
+    mutationFn: (payload: boolean | authGateway.UpdateAvailabilityPayload) =>
+      authGateway.updateMyAvailability(payload),
     onSuccess: (updatedAgent) => {
       queryClient.setQueryData<AgentDto | null>(["session", "me"], updatedAgent);
       void queryClient.invalidateQueries({ queryKey: ["agents"] });
+      void queryClient.invalidateQueries({ queryKey: ["session", "me"] });
       toast.success(
         updatedAgent.autoAssignEnabled ? "Disponible para asignación" : "En pausa / Desconectado",
       );
@@ -143,10 +145,31 @@ export function useMyAvailability() {
     },
   });
 
+  const toggleDepartmentQueue = async (deptId: string) => {
+    if (!session) return;
+    const currentActive = new Set(session.activeDepartmentIds ?? []);
+    if (currentActive.has(deptId)) {
+      currentActive.delete(deptId);
+    } else {
+      currentActive.add(deptId);
+    }
+    const nextList = [...currentActive];
+    const shouldEnableAutoAssign =
+      nextList.length > 0 && !session.autoAssignEnabled ? true : undefined;
+
+    await mutation.mutateAsync({
+      activeDepartmentIds: nextList,
+      ...(shouldEnableAutoAssign !== undefined ? { autoAssignEnabled: shouldEnableAutoAssign } : {}),
+    });
+    toast.success("Colas de atención actualizadas");
+  };
+
   return {
     autoAssignEnabled: session?.autoAssignEnabled ?? false,
+    activeDepartmentIds: session?.activeDepartmentIds ?? [],
     setAvailability: (enabled: boolean) => mutation.mutateAsync(enabled),
     toggleAvailability: () => mutation.mutateAsync(!session?.autoAssignEnabled),
+    toggleDepartmentQueue,
     updating: mutation.isPending,
   };
 }

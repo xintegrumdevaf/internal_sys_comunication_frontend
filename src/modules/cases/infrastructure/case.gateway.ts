@@ -126,6 +126,9 @@ export function syncCaseData(caseId: string): Promise<{ caseId: string; national
   return apiPost(`/api/cases/${caseId}/sync-data`);
 }
 
-export function diagnoseCase(caseId: string): Promise<{ caseId: string; status: string; diagnostic?: string; technical?: unknown }> {
-  return apiPost(`/api/cases/${caseId}/diagnose`);
+export function diagnoseCase(
+  caseId: string,
+  contractId?: string,
+): Promise<{ caseId: string; status: string; diagnostic?: string; technical?: unknown }> {
+  return apiPost(`/api/cases/${caseId}/diagnose`, contractId ? { contractId } : {});
 }

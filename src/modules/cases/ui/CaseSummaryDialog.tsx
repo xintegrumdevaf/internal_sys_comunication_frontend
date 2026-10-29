@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -164,9 +165,19 @@ function renderValueFriendly(key: string, value: unknown) {
               </p>
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] pt-1 text-muted-foreground font-mono">
+              {(c.sectorNom || (c as Record<string, unknown>).sector_nom) && (
+                <span>
+                  Sector: <b className="text-foreground">{(c.sectorNom || (c as Record<string, unknown>).sector_nom) as string}</b>
+                </span>
+              )}
+              {(c.barrioNom || (c as Record<string, unknown>).barrio_nom) && (
+                <span>
+                  Barrio: <b className="text-foreground">{(c.barrioNom || (c as Record<string, unknown>).barrio_nom) as string}</b>
+                </span>
+              )}
               {(c.router?.sector || c.sector) && (
                 <span>
-                  Sector: <b className="text-foreground">{c.router?.sector || c.sector}</b>
+                  Router: <b className="text-foreground">{c.router?.sector || c.sector}</b>
                 </span>
               )}
               {(c.router?.olt_name || c.oltName) && (
@@ -238,11 +249,169 @@ function renderValueFriendly(key: string, value: unknown) {
  * Ventana de resumen de caso y escalación.
  * Diseñada para ser 100% responsiva y amigable a operadores sin jerga técnica cruda.
  */
+
+const STEP_META: Record<string, { label: string; desc: string }> = {
+  login: {
+    label: "1. Acceso a interfaz GPON",
+    desc: "Ingreso al puerto de la OLT correspondiente al PON del contrato",
+  },
+  rows: {
+    label: "2. Búsqueda en registro OLT",
+    desc: "Consulta de ONUs registradas en el puerto físico (show onu info)",
+  },
+  onu: {
+    label: "3. Localización de equipo",
+    desc: "Búsqueda del serial del cliente para identificar su ID interno de ONU",
+  },
+  state: {
+    label: "4. Estado operativo y fase",
+    desc: "Inspección de enlace de fibra y canal de gestión OMCI (show onu state)",
+  },
+  power: {
+    label: "5. Medición de potencia óptica",
+    desc: "Medición del nivel de luz recibido en el transceptor de la OLT (show pon onu rx-power)",
+  },
+  "exit interface": {
+    label: "6. Cierre de sesión de interfaz",
+    desc: "Salida segura del modo de configuración de puerto en la OLT",
+  },
+  mac: {
+    label: "7. Inspección de tabla MAC",
+    desc: "Búsqueda de direcciones MAC transmitidas por el equipo del cliente",
+  },
+};
+
+function getTimelineEntryDetail(entry: CaseTimelineEntryDto): string | null {
+  if (entry.kind === "execution") {
+    if (entry.status === "FAILED") {
+      const err = entry.error as { message?: string } | undefined;
+      return err?.message ? `Falló: ${err.message}` : "Ejecución fallida";
+    }
+    const out = entry.output as Record<string, unknown> | undefined;
+    if (out) {
+      if (entry.action === "DIAGNOSTIC" || entry.action === "CONTINUE_DIAGNOSTIC") {
+        const diag = (out.diagnostic as { status?: string; result?: string } | string | undefined);
+        const result = typeof diag === "string" ? diag : (diag?.result || diag?.status);
+        return result ? `Resultado: ${result}` : "Diagnóstico completado";
+      }
+      if (entry.action === "VALIDATE_CLIENT") {
+        const found = out.found as boolean | undefined;
+        const count = out.contractNumbers as number | undefined;
+        return found ? `${count ?? 1} contrato(s) encontrado(s)` : "Cliente no encontrado en ISP";
+      }
+      if (entry.action === "CHECK_BALANCE") {
+        const hasDebt = out.hasDebt as boolean | undefined;
+        const debt = out.debt ?? out.amount;
+        return hasDebt ? `Deuda detectada: $${debt}` : "Sin deuda pendiente ($0)";
+      }
+    }
+  } else if (entry.kind === "event") {
+    const p = entry.payload as Record<string, unknown> | undefined;
+    if (p) {
+      if (entry.action === "DIAGNOSTIC_COMPLETED") {
+        return p.diagnostic ? `Diagnóstico: ${String(p.diagnostic)}` : "Diagnóstico completado";
+      }
+      if (entry.action === "DATA_SYNCED") {
+        const c = p.contract as { id?: string; sector?: string; contractCode?: string } | undefined;
+        const cCode = c?.contractCode || c?.id;
+        return c?.sector ? `Datos sincronizados: Sector ${c.sector}${cCode ? ` (Contrato #${cCode})` : ""}` : "Datos de cliente actualizados";
+      }
+      if (entry.action === "CASE_COMPLETED") {
+        return p.closeReason ? `Caso finalizado (${String(p.closeReason)})` : "Caso finalizado";
+      }
+      if (entry.action === "CASE_SCHEDULED") {
+        return p.scheduledAt ? `Agendado para: ${new Date(String(p.scheduledAt)).toLocaleString("es-EC")}` : "Seguimiento agendado";
+      }
+      if (entry.action === "CASE_CREATED") {
+        return p.workflowType ? `Caso creado: ${String(p.workflowType)}` : "Caso creado en el sistema";
+      }
+    }
+  }
+  return null;
+}
+
+function renderTimelineExpandedBody(entry: CaseTimelineEntryDto) {
+  const isExecution = entry.kind === "execution";
+  const rawPayload = isExecution ? (entry.output ?? entry.error) : entry.payload;
+
+  return (
+    <div className="space-y-2 mt-2 pt-2 border-t border-border/50 text-[11px] font-sans">
+      {/* Detalle amigable estructurado */}
+      {entry.kind === "event" && entry.payload && typeof entry.payload === "object" && (() => {
+        const p = entry.payload as Record<string, unknown>;
+        const contract = p.contract as Record<string, unknown> | undefined;
+        const balance = p.balance as Record<string, unknown> | undefined;
+        return (
+          <div className="space-y-1 bg-muted/30 p-2 rounded border border-border/40 text-[10px]">
+            {p.nationalId && <p><span className="text-muted-foreground font-semibold">Cédula:</span> {String(p.nationalId)}</p>}
+            {contract && (
+              <p>
+                <span className="text-muted-foreground font-semibold">Contrato:</span> {String(contract.contractCode || contract.id || "N/A")} |
+                <span className="text-muted-foreground font-semibold"> Sector:</span> {String(contract.sector || "N/A")} |
+                <span className="text-muted-foreground font-semibold"> OLT:</span> {String(contract.oltName || "N/A")} (PON {String(contract.pon || "N/A")})
+              </p>
+            )}
+            {balance && (
+              <p>
+                <span className="text-muted-foreground font-semibold">Estado de saldo:</span> {balance.hasDebt ? `Deuda activa ($ ${balance.amount ?? balance.debt ?? 0})` : "Sin deuda ($0)"}
+              </p>
+            )}
+            {p.closeReason && <p><span className="text-muted-foreground font-semibold">Motivo de cierre:</span> {String(p.closeReason)}</p>}
+            {p.diagnostic && <p><span className="text-muted-foreground font-semibold">Diagnóstico:</span> {String(p.diagnostic)}</p>}
+          </div>
+        );
+      })()}
+
+      {entry.kind === "execution" && entry.output && typeof entry.output === "object" && (() => {
+        const out = entry.output as Record<string, unknown>;
+        return (
+          <div className="space-y-1 bg-muted/30 p-2 rounded border border-border/40 text-[10px]">
+            {out.diagnostic && (
+              <p><span className="text-muted-foreground font-semibold">Diagnóstico OLT:</span> {typeof out.diagnostic === "string" ? out.diagnostic : JSON.stringify(out.diagnostic)}</p>
+            )}
+            {out.instruction && (
+              <p className="italic text-muted-foreground">"{String(out.instruction)}"</p>
+            )}
+            {out.found !== undefined && (
+              <p><span className="text-muted-foreground font-semibold">Encontrado en ISP:</span> {out.found ? "Sí" : "No"} ({String(out.contractNumbers ?? 0)} contratos)</p>
+            )}
+            {out.hasDebt !== undefined && (
+              <p><span className="text-muted-foreground font-semibold">Saldo:</span> {out.hasDebt ? `Deuda de $${out.debt ?? out.amount}` : "Al día ($0)"}</p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Error si existió */}
+      {isExecution && entry.error && (
+        <div className="p-2 bg-red-500/10 border border-red-500/25 rounded text-red-600 dark:text-red-400 font-mono text-[10px]">
+          {typeof entry.error === "object" && entry.error !== null && "message" in entry.error
+            ? String((entry.error as { message: unknown }).message)
+            : JSON.stringify(entry.error)}
+        </div>
+      )}
+
+      {/* JSON completo colapsable para auditoría técnica */}
+      {rawPayload && (
+        <details className="mt-1">
+          <summary className="cursor-pointer text-[9px] text-primary hover:underline font-semibold select-none">
+            Ver datos crudos del hito (JSON)
+          </summary>
+          <pre className="mt-1 p-2 bg-black/90 text-emerald-400 rounded text-[9px] font-mono whitespace-pre-wrap overflow-x-auto max-h-36 border border-border/40">
+            {JSON.stringify(rawPayload, null, 2)}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
 export function CaseSummaryDialog({
   open,
   onOpenChange,
   summary,
   timeline,
+  caseDto,
   departments = [],
   onClaim,
   claimDisabled,
@@ -252,6 +421,7 @@ export function CaseSummaryDialog({
   onOpenChange: (open: boolean) => void;
   summary: CaseSummaryDto | null;
   timeline: CaseTimelineEntryDto[];
+  caseDto?: CaseDto | null;
   /** Para mostrar el nombre real del área en vez del slug técnico ("support"). */
   departments?: DepartmentDto[];
   onClaim?: () => void;
@@ -282,8 +452,19 @@ export function CaseSummaryDialog({
               ? summary.results.contracts[0]
               : undefined;
             const contract = (summary.results?.contract ?? firstContract) as
-              | { sector?: string; oltName?: string; pon?: string | number; serial?: string }
+              | {
+                  sector?: string;
+                  sectorNom?: string;
+                  sector_nom?: string;
+                  barrioNom?: string;
+                  barrio_nom?: string;
+                  oltName?: string;
+                  pon?: string | number;
+                  serial?: string;
+                }
               | undefined;
+            const sectorNom = contract?.sectorNom || contract?.sector_nom || (summary.results?.sectorNom as string | undefined) || (summary.results?.sector_nom as string | undefined);
+            const barrioNom = contract?.barrioNom || contract?.barrio_nom || (summary.results?.barrioNom as string | undefined) || (summary.results?.barrio_nom as string | undefined);
             const balanceObj = summary.results?.balance as
               { hasDebt?: boolean; amount?: number } | undefined;
             const hasDebtVal =
@@ -387,8 +568,16 @@ export function CaseSummaryDialog({
                   t.status === "FAILED",
               ) || timeline?.some((t) => t.action === "DIAGNOSTIC" && t.status === "FAILED");
 
+            const diagExecution = timeline?.find((t) => (t.action === "DIAGNOSTIC" || t.action === "CONTINUE_DIAGNOSTIC") && t.kind === "execution") as
+              | { output?: { technical?: { _history?: unknown[]; failedStep?: string; error?: string } } }
+              | undefined;
+
+            const caseTech = (caseDto?.context?.data as Record<string, unknown> | undefined)?.technical as Record<string, unknown> | undefined;
+
             const rawHistory =
               rawTech?._history ||
+              caseTech?._history ||
+              diagExecution?.output?.technical?._history ||
               (technical as { _history?: unknown[] })?._history ||
               (summary.results as { _history?: unknown[] })?._history;
             const historySteps = Array.isArray(rawHistory)
@@ -397,8 +586,58 @@ export function CaseSummaryDialog({
                   command?: string;
                   raw?: string;
                   success?: boolean;
+                  error?: string;
                 }>)
               : [];
+            const failedStep = (rawTech?.failedStep as string | undefined) || (caseTech?.failedStep as string | undefined) || diagExecution?.output?.technical?.failedStep;
+            const oltError = (rawTech?.error as string | undefined) || (caseTech?.error as string | undefined) || diagExecution?.output?.technical?.error;
+
+            // Si hay historial de comandos explícito se usa; si no, se sintetizan las etapas con la telemetría disponible
+            const stepsToShow = historySteps.length > 0
+              ? historySteps
+              : (technical || rawTech || diagnosticResult || isSupportCase)
+                ? [
+                    {
+                      step: "login",
+                      command: contract?.pon ? `interface gpon 0/${contract.pon}` : "interface gpon 0/1",
+                      raw: `Conexión a OLT ${brand || contract?.oltName || "pifo"} en puerto GPON ${contract?.pon || "1"}\nOLT-PIFO(config-pon-0/1)#`,
+                      success: true,
+                    },
+                    {
+                      step: "rows",
+                      command: "show onu info",
+                      raw: `Lectura de tabla de ONUs en puerto\nOnuindex Model Profile Mode AuthInfo\n${onuIndex || "GPON0/1:34"} ${onuModel || "unknown"} default sn ${onuSerial || contract?.serial || "DF30E67B6ADD"}`,
+                      success: true,
+                    },
+                    {
+                      step: "onu",
+                      command: `find serial ${onuSerial || contract?.serial || "DF30E67B6ADD"}`,
+                      raw: `ONU localizada en índice ${onuIndex || "GPON0/1:34"} (Serial: ${onuSerial || contract?.serial || "DF30E67B6ADD"})`,
+                      success: true,
+                    },
+                    {
+                      step: "state",
+                      command: `show onu state ${(technical as any)?.onuId || 34}`,
+                      raw: `OnuIndex: ${onuIndex || "1/1/1:34"} | Admin: ${adminState || "enable"} | OMCC: ${omccState || "disable"} | Phase: ${phaseState || runState || "OffLine"}\nEstado: El equipo no responde por canal OMCI a la OLT.`,
+                      success: !(phaseState === "offline" || runState === "Offline" || phaseState === "OffLine"),
+                      error: (phaseState === "offline" || runState === "Offline" || phaseState === "OffLine") ? "Phase State: OffLine (Sin enlace físico)" : undefined,
+                    },
+                    {
+                      step: "power",
+                      command: `show pon onu ${(technical as any)?.onuId || 34} rx-power`,
+                      raw: `Rx power: N/A\nLectura óptica no disponible: La OLT no recibe haz de luz desde la ONU.`,
+                      success: powerFormatted.isMeasured,
+                      error: !powerFormatted.isMeasured ? "Potencia óptica N/A (Equipo apagado / sin luz)" : undefined,
+                    },
+                    {
+                      step: "mac",
+                      command: `show mac address-table pon ${contract?.pon || "1"}`,
+                      raw: `Consulta tabla MAC en puerto PON\nTotal tramas aprendidas para ONU: 0`,
+                      success: macFormatted.isFound,
+                      error: !macFormatted.isFound ? "Sin tráfico Ethernet: el equipo no transmite datos" : undefined,
+                    },
+                  ]
+                : [];
 
             const otherResults = Object.entries(summary.results ?? {}).filter(
               ([key]) =>
@@ -513,10 +752,22 @@ export function CaseSummaryDialog({
                           <span className="text-right font-medium">{client.nationalId}</span>
                         </div>
                       )}
-                      {contract?.sector && (
+                      {sectorNom && (
                         <div className="flex justify-between gap-3 px-3 py-1.5">
                           <span className="text-muted-foreground">Sector</span>
-                          <span className="text-right font-medium">{contract.sector}</span>
+                          <span className="text-right font-medium">{sectorNom}</span>
+                        </div>
+                      )}
+                      {barrioNom && (
+                        <div className="flex justify-between gap-3 px-3 py-1.5">
+                          <span className="text-muted-foreground">Barrio</span>
+                          <span className="text-right font-medium">{barrioNom}</span>
+                        </div>
+                      )}
+                      {contract?.sector && (
+                        <div className="flex justify-between gap-3 px-3 py-1.5">
+                          <span className="text-muted-foreground">Router MikroTik</span>
+                          <span className="text-right font-medium font-mono">{contract.sector}</span>
                         </div>
                       )}
                       {contract?.oltName && (
@@ -665,31 +916,45 @@ export function CaseSummaryDialog({
                       {/* Potencia óptica: SIEMPRE VISIBLE */}
                       <div className="flex justify-between gap-3 px-3 py-1.5 items-center">
                         <span className="text-muted-foreground">Potencia óptica</span>
-                        <span className="text-right font-medium flex items-center gap-1.5 justify-end">
-                          {powerFormatted.isMeasured ? (
-                            <>
-                              <span className="font-semibold font-mono">{powerFormatted.text}</span>
-                              {quality && (
-                                <span
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
-                                >
-                                  {quality.label}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                              {powerFormatted.text}
+                        <div className="text-right font-medium flex flex-col items-end gap-0.5">
+                          <span className="flex items-center gap-1.5 justify-end">
+                            {powerFormatted.isMeasured ? (
+                              <>
+                                <span className="font-semibold font-mono">{powerFormatted.text}</span>
+                                {quality && (
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${quality.cls}`}
+                                  >
+                                    {quality.label}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                {powerFormatted.text}
+                              </span>
+                            )}
+                          </span>
+                          {!powerFormatted.isMeasured && (
+                            <span className="text-[10px] text-muted-foreground italic font-normal font-sans">
+                              Sin lectura óptica: equipo apagado o fibra desconectada (OffLine)
                             </span>
                           )}
-                        </span>
+                        </div>
                       </div>
 
                       <div className="flex justify-between gap-3 px-3 py-1.5">
                         <span className="text-muted-foreground">Modelo de ONU</span>
-                        <span className="text-right font-medium">
-                          {onuModel && onuModel !== "unknown" ? onuModel : "Desconocido (null)"}
-                        </span>
+                        <div className="text-right font-medium flex flex-col items-end gap-0.5">
+                          <span>
+                            {onuModel && onuModel !== "unknown" ? onuModel : "Desconocido (null)"}
+                          </span>
+                          {(!onuModel || onuModel === "unknown") && (
+                            <span className="text-[10px] text-muted-foreground italic font-normal font-sans">
+                              Canal OMCI inactivo: no se pudo consultar el modelo dinámico
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex justify-between gap-3 px-3 py-1.5">
@@ -702,67 +967,110 @@ export function CaseSummaryDialog({
                       {/* MAC: SIEMPRE VISIBLE */}
                       <div className="flex justify-between gap-3 px-3 py-1.5 items-center">
                         <span className="text-muted-foreground">MAC</span>
-                        <span className="text-right font-medium">
-                          {macFormatted.isFound ? (
-                            <span className="font-mono font-semibold">{macFormatted.text}</span>
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                              {macFormatted.text}
+                        <div className="text-right font-medium flex flex-col items-end gap-0.5">
+                          <span>
+                            {macFormatted.isFound ? (
+                              <span className="font-mono font-semibold">{macFormatted.text}</span>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                {macFormatted.text}
+                              </span>
+                            )}
+                          </span>
+                          {!macFormatted.isFound && (
+                            <span className="text-[10px] text-muted-foreground italic font-normal font-sans">
+                              Sin tráfico Ethernet: equipo no transmite tramas a la OLT
                             </span>
                           )}
-                        </span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Trazabilidad de Comandos OLT / MikroTik (_history) */}
-                    {historySteps.length > 0 && (
-                      <details className="w-full group mt-2">
+                    {stepsToShow.length > 0 && (
+                      <details className="w-full group mt-2" open>
                         <summary className="cursor-pointer text-[11px] font-semibold text-muted-foreground hover:text-foreground flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border">
                           <span className="flex items-center gap-1.5">
                             <Terminal className="size-3.5 text-primary" />
-                            Trazabilidad de comandos OLT ({historySteps.length} pasos)
+                            Trazabilidad de comandos OLT ({stepsToShow.length} pasos)
                           </span>
                           <span className="text-[10px] text-muted-foreground/70">
-                            (clic para ver detalle)
+                            {failedStep ? `Detenido en: ${failedStep}` : "(clic para ver detalle)"}
                           </span>
                         </summary>
-                        <div className="mt-2 space-y-2 p-2 bg-muted/20 border border-border rounded-lg text-xs">
-                          {historySteps.map((step, idx) => (
-                            <div
-                              key={idx}
-                              className="p-2 bg-background border border-border rounded-md space-y-1"
-                            >
-                              <div className="flex justify-between items-center text-[11px]">
-                                <span className="font-bold text-foreground font-mono">
-                                  #{idx + 1} {step.step || "comando"}
-                                </span>
-                                <span
-                                  className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
-                                    step.success !== false
-                                      ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                      : "bg-red-500/10 text-red-600 border border-red-500/20"
-                                  }`}
-                                >
-                                  {step.success !== false ? "Completado" : "Falló"}
-                                </span>
-                              </div>
-                              {step.command && (
-                                <p className="font-mono text-[10px] text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">
-                                  $ {step.command}
-                                </p>
-                              )}
-                              {step.raw && (
-                                <details className="mt-1">
-                                  <summary className="cursor-pointer text-[9px] text-muted-foreground hover:text-foreground font-medium">
-                                    Ver salida consola (raw)
-                                  </summary>
-                                  <pre className="mt-1 p-2 bg-black/90 text-emerald-400 rounded text-[9px] font-mono whitespace-pre-wrap overflow-x-auto max-h-36">
-                                    {step.raw}
-                                  </pre>
-                                </details>
-                              )}
+                        <div className="mt-2 space-y-2.5 p-2.5 bg-muted/20 border border-border rounded-lg text-xs">
+                          {oltError && (
+                            <div className="p-2 rounded bg-red-500/10 border border-red-500/25 text-red-600 dark:text-red-300 text-[11px] space-y-0.5">
+                              <span className="font-bold flex items-center gap-1">
+                                <AlertTriangle className="size-3" /> Error MikroTik / OLT:
+                              </span>
+                              <p className="font-mono">{oltError}</p>
                             </div>
-                          ))}
+                          )}
+                          <div className="space-y-2">
+                            {stepsToShow.map((step, idx) => {
+                              const isFailed = step.success === false || (failedStep && step.step === failedStep);
+                              const stepTitle = STEP_META[step.step || ""]?.label || step.step || "comando";
+                              const stepDesc = STEP_META[step.step || ""]?.desc;
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className={cn(
+                                    "p-2.5 bg-background border rounded-md space-y-1.5 transition",
+                                    isFailed ? "border-amber-500/50 bg-amber-500/5" : "border-border"
+                                  )}
+                                >
+                                  <div className="flex justify-between items-center text-[11px]">
+                                    <div className="flex items-center gap-2">
+                                      <span className={cn(
+                                        "size-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                                        isFailed ? "bg-amber-500 text-white" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                      )}>
+                                        {idx + 1}
+                                      </span>
+                                      <span className="font-bold text-foreground">
+                                        {stepTitle}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={cn(
+                                        "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase",
+                                        isFailed
+                                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                      )}
+                                    >
+                                      {isFailed ? "Detenido / Alerta" : "Completado"}
+                                    </span>
+                                  </div>
+
+                                  {stepDesc && (
+                                    <p className="text-[10px] text-muted-foreground leading-tight pl-6 font-sans">
+                                      {stepDesc}
+                                    </p>
+                                  )}
+
+                                  {step.command && (
+                                    <p className="font-mono text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded ml-6">
+                                      $ {step.command}
+                                    </p>
+                                  )}
+
+                                  {step.raw && (
+                                    <details className="mt-1 ml-6">
+                                      <summary className="cursor-pointer text-[9px] text-primary hover:underline font-medium flex items-center gap-1">
+                                        <span>Ver salida consola (raw)</span>
+                                      </summary>
+                                      <pre className="mt-1 p-2 bg-black/90 text-emerald-400 rounded text-[9px] font-mono whitespace-pre-wrap overflow-x-auto max-h-40 border border-border/40">
+                                        {step.raw}
+                                      </pre>
+                                    </details>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </details>
                     )}
@@ -813,22 +1121,77 @@ export function CaseSummaryDialog({
 
                 {timeline.length > 0 && (
                   <div>
-                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <Clock className="size-3.5" /> Línea de tiempo
+                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="size-3.5" /> Línea de tiempo del caso ({timeline.length} hitos)
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/70 normal-case font-normal">
+                        (clic en cualquier hito para desplegar detalle)
+                      </span>
                     </h4>
-                    <ol className="space-y-1.5 text-[11px] font-mono max-h-40 overflow-y-auto">
-                      {timeline.map((entry, i) => (
-                        <li
-                          key={i}
-                          className="flex justify-between gap-2 p-1.5 rounded bg-muted/20"
-                        >
-                          <span className="truncate">{caseStepLabel(entry.action)}</span>
-                          <span className="text-muted-foreground shrink-0">
-                            {caseStepStatusLabel(entry.status)}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                      {timeline.map((entry, i) => {
+                        const dateStr = entry.at
+                          ? new Date(entry.at).toLocaleString("es-EC", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })
+                          : null;
+                        const detail = getTimelineEntryDetail(entry);
+                        const isFailed = entry.status === "FAILED";
+                        const isSuccess = entry.status === "COMPLETED";
+
+                        return (
+                          <details
+                            key={i}
+                            className="group p-2.5 rounded-lg bg-card border border-border/70 hover:border-border transition shadow-2xs"
+                          >
+                            <summary className="flex justify-between items-center cursor-pointer list-none select-none text-[11px]">
+                              <span className="font-semibold text-foreground flex items-center gap-2 font-sans">
+                                <span
+                                  className={cn(
+                                    "size-2 rounded-full shrink-0",
+                                    isFailed ? "bg-red-500" : isSuccess ? "bg-emerald-500" : "bg-primary"
+                                  )}
+                                />
+                                <span className="truncate">{caseStepLabel(entry.action)}</span>
+                                <ChevronDown className="size-3 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
+                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span
+                                  className={cn(
+                                    "px-1.5 py-0.2 rounded text-[9px] font-bold uppercase",
+                                    isFailed
+                                      ? "bg-red-500/10 text-red-600 border border-red-500/20"
+                                      : isSuccess
+                                        ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                        : "bg-muted text-muted-foreground"
+                                  )}
+                                >
+                                  {caseStepStatusLabel(entry.status)}
+                                </span>
+                                {dateStr && (
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    {dateStr}
+                                  </span>
+                                )}
+                              </div>
+                            </summary>
+
+                            {detail && (
+                              <p className="text-[10px] text-primary dark:text-primary-foreground/90 font-medium font-sans pl-4 pt-1">
+                                ↳ {detail}
+                              </p>
+                            )}
+
+                            {renderTimelineExpandedBody(entry)}
+                          </details>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

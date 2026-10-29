@@ -46,7 +46,15 @@ export function changePassword(currentPassword: string, newPassword: string): Pr
  * Actualiza la disponibilidad del agente actual para entrar o salir del pool de auto-asignación.
  * `PATCH /api/auth/me/availability` con `{ autoAssignEnabled: boolean }`.
  */
-export async function updateMyAvailability(autoAssignEnabled: boolean): Promise<AgentDto> {
-  const agent = await apiPatch<AgentDto>("/api/auth/me/availability", { autoAssignEnabled });
+export type UpdateAvailabilityPayload = {
+  autoAssignEnabled?: boolean;
+  activeDepartmentIds?: string[];
+};
+
+export async function updateMyAvailability(
+  payload: boolean | UpdateAvailabilityPayload,
+): Promise<AgentDto> {
+  const body = typeof payload === "boolean" ? { autoAssignEnabled: payload } : payload;
+  const agent = await apiPatch<AgentDto>("/api/auth/me/availability", body);
   return normalizeAgent(agent);
 }

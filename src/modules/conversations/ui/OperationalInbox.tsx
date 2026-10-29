@@ -1603,6 +1603,7 @@ export function OperationalInbox({
                 customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
                 customerTags={selectedCustomer?.tags}
                 customerContractsCount={selectedCustomer?.contracts?.length}
+                customerContracts={selectedCustomer?.contracts}
                 onOpenContact={() => void handleOpenContact()}
                 busy={busy}
                 canWrite={canWriteCase}
@@ -1614,7 +1615,7 @@ export function OperationalInbox({
                 }}
                 onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
                 onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
-                onDiagnose={() => void diagnoseCase()}
+                onDiagnose={(contractId) => void diagnoseCase(contractId)}
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
@@ -1662,6 +1663,7 @@ export function OperationalInbox({
               customerPhone={selected ? formatWaPhone(selected.waPhone) : undefined}
               customerTags={selectedCustomer?.tags}
               customerContractsCount={selectedCustomer?.contracts?.length}
+                customerContracts={selectedCustomer?.contracts}
               onOpenContact={() => void handleOpenContact()}
               busy={busy}
               canWrite={canWriteCase}
@@ -1673,7 +1675,7 @@ export function OperationalInbox({
               }}
               onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
                 onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
-                onDiagnose={() => void diagnoseCase()}
+                onDiagnose={(contractId) => void diagnoseCase(contractId)}
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
