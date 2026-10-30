@@ -103,11 +103,16 @@ export function useCaseActions(
     );
   };
 
-  const transfer = (caseId: string, toDepartmentId: string, reason: string) => {
+  const transfer = (
+    caseId: string,
+    toDepartmentId: string | undefined,
+    reason: string,
+    toAgentId?: string,
+  ) => {
     if (!session) return Promise.resolve(false);
     return run(
       "transferir",
-      () => caseGateway.transferCase(caseId, toDepartmentId, reason, session.id),
+      () => caseGateway.transferCase(caseId, toDepartmentId, reason, session.id, toAgentId),
       "Caso transferido",
     );
   };

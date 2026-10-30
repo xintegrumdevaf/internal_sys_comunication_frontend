@@ -459,9 +459,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         : Promise.resolve(false),
     cancel: (reason: string) =>
       activeCase ? caseActions.cancel(activeCase.id, reason) : Promise.resolve(false),
-    transfer: (toDepartmentId: string, reason: string) =>
+    transfer: (toDepartmentId: string | undefined, reason: string, toAgentId?: string) =>
       activeCase
-        ? caseActions.transfer(activeCase.id, toDepartmentId, reason)
+        ? caseActions.transfer(activeCase.id, toDepartmentId, reason, toAgentId)
         : Promise.resolve(false),
     disableAutomation: (reason: string) =>
       activeCase ? caseActions.disableAutomation(activeCase.id, reason) : Promise.resolve(false),

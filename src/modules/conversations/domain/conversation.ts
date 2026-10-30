@@ -105,6 +105,7 @@ export type MessageDto = {
   author: MessageAuthor;
   /** Set en replies humanos (backend 07_QUALITY_SUPERVISION.md §6); null en inbound/ai/system. */
   agentId: string | null;
+  agentName?: string | null;
   body: string;
   type: MessageType;
   createdAt: string;

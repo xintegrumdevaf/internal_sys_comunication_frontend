@@ -48,6 +48,13 @@ import type { DepartmentDto } from "@/modules/identity/domain/department";
 import { CompleteCaseModal } from "@/modules/cases/ui/CompleteCaseModal";
 import { ScheduleCaseModal } from "@/modules/cases/ui/ScheduleCaseModal";
 
+export type CasePanelAgentOption = {
+  id: string;
+  name: string;
+  primaryDepartmentId?: string | null;
+  active?: boolean;
+};
+
 function DataRow({ label, value }: { label: string; value: string | number | undefined | null }) {
   if (value === undefined || value === null || value === "") return null;
   return (
@@ -495,6 +502,7 @@ export function CasePanel({
   canWrite,
   canManage: canManageProp,
   departments,
+  agents,
   assignedAgentName,
   onOpenSummary,
   onComplete,
@@ -529,7 +537,8 @@ export function CasePanel({
     reminderReason?: string,
   ) => void | Promise<unknown>;
   onCancel: (reason: string) => void;
-  onTransfer: (toDepartmentId: string, reason: string) => void;
+  agents?: CasePanelAgentOption[];
+  onTransfer: (toDepartmentId: string | undefined, reason: string, toAgentId?: string) => void;
   onDisableAutomation: (reason: string) => void;
   onReactivateAutomation: () => void;
   onAdvance?: (entities: Record<string, unknown>) => Promise<unknown> | void;
@@ -540,6 +549,7 @@ export function CasePanel({
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferDept, setTransferDept] = useState("");
+  const [transferAgentId, setTransferAgentId] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
   const [assigningOption, setAssigningOption] = useState<number | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
@@ -1052,41 +1062,96 @@ export function CasePanel({
             onClick={() => setTransferOpen((v) => !v)}
             className="w-full py-2.5 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition"
           >
-            Enviar a otra área
+            Transferir caso / Área
           </button>
 
           {transferOpen && (
-            <div className="space-y-2 pt-1">
-              <select
-                value={transferDept}
-                onChange={(e) => setTransferDept(e.target.value)}
-                className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
-              >
-                <option value="">Selecciona departamento</option>
-                {departments
-                  .filter((d) => d.id !== caseDto.departmentId)
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-              </select>
-              <input
-                value={transferReason}
-                onChange={(e) => setTransferReason(e.target.value)}
-                className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
-                placeholder="Motivo (lo verá el área que lo recibe)"
-              />
+            <div className="space-y-2 pt-1 p-2.5 bg-muted/40 border border-border/80 rounded-xl">
+              <div>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Área / Departamento
+                </label>
+                <select
+                  value={transferDept}
+                  onChange={(e) => {
+                    setTransferDept(e.target.value);
+                    setTransferAgentId("");
+                  }}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                >
+                  <option value="">
+                    {caseDto.departmentId
+                      ? `Mismo departamento (${departments.find((d) => d.id === caseDto.departmentId)?.name || "Actual"})`
+                      : "Sin departamento"}
+                  </option>
+                  {departments
+                    .filter((d) => d.id !== caseDto.departmentId)
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {agents && agents.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                    Agente destino (opcional)
+                  </label>
+                  <select
+                    value={transferAgentId}
+                    onChange={(e) => setTransferAgentId(e.target.value)}
+                    className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                  >
+                    <option value="">Auto-asignar automáticamente (menor carga)</option>
+                    {agents
+                      .filter((a) => {
+                        if (a.active === false) return false;
+                        const deptToCheck = transferDept || caseDto.departmentId;
+                        if (
+                          deptToCheck &&
+                          a.primaryDepartmentId &&
+                          a.primaryDepartmentId !== deptToCheck
+                        )
+                          return false;
+                        return a.id !== caseDto.assignedAgentId;
+                      })
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Motivo
+                </label>
+                <input
+                  value={transferReason}
+                  onChange={(e) => setTransferReason(e.target.value)}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                  placeholder="Motivo (lo verá el agente que lo reciba)"
+                />
+              </div>
+
               <button
                 type="button"
-                disabled={busy || !transferDept}
+                disabled={busy || (!transferDept && !transferAgentId && !caseDto.departmentId)}
                 onClick={() => {
-                  onTransfer(transferDept, transferReason);
+                  onTransfer(
+                    transferDept || undefined,
+                    transferReason,
+                    transferAgentId || undefined,
+                  );
                   setTransferOpen(false);
                 }}
-                className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wide disabled:opacity-40"
+                className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wide disabled:opacity-40 hover:brightness-105 transition"
               >
-                Confirmar envío
+                Confirmar transferencia
               </button>
             </div>
           )}
