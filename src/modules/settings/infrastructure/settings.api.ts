@@ -235,6 +235,7 @@ export const settingsApi = {
   testNetworkConnection: async (payload: {
     type?: "router" | "olt";
     host?: string;
+    ip?: string;
     port?: number;
     username?: string;
     password?: string;
