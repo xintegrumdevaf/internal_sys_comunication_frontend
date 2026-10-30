@@ -273,16 +273,26 @@ export function WhatsAppChannelsCard({
                         </span>
                       )}
                     </AlertDescription>
-                    {channelTestResult.details && (
-                      <div className="mt-2 text-[11px] font-mono bg-background/50 p-2 rounded border border-border/50">
-                        {Boolean(channelTestResult.details.accountId) && (
-                          <p>Cuenta confirmada: {String(channelTestResult.details.accountId)}</p>
-                        )}
-                        {Boolean(channelTestResult.details.platform) && (
-                          <p>Plataforma: {String(channelTestResult.details.platform)}</p>
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const details = channelTestResult.details;
+                      if (!details) return null;
+                      const confirmedAccount =
+                        details.accountId != null
+                          ? String(details.accountId)
+                          : details.targetAccountId != null
+                            ? String(details.targetAccountId)
+                            : null;
+                      const confirmedPlatform =
+                        details.platform != null ? String(details.platform) : null;
+                      if (!confirmedAccount && !confirmedPlatform) return null;
+
+                      return (
+                        <div className="mt-2 text-[11px] font-mono bg-background/50 p-2 rounded border border-border/50">
+                          {confirmedAccount && <p>Cuenta confirmada: {confirmedAccount}</p>}
+                          {confirmedPlatform && <p>Plataforma: {confirmedPlatform}</p>}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </Alert>

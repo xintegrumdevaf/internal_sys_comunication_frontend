@@ -35,6 +35,15 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageDto[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
+  const messagesRef = useRef<MessageDto[]>([]);
+  messagesRef.current = messages;
+  const hasMoreMessagesRef = useRef(false);
+  hasMoreMessagesRef.current = hasMoreMessages;
+  const loadingOlderRef = useRef(false);
+  loadingOlderRef.current = loadingOlderMessages;
+  const MESSAGES_PAGE_SIZE = 50;
   const [cases, setCases] = useState<CaseDto[]>([]);
   const [caseSummary, setCaseSummary] = useState<CaseSummaryDto | null>(null);
   const [caseTimeline, setCaseTimeline] = useState<CaseTimelineEntryDto[]>([]);
@@ -79,7 +88,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
             ? preferred
             : prevId && data.some((c) => c.id === prevId)
               ? prevId
-              : (data[0]?.id ?? null);
+              : options.initialConversationId
+                ? (data[0]?.id ?? null)
+                : null;
 
         // La conversación activa actual no debe tener conteo no leído en la UI
         const normalizedData = data.map((c) => (c.id === nextId ? { ...c, unreadCount: 0 } : c));
@@ -140,16 +151,66 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
   const loadThread = useCallback(async (conversationId: string) => {
     const [msgs, convCases] = await Promise.all([
-      conversationGateway.listMessages(conversationId),
+      conversationGateway.listMessages(conversationId, { limit: MESSAGES_PAGE_SIZE }),
       conversationGateway.listCasesForConversation(conversationId),
     ]);
     setMessages(msgs);
+    setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
+    hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
     setCases(convCases);
   }, []);
+
+  const loadOlderMessages = useCallback(async (): Promise<number> => {
+    if (!selectedId || loadingOlderRef.current || !hasMoreMessagesRef.current) return 0;
+    const currentMsgs = messagesRef.current;
+    const oldest = currentMsgs[0];
+    if (!oldest) return 0;
+    setLoadingOlderMessages(true);
+    loadingOlderRef.current = true;
+    try {
+      const older = await conversationGateway.listMessages(selectedId, {
+        limit: MESSAGES_PAGE_SIZE,
+        cursor: oldest.createdAt,
+      });
+      if (older.length < MESSAGES_PAGE_SIZE) {
+        setHasMoreMessages(false);
+        hasMoreMessagesRef.current = false;
+      }
+      if (older.length > 0) {
+        const existingIds = new Set(currentMsgs.map((m) => m.id));
+        const uniqueOlder = older.filter((m) => !existingIds.has(m.id));
+        setMessages((prev) => [...uniqueOlder, ...prev]);
+        return uniqueOlder.length;
+      }
+      return 0;
+    } catch {
+      toast.error("Error cargando mensajes anteriores");
+      return 0;
+    } finally {
+      setLoadingOlderMessages(false);
+      loadingOlderRef.current = false;
+    }
+  }, [selectedId]);
+
+  const loadUntilFound = useCallback(
+    async (predicate: (m: MessageDto) => boolean): Promise<boolean> => {
+      if (!selectedId) return false;
+      if (messagesRef.current.some(predicate)) return true;
+      while (hasMoreMessagesRef.current) {
+        const loaded = await loadOlderMessages();
+        if (loaded === 0) break;
+        if (messagesRef.current.some(predicate)) return true;
+      }
+      return messagesRef.current.some(predicate);
+    },
+    [selectedId, loadOlderMessages],
+  );
 
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
+      setHasMoreMessages(false);
+      hasMoreMessagesRef.current = false;
       setCases([]);
       setCaseSummary(null);
       setCaseTimeline([]);
@@ -173,13 +234,15 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     (async () => {
       try {
         const [msgs, convCases, automation] = await Promise.all([
-          conversationGateway.listMessages(selectedId),
+          conversationGateway.listMessages(selectedId, { limit: MESSAGES_PAGE_SIZE }),
           conversationGateway.listCasesForConversation(selectedId),
           conversationGateway.getConversationAutomation(selectedId),
         ]);
         await conversationGateway.markAsRead(selectedId).catch(() => {});
         if (!cancelled) {
           setMessages(msgs);
+          setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
+          hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
           setCases(convCases);
           setAutomationState(automation);
         }
@@ -441,6 +504,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     loading,
     busy: sending || caseActions.busy,
     reload,
+    hasMoreMessages,
+    loadingOlderMessages,
+    loadOlderMessages,
+    loadUntilFound,
     sendReply,
     sendTemplate,
     takeControl,

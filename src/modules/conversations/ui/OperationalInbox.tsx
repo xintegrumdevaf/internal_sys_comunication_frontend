@@ -21,8 +21,16 @@ import {
   Edit2,
   Zap,
   FileText,
+  ChevronUp,
+  ChevronDown,
+  X,
+  ArrowUp,
+  Loader2,
+  Paperclip,
+  SendHorizontal,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInternalNoteComposer";
@@ -58,6 +66,7 @@ import {
   type ConversationDto,
   type ConversationStatus,
   type MessageAuthor,
+  type MessagePreviewDto,
 } from "@/modules/conversations/domain/conversation";
 import { messageClock, relativeTime, dayLabel } from "@/shared/datetime";
 import { avatarColorFromSeed } from "@/shared/avatar-color";
@@ -89,6 +98,30 @@ const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
   { value: "resolved", label: "Resueltas" },
   { value: "closed", label: "Cerradas" },
 ];
+
+function formatLastMessagePreview(preview: MessagePreviewDto | null | undefined): string {
+  if (!preview || !preview.body) return "Todavía no hay mensajes";
+  const body = preview.body.trim();
+  if (/^\[?(image|imagen|photo|foto)\]?$/i.test(body)) {
+    return "📷 Foto";
+  }
+  if (/^\[?(audio|voice note|nota de voz)\]?$/i.test(body)) {
+    return "🎵 Audio";
+  }
+  if (/^\[?(video)\]?$/i.test(body)) {
+    return "🎥 Video";
+  }
+  if (/^\[?(document|documento|archivo|file)\]?$/i.test(body)) {
+    return "📄 Documento";
+  }
+  if (/^\[?(sticker)\]?$/i.test(body)) {
+    return "💟 Sticker";
+  }
+  if (body.startsWith("Ubicación GPS") || body.includes("google.com/maps")) {
+    return "📍 Ubicación";
+  }
+  return body;
+}
 
 function initialsFromProfileName(name: string): string {
   const clean = name.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
@@ -311,10 +344,14 @@ export function OperationalInbox({
   const {
     session: _session,
     conversations,
-    selected,
+    selected: hookSelected,
     selectedId,
     setSelectedId,
     messages,
+    hasMoreMessages,
+    loadingOlderMessages,
+    loadOlderMessages,
+    loadUntilFound,
     activeCase,
     automationState,
     caseSummary,
@@ -344,6 +381,24 @@ export function OperationalInbox({
     initialConversationId,
   });
 
+  // Aislamiento estricto de pestaña: la conversación seleccionada solo se muestra si coincide con la pestaña activa
+  const selected = useMemo(() => {
+    if (!hookSelected) return null;
+    if (activeTab === "open") return hookSelected.status === "open" ? hookSelected : null;
+    if (activeTab === "pending") return hookSelected.status === "pending" ? hookSelected : null;
+    if (activeTab === "resolved") return hookSelected.status === "resolved" ? hookSelected : null;
+    if (activeTab === "closed") return hookSelected.status === "closed" ? hookSelected : null;
+    if (activeTab === "unassigned")
+      return hookSelected.status === "open" && !hookSelected.activeCase?.assignedAgentId
+        ? hookSelected
+        : null;
+    if (activeTab === "unattended")
+      return hookSelected.status === "open" && (hookSelected.unreadCount ?? 0) > 0
+        ? hookSelected
+        : null;
+    return hookSelected;
+  }, [hookSelected, activeTab]);
+
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
@@ -370,6 +425,19 @@ export function OperationalInbox({
 
   const connected = useRealtimeConnected();
   const [draft, setDraft] = useState("");
+  const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isAttachMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setIsAttachMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isAttachMenuOpen]);
 
   const {
     isOpen: isEmojiOpen,
@@ -377,7 +445,25 @@ export function OperationalInbox({
     inputRef: chatInputRef,
     containerRef: emojiContainerRef,
     insertEmoji,
-  } = useEmojiInsertion<HTMLInputElement>(draft, setDraft);
+  } = useEmojiInsertion<HTMLTextAreaElement>(draft, setDraft);
+
+  const adjustTextareaHeight = useCallback(() => {
+    const el = chatInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const scrollHeight = el.scrollHeight;
+    if (scrollHeight > 140) {
+      el.style.height = "140px";
+      el.style.overflowY = "auto";
+    } else {
+      el.style.height = `${Math.max(scrollHeight, 40)}px`;
+      el.style.overflowY = "hidden";
+    }
+  }, [chatInputRef]);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [draft, adjustTextareaHeight]);
 
   const currentConversationDepartmentId =
     activeCase?.departmentId ?? selected?.activeCase?.departmentId ?? departmentId;
@@ -393,13 +479,22 @@ export function OperationalInbox({
     departmentId: currentConversationDepartmentId,
     conversationId: selectedId ?? undefined,
     onSelect: (interpolatedText) => {
+      const normalized = interpolatedText.replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
       setDraft((prev) => {
         const slashIndex = prev.lastIndexOf("/");
         if (slashIndex !== -1) {
-          return prev.slice(0, slashIndex) + interpolatedText;
+          return prev.slice(0, slashIndex) + normalized;
         }
-        return interpolatedText;
+        return normalized;
       });
+      setTimeout(() => {
+        if (chatInputRef.current) {
+          chatInputRef.current.focus();
+          chatInputRef.current.style.height = "auto";
+          const newHeight = Math.min(Math.max(chatInputRef.current.scrollHeight, 36), 140);
+          chatInputRef.current.style.height = `${newHeight}px`;
+        }
+      }, 50);
     },
   });
 
@@ -600,6 +695,93 @@ export function OperationalInbox({
     );
   }, [conversations, openConversations, activeTab, slaAlertsOnly, slaConfig, agentFilter, search]);
 
+  const handleTabChange = (newTab: InboxTab) => {
+    setActiveTab(newTab);
+    setSelectedId(null);
+  };
+
+  // Estado del buscador interactivo dentro de la conversación
+  const [isChatSearchOpen, setIsChatSearchOpen] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState("");
+  const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+  const [isSearchingHistory, setIsSearchingHistory] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
+  // Atajo Ctrl+F para abrir el buscador dentro de la conversación activa
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f" && selected) {
+        e.preventDefault();
+        setIsChatSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selected]);
+
+  // Coincidencias en los mensajes cargados actualmente
+  const matchingMessageIds = useMemo(() => {
+    const q = chatSearchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return messages
+      .filter(
+        (m) =>
+          (m.body || "").toLowerCase().includes(q) || (m.caption || "").toLowerCase().includes(q),
+      )
+      .map((m) => m.id);
+  }, [messages, chatSearchQuery]);
+
+  const scrollToMatch = useCallback((msgId: string) => {
+    setHighlightedMessageId(msgId);
+    setTimeout(() => {
+      const el = document.getElementById(`msg-${msgId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 40);
+  }, []);
+
+  const handleNextMatch = () => {
+    if (matchingMessageIds.length === 0) return;
+    const nextIdx = (activeMatchIndex + 1) % matchingMessageIds.length;
+    setActiveMatchIndex(nextIdx);
+    scrollToMatch(matchingMessageIds[nextIdx]);
+  };
+
+  const handlePrevMatch = () => {
+    if (matchingMessageIds.length === 0) return;
+    const prevIdx = (activeMatchIndex - 1 + matchingMessageIds.length) % matchingMessageIds.length;
+    setActiveMatchIndex(prevIdx);
+    scrollToMatch(matchingMessageIds[prevIdx]);
+  };
+
+  const handleSearchOlder = async () => {
+    const q = chatSearchQuery.trim().toLowerCase();
+    if (!q) return;
+    setIsSearchingHistory(true);
+    try {
+      const found = await loadUntilFound(
+        (m) =>
+          (m.body || "").toLowerCase().includes(q) || (m.caption || "").toLowerCase().includes(q),
+      );
+      if (!found) {
+        toast.info("No se encontraron más coincidencias en todo el historial");
+      }
+    } finally {
+      setIsSearchingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (matchingMessageIds.length > 0) {
+      setActiveMatchIndex(0);
+      scrollToMatch(matchingMessageIds[0]);
+    } else {
+      setHighlightedMessageId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatSearchQuery]);
+
   const assignedAgentName = useMemo(() => {
     if (activeCase?.assignedAgentName) return activeCase.assignedAgentName;
     if (selected?.activeCase?.assignedAgentName) return selected.activeCase.assignedAgentName;
@@ -615,7 +797,9 @@ export function OperationalInbox({
   useEffect(() => {
     setDraft("");
     setIsEmojiOpen(false);
-  }, [selectedId, setIsEmojiOpen]);
+    setIsAttachMenuOpen(false);
+    adjustTextareaHeight();
+  }, [selectedId, setIsEmojiOpen, adjustTextareaHeight]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
@@ -627,6 +811,9 @@ export function OperationalInbox({
     const body = draft.trim();
     if (!body) return;
     setDraft("");
+    if (chatInputRef.current) {
+      chatInputRef.current.style.height = "auto";
+    }
     const ok = await sendReply(body);
     if (!ok) setDraft(body);
   };
@@ -811,7 +998,7 @@ export function OperationalInbox({
                 <button
                   key={tab.value}
                   type="button"
-                  onClick={() => setActiveTab(tab.value)}
+                  onClick={() => handleTabChange(tab.value)}
                   className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-xs"
@@ -979,7 +1166,7 @@ export function OperationalInbox({
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {c.lastMessagePreview?.body ?? "Todavía no hay mensajes"}
+                      {formatLastMessagePreview(c.lastMessagePreview)}
                     </p>
                     <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
                       {sla.isBreached && (
@@ -1124,28 +1311,6 @@ export function OperationalInbox({
                   </button>
                   <div className="relative shrink-0">
                     <ConversationAvatar conversation={selected} size="size-8 sm:size-9" />
-                    {is24hWindowClosed && (
-                      <div className="px-3.5 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-medium text-[11px] min-w-0">
-                          <Clock className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                          <span className="truncate">
-                            <strong className="font-bold text-amber-700 dark:text-amber-300">
-                              Ventana de 24h inactiva:
-                            </strong>{" "}
-                            Han pasado más de 24h desde el último mensaje del cliente. Los mensajes
-                            de texto libre fallarán; envía una plantilla aprobada.
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsTemplateModalOpen(true)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-600 text-white text-[10px] font-bold tracking-wide shadow-xs hover:bg-amber-700 transition shrink-0"
-                        >
-                          <FileText className="size-3" />
-                          Plantillas
-                        </button>
-                      </div>
-                    )}
                     {isAutomationActive && (
                       <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.5 ring-2 ring-background">
                         <Bot className="size-2 sm:size-2.5" />
@@ -1288,6 +1453,120 @@ export function OperationalInbox({
                 </div>
               </div>
 
+              {isChatSearchOpen && (
+                <div className="px-3.5 py-2 bg-card border-b border-border flex items-center justify-between gap-2 text-xs shadow-xs animate-in slide-in-from-top-2 duration-150 shrink-0">
+                  <div className="flex items-center gap-2 flex-1 max-w-md">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                      <input
+                        autoFocus
+                        value={chatSearchQuery}
+                        onChange={(e) => setChatSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            if (e.shiftKey) handlePrevMatch();
+                            else handleNextMatch();
+                          } else if (e.key === "Escape") {
+                            setIsChatSearchOpen(false);
+                            setChatSearchQuery("");
+                            setHighlightedMessageId(null);
+                          }
+                        }}
+                        placeholder="Buscar término en este chat..."
+                        className="w-full pl-8 pr-2 py-1.5 text-xs bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 text-[11px] text-muted-foreground font-mono">
+                      {chatSearchQuery.trim() ? (
+                        matchingMessageIds.length > 0 ? (
+                          <span>
+                            {activeMatchIndex + 1} de {matchingMessageIds.length}
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400">0 resultados</span>
+                        )
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handlePrevMatch}
+                        disabled={matchingMessageIds.length <= 1}
+                        title="Coincidencia anterior (Shift+Enter)"
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                      >
+                        <ChevronUp className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNextMatch}
+                        disabled={matchingMessageIds.length <= 1}
+                        title="Siguiente coincidencia (Enter)"
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                      >
+                        <ChevronDown className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {hasMoreMessages && (
+                      <button
+                        type="button"
+                        onClick={() => void handleSearchOlder()}
+                        disabled={isSearchingHistory}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer disabled:opacity-50"
+                        title="Carga mensajes anteriores automáticamente hasta encontrar coincidencias"
+                      >
+                        {isSearchingHistory ? (
+                          <>
+                            <Loader2 className="size-3 animate-spin" />
+                            <span>Buscando en historial...</span>
+                          </>
+                        ) : (
+                          <span>Buscar en historial completo</span>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChatSearchOpen(false);
+                        setChatSearchQuery("");
+                        setHighlightedMessageId(null);
+                      }}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Cerrar búsqueda (Esc)"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {is24hWindowClosed && (
+                <div className="px-3.5 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-medium text-[11px] min-w-0">
+                    <Clock className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="truncate">
+                      <strong className="font-bold text-amber-700 dark:text-amber-300">
+                        Ventana de 24h inactiva:
+                      </strong>{" "}
+                      Han pasado más de 24h desde el último mensaje del cliente. Los mensajes de
+                      texto libre fallarán; envía una plantilla aprobada.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-600 text-white text-[10px] font-bold tracking-wide shadow-xs hover:bg-amber-700 transition shrink-0"
+                  >
+                    <FileText className="size-3" />
+                    Plantillas
+                  </button>
+                </div>
+              )}
+
               {selected &&
                 (() => {
                   const selectedSla = calculateConversationSla(selected, slaConfig);
@@ -1317,6 +1596,28 @@ export function OperationalInbox({
                 ref={messagesScrollRef}
                 className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-1 bg-background/40"
               >
+                {hasMoreMessages && (
+                  <div className="flex justify-center my-3">
+                    <button
+                      type="button"
+                      onClick={() => void loadOlderMessages()}
+                      disabled={loadingOlderMessages}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-background border border-border/80 text-xs font-semibold shadow-xs hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer disabled:opacity-50"
+                    >
+                      {loadingOlderMessages ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin text-primary" />
+                          <span>Cargando mensajes anteriores...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowUp className="size-3.5 text-primary" />
+                          <span>Cargar mensajes anteriores</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
                 {messages.map((m) => {
                   const fromCustomer = m.author === "customer";
                   const day = dayLabel(m.createdAt);
@@ -1513,43 +1814,97 @@ export function OperationalInbox({
                       )}
                     </div>
                   )}
-                  <div className="relative p-2 flex gap-2 items-center">
+                  <div className="relative p-2.5 flex gap-2 items-end bg-background/80 dark:bg-card/30 border-t border-border/40">
                     <QuickReplyDropdown
                       isOpen={isQuickReplyOpen}
                       replies={quickReplyFiltered}
                       selectedIndex={quickReplySelectedIndex}
                       onSelect={selectQuickReply}
                     />
+
+                    {/* Menú de adjuntos y opciones (Clip estilo WhatsApp) */}
+                    <div className="relative inline-block" ref={attachMenuRef}>
+                      <button
+                        type="button"
+                        disabled={busy || isAutomationActive}
+                        onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+                        title="Adjuntar y opciones"
+                        className={`size-10 flex items-center justify-center rounded-full transition-all shrink-0 ${
+                          isAttachMenuOpen
+                            ? "bg-primary/15 text-primary rotate-45"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        } disabled:opacity-40`}
+                      >
+                        <Paperclip className="size-5 transition-transform" />
+                      </button>
+
+                      {isAttachMenuOpen && (
+                        <div className="absolute bottom-full left-0 mb-3 bg-popover/95 dark:bg-[#233138]/95 backdrop-blur-md border border-border/80 shadow-2xl rounded-2xl p-2 min-w-[240px] flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setIsAttachMenuOpen(false);
+                              setIsTemplateModalOpen(true);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-muted/80 text-foreground transition text-left group"
+                          >
+                            <div className="size-8 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                              <FileText className="size-4" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground">
+                                Plantilla de WhatsApp
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                Enviar plantilla aprobada (HSM)
+                              </span>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={busy || isAutomationActive}
+                            onClick={() => {
+                              setIsAttachMenuOpen(false);
+                              setDraft((prev) =>
+                                prev.endsWith("/") ? prev : prev ? `${prev} /` : "/",
+                              );
+                              chatInputRef.current?.focus();
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-muted/80 text-foreground transition text-left group disabled:opacity-40"
+                          >
+                            <div className="size-8 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                              <Zap className="size-4" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground">
+                                Respuestas rápidas
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                Escribe / para autocompletar
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selector de Emojis / Stickers */}
                     <EmojiPickerPopover
                       isOpen={isEmojiOpen}
                       onToggle={() => setIsEmojiOpen(!isEmojiOpen)}
                       onEmojiSelect={insertEmoji}
                       containerRef={emojiContainerRef}
                       position="top-left"
-                      buttonClassName="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0 disabled:opacity-40"
+                      buttonClassName="size-10 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition shrink-0 disabled:opacity-40"
+                      iconClassName="size-5"
                     />
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => setIsTemplateModalOpen(true)}
-                      title="Enviar plantilla aprobada de WhatsApp"
-                      className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0"
-                    >
-                      <FileText className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || isAutomationActive}
-                      onClick={() => {
-                        setDraft((prev) => (prev.endsWith("/") ? prev : prev ? `${prev} /` : "/"));
-                      }}
-                      title="Respuestas rápidas (escribe /)"
-                      className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-primary transition shrink-0 disabled:opacity-40"
-                    >
-                      <Zap className="size-4" />
-                    </button>
-                    <input
+
+                    {/* Input textarea con auto-expansión dinámica y tipografía legible estilo WhatsApp */}
+                    <textarea
                       ref={chatInputRef}
+                      rows={1}
                       value={draft}
                       disabled={busy || isAutomationActive}
                       onChange={(e) => setDraft(e.target.value)}
@@ -1564,18 +1919,22 @@ export function OperationalInbox({
                       }}
                       placeholder={
                         isAutomationActive
-                          ? "🤖 El Asistente IA está respondiendo... Haz clic en 'Tomar control' para escribir"
-                          : "Escribe tu respuesta… o '/' para respuestas rápidas"
+                          ? "🤖 IA activa... Haz clic en 'Tomar control' para escribir"
+                          : "Escribe un mensaje... o '/' para respuestas rápidas"
                       }
-                      className="flex-1 px-3.5 py-1.5 bg-card border border-border rounded-full text-xs outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                      title="Escribe un mensaje... (Shift+Enter para salto de línea, '/' para respuestas rápidas)"
+                      className="flex-1 px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
                     />
+
+                    {/* Botón enviar circular característico de WhatsApp */}
                     <button
                       type="button"
                       disabled={busy || !draft.trim() || isAutomationActive}
                       onClick={() => void handleSend()}
-                      className="px-4 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-sm hover:brightness-95 transition disabled:opacity-40"
+                      title="Enviar mensaje (Enter)"
+                      className="size-10 rounded-full bg-[#00a884] dark:bg-[#00a884] text-white flex items-center justify-center shadow-sm hover:brightness-110 active:scale-95 transition-all shrink-0 disabled:opacity-35 disabled:hover:brightness-100 disabled:active:scale-100"
                     >
-                      Enviar
+                      <SendHorizontal className="size-5 translate-x-0.5" />
                     </button>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import type { CaseStatus } from "@/modules/cases/domain/case";
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type MessageAuthor = "customer" | "ai" | "agent" | "system";
 export type MessageDirection = "inbound" | "outbound";
-export type MessageType = "text" | "audio" | "image" | "document" | "location";
+export type MessageType = "text" | "audio" | "image" | "video" | "document" | "location";
 
 export type MessagePreviewDto = {
   body: string;

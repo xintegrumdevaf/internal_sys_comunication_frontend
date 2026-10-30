@@ -1,3 +1,17 @@
+// eslint-disable-next-line react-refresh/only-export-components
+export function isMediaPlaceholder(text?: string | null): boolean {
+  if (!text) return false;
+  const t = text.trim().toLowerCase();
+  return (
+    /^\[?(image|imagen|photo|foto|audio|voice note|nota de voz|video|document|documento|archivo|file|sticker)\]?$/i.test(
+      t,
+    ) ||
+    t.startsWith("[audio/") ||
+    t.startsWith("[image/") ||
+    t.startsWith("[video/")
+  );
+}
+
 import { useState } from "react";
 import {
   Download,
@@ -7,6 +21,7 @@ import {
   MapPin,
   Navigation,
   Reply,
+  Video as VideoIcon,
 } from "lucide-react";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
 import { resolveApiUrl } from "@/shared/http/api-base";
@@ -28,12 +43,16 @@ export function MessageMediaBody({
   captionClassName = "mt-2 whitespace-pre-wrap text-[12px] leading-snug",
 }: Props) {
   const [iframeError, setIframeError] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const buildMediaUrl = (target?: string | null) => {
     if (!target) return undefined;
-    if (target.startsWith("http://") || target.startsWith("https://")) {
+    if (target.startsWith("/api/media") || target.startsWith("api/media")) {
+      return resolveApiUrl(target.startsWith("/") ? target : `/${target}`);
+    }
+    if (target.startsWith("http://") || target.startsWith("https://") || target.startsWith("/")) {
       return resolveApiUrl(`/api/media?url=${encodeURIComponent(target)}`);
     }
-    return resolveApiUrl(`/api/media/${target}`);
+    return resolveApiUrl(`/api/media/${encodeURIComponent(target)}`);
   };
 
   const mediaUrl = message.mediaUrl
@@ -42,26 +61,39 @@ export function MessageMediaBody({
       ? buildMediaUrl(message.mediaId)
       : undefined;
 
+  const isVideo =
+    message.type === "video" ||
+    Boolean(message.mimeType?.startsWith("video/")) ||
+    Boolean(message.filename?.match(/\.(mp4|mov|webm|3gp|3gpp|mkv)$/i)) ||
+    Boolean(mediaUrl?.match(/\.(mp4|mov|webm|3gp|3gpp|mkv)(\?.*)?$/i));
+
   const isPdf =
-    message.mimeType?.includes("pdf") ||
-    message.filename?.toLowerCase().endsWith(".pdf") ||
-    (message.type === "document" && !message.mimeType);
+    !isVideo &&
+    (message.mimeType?.includes("pdf") ||
+      message.filename?.toLowerCase().endsWith(".pdf") ||
+      (message.type === "document" && !message.mimeType));
+
+  const isImage =
+    !isVideo && (message.type === "image" || Boolean(message.mimeType?.startsWith("image/")));
+
+  const isAudio =
+    !isVideo && (message.type === "audio" || Boolean(message.mimeType?.startsWith("audio/")));
 
   const isDocument =
-    message.type === "document" ||
-    isPdf ||
-    Boolean(message.filename) ||
-    message.mimeType?.includes("document") ||
-    message.mimeType?.includes("sheet") ||
-    message.mimeType?.includes("zip");
-
-  const isImage = message.type === "image" || message.mimeType?.startsWith("image/");
-
-  const isAudio = message.type === "audio" || message.mimeType?.startsWith("audio/");
+    !isVideo &&
+    !isImage &&
+    !isAudio &&
+    (message.type === "document" ||
+      isPdf ||
+      Boolean(message.filename) ||
+      message.mimeType?.includes("document") ||
+      message.mimeType?.includes("sheet") ||
+      message.mimeType?.includes("zip"));
 
   const caption = message.caption?.trim() || "";
   const bodyText = message.body?.trim() || "";
-  const displayCaption = caption || (bodyText && bodyText !== message.filename ? bodyText : "");
+  const rawCaption = caption || (bodyText && bodyText !== message.filename ? bodyText : "");
+  const displayCaption = isMediaPlaceholder(rawCaption) ? "" : rawCaption;
 
   // Detección estricta de mensaje de ubicación (solo para mensajes de tipo location o con coordenadas reales)
   const rawContent = `${message.body || ""} ${message.mediaId || ""} ${message.filename || ""} ${message.caption || ""}`;
@@ -249,6 +281,74 @@ export function MessageMediaBody({
     );
   }
 
+  // Vista de Video estilo WhatsApp Web
+  if (isVideo) {
+    const targetUrl = mediaUrl || (message.mediaId ? buildMediaUrl(message.mediaId) : undefined);
+    const videoFilename = message.filename?.trim() || "video.mp4";
+
+    return (
+      <div className="space-y-1.5 my-1 max-w-xs sm:max-w-sm">
+        {targetUrl && !videoError ? (
+          <div className="rounded-2xl overflow-hidden border border-border/80 bg-black shadow-md flex flex-col group select-none">
+            <video
+              src={targetUrl}
+              controls
+              playsInline
+              preload="metadata"
+              onError={() => setVideoError(true)}
+              className="w-full max-h-80 object-contain bg-black"
+            />
+            <div className="px-3 py-1.5 bg-black/75 backdrop-blur-xs flex items-center justify-between text-xs text-white/90 border-t border-white/10">
+              <span className="text-[11px] truncate text-slate-300 font-medium">
+                {message.filename || "Video"}
+              </span>
+              <a
+                href={targetUrl}
+                download={videoFilename}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 hover:text-emerald-400 text-slate-300 transition-colors"
+                title="Descargar o abrir video"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="size-4" />
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 bg-muted/40 rounded-xl border border-border flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <VideoIcon className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-xs truncate text-foreground">
+                  {message.filename || "Video adjunto"}
+                </p>
+                <p className="text-[10px] text-muted-foreground uppercase">
+                  {message.mimeType || "VIDEO"}
+                </p>
+              </div>
+            </div>
+            {targetUrl && (
+              <a
+                href={targetUrl}
+                download={videoFilename}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="size-8 rounded-full bg-foreground/5 hover:bg-primary hover:text-primary-foreground flex items-center justify-center shrink-0 transition-colors"
+                title="Descargar video"
+              >
+                <Download className="size-4" />
+              </a>
+            )}
+          </div>
+        )}
+        {displayCaption && <p className={captionClassName}>{displayCaption}</p>}
+      </div>
+    );
+  }
+
   // Vista de Imagen estilo WhatsApp
   if (isImage) {
     const targetUrl = mediaUrl || (message.mediaId ? `/api/media/${message.mediaId}` : undefined);
@@ -281,17 +381,7 @@ export function MessageMediaBody({
 
   // Audio estilo WhatsApp
   if (isAudio && mediaUrl) {
-    const isPlaceholder = (text: string) => {
-      const t = text.trim().toLowerCase();
-      return (
-        t === "[audio]" ||
-        t === "audio" ||
-        t === "[voice note]" ||
-        t === "[nota de voz]" ||
-        t.startsWith("[audio/")
-      );
-    };
-    const hasValidCaption = displayCaption && !isPlaceholder(displayCaption);
+    const hasValidCaption = Boolean(displayCaption);
 
     return (
       <div className="space-y-1.5 my-1">
@@ -407,11 +497,14 @@ export function MessageMediaBody({
 
   // Texto normal o fallback
   if (bodyText) {
-    return <p className="whitespace-pre-wrap">{bodyText}</p>;
+    if (isMediaPlaceholder(bodyText)) return null;
+    const formattedBody = bodyText.replace(/\\n/g, "\n");
+    return <p className="whitespace-pre-wrap">{formattedBody}</p>;
   }
 
   if (displayCaption) {
-    return <p className="whitespace-pre-wrap">{displayCaption}</p>;
+    const formattedCaption = displayCaption.replace(/\\n/g, "\n");
+    return <p className="whitespace-pre-wrap">{formattedCaption}</p>;
   }
 
   return (

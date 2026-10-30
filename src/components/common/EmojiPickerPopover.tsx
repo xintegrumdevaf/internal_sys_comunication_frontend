@@ -9,6 +9,7 @@ export interface EmojiPickerPopoverProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   buttonClassName?: string;
+  iconClassName?: string;
   theme?: Theme;
   disabled?: boolean;
 }
@@ -20,6 +21,7 @@ export const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
   containerRef,
   position = "top-right",
   buttonClassName,
+  iconClassName,
   theme = Theme.AUTO,
   disabled = false,
 }) => {
@@ -50,7 +52,7 @@ export const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
           } disabled:opacity-40 disabled:cursor-not-allowed`
         }
       >
-        <Smile className="w-4 h-4" />
+        <Smile className={iconClassName ?? "w-4 h-4"} />
       </button>
 
       {isOpen && !disabled && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { QuickReply, CreateQuickReplyPayload } from "@/types/quick-reply";
-import { X, Sparkles, Check, Loader2 } from "lucide-react";
+import { X, Sparkles, Check, Loader2, Maximize2, Minimize2, GripHorizontal } from "lucide-react";
 import { useToneRefinement } from "@/hooks/useToneRefinement";
 import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
 import { EmojiPickerPopover } from "@/components/common/EmojiPickerPopover";
@@ -39,6 +39,7 @@ export const QuickReplyFormModal: React.FC<QuickReplyFormModalProps> = ({
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const isManager = currentUserRole === "manager" || currentUserRole === "supervisor";
 
@@ -66,10 +67,53 @@ export const QuickReplyFormModal: React.FC<QuickReplyFormModalProps> = ({
   });
 
   const canRefine = body.trim().length >= 5 && !isRefining;
+  const isManuallyResizedRef = useRef(false);
+
+  const handleDragResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isManuallyResizedRef.current = true;
+    const startY = e.clientY;
+    const startHeight = textareaRef.current?.offsetHeight ?? 140;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const newHeight = Math.min(Math.max(startHeight + deltaY, 100), 520);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = `${newHeight}px`;
+      }
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      if (isExpanded) {
+        isManuallyResizedRef.current = false;
+        textareaRef.current.style.height = "260px";
+      } else if (!isManuallyResizedRef.current) {
+        textareaRef.current.style.height = "auto";
+        const scrollH = textareaRef.current.scrollHeight;
+        textareaRef.current.style.height = `${Math.min(Math.max(scrollH, 120), 320)}px`;
+      }
+    }
+  }, [body, isExpanded, textareaRef]);
 
   useEffect(() => {
     resetTone();
     setIsEmojiOpen(false);
+    setIsExpanded(false);
+    isManuallyResizedRef.current = false;
     if (initialData) {
       setShortcut(initialData.shortcut);
       setTitle(initialData.title);
@@ -106,7 +150,7 @@ export const QuickReplyFormModal: React.FC<QuickReplyFormModalProps> = ({
       await onSave({
         shortcut: cleanShortcut,
         title: title.trim(),
-        body: body.trim(),
+        body: body.trim().replace(/\r\n/g, "\n").replace(/\\n/g, "\n"),
         category: category.trim() || undefined,
         departmentId: departmentId === "global" ? null : departmentId,
       });
@@ -126,7 +170,9 @@ export const QuickReplyFormModal: React.FC<QuickReplyFormModalProps> = ({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
     >
-      <div className="w-full max-w-lg rounded-2xl bg-card border border-border p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+      <div
+        className={`w-full ${isExpanded ? "max-w-2xl" : "max-w-lg"} max-h-[92vh] overflow-y-auto rounded-2xl bg-card border border-border p-6 shadow-2xl animate-in zoom-in-95 duration-150 transition-all`}
+      >
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div>
             <h3 className="text-base font-bold text-foreground">
@@ -274,6 +320,27 @@ export const QuickReplyFormModal: React.FC<QuickReplyFormModalProps> = ({
                   )}
                   <span>{isRefining ? "Mejorando..." : "Mejorar tono"}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border border-border bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-2xs active:scale-95"
+                  title={
+                    isExpanded ? "Reducir tamaño del editor" : "Expandir editor para textos largos"
+                  }
+                >
+                  {isExpanded ? (
+                    <>
+                      <Minimize2 className="size-3.5 text-muted-foreground" />
+                      <span>Reducir</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="size-3.5 text-muted-foreground" />
+                      <span>Expandir</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -292,15 +359,47 @@ export const QuickReplyFormModal: React.FC<QuickReplyFormModalProps> = ({
               ))}
             </div>
 
-            <textarea
-              ref={textareaRef}
-              rows={4}
-              required
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Hola {{nombre}}, le recordamos que su saldo pendiente es..."
-              className="w-full rounded-lg border border-input bg-background p-2.5 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30 font-sans"
-            />
+            <div className="rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-primary/30 transition-all overflow-hidden shadow-2xs">
+              <textarea
+                ref={textareaRef}
+                rows={isExpanded ? 10 : 5}
+                required
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Hola {{nombre}}, le recordamos que su saldo pendiente es..."
+                className="w-full bg-transparent p-3 text-xs text-foreground outline-none font-sans resize-y min-h-[120px] max-h-[500px] leading-relaxed block"
+              />
+
+              {/* Barra interactiva inferior de arrastre real */}
+              <div
+                onMouseDown={handleDragResize}
+                title="Haz clic y arrastra hacia arriba o abajo para ajustar la altura del editor"
+                className="flex items-center justify-between px-3 py-1.5 bg-muted/40 hover:bg-primary/10 border-t border-border/60 cursor-row-resize select-none transition-colors group/drag"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-1 rounded-full bg-muted-foreground/30 group-hover/drag:bg-primary transition-colors" />
+                  <span className="text-[10px] text-muted-foreground group-hover/drag:text-primary font-medium flex items-center gap-1 transition-colors">
+                    <GripHorizontal className="size-3" />
+                    <span>Arrastrar para ajustar altura</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-[10px] font-mono tabular-nums">
+                    {body.length} caracteres
+                  </span>
+                  <div className="text-muted-foreground/40 group-hover/drag:text-primary transition-colors">
+                    <svg className="size-3" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M14 14L14 10M14 14L10 14M14 6L6 14"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {toneError && (
               <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">

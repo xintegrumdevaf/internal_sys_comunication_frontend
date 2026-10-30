@@ -68,7 +68,7 @@ export const QuickReplyDropdown: React.FC<QuickReplyDropdownProps> = ({
                 {item.title}
               </span>
               <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 font-normal">
-                {item.body}
+                {item.body.replace(/\r?\n+/g, " ").replace(/\\n/g, " ")}
               </p>
             </li>
           );
