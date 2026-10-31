@@ -41,7 +41,8 @@ export const OUTBOUND_MEDIA_RULES: Record<OutboundMediaKind, OutboundMediaRule> 
     label: "audio",
     menuHint: "MP3, M4A, AAC, OGG · máx. 16 MB",
     rejectHint: "Selecciona un audio MP3, M4A, AAC, OGG u OPUS.",
-    accept: "audio/mpeg,audio/mp4,audio/aac,audio/amr,audio/ogg,audio/opus,.mp3,.m4a,.aac,.amr,.ogg,.opus",
+    accept:
+      "audio/mpeg,audio/mp4,audio/aac,audio/amr,audio/ogg,audio/opus,.mp3,.m4a,.aac,.amr,.ogg,.opus",
     maxBytes: 16 * MB,
     extensions: ["mp3", "m4a", "aac", "amr", "ogg", "opus"],
     mimes: ["audio/mpeg", "audio/mp4", "audio/aac", "audio/amr", "audio/ogg", "audio/opus"],
@@ -59,8 +60,7 @@ export const OUTBOUND_MEDIA_RULES: Record<OutboundMediaKind, OutboundMediaRule> 
 };
 
 export type OutboundMediaValidation =
-  | { ok: true; kind: OutboundMediaKind }
-  | { ok: false; message: string };
+  { ok: true; kind: OutboundMediaKind } | { ok: false; message: string };
 
 function extensionOf(filename: string): string {
   const base = filename.split(/[/\\]/).pop() ?? filename;
@@ -83,7 +83,10 @@ function limitLabel(bytes: number): string {
   return `${Math.round(bytes / MB)} MB`;
 }
 
-export function validateOutboundMedia(file: File, kind: OutboundMediaKind): OutboundMediaValidation {
+export function validateOutboundMedia(
+  file: File,
+  kind: OutboundMediaKind,
+): OutboundMediaValidation {
   const rule = OUTBOUND_MEDIA_RULES[kind];
   if (file.size <= 0) {
     return { ok: false, message: "El archivo está vacío." };

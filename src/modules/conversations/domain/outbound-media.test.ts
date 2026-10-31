@@ -11,10 +11,12 @@ const MB = 1024 * 1024;
 
 describe("validateOutboundMedia", () => {
   it("acepta jpg, mp4, mp3 y pdf dentro del límite", () => {
-    expect(validateOutboundMedia(fileWithSize("foto.jpg", "image/jpeg", 200_000), "image")).toEqual({
-      ok: true,
-      kind: "image",
-    });
+    expect(validateOutboundMedia(fileWithSize("foto.jpg", "image/jpeg", 200_000), "image")).toEqual(
+      {
+        ok: true,
+        kind: "image",
+      },
+    );
     expect(validateOutboundMedia(fileWithSize("clip.mp4", "video/mp4", 8 * MB), "video")).toEqual({
       ok: true,
       kind: "video",
@@ -47,7 +49,10 @@ describe("validateOutboundMedia", () => {
       ok: false,
       message: "El archivo está vacío.",
     });
-    const bigImage = validateOutboundMedia(fileWithSize("foto.png", "image/png", 5 * MB + 1), "image");
+    const bigImage = validateOutboundMedia(
+      fileWithSize("foto.png", "image/png", 5 * MB + 1),
+      "image",
+    );
     expect(bigImage.ok).toBe(false);
     if (!bigImage.ok) expect(bigImage.message).toMatch(/5 MB/);
 

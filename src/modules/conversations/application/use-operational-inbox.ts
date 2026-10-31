@@ -208,8 +208,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       conversationGateway.listCasesForConversation(conversationId),
     ]);
     if (selectedIdRef.current !== conversationId) return;
-    setMessages((prev) =>
-      reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], conversationId).messages,
+    setMessages(
+      (prev) =>
+        reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], conversationId)
+          .messages,
     );
     setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
     hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
@@ -296,8 +298,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         ]);
         await conversationGateway.markAsRead(selectedId).catch(() => {});
         if (!cancelled) {
-          setMessages((prev) =>
-            reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], selectedId).messages,
+          setMessages(
+            (prev) =>
+              reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], selectedId)
+                .messages,
           );
           setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
           hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
@@ -454,7 +458,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     await reload({ silent: true });
   });
 
-  const enqueueOutbound = <T,>(task: () => Promise<T>): Promise<T> => {
+  const enqueueOutbound = <T>(task: () => Promise<T>): Promise<T> => {
     const run = outboundQueueRef.current.then(task, task);
     outboundQueueRef.current = run.then(
       () => undefined,
@@ -497,7 +501,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const showLocalMessage = (message: MessageDto) => {
     pendingMessagesRef.current.set(message.id, message);
     if (selectedIdRef.current === message.conversationId) {
-      setMessages((prev) => (prev.some((item) => item.id === message.id) ? prev : [...prev, message]));
+      setMessages((prev) =>
+        prev.some((item) => item.id === message.id) ? prev : [...prev, message],
+      );
     }
     setConversations((prev) =>
       prev.map((conversation) =>

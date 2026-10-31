@@ -766,9 +766,7 @@ export function CasePanel({
     caseDto.status === "EXPIRED" ||
     caseDto.status === "CANCELLED";
   const isAiAttending =
-    !isTerminalCase &&
-    (caseDto.automation?.enabled ?? true) &&
-    caseDto.status !== "HUMAN_ACTIVE";
+    !isTerminalCase && (caseDto.automation?.enabled ?? true) && caseDto.status !== "HUMAN_ACTIVE";
   const handlerLabel = isAiAttending
     ? assignedAgentName
       ? `Asistente IA (Asignado a ${assignedAgentName})`
@@ -947,9 +945,7 @@ export function CasePanel({
           />
           <DataRow
             label={isTerminalCase ? "Último en atender" : "Atendido por"}
-            value={
-              isTerminalCase ? (assignedAgentName ?? "Sin agente registrado") : handlerLabel
-            }
+            value={isTerminalCase ? (assignedAgentName ?? "Sin agente registrado") : handlerLabel}
           />
         </div>
 

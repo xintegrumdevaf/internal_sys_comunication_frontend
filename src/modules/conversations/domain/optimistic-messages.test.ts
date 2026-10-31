@@ -28,7 +28,12 @@ describe("reconcileThread", () => {
     const local = message({ id: "local:1", body: "Hola", createdAt: "2026-10-31T18:00:05.000Z" });
     const saved = message({ id: "m-new", body: "Hola", createdAt: "2026-10-31T18:00:06.000Z" });
     const previous = [message({ id: "m-old", body: "antes" }), local];
-    const result = reconcileThread(previous, [message({ id: "m-old", body: "antes" }), saved], [local], "conv-1");
+    const result = reconcileThread(
+      previous,
+      [message({ id: "m-old", body: "antes" }), saved],
+      [local],
+      "conv-1",
+    );
     expect(result.messages.map((item) => item.id)).toEqual(["m-old", "m-new"]);
     expect(result.consumedPendingIds).toEqual(["local:1"]);
   });

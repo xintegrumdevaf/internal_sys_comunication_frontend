@@ -490,9 +490,7 @@ export function OperationalInbox({
   };
 
   const handleCloseConversation = async () => {
-    const confirmed = window.confirm(
-      "¿Cerrar esta conversación? Pasará a la bandeja de cerradas.",
-    );
+    const confirmed = window.confirm("¿Cerrar esta conversación? Pasará a la bandeja de cerradas.");
     if (!confirmed) return;
     const ok = await closeConversation();
     if (ok) {
@@ -1099,11 +1097,11 @@ export function OperationalInbox({
 
   const isClosedRecord = Boolean(
     selected &&
-      (selected.status === "resolved" || selected.status === "closed") &&
-      (!activeCase ||
-        activeCase.status === "COMPLETED" ||
-        activeCase.status === "EXPIRED" ||
-        activeCase.status === "CANCELLED"),
+    (selected.status === "resolved" || selected.status === "closed") &&
+    (!activeCase ||
+      activeCase.status === "COMPLETED" ||
+      activeCase.status === "EXPIRED" ||
+      activeCase.status === "CANCELLED"),
   );
 
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
@@ -1605,7 +1603,9 @@ export function OperationalInbox({
                     >
                       <UserCheck className="size-3 sm:size-3.5" />
                       <span className="hidden sm:inline truncate max-w-[180px]">
-                        {assignedAgentName ? `Atendió ${assignedAgentName}` : "Sin agente registrado"}
+                        {assignedAgentName
+                          ? `Atendió ${assignedAgentName}`
+                          : "Sin agente registrado"}
                       </span>
                       <span className="sm:hidden truncate max-w-[90px]">
                         {assignedAgentName ?? "Sin agente"}
@@ -2103,7 +2103,9 @@ export function OperationalInbox({
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold truncate">{pendingAttachment.file.name}</p>
+                        <p className="text-xs font-semibold truncate">
+                          {pendingAttachment.file.name}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">
                           {OUTBOUND_MEDIA_RULES[pendingAttachment.kind].label} ·{" "}
                           {formatOutboundFileSize(pendingAttachment.file.size)}
@@ -2182,7 +2184,9 @@ export function OperationalInbox({
                                   <Icon className="size-4" />
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="font-semibold text-foreground">{option.label}</span>
+                                  <span className="font-semibold text-foreground">
+                                    {option.label}
+                                  </span>
                                   <span className="text-[10px] text-muted-foreground">
                                     {OUTBOUND_MEDIA_RULES[option.kind].menuHint}
                                   </span>
@@ -2276,10 +2280,10 @@ export function OperationalInbox({
                           : isAutomationActive
                             ? "🤖 IA activa... Haz clic en 'Tomar control' para escribir"
                             : pendingAttachment
-                            ? pendingAttachment.kind === "audio"
-                              ? "Escribe un mensaje aparte (opcional)..."
-                              : "Añade un comentario (opcional)..."
-                            : "Escribe un mensaje... o '/' para respuestas rápidas"
+                              ? pendingAttachment.kind === "audio"
+                                ? "Escribe un mensaje aparte (opcional)..."
+                                : "Añade un comentario (opcional)..."
+                              : "Escribe un mensaje... o '/' para respuestas rápidas"
                       }
                       title="Escribe un mensaje... (Shift+Enter para salto de línea, '/' para respuestas rápidas)"
                       className="flex-1 px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
@@ -2291,7 +2295,9 @@ export function OperationalInbox({
                       disabled={isAutomationActive || (!draft.trim() && !pendingAttachment)}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => void handleSend()}
-                      title={pendingAttachment ? "Enviar adjunto (Enter)" : "Enviar mensaje (Enter)"}
+                      title={
+                        pendingAttachment ? "Enviar adjunto (Enter)" : "Enviar mensaje (Enter)"
+                      }
                       className="size-10 rounded-full bg-[#00a884] dark:bg-[#00a884] text-white flex items-center justify-center shadow-sm hover:brightness-110 active:scale-95 transition-all shrink-0 disabled:opacity-35 disabled:hover:brightness-100 disabled:active:scale-100"
                     >
                       <SendHorizontal className="size-5 translate-x-0.5" />

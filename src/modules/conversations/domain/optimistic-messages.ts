@@ -12,7 +12,11 @@ function sameOutbound(pending: MessageDto, server: MessageDto): boolean {
 
   const pendingTime = Date.parse(pending.createdAt);
   const serverTime = Date.parse(server.createdAt);
-  if (Number.isFinite(pendingTime) && Number.isFinite(serverTime) && serverTime + 5000 < pendingTime) {
+  if (
+    Number.isFinite(pendingTime) &&
+    Number.isFinite(serverTime) &&
+    serverTime + 5000 < pendingTime
+  ) {
     return false;
   }
 
@@ -36,7 +40,9 @@ export function reconcileThread(
   pending: MessageDto[],
   conversationId: string,
 ): { messages: MessageDto[]; consumedPendingIds: string[] } {
-  const confirmedIds = new Set(previous.filter((message) => !isLocalMessage(message.id)).map((message) => message.id));
+  const confirmedIds = new Set(
+    previous.filter((message) => !isLocalMessage(message.id)).map((message) => message.id),
+  );
   const fresh = server.filter((message) => !confirmedIds.has(message.id));
   const pool = [...fresh];
   const consumedPendingIds: string[] = [];
