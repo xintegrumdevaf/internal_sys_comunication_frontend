@@ -90,6 +90,7 @@ export type Props = {
   initialStatus?: ConversationStatus;
   initialTab?: InboxTab;
   initialFilter?: "unassigned" | "unattended";
+  onClearInitialConversation?: () => void;
 };
 
 const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
@@ -256,6 +257,7 @@ export function OperationalInbox({
   initialStatus,
   initialTab,
   initialFilter,
+  onClearInitialConversation,
 }: Props) {
   const [activeTab, setActiveTab] = useState<InboxTab>(
     initialTab ??
@@ -346,7 +348,7 @@ export function OperationalInbox({
     conversations,
     selected: hookSelected,
     selectedId,
-    setSelectedId,
+    setSelectedId: rawSetSelectedId,
     messages,
     hasMoreMessages,
     loadingOlderMessages,
@@ -381,23 +383,42 @@ export function OperationalInbox({
     initialConversationId,
   });
 
-  // Aislamiento estricto de pestaña: la conversación seleccionada solo se muestra si coincide con la pestaña activa
-  const selected = useMemo(() => {
-    if (!hookSelected) return null;
-    if (activeTab === "open") return hookSelected.status === "open" ? hookSelected : null;
-    if (activeTab === "pending") return hookSelected.status === "pending" ? hookSelected : null;
-    if (activeTab === "resolved") return hookSelected.status === "resolved" ? hookSelected : null;
-    if (activeTab === "closed") return hookSelected.status === "closed" ? hookSelected : null;
-    if (activeTab === "unassigned")
-      return hookSelected.status === "open" && !hookSelected.activeCase?.assignedAgentId
-        ? hookSelected
-        : null;
-    if (activeTab === "unattended")
-      return hookSelected.status === "open" && (hookSelected.unreadCount ?? 0) > 0
-        ? hookSelected
-        : null;
-    return hookSelected;
-  }, [hookSelected, activeTab]);
+  const setSelectedId = useCallback(
+    (id: string | null) => {
+      rawSetSelectedId(id);
+      if (initialConversationId && id !== initialConversationId) {
+        onClearInitialConversation?.();
+      }
+    },
+    [rawSetSelectedId, initialConversationId, onClearInitialConversation],
+  );
+
+  const syncedDeepLinkIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialConversationId) {
+      syncedDeepLinkIdRef.current = null;
+      return;
+    }
+    if (
+      hookSelected &&
+      hookSelected.id === initialConversationId &&
+      syncedDeepLinkIdRef.current !== initialConversationId
+    ) {
+      syncedDeepLinkIdRef.current = initialConversationId;
+      if (
+        hookSelected.status === "pending" ||
+        hookSelected.status === "resolved" ||
+        hookSelected.status === "closed"
+      ) {
+        setActiveTab(hookSelected.status);
+      }
+    }
+  }, [initialConversationId, hookSelected]);
+
+  // Mantener la conversación abierta mientras el agente esté trabajando en ella,
+  // incluso si en segundo plano cambia de estado (ej. de "pending" a "open" al recibir mensaje).
+  // Solo se limpia explícitamente al cambiar de pestaña (`handleTabChange`) o finalizar (`handleComplete`).
+  const selected = hookSelected;
 
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -418,6 +439,7 @@ export function OperationalInbox({
   const handleComplete = async (closeReason?: CloseReason, resolutionNote?: string) => {
     const ok = await complete(closeReason, resolutionNote);
     if (ok !== false) {
+      setSelectedId(null);
       await reload({ silent: true });
     }
     return ok;
@@ -794,8 +816,19 @@ export function OperationalInbox({
     );
   }, [activeCase, selected?.activeCase, directory, session]);
 
+  const draftsByConvRef = useRef<Record<string, string>>({});
+  const prevSelectedIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    setDraft("");
+    if (selectedId) {
+      draftsByConvRef.current[selectedId] = draft;
+    }
+  }, [draft, selectedId]);
+
+  useEffect(() => {
+    if (prevSelectedIdRef.current === selectedId) return;
+    prevSelectedIdRef.current = selectedId;
+    setDraft(selectedId ? (draftsByConvRef.current[selectedId] ?? "") : "");
     setIsEmojiOpen(false);
     setIsAttachMenuOpen(false);
     adjustTextareaHeight();
@@ -810,12 +843,20 @@ export function OperationalInbox({
   const handleSend = async () => {
     const body = draft.trim();
     if (!body) return;
+    if (selectedId) {
+      delete draftsByConvRef.current[selectedId];
+    }
     setDraft("");
     if (chatInputRef.current) {
       chatInputRef.current.style.height = "auto";
     }
     const ok = await sendReply(body);
-    if (!ok) setDraft(body);
+    if (!ok) {
+      if (selectedId) {
+        draftsByConvRef.current[selectedId] = body;
+      }
+      setDraft(body);
+    }
   };
 
   const canWriteCase =

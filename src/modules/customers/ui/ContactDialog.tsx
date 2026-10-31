@@ -28,7 +28,7 @@ import {
 import type { CustomerDto } from "../domain/customer";
 import { customerGateway } from "../infrastructure/customer.gateway";
 import { tagsGateway } from "@/modules/tags/infrastructure/tags.gateway";
-import { getTagColorPreset, type TagItem } from "@/modules/tags/domain/tag";
+import { getTagColorPreset, resolveTagHex, type TagItem } from "@/modules/tags/domain/tag";
 
 interface ContactDialogProps {
   open: boolean;
@@ -154,6 +154,8 @@ export function ContactDialog({
         targetCustomer = await findExistingCustomer(cleanId, phoneToUse);
       }
 
+      const validTagIds = await tagsGateway.ensureBackendTagIds(selectedTagIds, availableTags);
+
       if (targetCustomer?.id) {
         if (phoneToUse && targetCustomer.waPhone !== phoneToUse) {
           targetCustomer = await customerGateway.update(targetCustomer.id, {
@@ -163,7 +165,7 @@ export function ContactDialog({
             email: email.trim() || targetCustomer.email || undefined,
             address: address.trim() || targetCustomer.address || undefined,
             notes: notes.trim() || targetCustomer.notes || undefined,
-            tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+            tagIds: validTagIds.length > 0 ? validTagIds : undefined,
           });
           setWaPhone(phoneToUse);
         }
@@ -178,7 +180,7 @@ export function ContactDialog({
         if (syncRes.customer.email) {
           setEmail(syncRes.customer.email);
         }
-        setSelectedTagIds(syncRes.customer.tags?.map((t) => t.id) || selectedTagIds);
+        setSelectedTagIds(syncRes.customer.tags?.map((t) => t.id) || validTagIds);
         toast.success(
           `Sincronizado con éxito: ${syncRes.contractsCount} contrato(s) y sectores: ${syncRes.syncedSectors.join(", ")}`,
         );
@@ -192,7 +194,7 @@ export function ContactDialog({
           email: email.trim() || null,
           address: address.trim() || null,
           notes: notes.trim() || null,
-          tagIds: selectedTagIds,
+          tagIds: validTagIds,
         });
         const syncRes = await customerGateway.syncIsp(created.id, cleanId);
         toast.success(
@@ -233,6 +235,8 @@ export function ContactDialog({
         targetCustomer = await findExistingCustomer(cleanNationalId, cleanPhone);
       }
 
+      const validTagIds = await tagsGateway.ensureBackendTagIds(selectedTagIds, availableTags);
+
       if (targetCustomer?.id) {
         saved = await customerGateway.update(targetCustomer.id, {
           fullName: trimmedName,
@@ -241,7 +245,7 @@ export function ContactDialog({
           email: email.trim() || null,
           address: address.trim() || null,
           notes: notes.trim() || null,
-          tagIds: selectedTagIds,
+          tagIds: validTagIds,
         });
         toast.success("Contacto actualizado con éxito");
       } else {
@@ -252,7 +256,7 @@ export function ContactDialog({
           email: email.trim() || null,
           address: address.trim() || null,
           notes: notes.trim() || null,
-          tagIds: selectedTagIds,
+          tagIds: validTagIds,
         });
         toast.success("Contacto registrado con éxito");
       }
@@ -406,10 +410,7 @@ export function ContactDialog({
                   availableTags
                     .filter((t) => selectedTagIds.includes(t.id))
                     .map((tag) => {
-                      const hex =
-                        tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff"
-                          ? tag.color
-                          : "#64748b";
+                      const hex = resolveTagHex(tag.color);
 
                       return (
                         <span
@@ -482,10 +483,7 @@ export function ContactDialog({
                   </span>
                 ) : (
                   filteredUnassignedTags.map((tag) => {
-                    const hex =
-                      tag.color && tag.color !== "#ffffff4d" && tag.color !== "#ffffff"
-                        ? tag.color
-                        : "#64748b";
+                    const hex = resolveTagHex(tag.color);
 
                     return (
                       <button

@@ -58,10 +58,17 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   selectedIdRef.current = selectedId;
   const conversationsRef = useRef<ConversationDto[]>([]);
   conversationsRef.current = conversations;
+  const consumedInitialIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!options.initialConversationId) {
+      consumedInitialIdRef.current = null;
+    }
+  }, [options.initialConversationId]);
 
   const reload = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!session) return;
+      if (!session?.id) return;
       if (!opts?.silent) setLoading(true);
       try {
         let data = await conversationGateway.listConversations({
@@ -70,27 +77,45 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           status: options.status === "all" ? undefined : (options.status ?? "open"),
         });
 
-        const preferred = options.initialConversationId;
-        if (preferred && !data.some((c) => c.id === preferred)) {
-          try {
-            const single = await conversationGateway.getConversation(preferred);
-            if (single) {
-              data = [single, ...data];
+        const prevId = selectedIdRef.current;
+
+        // Solo aplicar initialConversationId una única vez y únicamente si el usuario
+        // aún no tiene otra conversación seleccionada activamente.
+        const shouldApplyInitial =
+          !opts?.silent &&
+          !prevId &&
+          Boolean(options.initialConversationId) &&
+          consumedInitialIdRef.current !== options.initialConversationId;
+
+        const preferred = shouldApplyInitial ? options.initialConversationId : null;
+        if (preferred) {
+          consumedInitialIdRef.current = preferred;
+          if (!data.some((c) => c.id === preferred)) {
+            try {
+              const single = await conversationGateway.getConversation(preferred);
+              if (single) {
+                data = [single, ...data];
+              }
+            } catch {
+              // silencioso
             }
-          } catch {
-            // silencioso
           }
         }
 
-        const prevId = selectedIdRef.current;
-        const nextId =
-          preferred && data.some((c) => c.id === preferred)
+        // Si el usuario tiene una conversación abierta que no vino en `data` (por filtro o recarga),
+        // preservarla en memoria para jamás sacarlo del chat en el que está escribiendo.
+        if (prevId && !data.some((c) => c.id === prevId)) {
+          const existing = conversationsRef.current.find((c) => c.id === prevId);
+          if (existing) {
+            data = [existing, ...data];
+          }
+        }
+
+        const nextId = prevId
+          ? prevId
+          : preferred && data.some((c) => c.id === preferred)
             ? preferred
-            : prevId && data.some((c) => c.id === prevId)
-              ? prevId
-              : options.initialConversationId
-                ? (data[0]?.id ?? null)
-                : null;
+            : null;
 
         // La conversación activa actual no debe tener conteo no leído en la UI
         const normalizedData = data.map((c) => (c.id === nextId ? { ...c, unreadCount: 0 } : c));
@@ -99,14 +124,17 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         const total = normalizedData.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
         setTotalUnread(total);
 
-        setSelectedId(nextId);
+        if (nextId !== selectedIdRef.current) {
+          selectedIdRef.current = nextId;
+          setSelectedId(nextId);
+        }
         if (nextId) {
           setActiveChatId(nextId);
           const activeConv = data.find((c) => c.id === nextId);
           if (activeConv && (activeConv.unreadCount ?? 0) > 0) {
             void conversationGateway.markAsRead(nextId).catch(() => {});
           }
-        } else {
+        } else if (!opts?.silent) {
           setActiveChatId(null);
           setMessages([]);
           setCases([]);
@@ -119,21 +147,34 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [session, options.departmentId, options.agentId, options.status, options.initialConversationId],
+    [
+      session?.id,
+      options.departmentId,
+      options.agentId,
+      options.status,
+      options.initialConversationId,
+    ],
   );
 
-  const selectConversation = useCallback((id: string | null) => {
-    setSelectedId(id);
-    setActiveChatId(id);
-    if (id) {
-      setConversations((prev) => {
-        const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
-        setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
-        return next;
-      });
-      void conversationGateway.markAsRead(id).catch(() => {});
-    }
-  }, []);
+  const selectConversation = useCallback(
+    (id: string | null) => {
+      if (options.initialConversationId) {
+        consumedInitialIdRef.current = options.initialConversationId;
+      }
+      selectedIdRef.current = id;
+      setSelectedId(id);
+      setActiveChatId(id);
+      if (id) {
+        setConversations((prev) => {
+          const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
+          setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+          return next;
+        });
+        void conversationGateway.markAsRead(id).catch(() => {});
+      }
+    },
+    [options.initialConversationId],
+  );
 
   useEffect(() => {
     void reload();
@@ -141,19 +182,20 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       setActiveChatId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    session?.id,
-    options.departmentId,
-    options.agentId,
-    options.status,
-    options.initialConversationId,
-  ]);
+  }, [session?.id, options.departmentId, options.agentId, options.status]);
+
+  useEffect(() => {
+    if (options.initialConversationId && consumedInitialIdRef.current !== options.initialConversationId) {
+      void reload();
+    }
+  }, [options.initialConversationId, reload]);
 
   const loadThread = useCallback(async (conversationId: string) => {
     const [msgs, convCases] = await Promise.all([
       conversationGateway.listMessages(conversationId, { limit: MESSAGES_PAGE_SIZE }),
       conversationGateway.listCasesForConversation(conversationId),
     ]);
+    if (selectedIdRef.current !== conversationId) return;
     setMessages(msgs);
     setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
     hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
@@ -348,15 +390,21 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         event.type === "AUTOMATION_DISABLED" ||
         event.type === "CASE_SCHEDULED_REMINDER"
       ) {
-        if (event.type === "AUTOMATION_DISABLED") {
+        const isCurrentConv =
+          ("conversationId" in event && event.conversationId === selectedIdRef.current) ||
+          Boolean(activeCase?.id && "caseId" in event && event.caseId === activeCase.id);
+
+        if (event.type === "AUTOMATION_DISABLED" && isCurrentConv) {
           setAutomationState({
-            caseId: activeCase?.id ?? "",
+            caseId: activeCase?.id ?? event.caseId,
             enabled: false,
             disabledReason: "manual_override",
           });
         }
         void reload({ silent: true });
-        if (selectedIdRef.current) void loadThread(selectedIdRef.current);
+        if (selectedIdRef.current && isCurrentConv) {
+          void loadThread(selectedIdRef.current);
+        }
       }
     });
   }, [reload, loadThread, activeCase?.id]);
