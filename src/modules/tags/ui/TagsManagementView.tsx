@@ -19,7 +19,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { COLOR_SWATCHES, getTagColorPreset, resolveTagHex, type TagItem } from "../domain/tag";
-import { loadTagsFromStorage } from "../infrastructure/tags.storage";
+import {
+  createTagInStorage,
+  deleteTagFromStorage,
+  loadTagsFromStorage,
+  updateTagInStorage,
+} from "../infrastructure/tags.storage";
 import { tagsGateway } from "../infrastructure/tags.gateway";
 
 export function TagsManagementView() {
@@ -71,7 +76,7 @@ export function TagsManagementView() {
     setModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = tagName.trim();
     if (!cleanName) {
@@ -80,21 +85,33 @@ export function TagsManagementView() {
     }
 
     if (editingTag) {
-      const updated = await tagsGateway.update(editingTag.id, {
+      const targetId = editingTag.id;
+      const cleanDesc = description.trim() || undefined;
+      const optimistic = updateTagInStorage(targetId, {
         name: cleanName,
         color: selectedColor,
-        description: description.trim() || undefined,
+        description: cleanDesc,
       });
-      setTags(updated);
+      setTags(optimistic);
       toast.success(`Etiqueta "${cleanName.toUpperCase()}" actualizada`);
+      void tagsGateway
+        .update(targetId, {
+          name: cleanName,
+          color: selectedColor,
+          description: cleanDesc,
+        })
+        .then((synced) => setTags(synced));
     } else {
-      const updated = await tagsGateway.create({
-        name: cleanName,
-        color: selectedColor,
-        description,
-      });
-      setTags(updated);
+      const optimistic = createTagInStorage(cleanName, selectedColor, description);
+      setTags(optimistic);
       toast.success(`Etiqueta "${cleanName.toUpperCase()}" creada con éxito`);
+      void tagsGateway
+        .create({
+          name: cleanName,
+          color: selectedColor,
+          description,
+        })
+        .then((synced) => setTags(synced));
     }
 
     setModalOpen(false);
@@ -107,13 +124,14 @@ export function TagsManagementView() {
     setTagToDelete(tag);
   };
 
-  const handlePerformDelete = async () => {
+  const handlePerformDelete = () => {
     if (!tagToDelete) return;
     const target = tagToDelete;
-    setTagToDelete(null);
-    const updated = await tagsGateway.delete(target.id);
-    setTags(updated);
+    const optimistic = deleteTagFromStorage(target.id);
+    setTags(optimistic);
     toast.success(`Etiqueta "${target.name}" eliminada`);
+    setTagToDelete(null);
+    void tagsGateway.delete(target.id).then((synced) => setTags(synced));
   };
 
   const filteredTags = useMemo(() => {

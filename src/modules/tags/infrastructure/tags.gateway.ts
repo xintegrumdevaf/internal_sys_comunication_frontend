@@ -24,9 +24,9 @@ function normalizeTag(tag: TagItem): TagItem {
 
 export const tagsGateway = {
   list: async (): Promise<TagItem[]> => {
-    const storageTags = loadTagsFromStorage().map(normalizeTag);
     try {
       const res = await apiGet<TagItem[]>("/api/tags");
+      const storageTags = loadTagsFromStorage().map(normalizeTag);
       const backendTags = Array.isArray(res) ? res.map(normalizeTag) : [];
 
       const map = new Map<string, TagItem>();
@@ -65,7 +65,7 @@ export const tagsGateway = {
       }
       return combined;
     } catch {
-      return storageTags;
+      return loadTagsFromStorage().map(normalizeTag);
     }
   },
 
