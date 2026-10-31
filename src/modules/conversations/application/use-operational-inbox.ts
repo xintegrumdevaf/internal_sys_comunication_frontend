@@ -185,7 +185,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   }, [session?.id, options.departmentId, options.agentId, options.status]);
 
   useEffect(() => {
-    if (options.initialConversationId && consumedInitialIdRef.current !== options.initialConversationId) {
+    if (
+      options.initialConversationId &&
+      consumedInitialIdRef.current !== options.initialConversationId
+    ) {
       void reload();
     }
   }, [options.initialConversationId, reload]);

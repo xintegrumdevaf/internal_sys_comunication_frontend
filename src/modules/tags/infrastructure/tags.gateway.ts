@@ -120,9 +120,7 @@ export const tagsGateway = {
           color: cleanColor,
           description: cleanDescription ?? null,
         });
-        const current = loadTagsFromStorage().map((t) =>
-          t.id === id ? normalizeTag(created) : t,
-        );
+        const current = loadTagsFromStorage().map((t) => (t.id === id ? normalizeTag(created) : t));
         saveTagsToStorage(current, true);
         return current;
       }
@@ -217,4 +215,3 @@ export const tagsGateway = {
     return Array.from(new Set(resolvedIds));
   },
 };
-
