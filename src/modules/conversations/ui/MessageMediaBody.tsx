@@ -46,6 +46,7 @@ export function MessageMediaBody({
   const [videoError, setVideoError] = useState(false);
   const buildMediaUrl = (target?: string | null) => {
     if (!target) return undefined;
+    if (target.startsWith("blob:") || target.startsWith("data:")) return target;
     if (target.startsWith("/api/media") || target.startsWith("api/media")) {
       return resolveApiUrl(target.startsWith("/") ? target : `/${target}`);
     }

@@ -515,6 +515,7 @@ export function CasePanel({
   onSyncData,
   onSyncBalance,
   onDiagnose,
+  onCloseConversation,
 }: {
   caseDto: CaseDto | null;
   /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
@@ -545,6 +546,7 @@ export function CasePanel({
   onSyncData?: () => void | Promise<unknown>;
   onSyncBalance?: () => void | Promise<unknown>;
   onDiagnose?: (contractId?: string) => void | Promise<unknown>;
+  onCloseConversation?: () => void | Promise<unknown>;
   customerContracts?: ContractDto[];
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
@@ -738,11 +740,20 @@ export function CasePanel({
         {customerCard}
         <div className="bg-card border border-border rounded-xl p-5 text-center">
           <UserCircle2 className="size-8 text-muted-foreground/50 mx-auto mb-2" />
-          <p className="text-xs font-semibold">Aún no hay un caso para esta conversación</p>
+          <p className="text-xs font-semibold">Esta conversación no tiene un caso</p>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Este panel se abre solo en cuanto el asistente identifica en qué necesita ayuda el
-            cliente — no hace falta hacer nada.
+            Puedes cerrarla para pasarla a la bandeja de cerradas.
           </p>
+          {onCloseConversation && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void onCloseConversation()}
+              className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition disabled:opacity-40"
+            >
+              Cerrar conversación
+            </button>
+          )}
         </div>
       </div>
     );
@@ -750,7 +761,14 @@ export function CasePanel({
 
   const tag = workflowLabel(caseDto.workflowType);
 
-  const isAiAttending = (caseDto.automation?.enabled ?? true) && caseDto.status !== "HUMAN_ACTIVE";
+  const isTerminalCase =
+    caseDto.status === "COMPLETED" ||
+    caseDto.status === "EXPIRED" ||
+    caseDto.status === "CANCELLED";
+  const isAiAttending =
+    !isTerminalCase &&
+    (caseDto.automation?.enabled ?? true) &&
+    caseDto.status !== "HUMAN_ACTIVE";
   const handlerLabel = isAiAttending
     ? assignedAgentName
       ? `Asistente IA (Asignado a ${assignedAgentName})`
@@ -927,7 +945,12 @@ export function CasePanel({
                 : "—"
             }
           />
-          <DataRow label="Atendido por" value={handlerLabel} />
+          <DataRow
+            label={isTerminalCase ? "Último en atender" : "Atendido por"}
+            value={
+              isTerminalCase ? (assignedAgentName ?? "Sin agente registrado") : handlerLabel
+            }
+          />
         </div>
 
         <div className="flex items-center justify-between">

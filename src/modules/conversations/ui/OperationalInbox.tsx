@@ -28,6 +28,10 @@ import {
   Loader2,
   Paperclip,
   SendHorizontal,
+  Image as ImageIcon,
+  Video,
+  File as FileIcon,
+  Mic,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -71,6 +75,12 @@ import {
 import { messageClock, relativeTime, dayLabel } from "@/shared/datetime";
 import { avatarColorFromSeed } from "@/shared/avatar-color";
 import { useOperationalInbox } from "@/modules/conversations/application/use-operational-inbox";
+import {
+  formatOutboundFileSize,
+  OUTBOUND_MEDIA_RULES,
+  validateOutboundMedia,
+  type OutboundMediaKind,
+} from "@/modules/conversations/domain/outbound-media";
 import {
   useDepartmentsQuery,
   useDirectoryUsers,
@@ -251,6 +261,38 @@ function formatDeliveryError(errorMessage?: string | null) {
   };
 }
 
+const MEDIA_ATTACH_OPTIONS: Array<{
+  kind: OutboundMediaKind;
+  label: string;
+  icon: typeof ImageIcon;
+  bubble: string;
+}> = [
+  {
+    kind: "image",
+    label: "Imagen",
+    icon: ImageIcon,
+    bubble: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    kind: "video",
+    label: "Video",
+    icon: Video,
+    bubble: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  },
+  {
+    kind: "audio",
+    label: "Audio",
+    icon: Mic,
+    bubble: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  },
+  {
+    kind: "document",
+    label: "Documento",
+    icon: FileIcon,
+    bubble: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  },
+];
+
 export function OperationalInbox({
   initialDepartmentId,
   initialConversationId,
@@ -375,7 +417,9 @@ export function OperationalInbox({
     diagnoseCase,
     syncBalance,
     sendReply,
+    sendMedia,
     sendTemplate,
+    closeConversation,
   } = useOperationalInbox({
     departmentId,
     agentId: agentIdParam,
@@ -445,10 +489,80 @@ export function OperationalInbox({
     return ok;
   };
 
+  const handleCloseConversation = async () => {
+    const confirmed = window.confirm(
+      "¿Cerrar esta conversación? Pasará a la bandeja de cerradas.",
+    );
+    if (!confirmed) return;
+    const ok = await closeConversation();
+    if (ok) {
+      setSelectedId(null);
+      await reload({ silent: true });
+    }
+  };
+
   const connected = useRealtimeConnected();
   const [draft, setDraft] = useState("");
+  const draftRef = useRef("");
+  const setComposerDraft = useCallback((value: string | ((prev: string) => string)) => {
+    setDraft((prev) => {
+      const next = typeof value === "function" ? value(prev) : value;
+      draftRef.current = next;
+      return next;
+    });
+  }, []);
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
   const attachMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pickKindRef = useRef<OutboundMediaKind>("document");
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    file: File;
+    kind: OutboundMediaKind;
+    previewUrl: string | null;
+  } | null>(null);
+  const pendingPreviewUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    pendingPreviewUrlRef.current = pendingAttachment?.previewUrl ?? null;
+  }, [pendingAttachment]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrlRef.current) URL.revokeObjectURL(pendingPreviewUrlRef.current);
+    };
+  }, []);
+
+  const clearPendingAttachment = useCallback(() => {
+    setPendingAttachment((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return null;
+    });
+  }, []);
+
+  const openFilePicker = (kind: OutboundMediaKind) => {
+    pickKindRef.current = kind;
+    const input = fileInputRef.current;
+    if (!input) return;
+    input.accept = OUTBOUND_MEDIA_RULES[kind].accept;
+    input.value = "";
+    setIsAttachMenuOpen(false);
+    input.click();
+  };
+
+  const handlePickedFile = (list: FileList | null) => {
+    const file = list?.[0];
+    if (!file) return;
+    const check = validateOutboundMedia(file, pickKindRef.current);
+    if (!check.ok) {
+      toast.error(check.message);
+      return;
+    }
+    const previewUrl = check.kind === "document" ? null : URL.createObjectURL(file);
+    setPendingAttachment((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return { file, kind: check.kind, previewUrl };
+    });
+  };
 
   useEffect(() => {
     if (!isAttachMenuOpen) return;
@@ -467,7 +581,7 @@ export function OperationalInbox({
     inputRef: chatInputRef,
     containerRef: emojiContainerRef,
     insertEmoji,
-  } = useEmojiInsertion<HTMLTextAreaElement>(draft, setDraft);
+  } = useEmojiInsertion<HTMLTextAreaElement>(draft, setComposerDraft);
 
   const adjustTextareaHeight = useCallback(() => {
     const el = chatInputRef.current;
@@ -502,7 +616,7 @@ export function OperationalInbox({
     conversationId: selectedId ?? undefined,
     onSelect: (interpolatedText) => {
       const normalized = interpolatedText.replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
-      setDraft((prev) => {
+      setComposerDraft((prev) => {
         const slashIndex = prev.lastIndexOf("/");
         if (slashIndex !== -1) {
           return prev.slice(0, slashIndex) + normalized;
@@ -706,16 +820,36 @@ export function OperationalInbox({
       list = list.filter((c) => calculateConversationSla(c, slaConfig).isBreached);
     }
     if (agentFilter === "unassigned") {
-      list = list.filter((c) => !c.activeCase?.assignedAgentId);
+      list = list.filter((c) => !c.activeCase?.assignedAgentId && !c.lastAttendedBy?.agentId);
     }
     const q = search.trim().toLowerCase();
     if (!q) return list;
-    return list.filter(
-      (c) =>
+    return list.filter((c) => {
+      const attendedName =
+        c.lastAttendedBy?.agentName?.trim() ||
+        (c.lastAttendedBy?.agentId
+          ? c.lastAttendedBy.agentId === session?.id
+            ? session?.name || "Tú"
+            : directory.find((a) => a.id === c.lastAttendedBy?.agentId)?.name
+          : null);
+      return (
         c.waPhone.toLowerCase().includes(q) ||
-        (c.lastMessagePreview?.body ?? "").toLowerCase().includes(q),
-    );
-  }, [conversations, openConversations, activeTab, slaAlertsOnly, slaConfig, agentFilter, search]);
+        (c.lastMessagePreview?.body ?? "").toLowerCase().includes(q) ||
+        (attendedName ?? "").toLowerCase().includes(q) ||
+        (c.activeCase?.assignedAgentName ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [
+    conversations,
+    openConversations,
+    activeTab,
+    slaAlertsOnly,
+    slaConfig,
+    agentFilter,
+    search,
+    session,
+    directory,
+  ]);
 
   const handleTabChange = (newTab: InboxTab) => {
     setActiveTab(newTab);
@@ -807,14 +941,22 @@ export function OperationalInbox({
   const assignedAgentName = useMemo(() => {
     if (activeCase?.assignedAgentName) return activeCase.assignedAgentName;
     if (selected?.activeCase?.assignedAgentName) return selected.activeCase.assignedAgentName;
-    const agentId = activeCase?.assignedAgentId || selected?.activeCase?.assignedAgentId;
+    if (selected?.lastAttendedBy?.agentName) return selected.lastAttendedBy.agentName;
+    const agentId =
+      activeCase?.assignedAgentId ||
+      selected?.activeCase?.assignedAgentId ||
+      selected?.lastAttendedBy?.agentId;
     if (!agentId) return null;
     if (session && agentId === session.id) return session.name || "Tú";
     return (
       directory.find((a) => a.id === agentId)?.name ??
-      (selected?.activeCase?.departmentId ? "Agente de Área" : "Agente Asignado")
+      (selected?.lastAttendedBy?.agentId
+        ? null
+        : selected?.activeCase?.departmentId
+          ? "Agente de Área"
+          : "Agente Asignado")
     );
-  }, [activeCase, selected?.activeCase, directory, session]);
+  }, [activeCase, selected?.activeCase, selected?.lastAttendedBy, directory, session]);
 
   const draftsByConvRef = useRef<Record<string, string>>({});
   const prevSelectedIdRef = useRef<string | null>(null);
@@ -828,11 +970,12 @@ export function OperationalInbox({
   useEffect(() => {
     if (prevSelectedIdRef.current === selectedId) return;
     prevSelectedIdRef.current = selectedId;
-    setDraft(selectedId ? (draftsByConvRef.current[selectedId] ?? "") : "");
+    setComposerDraft(selectedId ? (draftsByConvRef.current[selectedId] ?? "") : "");
     setIsEmojiOpen(false);
     setIsAttachMenuOpen(false);
+    clearPendingAttachment();
     adjustTextareaHeight();
-  }, [selectedId, setIsEmojiOpen, adjustTextareaHeight]);
+  }, [selectedId, setIsEmojiOpen, adjustTextareaHeight, clearPendingAttachment, setComposerDraft]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
@@ -840,23 +983,49 @@ export function OperationalInbox({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length, selectedId]);
 
+  const focusComposer = () => {
+    const el = chatInputRef.current;
+    if (!el || el.disabled) return;
+    if (document.activeElement !== el) el.focus();
+  };
+
   const handleSend = async () => {
-    const body = draft.trim();
+    if (pendingAttachment) {
+      const caption = draftRef.current.trim();
+      const snapshot = pendingAttachment;
+      setPendingAttachment((current) => {
+        if (current?.file !== snapshot.file) return current;
+        if (current.previewUrl) URL.revokeObjectURL(current.previewUrl);
+        return null;
+      });
+      if (draftRef.current.trim() === caption) {
+        if (selectedId) delete draftsByConvRef.current[selectedId];
+        setComposerDraft("");
+        if (chatInputRef.current) chatInputRef.current.style.height = "auto";
+      }
+      focusComposer();
+      await sendMedia(snapshot.file, snapshot.kind, caption);
+      focusComposer();
+      return;
+    }
+    const body = draftRef.current.trim();
     if (!body) return;
     if (selectedId) {
       delete draftsByConvRef.current[selectedId];
     }
-    setDraft("");
+    setComposerDraft("");
     if (chatInputRef.current) {
       chatInputRef.current.style.height = "auto";
     }
+    focusComposer();
     const ok = await sendReply(body);
-    if (!ok) {
+    if (!ok && !draftRef.current.trim()) {
       if (selectedId) {
         draftsByConvRef.current[selectedId] = body;
       }
-      setDraft(body);
+      setComposerDraft(body);
     }
+    focusComposer();
   };
 
   const canWriteCase =
@@ -927,6 +1096,15 @@ export function OperationalInbox({
     // Por defecto, toda conversación con caso activo no tomado por un humano está en manos del Asistente IA
     return true;
   }, [activeCase, selected?.activeCase, automationState]);
+
+  const isClosedRecord = Boolean(
+    selected &&
+      (selected.status === "resolved" || selected.status === "closed") &&
+      (!activeCase ||
+        activeCase.status === "COMPLETED" ||
+        activeCase.status === "EXPIRED" ||
+        activeCase.status === "CANCELLED"),
+  );
 
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
   const showTakeControl = isAutomationActive && canWriteCase && !showClaim && !alreadyInControl;
@@ -1067,7 +1245,7 @@ export function OperationalInbox({
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por teléfono o mensaje..."
+              placeholder="Buscar por teléfono, mensaje o agente..."
               className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -1310,6 +1488,26 @@ export function OperationalInbox({
                             </span>
                           )}
                         </>
+                      ) : c.status === "resolved" || c.status === "closed" ? (
+                        (() => {
+                          const attendedName =
+                            c.lastAttendedBy?.agentName?.trim() ||
+                            (c.lastAttendedBy?.agentId
+                              ? c.lastAttendedBy.agentId === session?.id
+                                ? "Tú"
+                                : directory.find((a) => a.id === c.lastAttendedBy?.agentId)?.name
+                              : null);
+                          if (!attendedName) return null;
+                          return (
+                            <span
+                              className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[170px] bg-foreground/5 text-muted-foreground ring-1 ring-border"
+                              title={`Última persona que atendió este caso: ${attendedName}`}
+                            >
+                              <User className="size-2.5 shrink-0" />
+                              <span className="truncate">Atendió: {attendedName}</span>
+                            </span>
+                          );
+                        })()
                       ) : (
                         <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
                           <Bot className="size-2.5 text-emerald-500" />
@@ -1352,7 +1550,7 @@ export function OperationalInbox({
                   </button>
                   <div className="relative shrink-0">
                     <ConversationAvatar conversation={selected} size="size-8 sm:size-9" />
-                    {isAutomationActive && (
+                    {isAutomationActive && !isClosedRecord && (
                       <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.5 ring-2 ring-background">
                         <Bot className="size-2 sm:size-2.5" />
                       </span>
@@ -1375,15 +1573,19 @@ export function OperationalInbox({
                       </button>
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                      <span>
-                        {selected.waProfileName ? `${formatWaPhone(selected.waPhone)} · ` : ""}
+                      <span className="truncate">
+                        {[
+                          selected.waProfileName ? formatWaPhone(selected.waPhone) : null,
+                          !activeCase
+                            ? "Sin caso activo"
+                            : activeCase.status === "HUMAN_ACTIVE"
+                              ? null
+                              : caseStatusLabel(activeCase.status),
+                          activeCase ? workflowLabel(activeCase.workflowType).label : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </span>
-                      <span>
-                        {activeCase ? caseStatusLabel(activeCase.status) : "Sin caso activo"}
-                      </span>
-                      {activeCase && (
-                        <span>{` · ${workflowLabel(activeCase.workflowType).label}`}</span>
-                      )}
                       {selectedCustomer?.contracts && selectedCustomer.contracts.length > 0 && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20 shrink-0 ml-1">
                           <FileText className="size-2.5" />
@@ -1396,7 +1598,20 @@ export function OperationalInbox({
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                  {!activeCase && !selected?.activeCase ? (
+                  {isClosedRecord ? (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"
+                      title="Última persona que atendió este caso"
+                    >
+                      <UserCheck className="size-3 sm:size-3.5" />
+                      <span className="hidden sm:inline truncate max-w-[180px]">
+                        {assignedAgentName ? `Atendió ${assignedAgentName}` : "Sin agente registrado"}
+                      </span>
+                      <span className="sm:hidden truncate max-w-[90px]">
+                        {assignedAgentName ?? "Sin agente"}
+                      </span>
+                    </span>
+                  ) : !activeCase && !selected?.activeCase ? (
                     <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
                       <UserCheck className="size-3 sm:size-3.5" />
                       <span className="hidden sm:inline">Atención directa</span>
@@ -1463,6 +1678,20 @@ export function OperationalInbox({
                       <span className="sm:hidden">Control</span>
                     </button>
                   )}
+                  {!activeCase &&
+                    !selected.activeCase &&
+                    (selected.status === "open" || selected.status === "pending") && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handleCloseConversation()}
+                        title="Cerrar la conversación y sacarla de abiertas"
+                        className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
+                      >
+                        <X className="size-3 sm:size-3.5" />
+                        Cerrar
+                      </button>
+                    )}
                   <button
                     type="button"
                     onClick={() => {
@@ -1586,25 +1815,11 @@ export function OperationalInbox({
               )}
 
               {is24hWindowClosed && (
-                <div className="px-3.5 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-medium text-[11px] min-w-0">
-                    <Clock className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span className="truncate">
-                      <strong className="font-bold text-amber-700 dark:text-amber-300">
-                        Ventana de 24h inactiva:
-                      </strong>{" "}
-                      Han pasado más de 24h desde el último mensaje del cliente. Los mensajes de
-                      texto libre fallarán; envía una plantilla aprobada.
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsTemplateModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-600 text-white text-[10px] font-bold tracking-wide shadow-xs hover:bg-amber-700 transition shrink-0"
-                  >
-                    <FileText className="size-3" />
-                    Plantillas
-                  </button>
+                <div className="px-3 py-1.5 border-b border-border/40">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                    <Clock className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                    Ventana de 24h inactiva
+                  </span>
                 </div>
               )}
 
@@ -1772,6 +1987,10 @@ export function OperationalInbox({
                                     {formatDeliveryError(m.errorMessage).short}
                                   </span>
                                 </span>
+                              ) : m.id.startsWith("local:") ? (
+                                <span title="Enviando…">
+                                  <Clock className="size-3.5 opacity-70" />
+                                </span>
                               ) : m.status === "delivered" || m.status === "read" ? (
                                 <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
                               ) : (
@@ -1830,7 +2049,7 @@ export function OperationalInbox({
                 </div>
               ) : (
                 <div className="flex flex-col border-t border-border bg-background/60 shrink-0">
-                  {isAutomationActive && (
+                  {isAutomationActive && !isClosedRecord && (
                     <div className="px-3.5 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200 font-semibold text-[11px] min-w-0">
                         <Bot className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -1855,6 +2074,62 @@ export function OperationalInbox({
                       )}
                     </div>
                   )}
+                  {pendingAttachment && (
+                    <div className="mx-2.5 mt-2.5 flex items-center gap-3 rounded-2xl border border-border bg-card/90 px-2.5 py-2">
+                      {pendingAttachment.kind === "image" && pendingAttachment.previewUrl && (
+                        <img
+                          src={pendingAttachment.previewUrl}
+                          alt={pendingAttachment.file.name}
+                          className="size-14 rounded-xl object-cover shrink-0"
+                        />
+                      )}
+                      {pendingAttachment.kind === "video" && pendingAttachment.previewUrl && (
+                        <video
+                          src={pendingAttachment.previewUrl}
+                          className="size-14 rounded-xl object-cover shrink-0 bg-black"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      )}
+                      {pendingAttachment.kind === "audio" && (
+                        <div className="size-14 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                          <Mic className="size-5" />
+                        </div>
+                      )}
+                      {pendingAttachment.kind === "document" && (
+                        <div className="size-14 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                          <FileIcon className="size-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold truncate">{pendingAttachment.file.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {OUTBOUND_MEDIA_RULES[pendingAttachment.kind].label} ·{" "}
+                          {formatOutboundFileSize(pendingAttachment.file.size)}
+                          {pendingAttachment.kind === "audio"
+                            ? " · el texto se envía en un mensaje aparte"
+                            : " · el texto va como comentario"}
+                        </p>
+                        {pendingAttachment.kind === "audio" && pendingAttachment.previewUrl && (
+                          <audio
+                            src={pendingAttachment.previewUrl}
+                            controls
+                            className="mt-1 h-8 w-full max-w-xs"
+                          />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={clearPendingAttachment}
+                        title="Quitar adjunto"
+                        className="size-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0 disabled:opacity-40"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  )}
                   <div className="relative p-2.5 flex gap-2 items-end bg-background/80 dark:bg-card/30 border-t border-border/40">
                     <QuickReplyDropdown
                       isOpen={isQuickReplyOpen}
@@ -1867,7 +2142,7 @@ export function OperationalInbox({
                     <div className="relative inline-block" ref={attachMenuRef}>
                       <button
                         type="button"
-                        disabled={busy || isAutomationActive}
+                        disabled={isAutomationActive}
                         onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
                         title="Adjuntar y opciones"
                         className={`size-10 flex items-center justify-center rounded-full transition-all shrink-0 ${
@@ -1879,8 +2154,43 @@ export function OperationalInbox({
                         <Paperclip className="size-5 transition-transform" />
                       </button>
 
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="sr-only"
+                        onChange={(e) => {
+                          handlePickedFile(e.target.files);
+                          e.target.value = "";
+                        }}
+                      />
+
                       {isAttachMenuOpen && (
-                        <div className="absolute bottom-full left-0 mb-3 bg-popover/95 dark:bg-[#233138]/95 backdrop-blur-md border border-border/80 shadow-2xl rounded-2xl p-2 min-w-[240px] flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                        <div className="absolute bottom-full left-0 mb-3 bg-popover/95 dark:bg-[#233138]/95 backdrop-blur-md border border-border/80 shadow-2xl rounded-2xl p-2 min-w-[260px] max-h-[min(70vh,440px)] overflow-y-auto flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                          {MEDIA_ATTACH_OPTIONS.map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <button
+                                key={option.kind}
+                                type="button"
+                                disabled={isAutomationActive}
+                                onClick={() => openFilePicker(option.kind)}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-muted/80 text-foreground transition text-left group disabled:opacity-40"
+                              >
+                                <div
+                                  className={`size-8 rounded-full flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${option.bubble}`}
+                                >
+                                  <Icon className="size-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-foreground">{option.label}</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {OUTBOUND_MEDIA_RULES[option.kind].menuHint}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                          <div className="my-1 border-t border-border/70" />
                           <button
                             type="button"
                             disabled={busy}
@@ -1905,10 +2215,10 @@ export function OperationalInbox({
 
                           <button
                             type="button"
-                            disabled={busy || isAutomationActive}
+                            disabled={isAutomationActive}
                             onClick={() => {
                               setIsAttachMenuOpen(false);
-                              setDraft((prev) =>
+                              setComposerDraft((prev) =>
                                 prev.endsWith("/") ? prev : prev ? `${prev} /` : "/",
                               );
                               chatInputRef.current?.focus();
@@ -1947,8 +2257,8 @@ export function OperationalInbox({
                       ref={chatInputRef}
                       rows={1}
                       value={draft}
-                      disabled={busy || isAutomationActive}
-                      onChange={(e) => setDraft(e.target.value)}
+                      disabled={isAutomationActive}
+                      onChange={(e) => setComposerDraft(e.target.value)}
                       onKeyDown={(e) => {
                         if (handleQuickReplyKeyDown(e)) {
                           return;
@@ -1959,9 +2269,17 @@ export function OperationalInbox({
                         }
                       }}
                       placeholder={
-                        isAutomationActive
-                          ? "🤖 IA activa... Haz clic en 'Tomar control' para escribir"
-                          : "Escribe un mensaje... o '/' para respuestas rápidas"
+                        isClosedRecord
+                          ? assignedAgentName
+                            ? `Caso resuelto. Último en atender: ${assignedAgentName}`
+                            : "Caso resuelto. Sin agente registrado"
+                          : isAutomationActive
+                            ? "🤖 IA activa... Haz clic en 'Tomar control' para escribir"
+                            : pendingAttachment
+                            ? pendingAttachment.kind === "audio"
+                              ? "Escribe un mensaje aparte (opcional)..."
+                              : "Añade un comentario (opcional)..."
+                            : "Escribe un mensaje... o '/' para respuestas rápidas"
                       }
                       title="Escribe un mensaje... (Shift+Enter para salto de línea, '/' para respuestas rápidas)"
                       className="flex-1 px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
@@ -1970,9 +2288,10 @@ export function OperationalInbox({
                     {/* Botón enviar circular característico de WhatsApp */}
                     <button
                       type="button"
-                      disabled={busy || !draft.trim() || isAutomationActive}
+                      disabled={isAutomationActive || (!draft.trim() && !pendingAttachment)}
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => void handleSend()}
-                      title="Enviar mensaje (Enter)"
+                      title={pendingAttachment ? "Enviar adjunto (Enter)" : "Enviar mensaje (Enter)"}
                       className="size-10 rounded-full bg-[#00a884] dark:bg-[#00a884] text-white flex items-center justify-center shadow-sm hover:brightness-110 active:scale-95 transition-all shrink-0 disabled:opacity-35 disabled:hover:brightness-100 disabled:active:scale-100"
                     >
                       <SendHorizontal className="size-5 translate-x-0.5" />
@@ -2055,6 +2374,13 @@ export function OperationalInbox({
                 onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
                 onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
                 onDiagnose={(contractId) => void diagnoseCase(contractId)}
+                onCloseConversation={
+                  !activeCase &&
+                  selected &&
+                  (selected.status === "open" || selected.status === "pending")
+                    ? handleCloseConversation
+                    : undefined
+                }
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
@@ -2118,6 +2444,13 @@ export function OperationalInbox({
               onSyncData={() => void (syncCaseData ? syncCaseData() : syncBalance())}
               onSyncBalance={() => void (syncCaseData ? syncCaseData() : syncBalance())}
               onDiagnose={(contractId) => void diagnoseCase(contractId)}
+              onCloseConversation={
+                !activeCase &&
+                selected &&
+                (selected.status === "open" || selected.status === "pending")
+                  ? handleCloseConversation
+                  : undefined
+              }
               onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}

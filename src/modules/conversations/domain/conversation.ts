@@ -37,6 +37,14 @@ export type ConversationDto = {
     assignedAgentName?: string | null;
     automationEnabled: boolean;
   };
+  /**
+   * En resueltas y cerradas: última persona asignada al caso.
+   * Es solo un dato para identificar y buscar, no indica atención en curso.
+   */
+  lastAttendedBy?: {
+    agentId: string | null;
+    agentName: string | null;
+  } | null;
   /** Calculado al leer (JOIN al último message) — nunca se persiste aparte. */
   lastMessagePreview: MessagePreviewDto;
   /**

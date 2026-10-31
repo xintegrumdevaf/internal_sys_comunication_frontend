@@ -9,6 +9,7 @@ export const conversationService = {
   listCasesForConversation: conversationGateway.listCasesForConversation,
   getConversationAutomation: conversationGateway.getConversationAutomation,
   replyAsHuman: conversationGateway.replyAsHuman,
+  replyWithMedia: conversationGateway.replyWithMedia,
   takeControl: conversationGateway.takeControl,
   markAsRead: conversationGateway.markAsRead,
 
