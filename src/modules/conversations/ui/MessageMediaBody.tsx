@@ -68,11 +68,13 @@ export function MessageMediaBody({
     Boolean(message.filename?.match(/\.(mp4|mov|webm|3gp|3gpp|mkv)$/i)) ||
     Boolean(mediaUrl?.match(/\.(mp4|mov|webm|3gp|3gpp|mkv)(\?.*)?$/i));
 
+  const isFile = message.type === "document" || message.type === "file";
+
   const isPdf =
     !isVideo &&
     (message.mimeType?.includes("pdf") ||
       message.filename?.toLowerCase().endsWith(".pdf") ||
-      (message.type === "document" && !message.mimeType));
+      (isFile && !message.mimeType));
 
   const isImage =
     !isVideo && (message.type === "image" || Boolean(message.mimeType?.startsWith("image/")));
@@ -84,7 +86,7 @@ export function MessageMediaBody({
     !isVideo &&
     !isImage &&
     !isAudio &&
-    (message.type === "document" ||
+    (isFile ||
       isPdf ||
       Boolean(message.filename) ||
       message.mimeType?.includes("document") ||
@@ -221,18 +223,20 @@ export function MessageMediaBody({
 
   // Tarjeta de Documento / PDF estilo WhatsApp
   if (isDocument) {
+    const namedFile = message.filename?.trim() || "";
     const filename =
-      message.filename?.trim() || caption || (isPdf ? "Comprobante.pdf" : "Documento");
-    const targetUrl = mediaUrl || (message.mediaId ? `/api/media/${message.mediaId}` : "#");
+      (namedFile && /\.[a-z0-9]{2,5}$/i.test(namedFile) ? namedFile : "") ||
+      (isPdf ? "documento.pdf" : "Documento");
+    const targetUrl = mediaUrl || (message.mediaId ? buildMediaUrl(message.mediaId) : undefined);
 
     return (
       <div className="space-y-1.5 my-1 max-w-xs">
         <div
-          onClick={() => targetUrl !== "#" && window.open(targetUrl, "_blank")}
+          onClick={() => targetUrl && window.open(targetUrl, "_blank")}
           className="rounded-xl overflow-hidden border border-border/80 bg-background/60 hover:bg-background/90 transition shadow-sm cursor-pointer group select-none"
         >
           {/* Vista previa superior (estilo WhatsApp) */}
-          {isPdf && targetUrl !== "#" && !iframeError ? (
+          {isPdf && targetUrl && !iframeError ? (
             <div className="relative w-full h-44 bg-muted/40 overflow-hidden border-b border-border/60 flex items-center justify-center">
               <iframe
                 src={`${targetUrl}#toolbar=0&navpanes=0&scrollbar=0`}
@@ -269,9 +273,23 @@ export function MessageMediaBody({
                 </p>
               </div>
             </div>
-            <div className="size-8 rounded-full bg-foreground/5 group-hover:bg-primary group-hover:text-primary-foreground flex items-center justify-center shrink-0 transition-colors">
-              <Download className="size-4" />
-            </div>
+            {targetUrl ? (
+              <a
+                href={targetUrl}
+                download={filename}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Descargar"
+                onClick={(event) => event.stopPropagation()}
+                className="size-8 rounded-full bg-foreground/5 group-hover:bg-primary group-hover:text-primary-foreground flex items-center justify-center shrink-0 transition-colors"
+              >
+                <Download className="size-4" />
+              </a>
+            ) : (
+              <div className="size-8 rounded-full bg-foreground/5 flex items-center justify-center shrink-0">
+                <Download className="size-4" />
+              </div>
+            )}
           </div>
         </div>
 
