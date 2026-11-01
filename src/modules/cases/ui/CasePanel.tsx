@@ -750,7 +750,8 @@ export function CasePanel({
           <UserCircle2 className="size-8 text-muted-foreground/50 mx-auto mb-2" />
           <p className="text-xs font-semibold">Esta conversación no tiene un caso</p>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Puedes cerrarla, o derivarla a un área si es un caso real que el asistente no identificó.
+            Puedes cerrarla, o derivarla a un área si es un caso real que el asistente no
+            identificó.
           </p>
           <div className="mt-3 flex flex-col gap-2">
             {onDeriveConversation && (
