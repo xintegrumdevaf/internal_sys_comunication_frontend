@@ -118,6 +118,14 @@ export function closeConversation(conversationId: string): Promise<ConversationD
   return apiPost<ConversationDto>(`/api/conversations/${conversationId}/close`);
 }
 
+export function deriveConversation(
+  conversationId: string,
+  toDepartmentId: string,
+  reason: string,
+): Promise<{ caseId: string; departmentId: string; departmentName: string }> {
+  return apiPost(`/api/conversations/${conversationId}/derive`, { toDepartmentId, reason });
+}
+
 export function startZernioHistorySync(
   days: number = 30,
 ): Promise<{ message: string; jobId: string }> {

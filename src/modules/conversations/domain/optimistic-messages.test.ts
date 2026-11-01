@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
-import { reconcileThread } from "./optimistic-messages";
+import { createLocalMessageId, reconcileThread } from "./optimistic-messages";
 
 function message(partial: Partial<MessageDto> & Pick<MessageDto, "id" | "body">): MessageDto {
   return {
@@ -14,6 +14,27 @@ function message(partial: Partial<MessageDto> & Pick<MessageDto, "id" | "body">)
     ...partial,
   };
 }
+
+describe("createLocalMessageId", () => {
+  it("genera un id local aunque randomUUID no exista", () => {
+    const original = globalThis.crypto;
+    const getRandomValues = (array: Uint8Array) => {
+      array.fill(7);
+      return array;
+    };
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: { getRandomValues },
+    });
+    try {
+      const id = createLocalMessageId();
+      expect(id.startsWith("local:")).toBe(true);
+      expect(id.length).toBeGreaterThan("local:".length);
+    } finally {
+      Object.defineProperty(globalThis, "crypto", { configurable: true, value: original });
+    }
+  });
+});
 
 describe("reconcileThread", () => {
   it("conserva el mensaje local si el servidor todavía no lo tiene", () => {

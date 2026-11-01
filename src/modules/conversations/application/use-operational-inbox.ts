@@ -11,7 +11,7 @@ import type {
 import type { OutboundMediaKind } from "@/modules/conversations/domain/outbound-media";
 import {
   isLocalMessage,
-  LOCAL_MESSAGE_PREFIX,
+  createLocalMessageId,
   reconcileThread,
 } from "@/modules/conversations/domain/optimistic-messages";
 import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
@@ -555,7 +555,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     agentId: string,
     partial: Pick<MessageDto, "body" | "type"> & Partial<MessageDto>,
   ): MessageDto => ({
-    id: `${LOCAL_MESSAGE_PREFIX}${crypto.randomUUID()}`,
+    id: createLocalMessageId(),
     conversationId,
     caseId: activeCase?.id ?? null,
     direction: "outbound",
@@ -701,6 +701,23 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     }
   };
 
+  const deriveConversation = async (departmentId: string, reason: string) => {
+    if (!selectedId) return false;
+    setSending(true);
+    try {
+      const result = await conversationGateway.deriveConversation(selectedId, departmentId, reason);
+      toast.success(`Conversación derivada a ${result.departmentName}`);
+      await reload({ silent: true });
+      await loadThread(selectedId);
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo derivar la conversación");
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
   const takeControl = async () => {
     if (!session || !selectedId) return;
     setSending(true);
@@ -780,6 +797,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     sendTemplate,
     takeControl,
     closeConversation,
+    deriveConversation,
     claim: () => (activeCase ? caseActions.claim(activeCase.id) : Promise.resolve(false)),
     assign: (agentUserId: string) =>
       activeCase ? caseActions.assign(activeCase.id, agentUserId) : Promise.resolve(false),

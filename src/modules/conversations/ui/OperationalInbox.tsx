@@ -45,6 +45,7 @@ import { ScheduleCaseModal } from "@/modules/cases/ui/ScheduleCaseModal";
 import type { CloseReason } from "@/modules/cases/infrastructure/case.gateway";
 import { ZernioSyncControl } from "@/modules/conversations/ui/ZernioSyncControl";
 import { SendTemplateModal } from "@/modules/conversations/ui/SendTemplateModal";
+import { CloseConversationModal } from "@/modules/conversations/ui/CloseConversationModal";
 import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
 import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
@@ -420,6 +421,7 @@ export function OperationalInbox({
     sendMedia,
     sendTemplate,
     closeConversation,
+    deriveConversation,
   } = useOperationalInbox({
     departmentId,
     agentId: agentIdParam,
@@ -489,11 +491,20 @@ export function OperationalInbox({
     return ok;
   };
 
-  const handleCloseConversation = async () => {
-    const confirmed = window.confirm("¿Cerrar esta conversación? Pasará a la bandeja de cerradas.");
-    if (!confirmed) return;
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+
+  const handleCloseConversation = () => {
+    setCloseConfirmOpen(true);
+  };
+
+  const handleDeriveConversation = async (departmentId: string, reason: string) => {
+    await deriveConversation(departmentId, reason);
+  };
+
+  const confirmCloseConversation = async () => {
     const ok = await closeConversation();
     if (ok) {
+      setCloseConfirmOpen(false);
       setSelectedId(null);
       await reload({ silent: true });
     }
@@ -2387,6 +2398,13 @@ export function OperationalInbox({
                     ? handleCloseConversation
                     : undefined
                 }
+                onDeriveConversation={
+                  !activeCase &&
+                  selected &&
+                  (selected.status === "open" || selected.status === "pending")
+                    ? handleDeriveConversation
+                    : undefined
+                }
                 onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
@@ -2457,6 +2475,13 @@ export function OperationalInbox({
                   ? handleCloseConversation
                   : undefined
               }
+              onDeriveConversation={
+                !activeCase &&
+                selected &&
+                (selected.status === "open" || selected.status === "pending")
+                  ? handleDeriveConversation
+                  : undefined
+              }
               onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
@@ -2519,6 +2544,13 @@ export function OperationalInbox({
         open={scheduleModalOpen}
         onOpenChange={setScheduleModalOpen}
         onConfirm={handleSchedule}
+        busy={busy}
+      />
+
+      <CloseConversationModal
+        open={closeConfirmOpen}
+        onOpenChange={setCloseConfirmOpen}
+        onConfirm={confirmCloseConversation}
         busy={busy}
       />
     </div>

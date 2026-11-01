@@ -516,6 +516,7 @@ export function CasePanel({
   onSyncBalance,
   onDiagnose,
   onCloseConversation,
+  onDeriveConversation,
 }: {
   caseDto: CaseDto | null;
   /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
@@ -547,9 +548,16 @@ export function CasePanel({
   onSyncBalance?: () => void | Promise<unknown>;
   onDiagnose?: (contractId?: string) => void | Promise<unknown>;
   onCloseConversation?: () => void | Promise<unknown>;
+  /** Abre un caso en un área cuando el asistente no identificó la conversación. */
+  onDeriveConversation?: (departmentId: string, reason: string) => void | Promise<unknown>;
   customerContracts?: ContractDto[];
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
+  const [deriveOpen, setDeriveOpen] = useState(false);
+  const [deriveDept, setDeriveDept] = useState("");
+  const [deriveReason, setDeriveReason] = useState(
+    "Comprobante o solicitud real que el asistente no identificó",
+  );
   const [transferDept, setTransferDept] = useState("");
   const [transferAgentId, setTransferAgentId] = useState("");
   const [transferReason, setTransferReason] = useState("Requiere atención del área destino");
@@ -742,17 +750,71 @@ export function CasePanel({
           <UserCircle2 className="size-8 text-muted-foreground/50 mx-auto mb-2" />
           <p className="text-xs font-semibold">Esta conversación no tiene un caso</p>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Puedes cerrarla para pasarla a la bandeja de cerradas.
+            Puedes cerrarla, o derivarla a un área si es un caso real que el asistente no identificó.
           </p>
-          {onCloseConversation && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void onCloseConversation()}
-              className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition disabled:opacity-40"
-            >
-              Cerrar conversación
-            </button>
+          <div className="mt-3 flex flex-col gap-2">
+            {onDeriveConversation && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setDeriveOpen((open) => !open)}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-wide hover:brightness-95 transition disabled:opacity-40"
+              >
+                <Send className="size-3.5" /> Derivar a un área
+              </button>
+            )}
+            {onCloseConversation && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void onCloseConversation()}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wide hover:bg-foreground/5 transition disabled:opacity-40"
+              >
+                Cerrar conversación
+              </button>
+            )}
+          </div>
+          {deriveOpen && onDeriveConversation && (
+            <div className="mt-3 space-y-2 text-left p-2.5 bg-muted/40 border border-border/80 rounded-xl">
+              <div>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Área
+                </label>
+                <select
+                  value={deriveDept}
+                  onChange={(e) => setDeriveDept(e.target.value)}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                >
+                  <option value="">Elige el área</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Motivo
+                </label>
+                <input
+                  value={deriveReason}
+                  onChange={(e) => setDeriveReason(e.target.value)}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={busy || !deriveDept}
+                onClick={() => {
+                  void onDeriveConversation(deriveDept, deriveReason);
+                  setDeriveOpen(false);
+                }}
+                className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wide disabled:opacity-40 hover:brightness-105 transition"
+              >
+                Confirmar derivación
+              </button>
+            </div>
           )}
         </div>
       </div>
