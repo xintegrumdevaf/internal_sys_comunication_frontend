@@ -490,3 +490,36 @@ describe("CasePanel - Desambiguación de Contratos", () => {
     expect(onDiagnoseMock).toHaveBeenCalledWith("contract-2");
   });
 });
+
+describe("CasePanel - quién atiende", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("con un agente asignado y el caso en espera, no dice que responde la IA", () => {
+    render(
+      <CasePanel
+        caseDto={{
+          ...mockCase,
+          status: "WAITING_USER",
+          automation: null,
+          assignedAgentId: "agent_traslados",
+          assignedAgentName: "Andres Traslados 1",
+        }}
+        assignedAgentName="Andres Traslados 1"
+        busy={false}
+        canWrite={true}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/Atendido por Asistente IA/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Andres Traslados 1")).toBeInTheDocument();
+  });
+});

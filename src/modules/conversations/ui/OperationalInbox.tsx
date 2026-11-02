@@ -75,13 +75,19 @@ import {
 } from "@/modules/conversations/domain/conversation";
 import { messageClock, relativeTime, dayLabel } from "@/shared/datetime";
 import { avatarColorFromSeed } from "@/shared/avatar-color";
+import {
+  isCustomerServiceWindowClosed,
+  isWhatsAppSessionWindowError,
+} from "@/modules/conversations/domain/customer-service-window";
 import { useOperationalInbox } from "@/modules/conversations/application/use-operational-inbox";
 import {
+  filesFromClipboard,
   formatOutboundFileSize,
   OUTBOUND_MEDIA_RULES,
   validateOutboundMedia,
   type OutboundMediaKind,
 } from "@/modules/conversations/domain/outbound-media";
+import { resolvePastedClipboardFile } from "@/modules/conversations/ui/paste-outbound-image";
 import {
   useDepartmentsQuery,
   useDirectoryUsers,
@@ -94,6 +100,16 @@ import {
 import { useRealtimeConnected } from "@/modules/realtime/application/use-realtime";
 
 export type InboxTab = "open" | "unassigned" | "unattended" | "pending" | "resolved" | "closed";
+
+function pasteTargetBlocksChat(
+  target: EventTarget | null,
+  composer: HTMLTextAreaElement | null,
+): boolean {
+  if (!(target instanceof Node)) return false;
+  if (composer && (target === composer || composer.contains(target))) return false;
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
 
 export type Props = {
   initialDepartmentId?: string;
@@ -218,41 +234,22 @@ function formatDeliveryError(errorMessage?: string | null) {
       detail: "Error de entrega en WhatsApp / Meta",
     };
   }
-  let raw = errorMessage;
-  try {
-    const parsed = JSON.parse(errorMessage);
-    if (typeof parsed === "object" && parsed !== null) {
-      raw = parsed.explanation || parsed.details || parsed.message || parsed.title || errorMessage;
-      if (parsed.code === 131047 || String(parsed.code) === "131047") {
-        return {
-          is24h: true,
-          short: "Ventana 24h cerrada (Requiere plantilla)",
-          detail:
-            "Han pasado más de 24 horas desde el último mensaje del cliente. WhatsApp exige enviar una plantilla aprobada (Template) para reabrir el chat.",
-        };
-      }
-    }
-  } catch {
-    // Si no es JSON válido, se conserva el errorMessage original como texto plano
-  }
-
-  const lower = raw.toLowerCase();
-  if (
-    lower.includes("131047") ||
-    lower.includes("24 horas") ||
-    lower.includes("24-hour") ||
-    lower.includes("24h") ||
-    lower.includes("re-engagement") ||
-    lower.includes("customer service window") ||
-    lower.includes("template") ||
-    lower.includes("plantilla")
-  ) {
+  if (isWhatsAppSessionWindowError(errorMessage)) {
     return {
       is24h: true,
       short: "Ventana 24h cerrada (Requiere plantilla)",
       detail:
         "Han pasado más de 24 horas desde el último mensaje del cliente. WhatsApp exige enviar una plantilla aprobada (Template) para reabrir el chat.",
     };
+  }
+  let raw = errorMessage;
+  try {
+    const parsed = JSON.parse(errorMessage);
+    if (typeof parsed === "object" && parsed !== null) {
+      raw = parsed.explanation || parsed.details || parsed.message || parsed.title || errorMessage;
+    }
+  } catch {
+    // Si no es JSON válido, se conserva el errorMessage original como texto plano
   }
 
   return {
@@ -530,6 +527,7 @@ export function OperationalInbox({
     previewUrl: string | null;
   } | null>(null);
   const pendingPreviewUrlRef = useRef<string | null>(null);
+  const attachmentSeqRef = useRef(0);
 
   useEffect(() => {
     pendingPreviewUrlRef.current = pendingAttachment?.previewUrl ?? null;
@@ -558,19 +556,25 @@ export function OperationalInbox({
     input.click();
   };
 
-  const handlePickedFile = (list: FileList | null) => {
-    const file = list?.[0];
-    if (!file) return;
-    const check = validateOutboundMedia(file, pickKindRef.current);
+  const stageOutboundFile = useCallback((file: File, kind: OutboundMediaKind) => {
+    attachmentSeqRef.current += 1;
+    const check = validateOutboundMedia(file, kind);
     if (!check.ok) {
       toast.error(check.message);
-      return;
+      return false;
     }
     const previewUrl = check.kind === "document" ? null : URL.createObjectURL(file);
     setPendingAttachment((current) => {
       if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
       return { file, kind: check.kind, previewUrl };
     });
+    return true;
+  }, []);
+
+  const handlePickedFile = (list: FileList | null) => {
+    const file = list?.[0];
+    if (!file) return;
+    stageOutboundFile(file, pickKindRef.current);
   };
 
   useEffect(() => {
@@ -591,6 +595,25 @@ export function OperationalInbox({
     containerRef: emojiContainerRef,
     insertEmoji,
   } = useEmojiInsertion<HTMLTextAreaElement>(draft, setComposerDraft);
+
+  const stagePastedFile = useCallback(
+    async (file: File, hasMore: boolean) => {
+      const seq = ++attachmentSeqRef.current;
+      const resolved = await resolvePastedClipboardFile(file);
+      if (seq !== attachmentSeqRef.current) return;
+      if (!resolved.ok) {
+        toast.error(resolved.message);
+        return;
+      }
+      const staged = stageOutboundFile(resolved.file, resolved.kind);
+      if (!staged) return;
+      if (hasMore) {
+        toast.info("Solo se adjunta el primer archivo. El chat envía un archivo a la vez.");
+      }
+      chatInputRef.current?.focus();
+    },
+    [chatInputRef, stageOutboundFile],
+  );
 
   const adjustTextareaHeight = useCallback(() => {
     const el = chatInputRef.current;
@@ -1045,26 +1068,7 @@ export function OperationalInbox({
       session?.role === "manager" ||
       session?.role === "admin");
 
-  const is24hWindowClosed = useMemo(() => {
-    const hasRecent24hFailure = messages.some(
-      (m) => m.status === "failed" && formatDeliveryError(m.errorMessage).is24h,
-    );
-    if (hasRecent24hFailure) return true;
-
-    const customerMessages = messages.filter(
-      (m) => m.author === "customer" || m.direction === "inbound",
-    );
-    if (customerMessages.length === 0) {
-      return true;
-    }
-    const lastCustomerMsg = customerMessages[customerMessages.length - 1];
-    if (lastCustomerMsg) {
-      const diffMs = Date.now() - new Date(lastCustomerMsg.createdAt).getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
-      return diffHours >= 24;
-    }
-    return false;
-  }, [messages]);
+  const is24hWindowClosed = useMemo(() => isCustomerServiceWindowClosed(messages), [messages]);
 
   const isAssignedToMe = Boolean(
     activeCase?.assignedAgentId && activeCase.assignedAgentId === session?.id,
@@ -1118,6 +1122,43 @@ export function OperationalInbox({
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
   const showTakeControl = isAutomationActive && canWriteCase && !showClaim && !alreadyInControl;
   const readOnly = Boolean(activeCase) && !canWriteCase;
+
+  const pasteGuardRef = useRef<{ active: boolean; blockedReason: string | null }>({
+    active: false,
+    blockedReason: null,
+  });
+  pasteGuardRef.current = {
+    active: Boolean(selected),
+    blockedReason: !selected
+      ? null
+      : readOnly
+        ? "Esta conversación está asignada a otro agente."
+        : isAutomationActive
+          ? "Toma el control manual para pegar un archivo."
+          : null,
+  };
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (!pasteGuardRef.current.active) return;
+      if (pasteTargetBlocksChat(event.target, chatInputRef.current)) return;
+      const dialogOpen = document.querySelector(
+        "[role='dialog'][data-state='open'], [role='alertdialog'][data-state='open']",
+      );
+      if (dialogOpen) return;
+      const files = filesFromClipboard(event.clipboardData);
+      if (files.length === 0) return;
+      event.preventDefault();
+      const blockedReason = pasteGuardRef.current.blockedReason;
+      if (blockedReason) {
+        toast.error(blockedReason);
+        return;
+      }
+      void stagePastedFile(files[0], files.length > 1);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [chatInputRef, stagePastedFile]);
 
   let lastRenderedDay = "";
   let lastRenderedSender = "";
@@ -2294,9 +2335,9 @@ export function OperationalInbox({
                               ? pendingAttachment.kind === "audio"
                                 ? "Escribe un mensaje aparte (opcional)..."
                                 : "Añade un comentario (opcional)..."
-                              : "Escribe un mensaje... o '/' para respuestas rápidas"
+                              : "Escribe un mensaje, pega un archivo o '/' para respuestas rápidas"
                       }
-                      title="Escribe un mensaje... (Shift+Enter para salto de línea, '/' para respuestas rápidas)"
+                      title="Escribe un mensaje (Shift+Enter para salto de línea, Ctrl+V para pegar imagen, video o documento, '/' para respuestas rápidas)"
                       className="flex-1 px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
                     />
 
@@ -2543,6 +2584,7 @@ export function OperationalInbox({
       <ScheduleCaseModal
         open={scheduleModalOpen}
         onOpenChange={setScheduleModalOpen}
+        currentScheduleTag={extractSchedulingMetadata(activeCase)?.scheduleTag}
         onConfirm={handleSchedule}
         busy={busy}
       />

@@ -828,12 +828,14 @@ export function CasePanel({
     caseDto.status === "COMPLETED" ||
     caseDto.status === "EXPIRED" ||
     caseDto.status === "CANCELLED";
+  const hasHumanOwner = Boolean(caseDto.assignedAgentId);
   const isAiAttending =
-    !isTerminalCase && (caseDto.automation?.enabled ?? true) && caseDto.status !== "HUMAN_ACTIVE";
+    !isTerminalCase &&
+    !hasHumanOwner &&
+    caseDto.automation?.enabled !== false &&
+    caseDto.status !== "HUMAN_ACTIVE";
   const handlerLabel = isAiAttending
-    ? assignedAgentName
-      ? `Asistente IA (Asignado a ${assignedAgentName})`
-      : "Asistente IA"
+    ? "Asistente IA"
     : (assignedAgentName ?? "Sin asignar todavía");
 
   return (
@@ -1262,6 +1264,7 @@ export function CasePanel({
             <ScheduleCaseModal
               open={scheduleModalOpen}
               onOpenChange={setScheduleModalOpen}
+              currentScheduleTag={extractSchedulingMetadata(caseDto)?.scheduleTag}
               onConfirm={async (at, tag, reason) => {
                 await onSchedule(at, tag, reason);
               }}

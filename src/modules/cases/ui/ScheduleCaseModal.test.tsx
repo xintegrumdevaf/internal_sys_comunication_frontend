@@ -19,7 +19,13 @@ describe("ScheduleCaseModal", () => {
 
     const select = screen.getByRole("combobox");
     expect(select).toBeInTheDocument();
-    expect(select).toHaveValue("AGENDADO");
+    expect(select).toHaveValue("");
+    expect(select).toHaveAttribute("placeholder", "Busca o elige una etiqueta...");
+
+    fireEvent.focus(select);
+    expect(screen.getByText("AGENDADO")).toBeInTheDocument();
+    expect(screen.getByText("POSPUESTO")).toBeInTheDocument();
+    expect(screen.getByText("MONITOREO")).toBeInTheDocument();
 
     expect(screen.getByText(/Fecha y hora de recordatorio/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Cliente solicitó probar servicio/i)).toBeInTheDocument();
@@ -32,7 +38,8 @@ describe("ScheduleCaseModal", () => {
     render(<ScheduleCaseModal open={true} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     const select = screen.getByRole("combobox");
-    fireEvent.change(select, { target: { value: "MONITOREO" } });
+    fireEvent.focus(select);
+    fireEvent.click(screen.getByRole("button", { name: /MONITOREO/i }));
 
     const inputNote = screen.getByPlaceholderText(/Cliente solicitó probar servicio/i);
     fireEvent.change(inputNote, { target: { value: "Revisar estado de red" } });
@@ -48,5 +55,25 @@ describe("ScheduleCaseModal", () => {
       );
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
+  });
+
+  it("muestra la etiqueta previa y deja ver el resto al abrir la lista", () => {
+    render(
+      <ScheduleCaseModal
+        open={true}
+        onOpenChange={vi.fn()}
+        onConfirm={vi.fn().mockResolvedValue(true)}
+        currentScheduleTag="MONITOREO"
+      />,
+    );
+
+    const select = screen.getByRole("combobox");
+    expect(select).toHaveValue("MONITOREO");
+
+    fireEvent.focus(select);
+    expect(select).toHaveValue("MONITOREO");
+    expect(screen.getByText("AGENDADO")).toBeInTheDocument();
+    expect(screen.getByText("POSPUESTO")).toBeInTheDocument();
+    expect(screen.getByText("MONITOREO")).toBeInTheDocument();
   });
 });
