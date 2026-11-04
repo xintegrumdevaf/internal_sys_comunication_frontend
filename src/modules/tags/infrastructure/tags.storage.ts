@@ -20,12 +20,14 @@ export function loadTagsFromStorage(): TagItem[] {
   }
 }
 
-export function saveTagsToStorage(tags: TagItem[]): void {
+export function saveTagsToStorage(tags: TagItem[], notify = true): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tags));
-    // Disparar evento para sincronizar vistas en vivo
-    window.dispatchEvent(new CustomEvent("tags-updated", { detail: tags }));
+    if (notify) {
+      // Disparar evento para sincronizar vistas en vivo
+      window.dispatchEvent(new CustomEvent("tags-updated", { detail: tags }));
+    }
   } catch {
     // fallback
   }

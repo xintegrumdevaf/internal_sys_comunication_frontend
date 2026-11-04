@@ -19,6 +19,8 @@ type Props = {
     reminderReason?: string,
   ) => Promise<boolean | void>;
   busy?: boolean;
+  /** Etiqueta del seguimiento ya guardado. Vacío si el caso todavía no se agendó. */
+  currentScheduleTag?: string | null;
 };
 
 /** Formatea una fecha JS a una cadena local utilizable por <input type="datetime-local"> (YYYY-MM-THH:mm). */
@@ -32,10 +34,17 @@ function toLocalDatetimeString(date: Date): string {
   return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
-export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props) {
+export function ScheduleCaseModal({
+  open,
+  onOpenChange,
+  onConfirm,
+  busy,
+  currentScheduleTag,
+}: Props) {
   const [scheduledDatetime, setScheduledDatetime] = useState<string>("");
-  const [selectedTag, setSelectedTag] = useState<string>("AGENDADO");
-  const [tagSearch, setTagSearch] = useState<string>("");
+  const [selectedTag, setSelectedTag] = useState<string>("");
+  /** null = lista completa, sin filtrar. Un string filtra mientras se escribe. */
+  const [tagSearch, setTagSearch] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [reminderReason, setReminderReason] = useState<string>("");
   const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
@@ -52,14 +61,15 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
 
       const loaded = loadTagsFromStorage();
       setAvailableTags(loaded);
-      const firstTag = loaded[0]?.name ?? "AGENDADO";
-      setSelectedTag(firstTag);
-      setTagSearch(firstTag);
+      const previous = currentScheduleTag?.trim() ?? "";
+      const known = loaded.find((tag) => tag.name.toUpperCase() === previous.toUpperCase());
+      setSelectedTag(known?.name ?? (previous ? previous.toUpperCase() : ""));
+      setTagSearch(null);
       setReminderReason("");
       setDropdownOpen(false);
       setSubmitting(false);
     }
-  }, [open]);
+  }, [open, currentScheduleTag]);
 
   // Escuchar eventos de actualización de etiquetas del sistema
   useEffect(() => {
@@ -83,7 +93,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
   }, []);
 
   const filteredTags = useMemo(() => {
-    const q = tagSearch.trim().toLowerCase();
+    const q = (tagSearch ?? "").trim().toLowerCase();
     if (!q) return availableTags;
     return availableTags.filter(
       (t) => t.name.toLowerCase().includes(q) || (t.description ?? "").toLowerCase().includes(q),
@@ -99,7 +109,8 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
     e.preventDefault();
     if (!scheduledDatetime) return;
 
-    const finalTag = selectedTag.trim().toUpperCase() || "AGENDADO";
+    const finalTag = selectedTag.trim().toUpperCase();
+    if (!finalTag) return;
 
     setSubmitting(true);
     try {
@@ -138,12 +149,14 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                 <TagIcon className="size-3.5 text-amber-500" />
                 Etiqueta de Agendamiento <span className="text-danger">*</span>
               </span>
-              <span
-                className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase border transition ${colorInfo.bgCls} ${colorInfo.textCls} ${colorInfo.borderCls}`}
-                style={colorInfo.customStyle}
-              >
-                🏷️ {selectedTag}
-              </span>
+              {selectedTag ? (
+                <span
+                  className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase border transition ${colorInfo.bgCls} ${colorInfo.textCls} ${colorInfo.borderCls}`}
+                  style={colorInfo.customStyle}
+                >
+                  🏷️ {selectedTag}
+                </span>
+              ) : null}
             </label>
 
             <div className="relative">
@@ -152,22 +165,30 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                 type="text"
                 role="combobox"
                 aria-expanded={dropdownOpen}
-                value={dropdownOpen ? tagSearch : selectedTag}
+                value={tagSearch ?? selectedTag}
                 onChange={(e) => {
                   setTagSearch(e.target.value);
-                  setSelectedTag(e.target.value);
                   setDropdownOpen(true);
                 }}
                 onFocus={() => {
-                  setTagSearch(selectedTag);
+                  setTagSearch(null);
                   setDropdownOpen(true);
                 }}
-                placeholder="Escribe para buscar o seleccionar etiqueta..."
+                placeholder={
+                  selectedTag
+                    ? "Busca para cambiar la etiqueta..."
+                    : "Busca o elige una etiqueta..."
+                }
                 className="w-full text-xs pl-9 pr-9 py-2.5 rounded-xl border border-border bg-card font-semibold font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition uppercase"
               />
               <button
                 type="button"
-                onClick={() => setDropdownOpen((prev) => !prev)}
+                onClick={() =>
+                  setDropdownOpen((prev) => {
+                    if (!prev) setTagSearch(null);
+                    return !prev;
+                  })
+                }
                 className="absolute right-2.5 top-2.5 p-0.5 text-muted-foreground hover:text-foreground transition cursor-pointer"
               >
                 <ChevronDown
@@ -181,7 +202,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
               <div className="absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto z-50 bg-card border border-border rounded-xl shadow-xl divide-y divide-border/40 animate-fade-down">
                 {filteredTags.length === 0 ? (
                   <div className="p-3 text-center text-xs text-muted-foreground italic">
-                    No se encontraron etiquetas que coincidan con "{tagSearch}"
+                    No se encontraron etiquetas que coincidan con "{tagSearch ?? ""}"
                   </div>
                 ) : (
                   filteredTags.map((t) => {
@@ -192,7 +213,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
                         type="button"
                         onClick={() => {
                           setSelectedTag(t.name);
-                          setTagSearch(t.name);
+                          setTagSearch(null);
                           setDropdownOpen(false);
                         }}
                         className={`w-full text-left p-2.5 hover:bg-foreground/5 transition flex items-center justify-between gap-2 cursor-pointer ${
@@ -267,7 +288,7 @@ export function ScheduleCaseModal({ open, onOpenChange, onConfirm, busy }: Props
             </button>
             <button
               type="submit"
-              disabled={isLoading || !scheduledDatetime}
+              disabled={isLoading || !scheduledDatetime || !selectedTag.trim()}
               className="px-4 py-2 rounded-lg bg-amber-500 text-white text-xs font-bold shadow-sm hover:brightness-95 transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               {isLoading && <Loader2 className="size-3.5 animate-spin" />}

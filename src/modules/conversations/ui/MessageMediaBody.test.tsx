@@ -36,6 +36,25 @@ describe("isMediaPlaceholder", () => {
   });
 });
 
+describe("MessageMediaBody - PDF", () => {
+  it("muestra descarga cuando Zernio guardó el PDF como type file", () => {
+    const msg = createMockMessage({
+      type: "file",
+      mediaId: "https://zernio.com/api/v1/whatsapp/media/voucher-id",
+      filename: "voucher.pdf",
+      mimeType: "application/pdf",
+      body: "Compartir PDF",
+    });
+
+    render(<MessageMediaBody message={msg} />);
+    expect(screen.getByText("voucher.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Compartir PDF")).toBeInTheDocument();
+    const link = screen.getByTitle("Descargar");
+    expect(link.getAttribute("href")).toContain("/api/media");
+    expect(link.getAttribute("download")).toBe("voucher.pdf");
+  });
+});
+
 describe("MessageMediaBody - Video", () => {
   it("renderiza reproductor de video HTML5 nativo cuando type === 'video'", () => {
     const msg = createMockMessage({

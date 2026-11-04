@@ -8,6 +8,12 @@ import type {
   ConversationStatus,
   MessageDto,
 } from "@/modules/conversations/domain/conversation";
+import type { OutboundMediaKind } from "@/modules/conversations/domain/outbound-media";
+import {
+  isLocalMessage,
+  createLocalMessageId,
+  reconcileThread,
+} from "@/modules/conversations/domain/optimistic-messages";
 import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
 import { useSession } from "@/modules/identity/application/use-session";
 import { subscribeRealtimeEvents } from "@/modules/realtime/infrastructure/realtime-bus";
@@ -61,12 +67,22 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
+  const outboundQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingMessagesRef = useRef<Map<string, MessageDto>>(new Map());
+  const localBlobUrlsRef = useRef<Map<string, string>>(new Map());
   const conversationsRef = useRef<ConversationDto[]>([]);
   conversationsRef.current = conversations;
+  const consumedInitialIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!options.initialConversationId) {
+      consumedInitialIdRef.current = null;
+    }
+  }, [options.initialConversationId]);
 
   const reload = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!session) return;
+      if (!session?.id) return;
       if (!opts?.silent) setLoading(true);
       try {
         let data = await conversationGateway.listConversations({
@@ -75,27 +91,45 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           status: options.status === "all" ? undefined : (options.status ?? "open"),
         });
 
-        const preferred = options.initialConversationId;
-        if (preferred && !data.some((c) => c.id === preferred)) {
-          try {
-            const single = await conversationGateway.getConversation(preferred);
-            if (single) {
-              data = [single, ...data];
+        const prevId = selectedIdRef.current;
+
+        // Solo aplicar initialConversationId una única vez y únicamente si el usuario
+        // aún no tiene otra conversación seleccionada activamente.
+        const shouldApplyInitial =
+          !opts?.silent &&
+          !prevId &&
+          Boolean(options.initialConversationId) &&
+          consumedInitialIdRef.current !== options.initialConversationId;
+
+        const preferred = shouldApplyInitial ? options.initialConversationId : null;
+        if (preferred) {
+          consumedInitialIdRef.current = preferred;
+          if (!data.some((c) => c.id === preferred)) {
+            try {
+              const single = await conversationGateway.getConversation(preferred);
+              if (single) {
+                data = [single, ...data];
+              }
+            } catch {
+              // silencioso
             }
-          } catch {
-            // silencioso
           }
         }
 
-        const prevId = selectedIdRef.current;
-        const nextId =
-          preferred && data.some((c) => c.id === preferred)
+        // Si el usuario tiene una conversación abierta que no vino en `data` (por filtro o recarga),
+        // preservarla en memoria para jamás sacarlo del chat en el que está escribiendo.
+        if (prevId && !data.some((c) => c.id === prevId)) {
+          const existing = conversationsRef.current.find((c) => c.id === prevId);
+          if (existing) {
+            data = [existing, ...data];
+          }
+        }
+
+        const nextId = prevId
+          ? prevId
+          : preferred && data.some((c) => c.id === preferred)
             ? preferred
-            : prevId && data.some((c) => c.id === prevId)
-              ? prevId
-              : options.initialConversationId
-                ? (data[0]?.id ?? null)
-                : null;
+            : null;
 
         // La conversación activa actual no debe tener conteo no leído en la UI
         const normalizedData = data.map((c) => (c.id === nextId ? { ...c, unreadCount: 0 } : c));
@@ -106,14 +140,17 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           .map((c) => c.id);
         setUnreadConversations(unreadIds);
 
-        setSelectedId(nextId);
+        if (nextId !== selectedIdRef.current) {
+          selectedIdRef.current = nextId;
+          setSelectedId(nextId);
+        }
         if (nextId) {
           setActiveChatId(nextId);
           const activeConv = data.find((c) => c.id === nextId);
           if (activeConv && (activeConv.unreadCount ?? 0) > 0) {
             void conversationGateway.markAsRead(nextId).catch(() => {});
           }
-        } else {
+        } else if (!opts?.silent) {
           setActiveChatId(null);
           setMessages([]);
           setCases([]);
@@ -126,24 +163,38 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [session, options.departmentId, options.agentId, options.status, options.initialConversationId],
+    [
+      session?.id,
+      options.departmentId,
+      options.agentId,
+      options.status,
+      options.initialConversationId,
+    ],
   );
 
-  const selectConversation = useCallback((id: string | null) => {
-    setSelectedId(id);
-    setActiveChatId(id);
-    if (id) {
-      markConversationRead(id);
-      setConversations((prev) => {
-        const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
-        setUnreadConversations(
-          next.filter((c) => (c.unreadCount || 0) > 0 && c.id !== id).map((c) => c.id),
-        );
-        return next;
-      });
-      void conversationGateway.markAsRead(id).catch(() => {});
-    }
-  }, []);
+  const selectConversation = useCallback(
+    (id: string | null) => {
+      if (options.initialConversationId) {
+        consumedInitialIdRef.current = options.initialConversationId;
+      }
+      selectedIdRef.current = id;
+      setSelectedId(id);
+      setActiveChatId(id);
+      if (id) {
+        markConversationRead(id);
+        setConversations((prev) => {
+          const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
+          setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+          setUnreadConversations(
+            next.filter((c) => (c.unreadCount || 0) > 0 && c.id !== id).map((c) => c.id),
+          );
+          return next;
+        });
+        void conversationGateway.markAsRead(id).catch(() => {});
+      }
+    },
+    [options.initialConversationId],
+  );
 
   useEffect(() => {
     void reload();
@@ -151,20 +202,28 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       setActiveChatId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    session?.id,
-    options.departmentId,
-    options.agentId,
-    options.status,
-    options.initialConversationId,
-  ]);
+  }, [session?.id, options.departmentId, options.agentId, options.status]);
+
+  useEffect(() => {
+    if (
+      options.initialConversationId &&
+      consumedInitialIdRef.current !== options.initialConversationId
+    ) {
+      void reload();
+    }
+  }, [options.initialConversationId, reload]);
 
   const loadThread = useCallback(async (conversationId: string) => {
     const [msgs, convCases] = await Promise.all([
       conversationGateway.listMessages(conversationId, { limit: MESSAGES_PAGE_SIZE }),
       conversationGateway.listCasesForConversation(conversationId),
     ]);
-    setMessages(msgs);
+    if (selectedIdRef.current !== conversationId) return;
+    setMessages(
+      (prev) =>
+        reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], conversationId)
+          .messages,
+    );
     setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
     hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
     setCases(convCases);
@@ -255,7 +314,11 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         ]);
         await conversationGateway.markAsRead(selectedId).catch(() => {});
         if (!cancelled) {
-          setMessages(msgs);
+          setMessages(
+            (prev) =>
+              reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], selectedId)
+                .messages,
+          );
           setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
           hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
           setCases(convCases);
@@ -363,15 +426,21 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         event.type === "AUTOMATION_DISABLED" ||
         event.type === "CASE_SCHEDULED_REMINDER"
       ) {
-        if (event.type === "AUTOMATION_DISABLED") {
+        const isCurrentConv =
+          ("conversationId" in event && event.conversationId === selectedIdRef.current) ||
+          Boolean(activeCase?.id && "caseId" in event && event.caseId === activeCase.id);
+
+        if (event.type === "AUTOMATION_DISABLED" && isCurrentConv) {
           setAutomationState({
-            caseId: activeCase?.id ?? "",
+            caseId: activeCase?.id ?? event.caseId,
             enabled: false,
             disabledReason: "manual_override",
           });
         }
         void reload({ silent: true });
-        if (selectedIdRef.current) void loadThread(selectedIdRef.current);
+        if (selectedIdRef.current && isCurrentConv) {
+          void loadThread(selectedIdRef.current);
+        }
       }
     });
   }, [reload, loadThread, activeCase?.id]);
@@ -405,22 +474,201 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     await reload({ silent: true });
   });
 
-  const sendReply = async (body: string) => {
-    if (!session || !selectedId) return false;
-    const trimmed = body.trim();
-    if (!trimmed) return false;
-    setSending(true);
-    try {
-      const message = await conversationGateway.replyAsHuman(selectedId, session.id, trimmed);
-      setMessages((prev) => [...prev, message]);
-      await refreshActiveCase();
-      return true;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo enviar");
-      return false;
-    } finally {
-      setSending(false);
+  const enqueueOutbound = <T>(task: () => Promise<T>): Promise<T> => {
+    const run = outboundQueueRef.current.then(task, task);
+    outboundQueueRef.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  };
+
+  const releaseLocalBlob = (id: string) => {
+    const url = localBlobUrlsRef.current.get(id);
+    if (!url) return;
+    URL.revokeObjectURL(url);
+    localBlobUrlsRef.current.delete(id);
+  };
+
+  const dropPending = (id: string) => {
+    pendingMessagesRef.current.delete(id);
+    releaseLocalBlob(id);
+  };
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const threadMatches =
+      messages.length === 0 ||
+      messages.every(
+        (message) => message.conversationId === selectedId || isLocalMessage(message.id),
+      );
+    if (!threadMatches) return;
+    for (const [id, message] of pendingMessagesRef.current) {
+      if (message.conversationId !== selectedId) continue;
+      if (!messages.some((item) => item.id === id)) pendingMessagesRef.current.delete(id);
     }
+    for (const id of [...localBlobUrlsRef.current.keys()]) {
+      if (pendingMessagesRef.current.has(id)) continue;
+      if (messages.some((item) => item.id === id)) continue;
+      releaseLocalBlob(id);
+    }
+  }, [messages, selectedId]);
+
+  const showLocalMessage = (message: MessageDto) => {
+    pendingMessagesRef.current.set(message.id, message);
+    if (selectedIdRef.current === message.conversationId) {
+      setMessages((prev) =>
+        prev.some((item) => item.id === message.id) ? prev : [...prev, message],
+      );
+    }
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === message.conversationId
+          ? {
+              ...conversation,
+              lastActivityAt: message.createdAt,
+              lastMessagePreview: {
+                body: message.caption || message.body || message.filename || "Archivo",
+                author: "agent",
+                direction: "outbound",
+                createdAt: message.createdAt,
+              },
+            }
+          : conversation,
+      ),
+    );
+  };
+
+  const replaceLocalMessage = (tempId: string, real: MessageDto) => {
+    pendingMessagesRef.current.delete(tempId);
+    if (selectedIdRef.current !== real.conversationId) {
+      releaseLocalBlob(tempId);
+      return;
+    }
+    setMessages((prev) => {
+      if (prev.some((message) => message.id === real.id)) {
+        return prev.filter((message) => message.id !== tempId);
+      }
+      const index = prev.findIndex((message) => message.id === tempId);
+      if (index === -1) return [...prev, real];
+      const next = prev.slice();
+      next[index] = real;
+      return next;
+    });
+  };
+
+  const failLocalMessage = (tempId: string, errorMessage: string) => {
+    const current = pendingMessagesRef.current.get(tempId);
+    if (!current) return;
+    const failed: MessageDto = { ...current, status: "failed", errorMessage };
+    pendingMessagesRef.current.set(tempId, failed);
+    if (selectedIdRef.current !== current.conversationId) return;
+    setMessages((prev) => prev.map((message) => (message.id === tempId ? failed : message)));
+  };
+
+  const createLocalMessage = (
+    conversationId: string,
+    agentId: string,
+    partial: Pick<MessageDto, "body" | "type"> & Partial<MessageDto>,
+  ): MessageDto => ({
+    id: createLocalMessageId(),
+    conversationId,
+    caseId: activeCase?.id ?? null,
+    direction: "outbound",
+    author: "agent",
+    agentId,
+    agentName: session?.name ?? null,
+    createdAt: new Date().toISOString(),
+    ...partial,
+  });
+
+  const sendReply = (body: string) => {
+    if (!session || !selectedId) return Promise.resolve(false);
+    const trimmed = body.trim();
+    if (!trimmed) return Promise.resolve(false);
+    const conversationId = selectedId;
+    const agentId = session.id;
+    const local = createLocalMessage(conversationId, agentId, { body: trimmed, type: "text" });
+    showLocalMessage(local);
+    return enqueueOutbound(async () => {
+      try {
+        const message = await conversationGateway.replyAsHuman(conversationId, agentId, trimmed);
+        replaceLocalMessage(local.id, message);
+        void refreshActiveCase();
+        return true;
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : "No se pudo enviar";
+        failLocalMessage(local.id, errorMessage);
+        toast.error(errorMessage);
+        return true;
+      }
+    });
+  };
+
+  const sendMedia = (
+    file: File,
+    kind: OutboundMediaKind,
+    caption: string,
+  ): Promise<"sent" | "failed" | "text-failed"> => {
+    if (!session || !selectedId) {
+      toast.error("No se pudo enviar el archivo");
+      return Promise.resolve("failed");
+    }
+    const trimmedCaption = caption.trim();
+    const conversationId = selectedId;
+    const agentId = session.id;
+    const previewUrl = URL.createObjectURL(file);
+    const local = createLocalMessage(conversationId, agentId, {
+      body: kind === "audio" ? "" : trimmedCaption,
+      caption: kind === "audio" ? undefined : trimmedCaption || undefined,
+      type: kind,
+      filename: file.name,
+      mimeType: file.type || undefined,
+      mediaUrl: previewUrl,
+    });
+    localBlobUrlsRef.current.set(local.id, previewUrl);
+    showLocalMessage(local);
+    const textLocal =
+      kind === "audio" && trimmedCaption
+        ? createLocalMessage(conversationId, agentId, { body: trimmedCaption, type: "text" })
+        : null;
+    if (textLocal) showLocalMessage(textLocal);
+    return enqueueOutbound(async () => {
+      try {
+        const message = await conversationGateway.replyWithMedia(conversationId, file, {
+          type: kind,
+          caption: kind === "audio" ? undefined : trimmedCaption,
+        });
+        replaceLocalMessage(local.id, message);
+        if (textLocal) {
+          try {
+            const textMessage = await conversationGateway.replyAsHuman(
+              conversationId,
+              agentId,
+              trimmedCaption,
+            );
+            replaceLocalMessage(textLocal.id, textMessage);
+          } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : "No se pudo enviar el texto";
+            failLocalMessage(textLocal.id, errorMessage);
+            toast.error(`El audio se envió, pero el texto no: ${errorMessage}`);
+            void refreshActiveCase();
+            return "text-failed";
+          }
+        }
+        void refreshActiveCase();
+        return "sent";
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : "No se pudo enviar el archivo";
+        failLocalMessage(local.id, errorMessage);
+        if (textLocal) dropPending(textLocal.id);
+        if (selectedIdRef.current === conversationId) {
+          setMessages((prev) => prev.filter((message) => message.id !== textLocal?.id));
+        }
+        toast.error(errorMessage);
+        return "failed";
+      }
+    });
   };
 
   const sendTemplate = async (
@@ -443,6 +691,43 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al enviar plantilla");
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const closeConversation = async () => {
+    if (!selectedId) return false;
+    setSending(true);
+    try {
+      await conversationGateway.closeConversation(selectedId);
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === selectedId ? { ...conversation, status: "closed" } : conversation,
+        ),
+      );
+      toast.success("Conversación cerrada");
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo cerrar la conversación");
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const deriveConversation = async (departmentId: string, reason: string) => {
+    if (!selectedId) return false;
+    setSending(true);
+    try {
+      const result = await conversationGateway.deriveConversation(selectedId, departmentId, reason);
+      toast.success(`Conversación derivada a ${result.departmentName}`);
+      await reload({ silent: true });
+      await loadThread(selectedId);
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo derivar la conversación");
       return false;
     } finally {
       setSending(false);
@@ -524,8 +809,11 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     loadOlderMessages,
     loadUntilFound,
     sendReply,
+    sendMedia,
     sendTemplate,
     takeControl,
+    closeConversation,
+    deriveConversation,
     claim: () => (activeCase ? caseActions.claim(activeCase.id) : Promise.resolve(false)),
     assign: (agentUserId: string) =>
       activeCase ? caseActions.assign(activeCase.id, agentUserId) : Promise.resolve(false),

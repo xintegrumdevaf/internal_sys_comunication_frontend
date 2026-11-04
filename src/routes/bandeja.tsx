@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { Inbox } from "lucide-react";
 import { AppShell } from "@/app/shell/AppShell";
 import { OperationalInbox, type InboxTab } from "@/modules/conversations/ui/OperationalInbox";
@@ -52,8 +53,21 @@ export const Route = createFileRoute("/bandeja")({
 });
 
 function BandejaPage() {
+  const navigate = useNavigate();
   const { conversationId, departmentId, status, tab } = Route.useSearch();
   const initialTab: InboxTab = tab ?? (status as InboxTab) ?? "open";
+
+  const handleClearInitialConversation = useCallback(() => {
+    if (!conversationId) return;
+    void navigate({
+      to: "/bandeja",
+      search: (prev) => ({
+        ...prev,
+        conversationId: undefined,
+      }),
+      replace: true,
+    });
+  }, [conversationId, navigate]);
 
   return (
     <AppShell title="Bandeja de conversaciones" icon={Inbox}>
@@ -61,6 +75,7 @@ function BandejaPage() {
         initialDepartmentId={departmentId}
         initialConversationId={conversationId}
         initialTab={initialTab}
+        onClearInitialConversation={handleClearInitialConversation}
       />
     </AppShell>
   );

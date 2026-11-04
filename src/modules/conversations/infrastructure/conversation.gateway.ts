@@ -5,6 +5,7 @@ import type {
   ConversationStatus,
   MessageDto,
 } from "@/modules/conversations/domain/conversation";
+import type { OutboundMediaKind } from "@/modules/conversations/domain/outbound-media";
 import type { CaseDto } from "@/modules/cases/domain/case";
 import type { ZernioSyncStatus } from "@/types/department";
 
@@ -69,6 +70,27 @@ export async function replyAsHuman(
   return withMediaUrls([message])[0]!;
 }
 
+/**
+ * Envía imagen, video, audio o documento.
+ * `POST /api/conversations/:id/reply` acepta multipart (`file`, `caption`, `type`, `mimeType`, `filename`).
+ * Las rutas `/media` y `/attachments` usan el mismo handler.
+ */
+export async function replyWithMedia(
+  conversationId: string,
+  file: File,
+  options?: { caption?: string; type?: OutboundMediaKind },
+): Promise<MessageDto> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const caption = options?.caption?.trim();
+  if (caption) form.append("caption", caption);
+  if (options?.type) form.append("type", options.type);
+  if (file.type) form.append("mimeType", file.type);
+  if (file.name) form.append("filename", file.name);
+  const message = await apiPost<MessageDto>(`/api/conversations/${conversationId}/reply`, form);
+  return withMediaUrls([message])[0]!;
+}
+
 export async function sendTemplate(
   conversationId: string,
   templateName: string,
@@ -90,6 +112,18 @@ export function takeControl(conversationId: string, agentUserId: string): Promis
 
 export function markAsRead(conversationId: string): Promise<void> {
   return apiPost(`/api/conversations/${conversationId}/read`);
+}
+
+export function closeConversation(conversationId: string): Promise<ConversationDto> {
+  return apiPost<ConversationDto>(`/api/conversations/${conversationId}/close`);
+}
+
+export function deriveConversation(
+  conversationId: string,
+  toDepartmentId: string,
+  reason: string,
+): Promise<{ caseId: string; departmentId: string; departmentName: string }> {
+  return apiPost(`/api/conversations/${conversationId}/derive`, { toDepartmentId, reason });
 }
 
 export function startZernioHistorySync(
