@@ -15,16 +15,16 @@ export function QualityRankingTable({
   onSelectAgent,
 }: QualityRankingTableProps) {
   return (
-    <div className="col-span-1 lg:col-span-4 bg-card border border-border rounded-xl overflow-hidden shadow-xs flex flex-col">
-      <div className="p-4 sm:p-5 border-b border-border bg-background/60">
+    <div className="col-span-1 lg:col-span-4 bg-card border border-border rounded-xl overflow-hidden shadow-xs flex flex-col h-full min-h-[480px]">
+      <div className="p-4 sm:p-5 border-b border-border bg-background/60 shrink-0">
         <h3 className="text-xs font-extrabold uppercase tracking-widest">Ranking por Agente</h3>
         <p className="text-[10px] text-muted-foreground mt-0.5">
           Score promedio de chats con valoración total.
         </p>
       </div>
-      <div className="overflow-x-auto flex-1">
+      <div className="overflow-y-auto overflow-x-auto flex-1 min-h-0">
         <table className="w-full text-xs">
-          <thead className="bg-background/80 border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+          <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground font-bold z-10">
             <tr>
               <th className="text-left px-3.5 py-3">Agente</th>
               <th className="text-right px-3.5 py-3">Chats</th>
@@ -106,6 +106,14 @@ export function QualityRankingTable({
             )}
           </tbody>
         </table>
+      </div>
+      <div className="p-3 border-t border-border bg-background/80 flex items-center justify-between text-xs text-muted-foreground shrink-0">
+        <span>
+          {stats.length} {stats.length === 1 ? "agente" : "agentes"} en ranking
+        </span>
+        {selectedAgentId && (
+          <span className="text-[11px] font-semibold text-primary">Filtrando por agente</span>
+        )}
       </div>
     </div>
   );

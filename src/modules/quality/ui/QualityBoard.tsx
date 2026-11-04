@@ -92,7 +92,7 @@ export function QualityBoard({
     : "Analizar chats recientes";
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6 animate-fade-up flex-1 flex flex-col min-h-0">
       {/* Banner Informativo */}
       <div className="p-4 sm:p-5 rounded-xl border border-border bg-card text-xs sm:text-sm text-muted-foreground flex items-start gap-3 shadow-xs">
         <ShieldCheck className="size-5 text-primary shrink-0 mt-0.5" />
@@ -123,34 +123,38 @@ export function QualityBoard({
       )}
 
       {/* Indicadores con Skeletons */}
-      <QualityStatsCards
-        loading={loading}
-        agentsCount={stats.length}
-        chatsCount={reviews.length}
-        incompleteMsgCount={incompleteMsg}
-        pendingCount={pendingCount}
-        failedCount={failedCount}
-      />
+      <div className="shrink-0">
+        <QualityStatsCards
+          loading={loading}
+          agentsCount={stats.length}
+          chatsCount={reviews.length}
+          incompleteMsgCount={incompleteMsg}
+          pendingCount={pendingCount}
+          failedCount={failedCount}
+        />
+      </div>
 
       {/* Barra de Filtros Unificada con Radix Select y Filtro de Críticos */}
-      <QualityFiltersBar
-        filters={filters}
-        setFilters={setFilters}
-        agentOptions={agentOptions}
-        departments={departments}
-        isAdmin={isAdmin}
-        slaMinutes={slaConfig.responseThresholdMinutes}
-        onOpenSlaModal={() => setSlaModalOpen(true)}
-        batchBusy={batchBusy}
-        isAnalyzingAny={Boolean(analyzingCaseId)}
-        onAnalyzePendingChats={() => void analyzePendingChats()}
-        onReanalyzeAllChats={() => void reanalyzeAllChats()}
-        analyzeBtnLabel={analyzeBtnLabel}
-        criticalCount={criticalCount}
-      />
+      <div className="shrink-0">
+        <QualityFiltersBar
+          filters={filters}
+          setFilters={setFilters}
+          agentOptions={agentOptions}
+          departments={departments}
+          isAdmin={isAdmin}
+          slaMinutes={slaConfig.responseThresholdMinutes}
+          onOpenSlaModal={() => setSlaModalOpen(true)}
+          batchBusy={batchBusy}
+          isAnalyzingAny={Boolean(analyzingCaseId)}
+          onAnalyzePendingChats={() => void analyzePendingChats()}
+          onReanalyzeAllChats={() => void reanalyzeAllChats()}
+          analyzeBtnLabel={analyzeBtnLabel}
+          criticalCount={criticalCount}
+        />
+      </div>
 
       {/* Tablas de Ranking y Reviews con Scroll Acotado y Paginación */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[480px] items-stretch">
         <QualityRankingTable
           stats={stats}
           loading={loading}

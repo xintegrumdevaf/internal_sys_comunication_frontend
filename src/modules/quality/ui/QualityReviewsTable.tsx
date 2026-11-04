@@ -10,7 +10,7 @@ import {
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
 import { relativeTime } from "@/shared/datetime";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 interface QualityReviewsTableProps {
   reviews: QualityReviewDto[];
@@ -39,17 +39,18 @@ export function QualityReviewsTable({
   analyzeChat,
   analyzeBtnLabel,
 }: QualityReviewsTableProps) {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const totalPages = Math.max(1, Math.ceil(reviews.length / PAGE_SIZE));
-  const activePage = Math.min(currentPage, totalPages);
-  const startIndex = (activePage - 1) * PAGE_SIZE;
-  const paginatedReviews = reviews.slice(startIndex, startIndex + PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(reviews.length / pageSize));
+  const activePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (activePage - 1) * pageSize;
+  const paginatedReviews = reviews.slice(startIndex, startIndex + pageSize);
 
   return (
-    <div className="col-span-1 lg:col-span-8 bg-card border border-border rounded-xl overflow-hidden shadow-xs flex flex-col">
+    <div className="col-span-1 lg:col-span-8 bg-card border border-border rounded-xl overflow-hidden shadow-xs flex flex-col h-full min-h-[480px]">
       {/* Cabecera de la Lista */}
-      <div className="p-4 sm:p-5 border-b border-border bg-background/60 flex flex-wrap items-center justify-between gap-2">
+      <div className="p-4 sm:p-5 border-b border-border bg-background/60 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div>
           <h3 className="text-xs font-extrabold uppercase tracking-widest">
             {listTitle} ({reviews.length})
@@ -70,7 +71,7 @@ export function QualityReviewsTable({
       </div>
 
       {/* Contenedor con Scroll Acotado y Sticky Header */}
-      <div className="overflow-y-auto max-h-[580px] flex-1">
+      <div className="overflow-y-auto overflow-x-auto flex-1 min-h-0">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground font-bold z-10">
             <tr>
@@ -218,34 +219,56 @@ export function QualityReviewsTable({
         </table>
       </div>
 
-      {/* Barra de Paginación */}
-      {reviews.length > PAGE_SIZE && (
-        <div className="p-3 border-t border-border bg-background/80 flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            Mostrando {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, reviews.length)} de{" "}
-            {reviews.length} chats
-          </span>
+            {/* Barra de Paginación Persistente */}
+      {reviews.length > 0 && (
+        <div className="p-3 border-t border-border bg-background/80 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground shrink-0">
+          <div className="flex items-center gap-3">
+            <span>
+              Mostrando <strong className="text-foreground font-semibold">{startIndex + 1}</strong>–<strong className="text-foreground font-semibold">{Math.min(startIndex + pageSize, reviews.length)}</strong> de{" "}
+              <strong className="text-foreground font-semibold">{reviews.length}</strong> chats
+            </span>
+            <div className="flex items-center gap-1.5 pl-2 border-l border-border">
+              <span className="text-[11px] text-muted-foreground hidden sm:inline">Por pág:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-7 px-2 text-[11px] rounded-md border border-border bg-background text-foreground font-medium cursor-pointer hover:bg-muted/50 focus:outline-hidden focus:ring-1 focus:ring-primary"
+                aria-label="Cantidad de chats por página"
+              >
+                {PAGE_SIZE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={activePage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              className="px-2.5 py-1 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors flex items-center gap-1 text-[11px] font-medium"
               title="Página anterior"
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft className="size-3.5" />
+              <span className="hidden sm:inline">Anterior</span>
             </button>
-            <span className="font-mono font-medium px-2">
-              Página {activePage} de {totalPages}
+            <span className="font-mono text-[11px] font-semibold px-2">
+              Pág. {activePage} de {totalPages}
             </span>
             <button
               type="button"
               disabled={activePage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+              className="px-2.5 py-1 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors flex items-center gap-1 text-[11px] font-medium"
               title="Página siguiente"
             >
-              <ChevronRight className="size-4" />
+              <span className="hidden sm:inline">Siguiente</span>
+              <ChevronRight className="size-3.5" />
             </button>
           </div>
         </div>
