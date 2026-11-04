@@ -37,6 +37,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
+import { InboxStatusTabs } from "./InboxStatusTabs";
+import { ConversationListItem } from "./ConversationListItem";
+import { ChatHeader } from "./ChatHeader";
+import { ChatSearchBar } from "./ChatSearchBar";
+import { ChatMessageItem } from "./ChatMessageItem";
+import { ChatComposer } from "./ChatComposer";
+import { ConversationAvatar, MessageAvatar } from "./ConversationAvatars";
+import { formatDeliveryError } from "./delivery-error";
 import { InboxInternalNoteComposer } from "@/modules/internal-chat/ui/InboxInternalNoteComposer";
 import { CasePanel } from "@/modules/cases/ui/CasePanel";
 import { CaseSummaryDialog } from "@/modules/cases/ui/CaseSummaryDialog";
@@ -158,114 +166,6 @@ function formatLastMessagePreview(preview: MessagePreviewDto | null | undefined)
     return "📍 Ubicación";
   }
   return body;
-}
-
-function initialsFromProfileName(name: string): string {
-  const clean = name.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
-  const target = clean || name;
-  const parts = target.trim().split(/\s+/).filter(Boolean);
-  return (
-    parts
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
-}
-
-/**
- * WhatsApp no permite obtener la foto de perfil vía la API oficial de Meta
- * (restricción de privacidad — aplica a cualquier negocio, no es una
- * limitación nuestra). Mostramos iniciales del nombre real cuando ya lo
- * conocemos; si no, un ícono genérico — nunca una foto inventada.
- */
-function ConversationAvatar({
-  conversation,
-  size = "size-11",
-}: {
-  conversation: Pick<ConversationDto, "waPhone" | "waProfileName"> & {
-    customerName?: string | null;
-  };
-  size?: string;
-}) {
-  const color = avatarColorFromSeed(conversation.waPhone);
-  const name = conversation.customerName?.trim() || conversation.waProfileName?.trim();
-  return (
-    <div
-      className={`${size} rounded-full grid place-items-center shrink-0 font-bold text-sm ${color.bg} ${color.text}`}
-    >
-      {name ? initialsFromProfileName(name) : <User className="size-1/2" />}
-    </div>
-  );
-}
-
-/**
- * Avatar redondo por mensaje, como en los grupos de WhatsApp: quién habla se
- * identifica por un círculo con su inicial (o un ícono para el asistente),
- * nunca con un ícono suelto metido dentro de la burbuja.
- */
-function MessageAvatar({
-  author,
-  conversation,
-  agentName,
-}: {
-  author: MessageAuthor;
-  conversation: Pick<ConversationDto, "waPhone" | "waProfileName">;
-  agentName?: string | null;
-}) {
-  if (author === "customer") {
-    return <ConversationAvatar conversation={conversation} size="size-7" />;
-  }
-  if (author === "agent") {
-    return (
-      <div className="size-7 rounded-full grid place-items-center shrink-0 bg-primary/15 text-primary font-bold text-[10px]">
-        {agentName ? initialsFromProfileName(agentName) : <UserCheck className="size-3.5" />}
-      </div>
-    );
-  }
-  return (
-    <div className="size-7 rounded-full grid place-items-center shrink-0 bg-emerald-100 text-emerald-700">
-      <Bot className="size-3.5" />
-    </div>
-  );
-}
-
-/**
- * Bandeja unificada estilo Chatwoot/Whaticket: departamento y agente son
- * FILTROS dentro de esta pantalla (no rutas separadas) — ver
- * docs/skills/ui-ux-design-principles.md.
- */
-
-function formatDeliveryError(errorMessage?: string | null) {
-  if (!errorMessage) {
-    return {
-      is24h: false,
-      short: "Fallo de entrega",
-      detail: "Error de entrega en WhatsApp / Meta",
-    };
-  }
-  if (isWhatsAppSessionWindowError(errorMessage)) {
-    return {
-      is24h: true,
-      short: "Ventana 24h cerrada (Requiere plantilla)",
-      detail:
-        "Han pasado más de 24 horas desde el último mensaje del cliente. WhatsApp exige enviar una plantilla aprobada (Template) para reabrir el chat.",
-    };
-  }
-  let raw = errorMessage;
-  try {
-    const parsed = JSON.parse(errorMessage);
-    if (typeof parsed === "object" && parsed !== null) {
-      raw = parsed.explanation || parsed.details || parsed.message || parsed.title || errorMessage;
-    }
-  } catch {
-    // Si no es JSON válido, se conserva el errorMessage original como texto plano
-  }
-
-  return {
-    is24h: false,
-    short: "Fallo de entrega",
-    detail: raw,
-  };
 }
 
 const MEDIA_ATTACH_OPTIONS: Array<{
@@ -1242,190 +1142,17 @@ export function OperationalInbox({
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-2.5">
-          {/* Categorías de conversación con Tooltips y Guía rápida */}
-          <TooltipProvider delayDuration={150}>
-            <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
-              <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1 shrink-0">
-                {[
-                  {
-                    value: "open" as InboxTab,
-                    label: "Abiertas",
-                    hint: "En curso",
-                    description:
-                      "Todas las conversaciones activas que se están atendiendo en este momento (por IA o asesores).",
-                    badge: openCount,
-                  },
-                  {
-                    value: "unassigned" as InboxTab,
-                    label: "En cola",
-                    hint: "Sin asesor",
-                    description:
-                      "Conversaciones que están esperando que un asesor humano tome el caso (sin asignar).",
-                    badge: unassignedCount,
-                    badgeColor: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-                  },
-                  {
-                    value: "unattended" as InboxTab,
-                    label: "Demoradas",
-                    hint: "Atención urgente",
-                    description:
-                      "Mensajes de clientes sin responder o con tiempo de espera superado (alerta de SLA).",
-                    badge: unattendedCount,
-                    badgeColor: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
-                  },
-                  {
-                    value: "pending" as InboxTab,
-                    label: "En espera",
-                    hint: "Pausadas",
-                    description:
-                      "Casos pausados esperando datos o comprobantes del cliente, o agendados para más tarde.",
-                    badge: pendingCount,
-                    badgeColor: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-                  },
-                  {
-                    value: "resolved" as InboxTab,
-                    label: "Resueltas",
-                    hint: "Solución entregada",
-                    description:
-                      "Atención finalizada con éxito. Si el cliente vuelve a escribir pronto, retoma este mismo caso.",
-                    badge: resolvedCount,
-                    badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-                  },
-                  {
-                    value: "closed" as InboxTab,
-                    label: "Cerradas",
-                    hint: "Archivadas",
-                    description:
-                      "Conversaciones archivadas definitivamente. Si el cliente escribe en el futuro, se abrirá un caso nuevo.",
-                    badge: closedCount,
-                  },
-                ].map((tab) => {
-                  const isActive = activeTab === tab.value;
-                  return (
-                    <Tooltip key={tab.value}>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => handleTabChange(tab.value)}
-                          className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                            isActive
-                              ? "bg-primary text-primary-foreground shadow-xs"
-                              : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                          }`}
-                        >
-                          <span>{tab.label}</span>
-                          {tab.badge != null && tab.badge > 0 && (
-                            <span
-                              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold ${
-                                isActive
-                                  ? "bg-primary-foreground/20 text-primary-foreground"
-                                  : (tab.badgeColor ?? "bg-muted text-foreground")
-                              }`}
-                            >
-                              {tab.badge}
-                            </span>
-                          )}
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        align="start"
-                        className="max-w-[260px] p-2.5 bg-popover text-popover-foreground border border-border shadow-lg rounded-lg text-left"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-xs text-foreground">{tab.label}</span>
-                          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                            {tab.hint}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                          {tab.description}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-
-              {/* Botón de ayuda / glosario de estados */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Guía de estados de atención"
-                    title="Guía de estados de atención"
-                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
-                  >
-                    <Info className="size-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 sm:w-96 p-4 text-xs space-y-3" align="start">
-                  <div className="space-y-1 border-b border-border pb-2">
-                    <h4 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
-                      <Info className="size-4 text-primary" />
-                      Guía de estados de la bandeja
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground">
-                      Cómo se clasifica cada conversación según su avance en la atención:
-                    </p>
-                  </div>
-                  <div className="space-y-2.5 text-[11px]">
-                    <div>
-                      <span className="font-bold text-foreground">Abiertas:</span>
-                      <span className="text-muted-foreground ml-1">
-                        Todas las conversaciones activas que se encuentran en curso (atendidas por
-                        bot o asesor).
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-amber-600 dark:text-amber-400">En cola:</span>
-                      <span className="text-muted-foreground ml-1">
-                        Conversaciones que están esperando que un asesor humano las tome (sin
-                        asignar).
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-rose-600 dark:text-rose-400">Demoradas:</span>
-                      <span className="text-muted-foreground ml-1">
-                        Clientes con mensajes sin responder o que han superado el tiempo límite de
-                        espera (SLA).
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-sky-600 dark:text-sky-400">En espera:</span>
-                      <span className="text-muted-foreground ml-1">
-                        Casos pausados esperando datos o comprobantes del cliente, o agendados para
-                        más tarde.
-                      </span>
-                    </div>
-                    <div className="pt-2 border-t border-border/60">
-                      <p className="font-bold text-foreground mb-1">
-                        Diferencia: ¿Resueltas vs. Cerradas?
-                      </p>
-                      <div className="space-y-1.5">
-                        <div>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            Resuelta:
-                          </span>
-                          <span className="text-muted-foreground ml-1">
-                            El asesor ya solucionó el problema. Si el cliente vuelve a escribir
-                            pronto con una duda, se retoma el mismo caso sin empezar de cero.
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-muted-foreground">Cerrada:</span>
-                          <span className="text-muted-foreground ml-1">
-                            Caso finalizado definitivamente y archivado. Si el cliente escribe
-                            semanas después, se abrirá una nueva atención desde el inicio.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </TooltipProvider>
+          {/* Categorías de conversación */}
+          <InboxStatusTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            openCount={openCount}
+            unassignedCount={unassignedCount}
+            unattendedCount={unattendedCount}
+            pendingCount={pendingCount}
+            resolvedCount={resolvedCount}
+            closedCount={closedCount}
+          />
 
           {/* Filtros operativos y acciones */}
           <div className="flex flex-wrap items-center gap-2">
@@ -1543,203 +1270,21 @@ export function OperationalInbox({
             </div>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
-            {filteredConversations.map((c) => {
-              const active = c.id === selectedId;
-              const hasUnread = !active && (c.unreadCount ?? 0) > 0;
-              const sla = calculateConversationSla(c, slaConfig);
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedId(c.id)}
-                  className={`w-full text-left p-3.5 transition-colors flex gap-3 ${
-                    active
-                      ? "bg-primary/5 border-l-4 border-primary"
-                      : sla.isBreached
-                        ? "bg-danger/5 hover:bg-danger/10 border-l-4 border-danger"
-                        : "hover:bg-foreground/5 border-l-4 border-transparent"
-                  }`}
-                >
-                  <div className="relative shrink-0">
-                    <ConversationAvatar
-                      conversation={
-                        c.id === selected?.id && selectedCustomer?.fullName
-                          ? { ...c, customerName: selectedCustomer.fullName }
-                          : c
-                      }
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex justify-between items-start gap-2">
-                      <span
-                        className={`text-sm truncate ${
-                          hasUnread
-                            ? "font-bold text-foreground"
-                            : "font-semibold text-foreground/90"
-                        }`}
-                      >
-                        {conversationDisplayName(c)}
-                      </span>
-                      <span
-                        className={`text-[10px] shrink-0 ${
-                          hasUnread
-                            ? "text-[#25D366] dark:text-[#25D366] font-semibold"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {relativeTime(c.lastActivityAt)}
-                      </span>
-                    </div>
-                    {c.waProfileName && (
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {formatWaPhone(c.waPhone)}
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center gap-2 mt-0.5">
-                      <p
-                        className={`text-xs truncate ${
-                          hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
-                        }`}
-                      >
-                        {formatLastMessagePreview(c.lastMessagePreview)}
-                      </p>
-                      {hasUnread && (
-                        <span className="shrink-0 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25D366] dark:bg-[#00a884] text-white text-[11px] font-bold leading-none shadow-xs">
-                          {c.unreadCount > 99 ? "99+" : c.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
-                      {sla.isBreached && (
-                        <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-danger/15 text-danger ring-1 ring-danger/30 animate-pulse">
-                          <Clock className="size-2.5 text-danger" />
-                          <span>Sin respuesta: {sla.formattedShort}</span>
-                        </span>
-                      )}
-                      {!sla.isBreached && sla.status === "warning" && (
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30">
-                          <Clock className="size-2.5 text-amber-500" />
-                          <span>Espera: {sla.formattedShort}</span>
-                        </span>
-                      )}
-                      {c.status === "pending" || c.activeCase?.status === "WAITING_USER" ? (
-                        (() => {
-                          const scheduling = extractSchedulingMetadata(
-                            c.id === selected?.id
-                              ? activeCase
-                              : (c.activeCase as unknown as CaseDto),
-                          );
-                          const tagLabel = scheduling?.scheduleTag
-                            ? `En Espera: ${scheduling.scheduleTag}`
-                            : "En Espera";
-                          return (
-                            <span
-                              className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30"
-                              title={
-                                scheduling?.reminderReason
-                                  ? `Nota: ${scheduling.reminderReason}`
-                                  : tagLabel
-                              }
-                            >
-                              <Clock className="size-2.5 text-amber-500" />
-                              <span>{tagLabel}</span>
-                            </span>
-                          );
-                        })()
-                      ) : (
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-foreground/5 text-muted-foreground">
-                          {conversationStatusLabel(c.status)}
-                        </span>
-                      )}
-                      {c.activeCase ? (
-                        <>
-                          {(() => {
-                            const isHuman =
-                              !c.activeCase.automationEnabled ||
-                              c.activeCase.status === "HUMAN_ACTIVE" ||
-                              c.activeCase.status === "ESCALATED";
-
-                            const agentName =
-                              c.activeCase.assignedAgentName ||
-                              (c.activeCase.assignedAgentId
-                                ? c.activeCase.assignedAgentId === session?.id
-                                  ? "Tú"
-                                  : directory.find((a) => a.id === c.activeCase?.assignedAgentId)
-                                      ?.name || "Agente"
-                                : null);
-
-                            const displayLabel = isHuman
-                              ? agentName
-                                ? `Humano: ${agentName}`
-                                : "Humano (Sin asignar)"
-                              : "IA";
-
-                            return (
-                              <span
-                                className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[170px] ${
-                                  isHuman
-                                    ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30"
-                                    : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
-                                }`}
-                                title={
-                                  isHuman
-                                    ? agentName
-                                      ? `Caso escalado/asignado a: ${agentName}`
-                                      : "Caso escalado a humano (Sin asignar a agente específico)"
-                                    : "Asistido por IA"
-                                }
-                              >
-                                {isHuman ? (
-                                  <>
-                                    <User className="size-2.5 shrink-0" />
-                                    <span className="truncate">{displayLabel}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Bot className="size-2.5 text-emerald-500 shrink-0" />
-                                    <span>IA</span>
-                                  </>
-                                )}
-                              </span>
-                            );
-                          })()}
-                          {c.activeCase.departmentId && (
-                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                              {departments.find((d) => d.id === c.activeCase!.departmentId)?.name ||
-                                "Dpto"}
-                            </span>
-                          )}
-                        </>
-                      ) : c.status === "resolved" || c.status === "closed" ? (
-                        (() => {
-                          const attendedName =
-                            c.lastAttendedBy?.agentName?.trim() ||
-                            (c.lastAttendedBy?.agentId
-                              ? c.lastAttendedBy.agentId === session?.id
-                                ? "Tú"
-                                : directory.find((a) => a.id === c.lastAttendedBy?.agentId)?.name
-                              : null);
-                          if (!attendedName) return null;
-                          return (
-                            <span
-                              className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[170px] bg-foreground/5 text-muted-foreground ring-1 ring-border"
-                              title={`Última persona que atendió este caso: ${attendedName}`}
-                            >
-                              <User className="size-2.5 shrink-0" />
-                              <span className="truncate">Atendió: {attendedName}</span>
-                            </span>
-                          );
-                        })()
-                      ) : (
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
-                          <Bot className="size-2.5 text-emerald-500" />
-                          <span>IA</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+            {filteredConversations.map((c) => (
+              <ConversationListItem
+                key={c.id}
+                conversation={c}
+                active={c.id === selected?.id}
+                onSelect={setSelectedId}
+                selectedCustomerId={selected?.id}
+                selectedCustomerFullName={selectedCustomer?.fullName}
+                activeCase={activeCase}
+                slaConfig={slaConfig}
+                session={session}
+                directory={directory}
+                departments={departments}
+              />
+            ))}
             {!loading && filteredConversations.length === 0 && (
               <div className="p-8 text-center">
                 <UserRound className="size-8 text-muted-foreground/40 mx-auto mb-2" />
@@ -1759,283 +1304,48 @@ export function OperationalInbox({
         >
           {selected ? (
             <>
-              <div className="p-2.5 sm:p-3.5 border-b border-border bg-background/60 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(null)}
-                    className="lg:hidden p-1.5 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 shrink-0"
-                    aria-label="Volver a la lista de conversaciones"
-                  >
-                    <ArrowLeft className="size-4" />
-                  </button>
-                  <div className="relative shrink-0">
-                    <ConversationAvatar conversation={selected} size="size-8 sm:size-9" />
-                    {isAutomationActive && !isClosedRecord && (
-                      <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.5 ring-2 ring-background">
-                        <Bot className="size-2 sm:size-2.5" />
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs sm:text-sm font-bold truncate">
-                        {selectedCustomer?.fullName || conversationDisplayName(selected)}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => void handleOpenContact()}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-primary bg-muted/70 hover:bg-primary/10 border border-border transition cursor-pointer shrink-0"
-                        title="Editar datos del contacto (Nombre, cédula, contratos ISP, etiquetas)"
-                      >
-                        <Edit2 className="size-2.5 text-primary" />
-                        <span className="hidden sm:inline">Editar contacto</span>
-                        <span className="sm:hidden">Editar</span>
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                      <span className="truncate">
-                        {[
-                          selected.waProfileName ? formatWaPhone(selected.waPhone) : null,
-                          !activeCase
-                            ? "Sin caso activo"
-                            : activeCase.status === "HUMAN_ACTIVE"
-                              ? null
-                              : caseStatusLabel(activeCase.status),
-                          activeCase ? workflowLabel(activeCase.workflowType).label : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                      {selectedCustomer?.contracts && selectedCustomer.contracts.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20 shrink-0 ml-1">
-                          <FileText className="size-2.5" />
-                          {selectedCustomer.contracts.length === 1
-                            ? "1 contrato"
-                            : `${selectedCustomer.contracts.length} contratos`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                  {isClosedRecord ? (
-                    <span
-                      className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"
-                      title="Última persona que atendió este caso"
-                    >
-                      <UserCheck className="size-3 sm:size-3.5" />
-                      <span className="hidden sm:inline truncate max-w-[180px]">
-                        {assignedAgentName
-                          ? `Atendió ${assignedAgentName}`
-                          : "Sin agente registrado"}
-                      </span>
-                      <span className="sm:hidden truncate max-w-[90px]">
-                        {assignedAgentName ?? "Sin agente"}
-                      </span>
-                    </span>
-                  ) : !activeCase && !selected?.activeCase ? (
-                    <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
-                      <UserCheck className="size-3 sm:size-3.5" />
-                      <span className="hidden sm:inline">Atención directa</span>
-                      <span className="sm:hidden">Directo</span>
-                    </span>
-                  ) : isAutomationActive ? (
-                    <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
-                      <Bot className="size-3 sm:size-3.5 text-emerald-500 animate-pulse shrink-0" />
-                      <span className="hidden sm:inline">Asistente IA</span>
-                      <span className="sm:hidden">IA</span>
-                      {assignedAgentName && (
-                        <span className="hidden md:inline text-emerald-700/70 dark:text-emerald-300/70 font-normal">
-                          · {isAssignedToMe ? "Tú" : assignedAgentName}
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
-                        isAssignedToMe
-                          ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                          : "bg-foreground/5 text-muted-foreground ring-1 ring-border"
-                      }`}
-                      title={isAssignedToOther ? "Solo esta persona puede responder" : undefined}
-                    >
-                      {isAssignedToMe ? (
-                        <UserCheck className="size-3 sm:size-3.5" />
-                      ) : (
-                        <Lock className="size-2.5 sm:size-3" />
-                      )}
-                      <span className="hidden sm:inline">
-                        {isAssignedToMe
-                          ? "Atención Humana (Tú)"
-                          : assignedAgentName
-                            ? `Atendido por ${assignedAgentName}`
-                            : "Atención Humana (Sin asignar)"}
-                      </span>
-                      <span className="sm:hidden">
-                        {isAssignedToMe ? "Tú" : (assignedAgentName ?? "Sin Asignar")}
-                      </span>
-                    </span>
-                  )}
-                  {showClaim && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void claim()}
-                      className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-warning text-white font-bold shadow-sm hover:brightness-95 transition disabled:opacity-40"
-                    >
-                      <ShieldCheck className="size-3 sm:size-3.5" />
-                      <span className="hidden sm:inline">Reclamar caso</span>
-                      <span className="sm:hidden">Reclamar</span>
-                    </button>
-                  )}
-                  {showTakeControl && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void takeControl()}
-                      className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
-                    >
-                      <UserCheck className="size-3 sm:size-3.5" />
-                      <span className="hidden sm:inline">Tomar control</span>
-                      <span className="sm:hidden">Control</span>
-                    </button>
-                  )}
-                  {!activeCase &&
-                    !selected.activeCase &&
-                    (selected.status === "open" || selected.status === "pending") && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void handleCloseConversation()}
-                        title="Cerrar la conversación y sacarla de abiertas"
-                        className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
-                      >
-                        <X className="size-3 sm:size-3.5" />
-                        Cerrar
-                      </button>
-                    )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== "undefined" && window.innerWidth < 1024) {
-                        setMobileDetailsOpen((v) => !v);
-                      } else {
-                        setDetailsOverride(!detailsOpen);
-                      }
-                    }}
-                    title={
-                      detailsOpen || mobileDetailsOpen
-                        ? "Ocultar los datos del cliente y del caso"
-                        : "Ver los datos del cliente y del caso"
-                    }
-                    className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-bold transition ${
-                      detailsOpen || mobileDetailsOpen
-                        ? "bg-primary text-primary-foreground shadow-sm hover:brightness-95"
-                        : "border border-border hover:bg-foreground/5"
-                    }`}
-                  >
-                    {detailsOpen ? (
-                      <PanelRightClose className="size-3 sm:size-3.5" />
-                    ) : (
-                      <Info className="size-3 sm:size-3.5" />
-                    )}
-                    <span className="hidden xs:inline">Detalles</span>
-                    {activeCase && <span className="size-1.5 rounded-full bg-primary" />}
-                  </button>
-                </div>
-              </div>
+              <ChatHeader
+                selected={selected}
+                selectedCustomer={selectedCustomer}
+                activeCase={activeCase}
+                isAutomationActive={isAutomationActive}
+                isClosedRecord={isClosedRecord}
+                assignedAgentName={assignedAgentName}
+                isAssignedToMe={isAssignedToMe}
+                isAssignedToOther={isAssignedToOther}
+                showClaim={showClaim}
+                showTakeControl={showTakeControl}
+                busy={busy}
+                detailsOpen={detailsOpen}
+                mobileDetailsOpen={mobileDetailsOpen}
+                onBack={() => setSelectedId(null)}
+                onOpenContact={() => void handleOpenContact()}
+                onClaim={() => void claim()}
+                onTakeControl={() => void takeControl()}
+                onCloseConversation={() => void handleCloseConversation()}
+                onToggleDetails={() => {
+                  if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                    setMobileDetailsOpen((v) => !v);
+                  } else {
+                    setDetailsOverride(!detailsOpen);
+                  }
+                }}
+              />
 
-              {isChatSearchOpen && (
-                <div className="px-3.5 py-2 bg-card border-b border-border flex items-center justify-between gap-2 text-xs shadow-xs animate-in slide-in-from-top-2 duration-150 shrink-0">
-                  <div className="flex items-center gap-2 flex-1 max-w-md">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                      <input
-                        autoFocus
-                        value={chatSearchQuery}
-                        onChange={(e) => setChatSearchQuery(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            if (e.shiftKey) handlePrevMatch();
-                            else handleNextMatch();
-                          } else if (e.key === "Escape") {
-                            setIsChatSearchOpen(false);
-                            setChatSearchQuery("");
-                            setHighlightedMessageId(null);
-                          }
-                        }}
-                        placeholder="Buscar término en este chat..."
-                        className="w-full pl-8 pr-2 py-1.5 text-xs bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0 text-[11px] text-muted-foreground font-mono">
-                      {chatSearchQuery.trim() ? (
-                        matchingMessageIds.length > 0 ? (
-                          <span>
-                            {activeMatchIndex + 1} de {matchingMessageIds.length}
-                          </span>
-                        ) : (
-                          <span className="text-amber-600 dark:text-amber-400">0 resultados</span>
-                        )
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handlePrevMatch}
-                        disabled={matchingMessageIds.length <= 1}
-                        title="Coincidencia anterior (Shift+Enter)"
-                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
-                      >
-                        <ChevronUp className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleNextMatch}
-                        disabled={matchingMessageIds.length <= 1}
-                        title="Siguiente coincidencia (Enter)"
-                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
-                      >
-                        <ChevronDown className="size-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {hasMoreMessages && (
-                      <button
-                        type="button"
-                        onClick={() => void handleSearchOlder()}
-                        disabled={isSearchingHistory}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer disabled:opacity-50"
-                        title="Carga mensajes anteriores automáticamente hasta encontrar coincidencias"
-                      >
-                        {isSearchingHistory ? (
-                          <>
-                            <Loader2 className="size-3 animate-spin" />
-                            <span>Buscando en historial...</span>
-                          </>
-                        ) : (
-                          <span>Buscar en historial completo</span>
-                        )}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsChatSearchOpen(false);
-                        setChatSearchQuery("");
-                        setHighlightedMessageId(null);
-                      }}
-                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                      title="Cerrar búsqueda (Esc)"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              <ChatSearchBar
+                open={isChatSearchOpen}
+                query={chatSearchQuery}
+                onQueryChange={setChatSearchQuery}
+                matchIndex={activeMatchIndex}
+                totalMatches={matchingMessageIds.length}
+                onPrev={handlePrevMatch}
+                onNext={handleNextMatch}
+                onClose={() => {
+                  setIsChatSearchOpen(false);
+                  setChatSearchQuery("");
+                  setHighlightedMessageId(null);
+                }}
+              />
 
               {is24hWindowClosed && (
                 <div className="px-3 py-1.5 border-b border-border/40">
@@ -2098,161 +1408,33 @@ export function OperationalInbox({
                   </div>
                 )}
                 {messages.map((m) => {
-                  const fromCustomer = m.author === "customer";
                   const day = dayLabel(m.createdAt);
                   const showDaySeparator = day !== lastRenderedDay;
                   lastRenderedDay = day;
 
-                  if (m.author === "system") {
-                    return (
-                      <div key={m.id}>
-                        {showDaySeparator && (
-                          <div className="flex justify-center my-2">
-                            <span className="px-2.5 py-0.5 rounded-full bg-foreground/5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                              {day}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex justify-center my-2.5 px-4">
-                          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/80 text-muted-foreground text-[11px] font-medium border border-border/60 shadow-xs max-w-[85%] text-center leading-normal">
-                            <Info className="size-3.5 shrink-0 text-primary" />
-                            <span>{m.body}</span>
-                            <span className="text-[9px] opacity-70 ml-1 whitespace-nowrap">
-                              {messageClock(m.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const messageAgentName =
-                    m.agentName ||
-                    (m.agentId ? directory.find((a) => a.id === m.agentId)?.name : null) ||
-                    (m.agentId && session && m.agentId === session.id
-                      ? session.name || "Tú"
-                      : null) ||
-                    (isAssignedToMe && !m.agentId ? "Tú" : null) ||
-                    (!m.agentId ? assignedAgentName : null) ||
-                    "Agente";
-
+                  const fromCustomer = m.author === "customer";
                   const senderKey = showDaySeparator
                     ? ""
                     : m.author === "agent"
                       ? `agent_${m.agentId || m.agentName || "unknown"}`
                       : m.author;
-                  // El nombre del cliente ya se muestra en el encabezado del chat: repetirlo en
-                  // cada burbuja es ruido. Del lado del equipo sí distinguimos IA vs. agentes humanos individuales.
                   const showSenderLabel = !fromCustomer && senderKey !== lastRenderedSender;
                   lastRenderedSender = senderKey;
+
                   return (
-                    <div key={m.id}>
-                      {showDaySeparator && (
-                        <div className="flex justify-center my-2">
-                          <span className="px-2.5 py-0.5 rounded-full bg-foreground/5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                            {day}
-                          </span>
-                        </div>
-                      )}
-                      <div
-                        className={`flex items-end gap-2 mb-1.5 ${fromCustomer ? "justify-start" : "justify-end"}`}
-                      >
-                        {fromCustomer && (
-                          <MessageAvatar author={m.author} conversation={selected} />
-                        )}
-                        <div
-                          className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
-                            fromCustomer
-                              ? "bg-[var(--chat-in-bg)] text-[var(--chat-in-fg)] border border-border/70 rounded-bl-xs"
-                              : "bg-[var(--chat-out-bg)] text-[var(--chat-out-fg)] rounded-br-xs"
-                          }`}
-                        >
-                          {showSenderLabel && (
-                            <p
-                              className={`text-[9px] font-extrabold uppercase tracking-widest mb-1 ${
-                                fromCustomer
-                                  ? "text-primary"
-                                  : "text-emerald-700 dark:text-emerald-300 font-bold"
-                              }`}
-                            >
-                              {fromCustomer
-                                ? conversationDisplayName(selected)
-                                : m.author === "agent"
-                                  ? messageAgentName
-                                  : "Asistente IA"}
-                            </p>
-                          )}
-                          <MessageMediaBody message={m} />
-                          <div
-                            className={`flex items-center justify-end gap-1 mt-1 text-[10px] tabular-nums ${
-                              fromCustomer
-                                ? "text-muted-foreground"
-                                : "text-emerald-800/80 dark:text-emerald-200/80"
-                            }`}
-                          >
-                            {m.editedAt && (
-                              <span
-                                className="italic text-[9px] opacity-75 mr-0.5"
-                                title={`Editado el ${new Date(m.editedAt).toLocaleTimeString()}`}
-                              >
-                                (editado)
-                              </span>
-                            )}
-                            <span>{messageClock(m.createdAt)}</span>
-                            {!fromCustomer &&
-                              (m.status === "failed" ? (
-                                <span
-                                  className="inline-flex items-center gap-1 text-rose-500 font-semibold cursor-help"
-                                  title={formatDeliveryError(m.errorMessage).detail}
-                                >
-                                  <AlertCircle className="size-3.5 text-rose-500 shrink-0" />
-                                  <span className="text-[9px] font-bold">
-                                    {formatDeliveryError(m.errorMessage).short}
-                                  </span>
-                                </span>
-                              ) : m.id.startsWith("local:") ? (
-                                <span title="Enviando…">
-                                  <Clock className="size-3.5 opacity-70" />
-                                </span>
-                              ) : m.status === "delivered" || m.status === "read" ? (
-                                <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-400" />
-                              ) : (
-                                <CheckCheck className="size-3.5 text-sky-500/70 dark:text-sky-400/70" />
-                              ))}
-                          </div>
-                          {!fromCustomer &&
-                            m.status === "failed" &&
-                            formatDeliveryError(m.errorMessage).is24h && (
-                              <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] flex flex-col gap-1.5 shadow-xs">
-                                <div className="flex items-center gap-1.5 font-bold text-rose-800 dark:text-rose-200">
-                                  <AlertTriangle className="size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
-                                  <span>Ventana de WhatsApp (24h) cerrada</span>
-                                </div>
-                                <p className="text-[10px] text-rose-700/90 dark:text-rose-300/90 leading-relaxed">
-                                  El mensaje no pudo entregarse porque pasaron más de 24h desde el
-                                  último mensaje del cliente. Debes enviar una plantilla aprobada
-                                  (Template) para reabrir el chat.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setIsTemplateModalOpen(true)}
-                                  className="self-start inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] shadow-xs hover:bg-rose-700 transition"
-                                >
-                                  <FileText className="size-3" />
-                                  Enviar plantilla aprobada
-                                </button>
-                              </div>
-                            )}
-                        </div>
-                        {!fromCustomer && (
-                          <MessageAvatar
-                            author={m.author}
-                            conversation={selected}
-                            agentName={m.author === "agent" ? messageAgentName : assignedAgentName}
-                          />
-                        )}
-                      </div>
-                    </div>
+                    <ChatMessageItem
+                      key={m.id}
+                      message={m}
+                      conversation={selected}
+                      directory={directory}
+                      session={session}
+                      isAssignedToMe={isAssignedToMe}
+                      assignedAgentName={assignedAgentName}
+                      showDaySeparator={showDaySeparator}
+                      day={day}
+                      showSenderLabel={showSenderLabel}
+                      onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
+                    />
                   );
                 })}
                 {messages.length === 0 && (
@@ -2297,235 +1479,27 @@ export function OperationalInbox({
                       )}
                     </div>
                   )}
-                  {pendingAttachment && (
-                    <div className="mx-2.5 mt-2.5 flex items-center gap-3 rounded-2xl border border-border bg-card/90 px-2.5 py-2">
-                      {pendingAttachment.kind === "image" && pendingAttachment.previewUrl && (
-                        <img
-                          src={pendingAttachment.previewUrl}
-                          alt={pendingAttachment.file.name}
-                          className="size-14 rounded-xl object-cover shrink-0"
-                        />
-                      )}
-                      {pendingAttachment.kind === "video" && pendingAttachment.previewUrl && (
-                        <video
-                          src={pendingAttachment.previewUrl}
-                          className="size-14 rounded-xl object-cover shrink-0 bg-black"
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      )}
-                      {pendingAttachment.kind === "audio" && (
-                        <div className="size-14 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                          <Mic className="size-5" />
-                        </div>
-                      )}
-                      {pendingAttachment.kind === "document" && (
-                        <div className="size-14 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-                          <FileIcon className="size-5" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold truncate">
-                          {pendingAttachment.file.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {OUTBOUND_MEDIA_RULES[pendingAttachment.kind].label} ·{" "}
-                          {formatOutboundFileSize(pendingAttachment.file.size)}
-                          {pendingAttachment.kind === "audio"
-                            ? " · el texto se envía en un mensaje aparte"
-                            : " · el texto va como comentario"}
-                        </p>
-                        {pendingAttachment.kind === "audio" && pendingAttachment.previewUrl && (
-                          <audio
-                            src={pendingAttachment.previewUrl}
-                            controls
-                            className="mt-1 h-8 w-full max-w-xs"
-                          />
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={clearPendingAttachment}
-                        title="Quitar adjunto"
-                        className="size-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0 disabled:opacity-40"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                  )}
-                  <div className="relative p-2.5 flex gap-2 items-end bg-background/80 dark:bg-card/30 border-t border-border/40">
-                    <QuickReplyDropdown
-                      isOpen={isQuickReplyOpen}
-                      replies={quickReplyFiltered}
-                      selectedIndex={quickReplySelectedIndex}
-                      onSelect={selectQuickReply}
-                    />
-
-                    {/* Menú de adjuntos y opciones (Clip estilo WhatsApp) */}
-                    <div className="relative inline-block" ref={attachMenuRef}>
-                      <button
-                        type="button"
-                        disabled={isAutomationActive}
-                        onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
-                        title="Adjuntar y opciones"
-                        className={`size-10 flex items-center justify-center rounded-full transition-all shrink-0 ${
-                          isAttachMenuOpen
-                            ? "bg-primary/15 text-primary rotate-45"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        } disabled:opacity-40`}
-                      >
-                        <Paperclip className="size-5 transition-transform" />
-                      </button>
-
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="sr-only"
-                        onChange={(e) => {
-                          handlePickedFile(e.target.files);
-                          e.target.value = "";
-                        }}
-                      />
-
-                      {isAttachMenuOpen && (
-                        <div className="absolute bottom-full left-0 mb-3 bg-popover/95 dark:bg-[#233138]/95 backdrop-blur-md border border-border/80 shadow-2xl rounded-2xl p-2 min-w-[260px] max-h-[min(70vh,440px)] overflow-y-auto flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                          {MEDIA_ATTACH_OPTIONS.map((option) => {
-                            const Icon = option.icon;
-                            return (
-                              <button
-                                key={option.kind}
-                                type="button"
-                                disabled={isAutomationActive}
-                                onClick={() => openFilePicker(option.kind)}
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-muted/80 text-foreground transition text-left group disabled:opacity-40"
-                              >
-                                <div
-                                  className={`size-8 rounded-full flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${option.bubble}`}
-                                >
-                                  <Icon className="size-4" />
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-foreground">
-                                    {option.label}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {OUTBOUND_MEDIA_RULES[option.kind].menuHint}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                          <div className="my-1 border-t border-border/70" />
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => {
-                              setIsAttachMenuOpen(false);
-                              setIsTemplateModalOpen(true);
-                            }}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-muted/80 text-foreground transition text-left group"
-                          >
-                            <div className="size-8 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                              <FileText className="size-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-foreground">
-                                Plantilla de WhatsApp
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">
-                                Enviar plantilla aprobada (HSM)
-                              </span>
-                            </div>
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={isAutomationActive}
-                            onClick={() => {
-                              setIsAttachMenuOpen(false);
-                              setComposerDraft((prev) =>
-                                prev.endsWith("/") ? prev : prev ? `${prev} /` : "/",
-                              );
-                              chatInputRef.current?.focus();
-                            }}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-muted/80 text-foreground transition text-left group disabled:opacity-40"
-                          >
-                            <div className="size-8 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                              <Zap className="size-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-foreground">
-                                Respuestas rápidas
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">
-                                Escribe / para autocompletar
-                              </span>
-                            </div>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Selector de Emojis / Stickers */}
-                    <EmojiPickerPopover
-                      isOpen={isEmojiOpen}
-                      onToggle={() => setIsEmojiOpen(!isEmojiOpen)}
-                      onEmojiSelect={insertEmoji}
-                      containerRef={emojiContainerRef}
-                      position="top-left"
-                      buttonClassName="size-10 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition shrink-0 disabled:opacity-40"
-                      iconClassName="size-5"
-                    />
-
-                    {/* Input textarea con auto-expansión dinámica y tipografía legible estilo WhatsApp */}
-                    <textarea
-                      ref={chatInputRef}
-                      rows={1}
-                      value={draft}
-                      disabled={isAutomationActive}
-                      onChange={(e) => setComposerDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (handleQuickReplyKeyDown(e)) {
-                          return;
-                        }
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          void handleSend();
-                        }
-                      }}
-                      placeholder={
-                        isClosedRecord
-                          ? assignedAgentName
-                            ? `Caso resuelto. Último en atender: ${assignedAgentName}`
-                            : "Caso resuelto. Sin agente registrado"
-                          : isAutomationActive
-                            ? "🤖 IA activa... Haz clic en 'Tomar control' para escribir"
-                            : pendingAttachment
-                              ? pendingAttachment.kind === "audio"
-                                ? "Escribe un mensaje aparte (opcional)..."
-                                : "Añade un comentario (opcional)..."
-                              : "Escribe un mensaje, pega un archivo o '/' para respuestas rápidas"
-                      }
-                      title="Escribe un mensaje (Shift+Enter para salto de línea, Ctrl+V para pegar imagen, video o documento, '/' para respuestas rápidas)"
-                      className="flex-1 px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
-                    />
-
-                    {/* Botón enviar circular característico de WhatsApp */}
-                    <button
-                      type="button"
-                      disabled={isAutomationActive || (!draft.trim() && !pendingAttachment)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => void handleSend()}
-                      title={
-                        pendingAttachment ? "Enviar adjunto (Enter)" : "Enviar mensaje (Enter)"
-                      }
-                      className="size-10 rounded-full bg-[#00a884] dark:bg-[#00a884] text-white flex items-center justify-center shadow-sm hover:brightness-110 active:scale-95 transition-all shrink-0 disabled:opacity-35 disabled:hover:brightness-100 disabled:active:scale-100"
-                    >
-                      <SendHorizontal className="size-5 translate-x-0.5" />
-                    </button>
-                  </div>
+                  <ChatComposer
+                    draft={draft}
+                    onDraftChange={setComposerDraft}
+                    onSend={() => void handleSend()}
+                    isAutomationActive={isAutomationActive}
+                    isClosedRecord={isClosedRecord}
+                    assignedAgentName={assignedAgentName}
+                    busy={busy}
+                    pendingAttachment={pendingAttachment}
+                    onClearPendingAttachment={clearPendingAttachment}
+                    onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
+                    onPickKind={openFilePicker}
+                    onFilePicked={handlePickedFile}
+                    isQuickReplyOpen={isQuickReplyOpen}
+                    quickReplyFiltered={quickReplyFiltered}
+                    quickReplySelectedIndex={quickReplySelectedIndex}
+                    onSelectQuickReply={selectQuickReply}
+                    onQuickReplyKeyDown={handleQuickReplyKeyDown}
+                    chatInputRef={chatInputRef}
+                    fileInputRef={fileInputRef}
+                  />
                 </div>
               )}
               {/* <div className="shrink-0 max-h-[40%] overflow-y-auto">

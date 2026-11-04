@@ -33,14 +33,44 @@ export default tseslint.config(
         },
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": "off",
+
+      // --- Clean Code & Principio de Responsabilidad Única (SRP) ---
+      "max-lines": [
+        "warn",
+        {
+          max: 400,
+          skipBlankLines: true,
+          skipComments: true,
+        },
+      ],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/consistent-type-imports": [
+        "warn",
+        {
+          prefer: "type-imports",
+          fixStyle: "inline-type-imports",
+        },
+      ],
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-duplicate-imports": "warn",
+      "no-debugger": "error",
+      "prefer-const": "warn",
     },
   },
   {
     files: ["src/components/ui/**/*.{ts,tsx}"],
     rules: {
-      // shadcn exporta variantes CVA y hooks junto al componente; no aplica Fast Refresh aquí.
+      // shadcn exporta variantes CVA y hooks junto al componente; componentes base de terceros.
       "react-refresh/only-export-components": "off",
+      "max-lines": "off",
     },
   },
   eslintPluginPrettier,

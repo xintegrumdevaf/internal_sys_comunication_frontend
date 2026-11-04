@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2026-11-04
+
+### Added
+
+- **Clean Code & Modular Decomposition of Operational Inbox (`OperationalInbox.tsx`)**:
+  - *Context*: `OperationalInbox.tsx` had grown into a 2,772-line monolithic component violating Clean Code standards (target 300–400 lines max per module) and mixing rendering concerns of tabs, list items, headers, messages, composer, and search bars.
+  - *Refactoring*: Decomposed into 7 focused, single-responsibility subcomponents located under `src/modules/conversations/ui/`:
+    - `InboxStatusTabs.tsx` (214 lines): Category status filters with tooltips and glossary popover.
+    - `ConversationListItem.tsx` (248 lines): Sidebar conversation item rendering, SLA timers, WhatsApp-style unread badges.
+    - `ChatHeader.tsx` (247 lines): Active conversation header, customer metadata, contact details toggle, manual agent claim/transfer triggers.
+    - `ChatSearchBar.tsx` (90 lines): In-chat message keyword search bar with match counter and navigation.
+    - `ChatMessageItem.tsx` (177 lines): WhatsApp-styled message bubbles with author avatar, media content, delivery status ticks, and 24h Meta error handling.
+    - `ChatComposer.tsx` (365 lines): WhatsApp-like auto-expanding message composer, clip popover attachment menu, emoji picker, and circular send button.
+    - `ConversationAvatars.tsx` (72 lines) & `delivery-error.ts` (41 lines): Avatar initials generator and error code formatting helper.
+  - *Result*: Shrunk `OperationalInbox.tsx` by over 1,020 lines (down to 1,746 lines) with identical visual fidelity and user experience, passing 71 test files (394 tests) and production Vite build with 0 TypeScript errors.
+- **Strict ESLint Clean Code Governance (`eslint.config.js`)**:
+  - Configured rules to uphold architectural discipline across all modules:
+    - `max-lines`: Warns on files exceeding 400 lines (ignoring comments/whitespace), identifying refactoring targets.
+    - `@typescript-eslint/no-explicit-any`: Enforces type safety across application components.
+    - `@typescript-eslint/no-unused-vars`: Eliminates dead code and unused imports.
+    - `@typescript-eslint/consistent-type-imports`: Enforces explicit `type` imports for cleaner bundler optimization.
+    - `no-console`, `no-debugger`, `no-duplicate-imports`: Prohibits stray debuggers, console logs, and duplicate import statements.
+
 ## [0.2.3] - 2026-11-04
 
 ### Added
