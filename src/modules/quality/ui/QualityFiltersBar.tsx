@@ -179,13 +179,13 @@ export function QualityFiltersBar({
         </div>
 
         {/* Filtro Semáforo */}
-        <div className="flex items-center p-0.5 rounded-lg border border-border bg-background/80 shadow-2xs">
+        <div className="flex items-center p-0.5 rounded-lg border border-border bg-background shadow-2xs">
           <button
             type="button"
             onClick={() => handleSemaforoSelect("ALL")}
             className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
               activeSemaforo === "ALL"
-                ? "bg-card text-foreground shadow-2xs font-bold"
+                ? "bg-card border border-border/80 text-foreground shadow-2xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -196,7 +196,7 @@ export function QualityFiltersBar({
             onClick={() => handleSemaforoSelect("CORDIAL")}
             className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeSemaforo === "CORDIAL"
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold"
+                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 font-bold shadow-2xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             title="Valoración cordial (≥ 70)"
@@ -209,7 +209,7 @@ export function QualityFiltersBar({
             onClick={() => handleSemaforoSelect("ATTENTION")}
             className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeSemaforo === "ATTENTION"
-                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-bold"
+                ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40 font-bold shadow-2xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             title="Requiere atención (40 a 69)"
@@ -222,7 +222,7 @@ export function QualityFiltersBar({
             onClick={() => handleSemaforoSelect("CRITICAL")}
             className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeSemaforo === "CRITICAL"
-                ? "bg-danger/15 text-danger border border-danger/30 font-bold"
+                ? "bg-danger/20 text-danger border border-danger/40 font-bold shadow-2xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             title="Valoración crítica (< 40)"

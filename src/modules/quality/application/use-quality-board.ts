@@ -59,17 +59,25 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
   const [stats, setStats] = useState<AgentQualityStatsDto[]>([]);
   const [reviews, setReviews] = useState<QualityReviewDto[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [analyzingCaseId, setAnalyzingCaseId] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
+  const hasLoadedOnce = useRef(false);
   const pollTicks = useRef(0);
 
   const reload = useCallback(
     async (optsReload?: { silent?: boolean }) => {
       if (!session) return;
       const silent = optsReload?.silent === true;
-      if (!silent) setLoading(true);
+      if (!silent) {
+        if (!hasLoadedOnce.current) {
+          setInitialLoading(true);
+        } else {
+          setRefreshing(true);
+        }
+      }
       try {
         const from = toIsoStart(filters.from);
         const to = toIsoEnd(filters.to);
@@ -92,6 +100,7 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
         setReviews(reviewList);
         setPendingCount(pending);
         setBackendUnavailable(false);
+        hasLoadedOnce.current = true;
       } catch (e) {
         if (e instanceof ApiError && (e.status === 404 || e.status === 501)) {
           setStats([]);
@@ -105,7 +114,10 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
           }
         }
       } finally {
-        if (!silent) setLoading(false);
+        if (!silent) {
+          setInitialLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [session, filters],
@@ -207,7 +219,8 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
     stats,
     reviews,
     pendingCount,
-    loading,
+    loading: initialLoading,
+    refreshing,
     analyzingCaseId,
     batchBusy,
     backendUnavailable,

@@ -55,13 +55,28 @@ export function QualityRankingTable({
                   return (
                     <tr
                       key={row.agentId}
-                      className={`hover:bg-foreground/5 cursor-pointer transition-colors ${
-                        active ? "bg-primary/5 ring-inset ring-1 ring-primary/20" : ""
+                      className={`cursor-pointer transition-colors ${
+                        active
+                          ? "bg-primary/15 dark:bg-primary/25 border-l-4 border-l-primary font-bold shadow-2xs"
+                          : "hover:bg-foreground/5 border-l-4 border-l-transparent"
                       }`}
                       onClick={() => onSelectAgent(row.agentId)}
                     >
                       <td className="px-3.5 py-3 font-semibold truncate max-w-[140px]">
-                        {row.agentName}
+                        <div className="flex items-center gap-1.5">
+                          {active && (
+                            <span className="size-2 rounded-full bg-primary shrink-0 animate-pulse" />
+                          )}
+                          <span
+                            className={
+                              active
+                                ? "text-primary dark:text-primary-foreground font-extrabold"
+                                : ""
+                            }
+                          >
+                            {row.agentName}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-3.5 py-3 text-right font-mono tabular-nums text-muted-foreground">
                         {row.analyzedCount}/{row.closedWithAgentMessages}
