@@ -1,5 +1,11 @@
 import React from "react";
 import type { InternalMessage } from "@/services/internalChatApi";
+import {
+  qualityFindingCategoryLabel,
+  qualityFindingSeverityLabel,
+  type QualityFindingCategory,
+  type QualityFindingSeverity,
+} from "@/modules/quality/domain/quality-review";
 
 interface Props {
   message: InternalMessage;
@@ -27,9 +33,12 @@ export const QualityQuoteCard: React.FC<Props> = ({ message, onNavigateToAudit }
     <div className="flex flex-col space-y-2 max-w-lg">
       <div className={`p-3 rounded-lg border text-sm ${severityColor}`}>
         <div className="flex items-center justify-between font-semibold mb-1 gap-2">
-          <span>⚠️ Observación de Calidad ({category ?? "General"})</span>
+          <span>
+            ⚠️ Observación de Calidad (
+            {category ? qualityFindingCategoryLabel(category as QualityFindingCategory) : "General"})
+          </span>
           <span className="text-xs uppercase px-2 py-0.5 rounded-full bg-white/70 dark:bg-black/40">
-            {severity ?? "Revisión"}
+            {severity ? qualityFindingSeverityLabel(severity as QualityFindingSeverity) : "Revisión"}
           </span>
         </div>
 

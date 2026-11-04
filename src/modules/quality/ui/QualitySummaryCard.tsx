@@ -1,6 +1,7 @@
 import { AlertTriangle, Clock, Lightbulb } from "lucide-react";
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
 import {
+  qualityFindingCategoryLabel,
   qualityReviewStatusLabel,
   qualityReviewTriggerLabel,
   type QualityFindingDto,
@@ -74,7 +75,7 @@ export function QualitySummaryCard({ review }: QualitySummaryCardProps) {
               >
                 <div className="flex items-center justify-between gap-1.5">
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-danger/20 text-danger">
-                    {f.category}
+                    {qualityFindingCategoryLabel(f.category)}
                   </span>
                   <span className="text-[10px] text-danger font-bold uppercase">Alta gravedad</span>
                 </div>
@@ -104,7 +105,7 @@ export function QualitySummaryCard({ review }: QualitySummaryCardProps) {
             {mediumFindings.map((f: QualityFindingDto) => (
               <li key={f.id} className="text-foreground/90">
                 <span className="font-semibold text-amber-600 dark:text-amber-400">
-                  [{f.category}]
+                  [{qualityFindingCategoryLabel(f.category)}]
                 </span>{" "}
                 «{f.excerpt}» — {f.rationale}
               </li>

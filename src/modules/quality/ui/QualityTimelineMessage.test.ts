@@ -43,3 +43,4 @@ describe("formatElapsedNotice", () => {
     expect(formatElapsedNotice(3 * 3600 * 1000)).toBe("Transcurrieron 3h");
   });
 });
+

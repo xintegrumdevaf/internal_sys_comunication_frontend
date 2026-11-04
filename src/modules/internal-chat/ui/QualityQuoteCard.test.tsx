@@ -31,8 +31,8 @@ describe("QualityQuoteCard", () => {
 
     render(<QualityQuoteCard message={message} onNavigateToAudit={handleNavigate} />);
 
-    expect(screen.getByText(/Observación de Calidad \(disrespect\)/i)).toBeInTheDocument();
-    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(screen.getByText(/Observación de Calidad \(Falta de respeto\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Alta")).toBeInTheDocument();
     expect(screen.getByText(/"No es problema mío, arrégleselas."/i)).toBeInTheDocument();
     expect(screen.getByText(/25\/100/i)).toBeInTheDocument();
     expect(screen.getByText("Favor revisar el tono en este mensaje.")).toBeInTheDocument();
@@ -60,8 +60,8 @@ describe("QualityQuoteCard", () => {
 
     render(<QualityQuoteCard message={message} />);
 
-    expect(screen.getByText(/Observación de Calidad \(inefficiency\)/i)).toBeInTheDocument();
-    expect(screen.getByText("medium")).toBeInTheDocument();
+    expect(screen.getByText(/Observación de Calidad \(Ineficiencia\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Media")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Ver conversación auditada/i }),
     ).not.toBeInTheDocument();
