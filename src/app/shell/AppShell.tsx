@@ -683,7 +683,7 @@ function NavLink({
         <span className="truncate">{item.label}</span>
       </div>
       {showBadge && (
-        <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-danger text-[10px] font-extrabold text-white shadow-sm ring-2 ring-card shrink-0">
+        <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25D366] dark:bg-[#00a884] text-[10px] font-extrabold text-white shadow-sm ring-2 ring-card shrink-0">
           {unreadBadge > 99 ? "99+" : unreadBadge}
         </span>
       )}

@@ -16,6 +16,8 @@ import {
 import {
   incrementUnreadTotal,
   setTotalUnread,
+  setUnreadConversations,
+  markConversationUnread,
   getActiveChatId,
 } from "@/modules/realtime/application/unread.state";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
@@ -183,10 +185,10 @@ export function useRealtimeSession(userId: string | null): void {
         }
       }
 
-      void listConversations()
+      void listConversations({ status: "open" })
         .then((conversations) => {
-          const total = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-          setTotalUnread(total);
+          const unreadIds = conversations.filter((c) => (c.unreadCount || 0) > 0).map((c) => c.id);
+          setUnreadConversations(unreadIds);
         })
         .catch(() => {});
     }
@@ -252,7 +254,7 @@ export function useRealtimeSession(userId: string | null): void {
         const inBackground = isAppInBackground();
 
         if (!isCurrentActiveChat) {
-          incrementUnreadTotal();
+          markConversationUnread(event.conversationId);
         }
         if (inBackground || !isCurrentActiveChat) {
           playNotificationSound();

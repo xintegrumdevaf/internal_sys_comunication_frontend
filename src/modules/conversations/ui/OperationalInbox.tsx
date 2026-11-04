@@ -45,6 +45,15 @@ import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { useQuickReplyAutocomplete } from "@/hooks/useQuickReplyAutocomplete";
 import { useEmojiInsertion } from "@/hooks/useEmojiInsertion";
 import { EmojiPickerPopover } from "@/components/common/EmojiPickerPopover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { ZernioSyncStatus } from "@/types/department";
 import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
 import { calculateConversationSla, formatSlaWaitTime } from "@/modules/sla/domain/sla-config";
@@ -957,147 +966,270 @@ export function OperationalInbox({
         </div>
       )}
 
-      {/* Barra de filtros: departamento y agente son opciones aquí, no pantallas separadas */}
+      {/* Barra de filtros unificada y compacta */}
       <div
-        className={`bg-card border border-border rounded-xl p-3 sm:p-4 space-y-3 shrink-0 shadow-xs ${
+        className={`bg-card border border-border rounded-xl p-2.5 sm:p-3 shrink-0 shadow-xs ${
           selectedId ? "hidden lg:block" : "block"
         }`}
       >
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1 overflow-x-auto max-w-full">
-            {[
-              { value: "open" as InboxTab, label: "Abiertas", badge: openCount },
-              {
-                value: "unassigned" as InboxTab,
-                label: "En cola",
-                badge: unassignedCount,
-                badgeColor: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-              },
-              {
-                value: "unattended" as InboxTab,
-                label: "Demoradas",
-                badge: unattendedCount,
-                badgeColor: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
-              },
-              {
-                value: "pending" as InboxTab,
-                label: "En espera",
-                badge: pendingCount,
-                badgeColor: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-              },
-              {
-                value: "resolved" as InboxTab,
-                label: "Resueltas",
-                badge: resolvedCount,
-                badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-              },
-              { value: "closed" as InboxTab, label: "Cerradas", badge: closedCount },
-            ].map((tab) => {
-              const isActive = activeTab === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => handleTabChange(tab.value)}
-                  className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  {tab.badge != null && tab.badge > 0 && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold ${
-                        isActive
-                          ? "bg-primary-foreground/20 text-primary-foreground"
-                          : (tab.badgeColor ?? "bg-muted text-foreground")
-                      }`}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por teléfono o mensaje..."
-              className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <ZernioSyncControl />
-        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          {/* Categorías de conversación con Tooltips y Guía rápida */}
+          <TooltipProvider delayDuration={150}>
+            <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
+              <div className="flex rounded-lg bg-background border border-border p-0.5 gap-1 shrink-0">
+                {[
+                  {
+                    value: "open" as InboxTab,
+                    label: "Abiertas",
+                    hint: "En curso",
+                    description:
+                      "Todas las conversaciones activas que se están atendiendo en este momento (por IA o asesores).",
+                    badge: openCount,
+                  },
+                  {
+                    value: "unassigned" as InboxTab,
+                    label: "En cola",
+                    hint: "Sin asesor",
+                    description:
+                      "Conversaciones que están esperando que un asesor humano tome el caso (sin asignar).",
+                    badge: unassignedCount,
+                    badgeColor: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+                  },
+                  {
+                    value: "unattended" as InboxTab,
+                    label: "Demoradas",
+                    hint: "Atención urgente",
+                    description:
+                      "Mensajes de clientes sin responder o con tiempo de espera superado (alerta de SLA).",
+                    badge: unattendedCount,
+                    badgeColor: "bg-rose-500/20 text-rose-700 dark:text-rose-300",
+                  },
+                  {
+                    value: "pending" as InboxTab,
+                    label: "En espera",
+                    hint: "Pausadas",
+                    description:
+                      "Casos pausados esperando datos o comprobantes del cliente, o agendados para más tarde.",
+                    badge: pendingCount,
+                    badgeColor: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+                  },
+                  {
+                    value: "resolved" as InboxTab,
+                    label: "Resueltas",
+                    hint: "Solución entregada",
+                    description:
+                      "Atención finalizada con éxito. Si el cliente vuelve a escribir pronto, retoma este mismo caso.",
+                    badge: resolvedCount,
+                    badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                  },
+                  {
+                    value: "closed" as InboxTab,
+                    label: "Cerradas",
+                    hint: "Archivadas",
+                    description:
+                      "Conversaciones archivadas definitivamente. Si el cliente escribe en el futuro, se abrirá un caso nuevo.",
+                    badge: closedCount,
+                  },
+                ].map((tab) => {
+                  const isActive = activeTab === tab.value;
+                  return (
+                    <Tooltip key={tab.value}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange(tab.value)}
+                          className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                          }`}
+                        >
+                          <span>{tab.label}</span>
+                          {tab.badge != null && tab.badge > 0 && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold ${
+                                isActive
+                                  ? "bg-primary-foreground/20 text-primary-foreground"
+                                  : (tab.badgeColor ?? "bg-muted text-foreground")
+                              }`}
+                            >
+                              {tab.badge}
+                            </span>
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="max-w-[260px] p-2.5 bg-popover text-popover-foreground border border-border shadow-lg rounded-lg text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-xs text-foreground">{tab.label}</span>
+                          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                            {tab.hint}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                          {tab.description}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 pt-1 border-t border-border/60">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Área:
-            </span>
-            <select
-              value={departmentId ?? "all"}
-              onChange={(e) =>
-                setDepartmentId(e.target.value === "all" ? undefined : e.target.value)
-              }
-              className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20 max-w-[180px] truncate cursor-pointer"
-            >
-              {isSupervisorOrAdmin && <option value="all">Todas las áreas</option>}
-              {visibleDepartments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              {/* Botón de ayuda / glosario de estados */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Guía de estados de atención"
+                    title="Guía de estados de atención"
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
+                  >
+                    <Info className="size-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 sm:w-96 p-4 text-xs space-y-3" align="start">
+                  <div className="space-y-1 border-b border-border pb-2">
+                    <h4 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                      <Info className="size-4 text-primary" />
+                      Guía de estados de la bandeja
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Cómo se clasifica cada conversación según su avance en la atención:
+                    </p>
+                  </div>
+                  <div className="space-y-2.5 text-[11px]">
+                    <div>
+                      <span className="font-bold text-foreground">Abiertas:</span>
+                      <span className="text-muted-foreground ml-1">
+                        Todas las conversaciones activas que se encuentran en curso (atendidas por
+                        bot o asesor).
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-amber-600 dark:text-amber-400">En cola:</span>
+                      <span className="text-muted-foreground ml-1">
+                        Conversaciones que están esperando que un asesor humano las tome (sin
+                        asignar).
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-rose-600 dark:text-rose-400">Demoradas:</span>
+                      <span className="text-muted-foreground ml-1">
+                        Clientes con mensajes sin responder o que han superado el tiempo límite de
+                        espera (SLA).
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-sky-600 dark:text-sky-400">En espera:</span>
+                      <span className="text-muted-foreground ml-1">
+                        Casos pausados esperando datos o comprobantes del cliente, o agendados para
+                        más tarde.
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-border/60">
+                      <p className="font-bold text-foreground mb-1">
+                        Diferencia: ¿Resueltas vs. Cerradas?
+                      </p>
+                      <div className="space-y-1.5">
+                        <div>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            Resuelta:
+                          </span>
+                          <span className="text-muted-foreground ml-1">
+                            El asesor ya solucionó el problema. Si el cliente vuelve a escribir
+                            pronto con una duda, se retoma el mismo caso sin empezar de cero.
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-muted-foreground">Cerrada:</span>
+                          <span className="text-muted-foreground ml-1">
+                            Caso finalizado definitivamente y archivado. Si el cliente escribe
+                            semanas después, se abrirá una nueva atención desde el inicio.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </TooltipProvider>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Agente:
-            </span>
-            <select
-              value={agentFilter}
-              onChange={(e) => setAgentFilter(e.target.value)}
-              className="text-[11px] px-3 py-1 rounded-full bg-background ring-1 ring-border font-semibold outline-none focus:ring-2 focus:ring-primary/20 max-w-[180px] truncate cursor-pointer"
-            >
-              <option value="all">Todos los agentes</option>
-              <option value="mine">Mis conversaciones</option>
-              <option value="unassigned">Sin asignar (En cola)</option>
-              {visibleAgents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setSlaAlertsOnly(!slaAlertsOnly)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ml-auto ${
-              slaAlertsOnly
-                ? "bg-danger text-white shadow-xs"
-                : breachedSlaCount > 0
-                  ? "bg-danger/10 text-danger ring-1 ring-danger/30 hover:bg-danger/20 animate-pulse"
-                  : "bg-background text-muted-foreground ring-1 ring-border hover:bg-foreground/5"
-            }`}
-            title={
-              breachedSlaCount > 0
-                ? `${breachedSlaCount} conversaciones con SLA vencido`
-                : "Sin alertas de SLA activas"
-            }
-          >
-            <ShieldAlert className="size-3.5" />
-            <span>Alertas SLA</span>
-            {breachedSlaCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">
-                {breachedSlaCount}
+          {/* Filtros operativos y acciones */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Área:
               </span>
-            )}
-          </button>
+              <Select
+                value={departmentId ?? "all"}
+                onValueChange={(val) => setDepartmentId(val === "all" ? undefined : val)}
+              >
+                <SelectTrigger className="h-8 text-xs min-w-[140px] max-w-[190px] bg-background">
+                  <SelectValue placeholder="Todas las áreas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isSupervisorOrAdmin && <SelectItem value="all">Todas las áreas</SelectItem>}
+                  {visibleDepartments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Agente:
+              </span>
+              <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val)}>
+                <SelectTrigger className="h-8 text-xs min-w-[140px] max-w-[190px] bg-background">
+                  <SelectValue placeholder="Todos los agentes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los agentes</SelectItem>
+                  <SelectItem value="mine">Mis conversaciones</SelectItem>
+                  <SelectItem value="unassigned">Sin asignar (En cola)</SelectItem>
+                  {visibleAgents.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSlaAlertsOnly(!slaAlertsOnly)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                slaAlertsOnly
+                  ? "bg-danger text-white shadow-xs"
+                  : breachedSlaCount > 0
+                    ? "bg-danger/10 text-danger ring-1 ring-danger/30 hover:bg-danger/20 animate-pulse"
+                    : "bg-background text-muted-foreground ring-1 ring-border hover:bg-foreground/5"
+              }`}
+              title={
+                breachedSlaCount > 0
+                  ? `${breachedSlaCount} conversaciones con SLA vencido`
+                  : "Sin alertas de SLA activas"
+              }
+            >
+              <ShieldAlert className="size-3.5" />
+              <span>Alertas SLA</span>
+              {breachedSlaCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">
+                  {breachedSlaCount}
+                </span>
+              )}
+            </button>
+
+            <ZernioSyncControl />
+          </div>
         </div>
       </div>
 
@@ -1112,18 +1244,39 @@ export function OperationalInbox({
             <h3 className="text-xs font-bold text-muted-foreground">
               {loading ? "Cargando…" : `${filteredConversations.length} conversaciones`}
             </h3>
-            <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-              {connected ? (
-                <Wifi className="size-3 text-primary" />
-              ) : (
-                <WifiOff className="size-3 text-warning" />
+            {!connected && (
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500 animate-pulse">
+                <WifiOff className="size-3" />
+                <span>Reconectando…</span>
+              </span>
+            )}
+          </div>
+          {/* Buscador integrado estilo WhatsApp Web */}
+          <div className="p-2 sm:px-3 sm:py-2 border-b border-border bg-background/50 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar un chat o mensaje..."
+                className="w-full pl-9 pr-8 py-1.5 bg-background border border-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 transition-all"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-foreground/5 cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  <X className="size-3.5" />
+                </button>
               )}
-              {connected ? "En vivo" : "Reconectando…"}
-            </span>
+            </div>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
             {filteredConversations.map((c) => {
               const active = c.id === selectedId;
+              const hasUnread = !active && (c.unreadCount ?? 0) > 0;
               const sla = calculateConversationSla(c, slaConfig);
               return (
                 <button
@@ -1145,18 +1298,25 @@ export function OperationalInbox({
                           : c
                       }
                     />
-                    {!active && (c.unreadCount ?? 0) > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white ring-2 ring-background">
-                        {c.unreadCount > 99 ? "99+" : c.unreadCount}
-                      </span>
-                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex justify-between gap-2">
-                      <span className="text-sm font-bold truncate">
+                    <div className="flex justify-between items-start gap-2">
+                      <span
+                        className={`text-sm truncate ${
+                          hasUnread
+                            ? "font-bold text-foreground"
+                            : "font-semibold text-foreground/90"
+                        }`}
+                      >
                         {conversationDisplayName(c)}
                       </span>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
+                      <span
+                        className={`text-[10px] shrink-0 ${
+                          hasUnread
+                            ? "text-[#25D366] dark:text-[#25D366] font-semibold"
+                            : "text-muted-foreground"
+                        }`}
+                      >
                         {relativeTime(c.lastActivityAt)}
                       </span>
                     </div>
@@ -1165,9 +1325,20 @@ export function OperationalInbox({
                         {formatWaPhone(c.waPhone)}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {formatLastMessagePreview(c.lastMessagePreview)}
-                    </p>
+                    <div className="flex justify-between items-center gap-2 mt-0.5">
+                      <p
+                        className={`text-xs truncate ${
+                          hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+                        }`}
+                      >
+                        {formatLastMessagePreview(c.lastMessagePreview)}
+                      </p>
+                      {hasUnread && (
+                        <span className="shrink-0 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25D366] dark:bg-[#00a884] text-white text-[11px] font-bold leading-none shadow-xs">
+                          {c.unreadCount > 99 ? "99+" : c.unreadCount}
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
                       {sla.isBreached && (
                         <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-danger/15 text-danger ring-1 ring-danger/30 animate-pulse">

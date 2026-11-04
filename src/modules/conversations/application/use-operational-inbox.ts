@@ -11,7 +11,12 @@ import type {
 import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
 import { useSession } from "@/modules/identity/application/use-session";
 import { subscribeRealtimeEvents } from "@/modules/realtime/infrastructure/realtime-bus";
-import { setTotalUnread, setActiveChatId } from "@/modules/realtime/application/unread.state";
+import {
+  setTotalUnread,
+  setActiveChatId,
+  setUnreadConversations,
+  markConversationRead,
+} from "@/modules/realtime/application/unread.state";
 import type { AutomationStateDto } from "@/modules/cases/domain/case";
 
 type InboxOptions = {
@@ -96,8 +101,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         const normalizedData = data.map((c) => (c.id === nextId ? { ...c, unreadCount: 0 } : c));
         setConversations(normalizedData);
 
-        const total = normalizedData.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-        setTotalUnread(total);
+        const unreadIds = normalizedData
+          .filter((c) => (c.unreadCount || 0) > 0 && c.id !== nextId)
+          .map((c) => c.id);
+        setUnreadConversations(unreadIds);
 
         setSelectedId(nextId);
         if (nextId) {
@@ -126,9 +133,12 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     setSelectedId(id);
     setActiveChatId(id);
     if (id) {
+      markConversationRead(id);
       setConversations((prev) => {
         const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
-        setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+        setUnreadConversations(
+          next.filter((c) => (c.unreadCount || 0) > 0 && c.id !== id).map((c) => c.id),
+        );
         return next;
       });
       void conversationGateway.markAsRead(id).catch(() => {});
@@ -223,11 +233,16 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     setCaseTimeline([]);
     setAutomationState(null);
     setActiveChatId(selectedId);
+    if (selectedId) {
+      markConversationRead(selectedId);
+    }
 
     // Optimísticamente garantizar que la conversación abierta tenga 0 en el badge local
     setConversations((prev) => {
       const next = prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c));
-      setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
+      setUnreadConversations(
+        next.filter((c) => (c.unreadCount || 0) > 0 && c.id !== selectedId).map((c) => c.id),
+      );
       return next;
     });
 
