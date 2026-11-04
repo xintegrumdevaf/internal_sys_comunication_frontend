@@ -697,12 +697,14 @@ export function StatCard({
   unit,
   hint,
   tone = "default",
+  loading = false,
 }: {
   label: string;
   value: string;
   unit?: string;
   hint?: string;
   tone?: "default" | "danger" | "success" | "warning";
+  loading?: boolean;
 }) {
   const toneMap = {
     default: {
@@ -745,16 +747,20 @@ export function StatCard({
       >
         {label}
       </p>
-      <p
-        className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 tracking-tight ${toneMap.value}`}
-      >
-        {value}
-        {unit && (
-          <span className="text-xs sm:text-sm ml-1.5 font-sans font-normal text-muted-foreground">
-            {unit}
-          </span>
-        )}
-      </p>
+      {loading ? (
+        <div className="h-8 w-24 bg-foreground/10 animate-pulse rounded-md mt-2" />
+      ) : (
+        <p
+          className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 tracking-tight ${toneMap.value}`}
+        >
+          {value}
+          {unit && (
+            <span className="text-xs sm:text-sm ml-1.5 font-sans font-normal text-muted-foreground">
+              {unit}
+            </span>
+          )}
+        </p>
+      )}
       {hint && (
         <p className={`text-[10px] sm:text-[11px] mt-1.5 truncate ${toneMap.hint}`}>{hint}</p>
       )}

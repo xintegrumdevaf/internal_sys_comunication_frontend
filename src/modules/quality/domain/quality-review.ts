@@ -25,6 +25,7 @@ export type QualityFindingDto = {
   category: QualityFindingCategory;
   excerpt: string;
   rationale: string;
+  recommendation?: string;
 };
 
 export type QualityCoachingNoteDto = {

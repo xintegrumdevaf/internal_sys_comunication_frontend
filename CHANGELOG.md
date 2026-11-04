@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Quality Supervision UX & Modular Architecture (`QualityBoard.tsx`, `QualityReviewDetail.tsx`)**:
+  - *Dynamic Loading State*: Integrated animated skeleton loaders in `StatCard` (`AppShell.tsx`), ranking table rows, and review table rows, replacing static `--` and blank screens with responsive loading state feedback.
+  - *Unified UI Select Dropdowns*: Replaced native HTML `<select>` elements with customized Radix UI `Select` components (`QualityFiltersBar.tsx`) for Agent, Area, and Status filters with dark theme borders and chevrons.
+  - *Direct Filter for Critical Chats*: Added a dedicated "Solo críticos" quick toggle button (`maxScore: 39`) with active badge counter, allowing supervisors to isolate critical conversations with 1 click.
+  - *Bounded Scrolling & Client-Side Pagination*: Added container with bounded height (`max-h-[580px]`), sticky header, and client-side pagination (20 chats per page) with page navigation controls, preventing infinite scrolling over 370+ rows.
+  - *Actionable Audit Column*: Transformed the empty dash `—` in the "Acción" column into an explicit "Auditar" button (`Eye` icon) that directly opens the conversation review.
+  - *Structured Detail View*: Extracted `QualitySummaryCard.tsx` featuring prominent Critical Infraction Alert Banners, context media highlights, formatted pedagogical coaching recommendations, and deduplicated efficiency cards.
+  - *Clean Code Decomposition*: Decomposed the 465-line `QualityBoard.tsx` into 4 focused subcomponents (`QualityStatsCards.tsx`, `QualityFiltersBar.tsx`, `QualityRankingTable.tsx`, `QualityReviewsTable.tsx`), with each file under 260 lines.
 - **Clean Code & Modular Decomposition of Operational Inbox (`OperationalInbox.tsx`)**:
   - *Context*: `OperationalInbox.tsx` had grown into a 2,772-line monolithic component violating Clean Code standards (target 300–400 lines max per module) and mixing rendering concerns of tabs, list items, headers, messages, composer, and search bars.
   - *Refactoring*: Decomposed into 7 focused, single-responsibility subcomponents located under `src/modules/conversations/ui/`:

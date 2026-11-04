@@ -14,6 +14,7 @@ import {
 } from "@/modules/quality/domain/quality-review";
 import { useQualityReviewDetail } from "@/modules/quality/application/use-quality-review-detail";
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
+import { QualitySummaryCard } from "@/modules/quality/ui/QualitySummaryCard";
 import { internalChatApi } from "@/services/internalChatApi";
 import { toast } from "sonner";
 
@@ -273,45 +274,7 @@ export function QualityReviewDetail({
         </div>
 
         <aside className="col-span-12 lg:col-span-5 space-y-4">
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest">Resumen</h3>
-              <CordialityBadge score={review.cordialityScore} />
-            </div>
-            <p className="text-[11px] font-mono tabular-nums text-muted-foreground">
-              Msgs {review.messagesAnalyzed}/{review.messagesTotal}
-              {review.chunkSize > 0 ? ` · tramo ${review.chunkSize}` : ""}
-            </p>
-            <dl className="grid grid-cols-2 gap-2 text-[11px]">
-              <div>
-                <dt className="text-muted-foreground">Estado</dt>
-                <dd className="font-bold">{qualityReviewStatusLabel(review.status)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Origen</dt>
-                <dd className="font-bold">{qualityReviewTriggerLabel(review.trigger)}</dd>
-              </div>
-            </dl>
-            {review.status === "failed" && (
-              <p className="text-[11px] text-danger">
-                {review.errorMessage ??
-                  "El análisis falló. Puedes reintentar desde el botón superior."}
-              </p>
-            )}
-            {review.summary && (
-              <p className="text-[12px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                {review.summary}
-              </p>
-            )}
-            {review.efficiencyNotes && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                  Eficiencia
-                </p>
-                <p className="text-[12px] leading-relaxed">{review.efficiencyNotes}</p>
-              </div>
-            )}
-          </div>
+          <QualitySummaryCard review={review} />
 
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="p-4 border-b border-border">
