@@ -1,4 +1,4 @@
-import { Clock, Filter, Loader2, ShieldAlert, Sparkles } from "lucide-react";
+import { Clock, Filter, Loader2, RefreshCcw, ShieldAlert, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ interface QualityFiltersBarProps {
   batchBusy: boolean;
   isAnalyzingAny: boolean;
   onAnalyzePendingChats: () => void;
+  onReanalyzeAllChats?: () => void;
   analyzeBtnLabel: string;
   criticalCount: number;
 }
@@ -35,6 +36,7 @@ export function QualityFiltersBar({
   batchBusy,
   isAnalyzingAny,
   onAnalyzePendingChats,
+  onReanalyzeAllChats,
   analyzeBtnLabel,
   criticalCount,
 }: QualityFiltersBarProps) {
@@ -249,21 +251,36 @@ export function QualityFiltersBar({
         </button>
       </div>
 
-      {/* Botón Analizar */}
-      <button
-        type="button"
-        disabled={batchBusy || isAnalyzingAny}
-        onClick={onAnalyzePendingChats}
-        title="Encola hasta 5 casos cerrados recientes sin score (Ollama, uno a uno)"
-        className="inline-flex items-center justify-center gap-2 h-9 text-xs px-3.5 rounded-lg border border-primary/40 bg-primary/10 font-bold uppercase hover:bg-primary/20 text-primary transition-colors disabled:opacity-50 w-full lg:w-auto shadow-xs cursor-pointer"
-      >
-        {batchBusy ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <Sparkles className="size-3.5" />
+      {/* Acciones de Análisis */}
+      <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+        {onReanalyzeAllChats && (
+          <button
+            type="button"
+            disabled={batchBusy || isAnalyzingAny}
+            onClick={onReanalyzeAllChats}
+            title="Vuelve a analizar en segundo plano todos los chats evaluados en este período usando las reglas y prompt vigentes"
+            className="inline-flex items-center justify-center gap-1.5 h-9 text-xs px-3 rounded-lg border border-border bg-card font-bold uppercase hover:bg-muted text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCcw className={`size-3.5 ${batchBusy ? "animate-spin" : ""}`} />
+            <span>Reanalizar período</span>
+          </button>
         )}
-        <span>{analyzeBtnLabel}</span>
-      </button>
+
+        <button
+          type="button"
+          disabled={batchBusy || isAnalyzingAny}
+          onClick={onAnalyzePendingChats}
+          title="Encola casos cerrados recientes sin score"
+          className="inline-flex items-center justify-center gap-2 h-9 text-xs px-3.5 rounded-lg border border-primary/40 bg-primary/10 font-bold uppercase hover:bg-primary/20 text-primary transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
+        >
+          {batchBusy ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="size-3.5" />
+          )}
+          <span>{analyzeBtnLabel}</span>
+        </button>
+      </div>
     </section>
   );
 }

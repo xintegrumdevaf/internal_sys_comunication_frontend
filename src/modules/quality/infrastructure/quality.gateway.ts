@@ -134,3 +134,32 @@ export async function analyzeQualityBatch(
       .map(normalizeQualityReview),
   };
 }
+
+
+export async function reanalyzeQualityReview(reviewId: string): Promise<QualityReviewDto> {
+  const data = await apiPost<Partial<QualityReviewDto>>(`/api/quality/reviews/${reviewId}/reanalyze`, {});
+  return normalizeQualityReview({ ...data, id: data.id ?? reviewId });
+}
+
+export async function reanalyzeAllQualityReviews(
+  input: {
+    from?: string;
+    to?: string;
+    agentId?: string;
+    departmentId?: string;
+  } = {},
+): Promise<{ enqueued: number; pendingTotal: number }> {
+  const data = await apiPost<{
+    enqueued: number;
+    pendingTotal: number;
+  }>("/api/quality/reanalyze-all", {
+    from: input.from,
+    to: input.to,
+    agentId: input.agentId,
+    departmentId: input.departmentId,
+  });
+  return {
+    enqueued: data?.enqueued ?? 0,
+    pendingTotal: data?.pendingTotal ?? 0,
+  };
+}

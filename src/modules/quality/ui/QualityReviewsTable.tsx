@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, Loader2, RefreshCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import {
   highFindingCount,
   isMessageAnalysisComplete,
@@ -82,7 +82,6 @@ export function QualityReviewsTable({
               <th className="text-right px-3.5 py-3">Crít.</th>
               <th className="text-left px-3.5 py-3 min-w-[140px]">Resumen</th>
               <th className="text-left px-3.5 py-3">Fecha</th>
-              <th className="text-right px-3.5 py-3">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -200,37 +199,7 @@ export function QualityReviewsTable({
                       <td className="px-3.5 py-3 text-muted-foreground whitespace-nowrap">
                         {relativeTime(r.completedAt ?? r.createdAt)}
                       </td>
-                      <td className="px-3.5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        {showRetry ? (
-                          <button
-                            type="button"
-                            disabled={busy || batchBusy || Boolean(analyzingCaseId)}
-                            onClick={() => void analyzeChat(r.caseId)}
-                            className="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border border-primary/40 bg-primary/10 font-bold uppercase hover:bg-primary/20 text-primary transition-colors disabled:opacity-50 cursor-pointer"
-                          >
-                            {busy ? (
-                              <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                              <RefreshCcw className="size-3" />
-                            )}
-                            Reintentar
-                          </button>
-                        ) : showQueued ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold">
-                            <Loader2 className="size-3 animate-spin" />
-                            En cola
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => onSelectReview(r.id)}
-                            className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md border border-border bg-background hover:bg-muted font-semibold text-foreground transition-colors cursor-pointer"
-                          >
-                            <Eye className="size-3.5 text-primary" />
-                            <span>Auditar</span>
-                          </button>
-                        )}
-                      </td>
+
                     </tr>
                   );
                 })}
@@ -238,7 +207,7 @@ export function QualityReviewsTable({
             {!loading && reviews.length === 0 && (
               <tr>
                 <td
-                  colSpan={showAgentColumn ? 9 : 8}
+                  colSpan={showAgentColumn ? 8 : 7}
                   className="px-4 py-12 text-muted-foreground text-center"
                 >
                   No hay revisiones aún. Pulsa «{analyzeBtnLabel}» para encolar casos recientes.

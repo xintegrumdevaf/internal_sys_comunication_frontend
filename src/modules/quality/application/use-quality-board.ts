@@ -14,6 +14,7 @@ import {
   listAgentQualityStats,
   listQualityReviews,
   requestOnDemandReview,
+  reanalyzeAllQualityReviews,
 } from "@/modules/quality/infrastructure/quality.gateway";
 
 export type QualityBoardFilters = {
@@ -212,6 +213,32 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
     }
   }, [session, batchBusy, analyzingCaseId, filters, reload]);
 
+  const reanalyzeAllChats = useCallback(async () => {
+    if (!session || batchBusy || analyzingCaseId) return;
+    setBatchBusy(true);
+    try {
+      const result = await reanalyzeAllQualityReviews({
+        from: toIsoStart(filters.from),
+        to: toIsoEnd(filters.to),
+        departmentId: filters.departmentId || undefined,
+        agentId: filters.agentId || undefined,
+      });
+      setPendingCount(result.pendingTotal);
+      if (result.enqueued === 0) {
+        toast.message("No hay chats evaluados en este rango para reanalizar.");
+      } else {
+        toast.success(
+          `Reanálisis masivo iniciado: ${result.enqueued} chat(s) encolados. El worker los recalculará en segundo plano.`,
+        );
+      }
+      await reload({ silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo iniciar el reanálisis masivo");
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [session, batchBusy, analyzingCaseId, filters, reload]);
+
   return {
     session,
     filters,
@@ -227,5 +254,6 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
     reload,
     analyzeChat,
     analyzePendingChats,
+    reanalyzeAllChats,
   };
 }

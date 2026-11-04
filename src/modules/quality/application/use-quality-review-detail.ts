@@ -13,6 +13,7 @@ import {
   getQualityReview,
   markQualityReviewReviewed,
   requestOnDemandReview,
+  reanalyzeQualityReview,
 } from "@/modules/quality/infrastructure/quality.gateway";
 
 const PENDING_POLL_MS = 3000;
@@ -144,6 +145,20 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     }
   };
 
+  const reanalyze = async () => {
+    if (!reviewId) return;
+    setBusy(true);
+    try {
+      const reset = await reanalyzeQualityReview(reviewId);
+      setReview(reset);
+      toast.success("Reanálisis iniciado con el prompt vigente...");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo reanalizar la conversación");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const chatDeepLink = review ? buildQualityChatDeepLink(review.agentId, review.id) : null;
 
   return {
@@ -159,6 +174,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     submitNote,
     markReviewed,
     requestOnDemand,
+    reanalyze,
     chatDeepLink,
   };
 }

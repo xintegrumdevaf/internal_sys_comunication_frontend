@@ -44,6 +44,7 @@ export function QualityReviewDetail({
     submitNote,
     markReviewed,
     requestOnDemand,
+    reanalyze,
     chatDeepLink,
   } = useQualityReviewDetail(reviewId);
 
@@ -159,6 +160,16 @@ export function QualityReviewDetail({
               <MessagesSquare className="size-4" /> Abrir chat interno
             </button>
           )}
+          <button
+            type="button"
+            disabled={busy || review.status === "pending"}
+            onClick={() => void reanalyze()}
+            className="inline-flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40 transition-colors cursor-pointer"
+            title="Volver a evaluar este chat completo con el prompt y reglas de calidad vigentes"
+          >
+            <RefreshCcw className={`size-3.5 ${busy || review.status === "pending" ? "animate-spin" : ""}`} />
+            {busy || review.status === "pending" ? "Analizando…" : "Reanalizar con IA"}
+          </button>
           {review.status === "ready" && (
             <button
               type="button"
@@ -167,22 +178,6 @@ export function QualityReviewDetail({
               className="text-xs px-3.5 py-2 rounded-lg bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
             >
               Marcar revisada
-            </button>
-          )}
-          {review.status === "failed" && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                void requestOnDemand().then((id) => {
-                  if (id && id !== reviewId) {
-                    void navigate({ to: "/calidad", search: { reviewId: id } });
-                  }
-                })
-              }
-              className="inline-flex items-center gap-2 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40 transition-colors cursor-pointer"
-            >
-              <RefreshCcw className="size-4" /> Reintentar análisis
             </button>
           )}
         </div>

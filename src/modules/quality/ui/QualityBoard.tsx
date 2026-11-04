@@ -40,6 +40,7 @@ export function QualityBoard({
     backendUnavailable,
     analyzeChat,
     analyzePendingChats,
+    reanalyzeAllChats,
   } = useQualityBoard({ pausePolling: Boolean(reviewId) });
 
   const isAdmin = session?.role === "admin";
@@ -143,6 +144,7 @@ export function QualityBoard({
         batchBusy={batchBusy}
         isAnalyzingAny={Boolean(analyzingCaseId)}
         onAnalyzePendingChats={() => void analyzePendingChats()}
+        onReanalyzeAllChats={() => void reanalyzeAllChats()}
         analyzeBtnLabel={analyzeBtnLabel}
         criticalCount={criticalCount}
       />
