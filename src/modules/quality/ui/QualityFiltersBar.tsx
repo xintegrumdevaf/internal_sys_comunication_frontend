@@ -38,14 +38,31 @@ export function QualityFiltersBar({
   analyzeBtnLabel,
   criticalCount,
 }: QualityFiltersBarProps) {
-  const isOnlyCritical = filters.maxScore === "39";
+  const activeSemaforo: "ALL" | "CORDIAL" | "ATTENTION" | "CRITICAL" =
+    filters.maxScore === "39"
+      ? "CRITICAL"
+      : filters.minScore === "70"
+        ? "CORDIAL"
+        : filters.minScore === "40" && filters.maxScore === "69"
+          ? "ATTENTION"
+          : "ALL";
 
-  const toggleOnlyCritical = () => {
-    setFilters((prev) => ({
-      ...prev,
-      maxScore: isOnlyCritical ? "" : "39",
-      minScore: "",
-    }));
+  const handleSemaforoSelect = (mode: "ALL" | "CORDIAL" | "ATTENTION" | "CRITICAL") => {
+    switch (mode) {
+      case "CORDIAL":
+        setFilters((prev) => ({ ...prev, minScore: "70", maxScore: "" }));
+        break;
+      case "ATTENTION":
+        setFilters((prev) => ({ ...prev, minScore: "40", maxScore: "69" }));
+        break;
+      case "CRITICAL":
+        setFilters((prev) => ({ ...prev, minScore: "", maxScore: "39" }));
+        break;
+      case "ALL":
+      default:
+        setFilters((prev) => ({ ...prev, minScore: "", maxScore: "" }));
+        break;
+    }
   };
 
   return (
@@ -161,25 +178,64 @@ export function QualityFiltersBar({
           </Select>
         </div>
 
-        {/* Toggle Filtro Rápido Críticos */}
-        <button
-          type="button"
-          onClick={toggleOnlyCritical}
-          className={`h-9 px-3 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            isOnlyCritical
-              ? "border-danger bg-danger/15 text-danger ring-2 ring-danger/20"
-              : "border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
-          }`}
-          title="Filtrar únicamente conversaciones con valoración crítica (< 40)"
-        >
-          <ShieldAlert className="size-3.5 text-danger" />
-          <span>Solo críticos</span>
-          {criticalCount > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-danger text-white">
-              {criticalCount}
-            </span>
-          )}
-        </button>
+        {/* Filtro Semáforo */}
+        <div className="flex items-center p-0.5 rounded-lg border border-border bg-background/80 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => handleSemaforoSelect("ALL")}
+            className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+              activeSemaforo === "ALL"
+                ? "bg-card text-foreground shadow-2xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSemaforoSelect("CORDIAL")}
+            className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeSemaforo === "CORDIAL"
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            title="Valoración cordial (≥ 70)"
+          >
+            <span className="size-2 rounded-full bg-emerald-500 inline-block" />
+            <span>≥70 Cordiales</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSemaforoSelect("ATTENTION")}
+            className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeSemaforo === "ATTENTION"
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            title="Requiere atención (40 a 69)"
+          >
+            <span className="size-2 rounded-full bg-amber-500 inline-block" />
+            <span>40–69 Atención</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSemaforoSelect("CRITICAL")}
+            className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeSemaforo === "CRITICAL"
+                ? "bg-danger/15 text-danger border border-danger/30 font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            title="Valoración crítica (< 40)"
+          >
+            <span className="size-2 rounded-full bg-danger inline-block" />
+            <span>&lt;40 Críticos</span>
+            {criticalCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-danger text-white">
+                {criticalCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Botón SLA */}
         <button
@@ -211,3 +267,4 @@ export function QualityFiltersBar({
     </section>
   );
 }
+

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2026-11-04
+
+### Added
+
+- **Traffic Light (Semáforo) Score Filter (`QualityFiltersBar.tsx`)**:
+  - Replaced the binary "Solo críticos" button with a 4-state visual traffic-light control:
+    - `Todos`: Clears score bounds (`minScore: ""`, `maxScore: ""`).
+    - `≥70 Cordiales`: Highlights high-performing cordial cases (`minScore: "70"`, `maxScore: ""`) with emerald badge.
+    - `40–69 Atención`: Filters interactions requiring coaching or with delay observations (`minScore: "40"`, `maxScore: "69"`) with amber badge.
+    - `<40 Críticos`: Isolates critical violations (`minScore: ""`, `maxScore: "39"`) with crimson badge and badge counter.
+- **Timeline Multi-Agent Scope Isolation & Transfer Chips (`QualityReviewDetail.tsx`, `QualityTimelineMessage.tsx`)**:
+  - *System & Transfer Event Chips*: System handover notices (e.g. `Caso transferido al área Traslados...`) are now rendered as centered system pills (`— Caso transferido ... —`) with `ArrowRightLeft` iconography, ending the confusion of transfer logs appearing as outgoing agent bubbles to the customer.
+  - *Audited Agent vs Full Conversation Scope*: Added a toggle in the timeline header (`Solo [Agente Auditado]` vs `Conversación completa`) allowing supervisors to review solely the audited agent's interaction or inspect full multi-agent context.
+  - *Distinct Styling for Secondary Agents & AI Bot*: Messages from previous/subsequent human agents are now styled with muted backgrounds and clear headers (`[Otro agente: Nombre] · Fuera del tramo auditado`), and bot messages are badged with `[Asistente IA]`.
+  - *SLA Latency Visual Separators*: Time gaps between interactions exceeding 20 minutes now render a subtle chronological elapsed notice (`⏱ Transcurrieron 2h 58m`), visually separating response delay from message politeness.
+  - *Nuanced Finding Highlights*: Inefficiency and delay findings now highlight with subtle amber borders rather than aggressive crimson red, reserving high-severity red highlights strictly for actual discourtesy, aggression, or misinformation.
+
 ## [0.2.4] - 2026-11-04
 
 ### Added
