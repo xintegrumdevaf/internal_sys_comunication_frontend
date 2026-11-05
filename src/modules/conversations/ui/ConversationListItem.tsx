@@ -54,6 +54,7 @@ export function ConversationListItem({
   return (
     <button
       type="button"
+      data-conversation-id={c.id}
       onClick={() => onSelect(c.id)}
       className={`w-full text-left p-3.5 transition-colors flex gap-3 cursor-pointer ${
         active

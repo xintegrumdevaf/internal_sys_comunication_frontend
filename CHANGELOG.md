@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.9] - 2026-11-05
+
+### Fixed
+
+- **Inbox list jumped to the top when a new chat arrived (`OperationalInbox.tsx`, `use-preserved-list-scroll.ts`)**:
+  - _Damage_: An agent scrolled down the conversation list and opened a chat. As soon as another chat arrived, the list snapped back to the first row. The open thread stayed put, but the agent had to search again for the row they were on.
+  - _Root Cause_: Every inbound message reloads the inbox and reorders the list (newest first). The browser then drops the list's scroll offset to 0, so the viewport returns to the start of the queue.
+  - _Resolution_: The list anchors to the first row that was actually visible. After a reload it restores that row to the same place. If the agent was already at the top, the list stays there so the new chat remains visible. Do not remove `data-conversation-id` from the row or `[overflow-anchor:none]` on the scroller; without them the browser and the anchor fight each other. See `docs/spec/02_MODULES.md` §7.
+
+## [0.2.8] - 2026-11-05
+
+### Fixed
+
+- **Inbox chat column overflowed its card on narrow layouts (`OperationalInbox.tsx`, `ChatHeader.tsx`, `ChatMessageItem.tsx`, `WhatsAppAudioPlayer.tsx`, `MessageMediaBody.tsx`, `ChatComposer.tsx`, `AppShell.tsx`)**:
+  - _Damage_: With a conversation open, the thread did not stay inside the chat card. Message bubbles, the voice-note waveform, the `1x` speed control and the side avatars painted past the right border. In the header, "Editar contacto" overlapped "Atendido por {agente}".
+  - _Root Cause_: The inbox is a 12-column grid. Opening the details panel makes the thread `lg:col-span-5`, so on a laptop the column is about 300–450px while the viewport is still wide enough for `sm:` / `md:` styles. Those breakpoints follow the window, not the column, so the header kept the long labels. The voice-note player also reserved a hard width (`min-w-[140px]` plus 34 bars of `w-[3px]`), and grid/flex items default to `min-width: auto`, so the column grew to fit that content and spilled out of the card.
+  - _Resolution_: The chat column is now a named container (`@container/chat`) and the grid items use `min-w-0`, so the column can shrink to its track. Header labels follow that container width: a narrow column shows the short agent name and an icon-only edit button, and the action row wraps instead of overlapping. Bubbles, media and the composer use `min-w-0` / `max-w-full` and long text breaks. The waveform is a 34-column grid (`minmax(0, 1fr)`) capped at 260px, so the bars shrink with the bubble. The shell content area also refuses horizontal overflow. Do not put those labels back on viewport `sm:` breakpoints or restore the fixed waveform width. See `docs/spec/02_MODULES.md` §6.
+
+## [0.2.7] - 2026-11-05
+
+### Fixed
+
+- **WhatsApp voice notes only played after opening DevTools (`WhatsAppAudioPlayer.tsx`)**:
+  - _Damage_: In the inbox, a voice note ignored repeated clicks on play. Nothing appeared to happen. As soon as the browser console was opened, the same note started and the Network panel showed a successful `GET /api/media?url=...`.
+  - _Root Cause_: The API returns the whole file as `206 Partial Content` (`Content-Range` covering every byte, `Content-Type: audio/ogg`) with `Cache-Control: public, max-age=31536000, immutable`. CORS is valid. Chrome's media element requests that URL with a `Range` header, stores the 206, and later rejects `play()` with `NotSupportedError: The element has no supported sources` without issuing a new request. Opening DevTools disables the HTTP cache, so the next load hits the network and plays. A second bug made retries useless: on failure the player called `load()` and `play()` in the same turn, and every extra click aborted the reload that was in progress. A parallel `fetch` of the same URL (waveform peaks, without the session cookie) could also poison that cache entry.
+  - _Resolution_: The player downloads the note itself with `fetch` (`credentials: "include"`, `cache: "no-store"`), builds an `audio/*` `Blob`, and plays a local `blob:` URL. The `<audio>` element no longer points at `/api/media` and no longer sends `crossOrigin`. Waveform peaks are decoded from that same blob. Extra clicks while a play attempt is in flight no longer call `load()`. Covered by `WhatsAppAudioPlayer.test.tsx`. Do not point `<audio src>` at the media API again; the cached 206 is what breaks playback. See `docs/spec/02_MODULES.md` §5.
+
 ## [0.2.6] - 2026-11-04
 
 ### Added

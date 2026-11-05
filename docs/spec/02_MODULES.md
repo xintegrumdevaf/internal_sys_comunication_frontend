@@ -51,3 +51,38 @@ Nota: tras la reestructuración hexagonal, la lógica de cada pantalla vive en `
 | Admin n8n (`/flujos`)         | Solo `role=admin`                                             | Oculto para `agent`/`manager`                                                                                               |
 | Calidad (`/calidad`)          | Solo `role IN (manager, admin)`; manager acotado a sus deptos | Oculto para `role=agent`; empty state honesto si falta backend Etapa 10                                                     |
 | Escribir sobre un caso        | `assignedAgentId=self`, sin asignar, o `manager/admin`        | Botones de acción deshabilitados según esta regla, nunca solo ocultos (para que el agente entienda por qué no puede actuar) |
+
+## 5. Notas de voz en la bandeja (`WhatsAppAudioPlayer.tsx`)
+
+`MessageMediaBody` sigue resolviendo la nota contra `GET /api/media` (cookie de sesión, otro origen). Quien reproduce ese archivo es `WhatsAppAudioPlayer`, no un `<audio src={mediaUrl}>`.
+
+**Qué se cambió (2026-11-05).** El reproductor descarga la nota con `fetch` (`credentials: "include"`, `cache: "no-store"`), construye un `Blob` con el `Content-Type` de audio (si no viene, `audio/ogg`) y asigna al elemento un `blob:` local. Se quitó `crossOrigin="use-credentials"` y `preload="metadata"` sobre la URL del API. La forma de onda se calcula con ese mismo blob, no con un segundo `fetch` a la URL. Un clic extra mientras hay un `play()` en curso ya no llama a `load()`.
+
+**Por qué.** El API responde el archivo completo como `206 Partial Content` (`Content-Range: bytes 0-…/…`, `Content-Type: audio/ogg`) y lo marca `Cache-Control: public, max-age=31536000, immutable`. Las cabeceras CORS son correctas (`Access-Control-Allow-Credentials: true` y el origen del frontend). Chrome pide ese recurso con `Range`, guarda el 206 y, al pulsar play, reutiliza la copia cacheada. El elemento queda sin fuente válida (`NotSupportedError: The element has no supported sources`) y no vuelve a salir a la red: el clic parece muerto. Abrir la consola desactiva la caché HTTP, la misma URL se pide de nuevo, aparece el 206 en Red y ahí sí suena. El reintento anterior (`load()` y `play()` en el mismo instante) empeoraba el caso: cada clic cancelaba la recarga que todavía no tenía fuente.
+
+**Qué no revertir.** No volver a poner `/api/media` en el `src` del `<audio>`, ni disparar un `fetch` paralelo sin cookie contra la misma URL: esa combinación es la que deja el 206 inservible en caché durante un año. El test de regresión está en `src/modules/conversations/ui/WhatsAppAudioPlayer.test.tsx`. Registro del cambio: `CHANGELOG.md` `[0.2.7]`.
+
+## 6. Ancho de la columna de chat en la bandeja
+
+La bandeja (`OperationalInbox`) es una grilla de 12 columnas: lista, hilo y, si está abierto, el panel de detalles (`lg:col-span-3`). El hilo pasa de `lg:col-span-8` a `lg:col-span-5`. En un portátil esa columna queda en unos 300–450px aunque la ventana siga en breakpoint `sm` o `md`.
+
+**Qué se cambió (2026-11-05).**
+
+- La columna del hilo es un contenedor con nombre (`@container/chat`) y, junto con la lista, el panel de detalles y el área principal de `AppShell`, usa `min-w-0` para poder encogerse a su pista. El scroll de mensajes es `overflow-x-hidden`.
+- `ChatHeader` deja de decidir las etiquetas con `sm:` / `md:` (ancho de la ventana). Usa el ancho de la columna: en una columna estrecha el agente se muestra en corto, "Editar contacto" queda solo con el ícono y las acciones bajan de línea en lugar de montarse sobre el nombre.
+- `ChatMessageItem`, `MessageMediaBody` y `ChatComposer` limitan burbujas, archivos, iframes y el textarea a `min-w-0` / `max-w-full`. El texto largo parte (`break-words`).
+- `WhatsAppAudioPlayer` ya no reserva `min-w-[140px]` ni barras fijas de `w-[3px]`. La onda es una grilla de 34 columnas `minmax(0, 1fr)`, cada barra como máximo 3px, y el reproductor no pasa de `min(100%, 260px)`.
+
+**Por qué.** Las etiquetas largas ("Editar contacto", "Atendido por {agente}") y el reproductor de audio imponían un ancho mínimo mayor que la columna. Los ítems de grilla y flex tienen `min-width: auto`, así que la columna crecía con ese contenido y se salía de la tarjeta: burbujas, forma de onda, el control `1x` y los avatares cruzaban el borde derecho, y el botón de editar contacto se superponía a la pastilla del agente.
+
+**Qué no revertir.** No devolver las etiquetas de la cabecera a breakpoints de viewport (`sm:`, `md:`): el ancho que importa es el de la columna, no el de la ventana. No restaurar `min-w-[140px]` ni `w-[3px]` en la onda, ni quitar `min-w-0` de la columna del hilo. Registro del cambio: `CHANGELOG.md` `[0.2.8]`.
+
+## 7. Scroll de la lista al entrar un chat nuevo
+
+La columna izquierda de la bandeja es la que hace scroll (`overflow-y-auto`), no la página. Cada `MESSAGE_RECEIVED` recarga la lista y la reordena con el chat más reciente arriba.
+
+**Qué se cambió (2026-11-05).** `usePreservedListScroll` recuerda la primera fila visible (`data-conversation-id`) y, después de la recarga, la deja en el mismo sitio. Si el agente ya estaba en el tope (`scrollTop` ≤ 8px), no se corrige nada: el chat nuevo sigue viéndose. El contenedor lleva `[overflow-anchor:none]` para que el anclaje del navegador no compita con esa corrección.
+
+**Por qué.** Sin eso el navegador pone el scroll en 0. El hilo abierto no cambia, pero la lista vuelve al inicio y hay que buscar de nuevo la conversación en la que se estaba.
+
+**Qué no revertir.** No quitar `data-conversation-id` de `ConversationListItem` ni el `overflow-anchor: none` del scroller. No forzar `scrollTop = 0` ni `scrollIntoView` de la fila activa en cada recarga: eso es justo el salto que se está evitando. El test está en `use-preserved-list-scroll.test.tsx`. Registro del cambio: `CHANGELOG.md` `[0.2.9]`.

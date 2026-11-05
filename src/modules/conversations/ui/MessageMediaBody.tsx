@@ -39,8 +39,8 @@ type Props = {
  */
 export function MessageMediaBody({
   message,
-  mediaClassName = "w-full max-w-sm rounded-xl",
-  captionClassName = "mt-2 whitespace-pre-wrap text-[12px] leading-snug",
+  mediaClassName = "w-full max-w-full rounded-xl",
+  captionClassName = "mt-2 whitespace-pre-wrap break-words text-[12px] leading-snug",
 }: Props) {
   const [iframeError, setIframeError] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -159,7 +159,7 @@ export function MessageMediaBody({
         : null;
 
     return (
-      <div className="space-y-1.5 my-1 max-w-xs select-none">
+      <div className="space-y-1.5 my-1 max-w-full min-w-0 select-none">
         <div
           onClick={() => window.open(mapsUrl, "_blank")}
           className="rounded-2xl overflow-hidden border border-border/80 bg-background/80 hover:bg-background/95 transition shadow-sm cursor-pointer group"
@@ -170,7 +170,7 @@ export function MessageMediaBody({
               <iframe
                 src={embedUrl}
                 title="Vista previa del mapa"
-                className="w-full h-full pointer-events-none scale-100 origin-top"
+                className="w-full max-w-full h-full pointer-events-none scale-100 origin-top"
                 loading="lazy"
               />
             ) : (
@@ -230,7 +230,7 @@ export function MessageMediaBody({
     const targetUrl = mediaUrl || (message.mediaId ? buildMediaUrl(message.mediaId) : undefined);
 
     return (
-      <div className="space-y-1.5 my-1 max-w-xs">
+      <div className="space-y-1.5 my-1 max-w-full min-w-0">
         <div
           onClick={() => targetUrl && window.open(targetUrl, "_blank")}
           className="rounded-xl overflow-hidden border border-border/80 bg-background/60 hover:bg-background/90 transition shadow-sm cursor-pointer group select-none"
@@ -242,7 +242,7 @@ export function MessageMediaBody({
                 src={`${targetUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                 title={filename}
                 onError={() => setIframeError(true)}
-                className="w-full h-full pointer-events-none scale-100 origin-top"
+                className="w-full max-w-full h-full pointer-events-none scale-100 origin-top"
               />
               <div className="absolute inset-0 bg-transparent" />
               <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
@@ -306,7 +306,7 @@ export function MessageMediaBody({
     const videoFilename = message.filename?.trim() || "video.mp4";
 
     return (
-      <div className="space-y-1.5 my-1 max-w-xs sm:max-w-sm">
+      <div className="space-y-1.5 my-1 max-w-full min-w-0">
         {targetUrl && !videoError ? (
           <div className="rounded-2xl overflow-hidden border border-border/80 bg-black shadow-md flex flex-col group select-none">
             <video
@@ -373,7 +373,7 @@ export function MessageMediaBody({
     const targetUrl = mediaUrl || (message.mediaId ? `/api/media/${message.mediaId}` : undefined);
 
     return (
-      <div className="space-y-1.5 my-1 max-w-xs">
+      <div className="space-y-1.5 my-1 max-w-full min-w-0">
         {targetUrl ? (
           <div
             onClick={() => window.open(targetUrl, "_blank")}
@@ -403,7 +403,7 @@ export function MessageMediaBody({
     const hasValidCaption = Boolean(displayCaption);
 
     return (
-      <div className="space-y-1.5 my-1">
+      <div className="space-y-1.5 my-1 min-w-0 max-w-full">
         <WhatsAppAudioPlayer mediaUrl={mediaUrl} messageId={message.id} author={message.author} />
         {hasValidCaption ? <p className={captionClassName}>{displayCaption}</p> : null}
       </div>
@@ -475,8 +475,10 @@ export function MessageMediaBody({
       .replace(/\s{2,}/g, " ")
       .trim();
     return (
-      <div className="space-y-2.5 max-w-sm">
-        {cleanedText && <p className="whitespace-pre-wrap leading-relaxed">{cleanedText}</p>}
+      <div className="space-y-2.5 max-w-full min-w-0">
+        {cleanedText && (
+          <p className="whitespace-pre-wrap break-words leading-relaxed">{cleanedText}</p>
+        )}
         {interactiveData.type === "buttons" && interactiveData.buttons?.length > 0 && (
           <div className="flex flex-col gap-1.5 pt-1.5 w-full">
             {interactiveData.buttons.map((btn) => (
@@ -518,12 +520,12 @@ export function MessageMediaBody({
   if (bodyText) {
     if (isMediaPlaceholder(bodyText)) return null;
     const formattedBody = bodyText.replace(/\\n/g, "\n");
-    return <p className="whitespace-pre-wrap">{formattedBody}</p>;
+    return <p className="whitespace-pre-wrap break-words">{formattedBody}</p>;
   }
 
   if (displayCaption) {
     const formattedCaption = displayCaption.replace(/\\n/g, "\n");
-    return <p className="whitespace-pre-wrap">{formattedCaption}</p>;
+    return <p className="whitespace-pre-wrap break-words">{formattedCaption}</p>;
   }
 
   return (

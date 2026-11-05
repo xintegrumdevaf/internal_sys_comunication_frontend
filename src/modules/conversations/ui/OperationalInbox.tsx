@@ -39,6 +39,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxStatusTabs } from "./InboxStatusTabs";
 import { ConversationListItem } from "./ConversationListItem";
+import { usePreservedListScroll } from "./use-preserved-list-scroll";
 import { ChatHeader } from "./ChatHeader";
 import { ChatSearchBar } from "./ChatSearchBar";
 import { ChatMessageItem } from "./ChatMessageItem";
@@ -792,6 +793,10 @@ export function OperationalInbox({
     directory,
   ]);
 
+  // Un chat nuevo reordena la lista. Sin esto el scroll vuelve a 0 y el agente
+  // pierde la fila que estaba mirando. Si ya estaba arriba, se queda arriba.
+  const conversationListScroll = usePreservedListScroll(filteredConversations);
+
   const handleTabChange = (newTab: InboxTab) => {
     setActiveTab(newTab);
     setSelectedId(null);
@@ -1075,7 +1080,7 @@ export function OperationalInbox({
   const isSyncRunning = currentSyncStatus?.status === "running";
 
   return (
-    <div className="flex flex-col gap-4 h-full flex-1 min-h-0 animate-fade-up">
+    <div className="flex flex-col gap-4 h-full flex-1 min-h-0 min-w-0 max-w-full animate-fade-up">
       {/* Banner de Sincronización en Ejecución con Barra de Progreso y Porcentaje */}
       {isSyncRunning && (
         <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-between gap-3 animate-pulse shadow-xs">
@@ -1229,10 +1234,10 @@ export function OperationalInbox({
         </div>
       </div>
 
-      <section className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+      <section className="grid grid-cols-12 gap-4 flex-1 min-h-0 min-w-0 w-full">
         {/* Lista de conversaciones */}
         <div
-          className={`col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full shadow-xs ${
+          className={`col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 min-w-0 h-full shadow-xs ${
             selectedId ? "hidden lg:flex" : "flex"
           }`}
         >
@@ -1269,7 +1274,11 @@ export function OperationalInbox({
               )}
             </div>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
+          <div
+            ref={conversationListScroll.ref}
+            onScroll={conversationListScroll.onScroll}
+            className="flex-1 min-h-0 overflow-y-auto divide-y divide-border [overflow-anchor:none]"
+          >
             {filteredConversations.map((c) => (
               <ConversationListItem
                 key={c.id}
@@ -1298,7 +1307,7 @@ export function OperationalInbox({
 
         {/* Hilo de conversación */}
         <div
-          className={`col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full shadow-xs transition-[grid-column] ${
+          className={`@container/chat col-span-12 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 min-w-0 max-w-full h-full shadow-xs transition-[grid-column] ${
             selectedId ? "flex" : "hidden lg:flex"
           } ${detailsOpen ? "lg:col-span-5" : "lg:col-span-8"}`}
         >
@@ -1361,10 +1370,10 @@ export function OperationalInbox({
                   const selectedSla = calculateConversationSla(selected, slaConfig);
                   if (!selectedSla.isBreached) return null;
                   return (
-                    <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-center justify-between gap-2 text-xs font-semibold shrink-0 animate-fade-in">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse" />
-                        <span>
+                    <div className="p-3 bg-danger/10 border-b border-danger/30 text-danger flex items-start gap-2 text-xs font-semibold shrink-0 min-w-0 animate-fade-in">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <AlertTriangle className="size-4 shrink-0 text-danger animate-pulse mt-0.5" />
+                        <span className="min-w-0 break-words">
                           <strong className="font-extrabold uppercase">
                             Alerta de No Respuesta:
                           </strong>{" "}
@@ -1383,7 +1392,7 @@ export function OperationalInbox({
 
               <div
                 ref={messagesScrollRef}
-                className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-1 bg-background/40"
+                className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2.5 sm:p-3 space-y-1 bg-background/40"
               >
                 {hasMoreMessages && (
                   <div className="flex justify-center my-3">
@@ -1444,18 +1453,18 @@ export function OperationalInbox({
                 )}
               </div>
               {readOnly ? (
-                <div className="p-2.5 border-t border-border bg-warning/5 flex items-center gap-2 text-[11px] text-foreground shrink-0">
-                  <Lock className="size-3.5 text-warning shrink-0" />
-                  <span>
+                <div className="p-2.5 border-t border-border bg-warning/5 flex items-start gap-2 text-[11px] text-foreground shrink-0 min-w-0">
+                  <Lock className="size-3.5 text-warning shrink-0 mt-0.5" />
+                  <span className="min-w-0 break-words">
                     Esta conversación está asignada a{" "}
                     <span className="font-bold">{assignedAgentName}</span> — solo esa persona puede
                     responder. Tú puedes seguir viéndola.
                   </span>
                 </div>
               ) : (
-                <div className="flex flex-col border-t border-border bg-background/60 shrink-0">
+                <div className="flex flex-col border-t border-border bg-background/60 shrink-0 min-w-0">
                   {isAutomationActive && !isClosedRecord && (
-                    <div className="px-3.5 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                    <div className="px-3 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-2 text-xs min-w-0">
                       <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200 font-semibold text-[11px] min-w-0">
                         <Bot className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span className="truncate">
@@ -1524,7 +1533,7 @@ export function OperationalInbox({
 
         {/* Panel de detalles del cliente/caso: en desktop como sidebar inline */}
         {detailsOpen ? (
-          <div className="hidden lg:flex lg:col-span-3 min-h-0 h-full flex-col gap-2">
+          <div className="hidden lg:flex lg:col-span-3 min-h-0 min-w-0 h-full flex-col gap-2 overflow-hidden">
             <div className="bg-card border border-border rounded-xl px-3 py-2 flex items-center justify-between shrink-0">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Detalles

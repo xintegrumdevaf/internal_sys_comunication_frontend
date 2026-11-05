@@ -64,8 +64,8 @@ export function ChatHeader({
   onToggleDetails,
 }: ChatHeaderProps) {
   return (
-    <div className="p-2.5 sm:p-3.5 border-b border-border bg-background/60 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="p-2 sm:p-3 border-b border-border bg-background/60 flex flex-wrap items-center gap-x-2 gap-y-1.5 shrink-0 min-w-0 max-w-full">
+      <div className="flex items-center gap-2 min-w-0 flex-1 basis-full @min-[24rem]/chat:basis-[12rem]">
         <button
           type="button"
           onClick={onBack}
@@ -83,23 +83,22 @@ export function ChatHeader({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-xs sm:text-sm font-bold truncate">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-xs sm:text-sm font-bold truncate min-w-0">
               {selectedCustomer?.fullName || conversationDisplayName(selected)}
             </p>
             <button
               type="button"
               onClick={onOpenContact}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-primary bg-muted/70 hover:bg-primary/10 border border-border transition cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-muted-foreground hover:text-primary bg-muted/70 hover:bg-primary/10 border border-border transition cursor-pointer shrink-0"
               title="Editar datos del contacto (Nombre, cédula, contratos ISP, etiquetas)"
             >
               <Edit2 className="size-2.5 text-primary" />
-              <span className="hidden sm:inline">Editar contacto</span>
-              <span className="sm:hidden">Editar</span>
+              <span className="hidden @min-[32rem]/chat:inline">Editar contacto</span>
             </button>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground truncate">
-            <span className="truncate">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground min-w-0 overflow-hidden">
+            <span className="truncate min-w-0">
               {[
                 selected.waProfileName ? formatWaPhone(selected.waPhone) : null,
                 !activeCase
@@ -123,40 +122,42 @@ export function ChatHeader({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      <div className="flex flex-wrap items-center justify-end gap-1 min-w-0 max-w-full">
         {isClosedRecord ? (
           <span
-            className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"
+            className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"
             title="Última persona que atendió este caso"
           >
-            <UserCheck className="size-3 sm:size-3.5" />
-            <span className="hidden sm:inline truncate max-w-[180px]">
+            <UserCheck className="size-3 sm:size-3.5 shrink-0" />
+            <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
               {assignedAgentName ? `Atendió ${assignedAgentName}` : "Sin agente registrado"}
             </span>
-            <span className="sm:hidden truncate max-w-[90px]">
+            <span className="@min-[36rem]/chat:hidden truncate min-w-0">
               {assignedAgentName ?? "Sin agente"}
             </span>
           </span>
         ) : !activeCase && !selected?.activeCase ? (
-          <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
-            <UserCheck className="size-3 sm:size-3.5" />
-            <span className="hidden sm:inline">Atención directa</span>
-            <span className="sm:hidden">Directo</span>
+          <span className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
+            <UserCheck className="size-3 sm:size-3.5 shrink-0" />
+            <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
+              Atención directa
+            </span>
+            <span className="@min-[36rem]/chat:hidden truncate min-w-0">Directo</span>
           </span>
         ) : isAutomationActive ? (
-          <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+          <span className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
             <Bot className="size-3 sm:size-3.5 text-emerald-500 animate-pulse shrink-0" />
-            <span className="hidden sm:inline">Asistente IA</span>
-            <span className="sm:hidden">IA</span>
+            <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">Asistente IA</span>
+            <span className="@min-[36rem]/chat:hidden truncate min-w-0">IA</span>
             {assignedAgentName && (
-              <span className="hidden md:inline text-emerald-700/70 dark:text-emerald-300/70 font-normal">
+              <span className="hidden @min-[42rem]/chat:inline truncate min-w-0 text-emerald-700/70 dark:text-emerald-300/70 font-normal">
                 · {isAssignedToMe ? "Tú" : assignedAgentName}
               </span>
             )}
           </span>
         ) : (
           <span
-            className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
+            className={`inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold ${
               isAssignedToMe
                 ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                 : "bg-foreground/5 text-muted-foreground ring-1 ring-border"
@@ -164,18 +165,18 @@ export function ChatHeader({
             title={isAssignedToOther ? "Solo esta persona puede responder" : undefined}
           >
             {isAssignedToMe ? (
-              <UserCheck className="size-3 sm:size-3.5" />
+              <UserCheck className="size-3 sm:size-3.5 shrink-0" />
             ) : (
-              <Lock className="size-2.5 sm:size-3" />
+              <Lock className="size-2.5 sm:size-3 shrink-0" />
             )}
-            <span className="hidden sm:inline">
+            <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
               {isAssignedToMe
                 ? "Atención Humana (Tú)"
                 : assignedAgentName
                   ? `Atendido por ${assignedAgentName}`
                   : "Atención Humana (Sin asignar)"}
             </span>
-            <span className="sm:hidden">
+            <span className="@min-[36rem]/chat:hidden truncate min-w-0">
               {isAssignedToMe ? "Tú" : (assignedAgentName ?? "Sin Asignar")}
             </span>
           </span>
@@ -185,11 +186,11 @@ export function ChatHeader({
             type="button"
             disabled={busy}
             onClick={onClaim}
-            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-warning text-white font-bold shadow-sm hover:brightness-95 transition disabled:opacity-40"
+            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-full bg-warning text-white font-bold shadow-sm hover:brightness-95 transition disabled:opacity-40 shrink-0"
           >
             <ShieldCheck className="size-3 sm:size-3.5" />
-            <span className="hidden sm:inline">Reclamar caso</span>
-            <span className="sm:hidden">Reclamar</span>
+            <span className="hidden @min-[36rem]/chat:inline">Reclamar caso</span>
+            <span className="@min-[36rem]/chat:hidden">Reclamar</span>
           </button>
         )}
         {showTakeControl && (
@@ -197,11 +198,11 @@ export function ChatHeader({
             type="button"
             disabled={busy}
             onClick={onTakeControl}
-            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
+            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40 shrink-0"
           >
             <UserCheck className="size-3 sm:size-3.5" />
-            <span className="hidden sm:inline">Tomar control</span>
-            <span className="sm:hidden">Control</span>
+            <span className="hidden @min-[36rem]/chat:inline">Tomar control</span>
+            <span className="@min-[36rem]/chat:hidden">Control</span>
           </button>
         )}
         {!activeCase &&
@@ -212,7 +213,7 @@ export function ChatHeader({
               disabled={busy}
               onClick={onCloseConversation}
               title="Cerrar la conversación y sacarla de abiertas"
-              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40"
+              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-full border border-border font-bold hover:bg-foreground/5 transition disabled:opacity-40 shrink-0"
             >
               <X className="size-3 sm:size-3.5" />
               Cerrar
@@ -226,7 +227,7 @@ export function ChatHeader({
               ? "Ocultar los datos del cliente y del caso"
               : "Ver los datos del cliente y del caso"
           }
-          className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-bold transition cursor-pointer ${
+          className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-full font-bold transition cursor-pointer shrink-0 ${
             detailsOpen || mobileDetailsOpen
               ? "bg-primary text-primary-foreground shadow-sm hover:brightness-95"
               : "border border-border hover:bg-foreground/5"
@@ -237,7 +238,7 @@ export function ChatHeader({
           ) : (
             <Info className="size-3 sm:size-3.5" />
           )}
-          <span className="hidden xs:inline">Detalles</span>
+          <span className="hidden @min-[40rem]/chat:inline">Detalles</span>
           {activeCase && <span className="size-1.5 rounded-full bg-primary" />}
         </button>
       </div>

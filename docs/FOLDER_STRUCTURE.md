@@ -43,7 +43,7 @@ src/
 │   │   ├── domain/                conversation.ts
 │   │   ├── application/           use-operational-inbox.ts
 │   │   ├── infrastructure/        conversation.gateway.ts
-│   │   └── ui/                    OperationalInbox.tsx, MessageMediaBody.tsx, ZernioSyncControl.tsx
+│   │   └── ui/                    OperationalInbox.tsx, MessageMediaBody.tsx, WhatsAppAudioPlayer.tsx, ZernioSyncControl.tsx
 
 │   │
 │   ├── cases/

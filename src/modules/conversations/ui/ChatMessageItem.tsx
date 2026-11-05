@@ -49,11 +49,11 @@ export function ChatMessageItem({
             </span>
           </div>
         )}
-        <div className="flex justify-center my-2.5 px-4">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/80 text-muted-foreground text-[11px] font-medium border border-border/60 shadow-xs max-w-[85%] text-center leading-normal">
+        <div className="flex justify-center my-2.5 px-2 min-w-0">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/80 text-muted-foreground text-[11px] font-medium border border-border/60 shadow-xs max-w-full min-w-0 text-center leading-normal">
             <Info className="size-3.5 shrink-0 text-primary" />
-            <span>{m.body}</span>
-            <span className="text-[9px] opacity-70 ml-1 whitespace-nowrap">
+            <span className="min-w-0 break-words">{m.body}</span>
+            <span className="text-[9px] opacity-70 ml-1 whitespace-nowrap shrink-0">
               {messageClock(m.createdAt)}
             </span>
           </div>
@@ -81,11 +81,11 @@ export function ChatMessageItem({
         </div>
       )}
       <div
-        className={`flex items-end gap-2 mb-1.5 ${fromCustomer ? "justify-start" : "justify-end"}`}
+        className={`flex items-end gap-1.5 sm:gap-2 mb-1.5 min-w-0 max-w-full ${fromCustomer ? "justify-start" : "justify-end"}`}
       >
         {fromCustomer && <MessageAvatar author={m.author} conversation={selected} />}
         <div
-          className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
+          className={`min-w-0 max-w-[min(85%,100%)] px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs break-words ${
             fromCustomer
               ? "bg-[var(--chat-in-bg)] text-[var(--chat-in-fg)] border border-border/70 rounded-bl-xs"
               : "bg-[var(--chat-out-bg)] text-[var(--chat-out-fg)] rounded-br-xs"

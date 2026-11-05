@@ -45,13 +45,43 @@ function generateDeterministicPeaks(seed: string, count: number = 34): number[] 
 }
 
 /**
+ * El `<audio>` pide el archivo con Range y el API responde 206 con
+ * `Cache-Control: public, immutable`. Chrome guarda ese parcial y después
+ * rechaza `play()` con "The element has no supported sources" hasta que
+ * las DevTools desactivan la caché. Bajamos el archivo nosotros, fuera de
+ * esa caché, y el elemento reproduce un blob local.
+ */
+const audioBlobCache = new Map<string, Promise<Blob>>();
+
+function loadAudioBlob(url: string): Promise<Blob> {
+  const cached = audioBlobCache.get(url);
+  if (cached) return cached;
+
+  const pending = fetch(url, { credentials: "include", cache: "no-store" })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`No se pudo descargar el audio (${response.status})`);
+      }
+      const headerType = response.headers.get("Content-Type")?.split(";")[0]?.trim() ?? "";
+      const type = headerType.startsWith("audio/") ? headerType : "audio/ogg";
+      const buffer = await response.arrayBuffer();
+      return new Blob([buffer], { type });
+    })
+    .catch((error: unknown) => {
+      audioBlobCache.delete(url);
+      throw error;
+    });
+
+  audioBlobCache.set(url, pending);
+  return pending;
+}
+
+/**
  * Intenta extraer los picos reales del archivo de audio usando Web Audio API.
  */
-async function extractAudioPeaks(url: string, count: number = 34): Promise<number[] | null> {
+async function extractAudioPeaksFromBlob(blob: Blob, count: number = 34): Promise<number[] | null> {
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const arrayBuffer = await response.arrayBuffer();
+    const arrayBuffer = await blob.arrayBuffer();
 
     const AudioContextClass =
       window.AudioContext ||
@@ -59,7 +89,7 @@ async function extractAudioPeaks(url: string, count: number = 34): Promise<numbe
     if (!AudioContextClass) return null;
 
     const audioCtx = new AudioContextClass();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
     const channelData = audioBuffer.getChannelData(0);
     const blockSize = Math.floor(channelData.length / count);
     const peaks: number[] = [];
@@ -93,6 +123,10 @@ export function WhatsAppAudioPlayer({
 }: WhatsAppAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const sourceReadyRef = useRef<Promise<void> | null>(null);
+  const playRequestRef = useRef(0);
+  const pendingPlayRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,18 +146,47 @@ export function WhatsAppAudioPlayer({
 
   const peaks = realPeaks || defaultPeaks;
 
-  // Intento de extracción de forma de onda real vía WebAudio
+  // Descarga el audio una vez y lo entrega como blob. Así el elemento no
+  // vuelve a pedir el 206 cacheado que Chrome no puede reproducir.
   useEffect(() => {
-    let isCancelled = false;
-    if (mediaUrl) {
-      extractAudioPeaks(mediaUrl, barCount).then((extracted) => {
-        if (!isCancelled && extracted && extracted.length === barCount) {
-          setRealPeaks(extracted);
-        }
-      });
-    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    let rejectReady: (error: unknown) => void = () => {};
+    const ready = new Promise<void>((resolve, reject) => {
+      rejectReady = reject;
+      loadAudioBlob(mediaUrl)
+        .then(async (blob) => {
+          if (cancelled) return;
+          objectUrl = URL.createObjectURL(blob);
+          objectUrlRef.current = objectUrl;
+          if (audioRef.current) {
+            audioRef.current.src = objectUrl;
+          }
+          resolve();
+          const extracted = await extractAudioPeaksFromBlob(blob, barCount);
+          if (!cancelled && extracted && extracted.length === barCount) {
+            setRealPeaks(extracted);
+          }
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) reject(error);
+        });
+    });
+    ready.catch(() => {});
+    sourceReadyRef.current = ready;
+
     return () => {
-      isCancelled = true;
+      cancelled = true;
+      playRequestRef.current += 1;
+      pendingPlayRef.current = false;
+      rejectReady(new DOMException("cancelled", "AbortError"));
+      objectUrlRef.current = null;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+      }
     };
   }, [mediaUrl]);
 
@@ -143,31 +206,57 @@ export function WhatsAppAudioPlayer({
   }, [mediaUrl, isPlaying]);
 
   const togglePlay = useCallback(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      setIsLoading(true);
-      window.dispatchEvent(new CustomEvent("whatsapp-audio-play", { detail: { mediaUrl } }));
-      audioRef.current
-        .play()
-        .then(() => {
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error("Error reproduciendo audio, reintentando...", err);
-          if (audioRef.current) {
-            audioRef.current.load();
-            audioRef.current.play().catch(() => {
-              setIsLoading(false);
-            });
-          } else {
-            setIsLoading(false);
-          }
-        });
+      playRequestRef.current += 1;
+      pendingPlayRef.current = false;
+      audio.pause();
+      return;
     }
-  }, [isPlaying, mediaUrl]);
+    if (pendingPlayRef.current) return;
+
+    const ready = sourceReadyRef.current;
+    if (!ready) return;
+
+    pendingPlayRef.current = true;
+    const requestId = ++playRequestRef.current;
+    setIsLoading(true);
+    window.dispatchEvent(new CustomEvent("whatsapp-audio-play", { detail: { mediaUrl } }));
+
+    const start = (current: HTMLAudioElement) => {
+      current.playbackRate = playbackRate;
+      return current.play();
+    };
+
+    const fail = (err: unknown) => {
+      if (playRequestRef.current !== requestId) return;
+      console.error("Error reproduciendo audio", err);
+      setIsLoading(false);
+      pendingPlayRef.current = false;
+    };
+
+    if (objectUrlRef.current) {
+      start(audio)
+        .then(() => {
+          if (playRequestRef.current === requestId) pendingPlayRef.current = false;
+        })
+        .catch(fail);
+      return;
+    }
+
+    void ready
+      .then(() => {
+        const current = audioRef.current;
+        if (!current || playRequestRef.current !== requestId) return;
+        return start(current);
+      })
+      .catch(fail)
+      .finally(() => {
+        if (playRequestRef.current === requestId) pendingPlayRef.current = false;
+      });
+  }, [isPlaying, mediaUrl, playbackRate]);
 
   const handleSpeedToggle = useCallback(() => {
     const rates: (1 | 1.5 | 2)[] = [1, 1.5, 2];
@@ -228,7 +317,7 @@ export function WhatsAppAudioPlayer({
 
   return (
     <div
-      className={`relative flex items-center gap-2.5 p-2 rounded-2xl select-none transition-all ${
+      className={`relative flex items-center gap-2 p-1.5 min-w-0 w-full max-w-[min(100%,260px)] rounded-2xl select-none transition-all ${
         isOutgoing
           ? "bg-emerald-950/20 text-emerald-950 dark:bg-emerald-500/10 dark:text-emerald-100"
           : "bg-muted/60 text-foreground"
@@ -236,9 +325,7 @@ export function WhatsAppAudioPlayer({
     >
       <audio
         ref={audioRef}
-        src={mediaUrl}
-        crossOrigin="use-credentials"
-        preload="metadata"
+        preload="auto"
         onLoadedMetadata={() => {
           if (audioRef.current && isFinite(audioRef.current.duration)) {
             setDuration(audioRef.current.duration);
@@ -278,11 +365,11 @@ export function WhatsAppAudioPlayer({
           <img
             src={avatarUrl}
             alt={senderName || "Usuario"}
-            className="size-10 rounded-full object-cover shadow-xs border border-border/40"
+            className="size-8 @min-[36rem]/chat:size-10 rounded-full object-cover shadow-xs border border-border/40"
           />
         ) : (
           <div
-            className={`size-10 rounded-full grid place-items-center font-bold text-xs shadow-xs ${
+            className={`size-8 @min-[36rem]/chat:size-10 rounded-full grid place-items-center font-bold text-xs shadow-xs ${
               author === "customer"
                 ? "bg-primary/15 text-primary"
                 : author === "agent"
@@ -305,7 +392,7 @@ export function WhatsAppAudioPlayer({
       <button
         type="button"
         onClick={togglePlay}
-        className={`size-9.5 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer ${
+        className={`size-8 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer ${
           isOutgoing
             ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
             : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -322,12 +409,16 @@ export function WhatsAppAudioPlayer({
       </button>
 
       {/* 3. Seeker de Forma de Onda (Waveform Track) & Información de tiempo */}
-      <div className="flex-1 min-w-[140px] max-w-[220px] sm:max-w-[260px] flex flex-col gap-1 justify-center">
+      <div className="flex-1 min-w-0 flex flex-col gap-1 justify-center">
         {/* Pista interactiva de barras de audio */}
         <div
           ref={trackRef}
           onMouseDown={handleMouseDownTrack}
-          className="h-7 flex items-center gap-[2.5px] cursor-pointer py-1 group touch-none select-none"
+          className="h-7 w-full min-w-0 grid items-center cursor-pointer py-1 group touch-none select-none"
+          style={{
+            gridTemplateColumns: `repeat(${peaks.length}, minmax(0, 1fr))`,
+            columnGap: "1px",
+          }}
           title="Haz clic o arrastra para desplazarte"
         >
           {peaks.map((heightRatio, idx) => {
@@ -338,7 +429,7 @@ export function WhatsAppAudioPlayer({
               <div
                 key={idx}
                 style={{ height: `${barHeightPct}%` }}
-                className={`w-[3px] rounded-full transition-all duration-100 ${
+                className={`w-full max-w-[3px] justify-self-center rounded-full transition-all duration-100 ${
                   isActive
                     ? isOutgoing
                       ? "bg-emerald-700 dark:bg-emerald-400 scale-y-[1.08]"
@@ -353,7 +444,7 @@ export function WhatsAppAudioPlayer({
         </div>
 
         {/* Fila inferior: Tiempo transcurrido / Duración total y Selector de Velocidad (1x, 1.5x, 2x) */}
-        <div className="flex items-center justify-between text-[11px] tabular-nums leading-none">
+        <div className="flex items-center justify-between gap-2 min-w-0 text-[11px] tabular-nums leading-none">
           <span className="font-medium text-muted-foreground/90">
             {isPlaying || currentTime > 0
               ? formatAudioTime(currentTime)
@@ -363,7 +454,7 @@ export function WhatsAppAudioPlayer({
           <button
             type="button"
             onClick={handleSpeedToggle}
-            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full transition-colors cursor-pointer ${
+            className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full transition-colors cursor-pointer ${
               playbackRate !== 1
                 ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold"
                 : "bg-foreground/5 hover:bg-foreground/10 text-muted-foreground"

@@ -195,7 +195,7 @@ export function ChatComposer({
         </div>
       )}
 
-      <div className="relative p-2.5 flex gap-2 items-end bg-background/80 dark:bg-card/30 border-t border-border/40">
+      <div className="relative p-2 sm:p-2.5 flex gap-1.5 sm:gap-2 items-end min-w-0 bg-background/80 dark:bg-card/30 border-t border-border/40">
         <QuickReplyDropdown
           isOpen={isQuickReplyOpen}
           replies={quickReplyFiltered}
@@ -344,7 +344,7 @@ export function ChatComposer({
                   : "Escribe un mensaje, pega un archivo o '/' para respuestas rápidas"
           }
           title="Escribe un mensaje (Shift+Enter para salto de línea, Ctrl+V para pegar imagen, video o documento, '/' para respuestas rápidas)"
-          className="flex-1 px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
+          className="flex-1 min-w-0 w-full px-3 sm:px-4 py-2 bg-card/90 dark:bg-[#202c33] border border-border/70 focus:border-emerald-500/60 rounded-2xl text-[14px] outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 resize-none min-h-[40px] max-h-[140px] leading-5 font-sans text-foreground placeholder:text-muted-foreground/60 transition-all shadow-2xs overflow-hidden"
         />
 
         {/* Botón enviar circular característico de WhatsApp */}
