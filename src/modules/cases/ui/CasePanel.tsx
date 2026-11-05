@@ -585,9 +585,46 @@ export function CasePanel({
       }
     | undefined;
 
+  const rawCandidateContracts = (
+    contextData.availableContracts ??
+    contextData.pendingContracts ??
+    rawContext?.availableContracts ??
+    rawContext?.pendingContracts
+  ) as Array<{
+    id: string;
+    contractCode?: string;
+    contractNumber?: string;
+    name?: string;
+    address?: string;
+    label?: string;
+    sector?: string;
+    oltName?: string;
+    pon?: string | number;
+    serial?: string;
+    ip?: string;
+  }> | undefined;
+
+  const effectiveContracts = useMemo<ContractDto[]>(() => {
+    if (customerContracts && customerContracts.length > 1) {
+      return customerContracts;
+    }
+    if (rawCandidateContracts && rawCandidateContracts.length > 0) {
+      return rawCandidateContracts.map((c) => ({
+        id: c.id,
+        contractNumber: c.contractNumber || c.contractCode || c.id,
+        sector: c.sector ?? null,
+        oltName: c.oltName ?? null,
+        pon: c.pon !== undefined ? String(c.pon) : null,
+        serial: c.serial ?? null,
+        address: c.address ?? c.label ?? null,
+      })) as unknown as ContractDto[];
+    }
+    return customerContracts ?? [];
+  }, [customerContracts, rawCandidateContracts]);
+
   const activeContract = useMemo(() => {
-    if (selectedContractId && customerContracts) {
-      const found = customerContracts.find(
+    if (selectedContractId && effectiveContracts.length > 0) {
+      const found = effectiveContracts.find(
         (c: ContractDto) => c.id === selectedContractId || c.contractNumber === selectedContractId,
       );
       if (found) return found;
@@ -598,11 +635,11 @@ export function CasePanel({
     ) {
       return contextContract;
     }
-    if (customerContracts && customerContracts.length > 0) {
-      return customerContracts[0];
+    if (effectiveContracts.length > 0) {
+      return effectiveContracts[0];
     }
     return contextContract;
-  }, [selectedContractId, customerContracts, contextContract]);
+  }, [selectedContractId, effectiveContracts, contextContract]);
 
   const contract = activeContract ?? contextContract;
 
@@ -1032,7 +1069,7 @@ export function CasePanel({
         <CaseContextBody
           caseDto={caseDto}
           activeContract={activeContract}
-          customerContracts={customerContracts}
+          customerContracts={effectiveContracts}
           onSelectContract={setSelectedContractId}
         />
 
