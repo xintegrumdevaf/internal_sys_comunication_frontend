@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2026-11-04
+
+### Added
+
+- **Multi-Contract Interactive Selector in Case Panel (`CasePanel.tsx`)**:
+  - *Context & Damage*: When a client with multiple contracts (e.g. 2 services discovered via national ID in MikroTik/OLT) had a case open, the side panel (`CasePanel.tsx`) only displayed the contract selector if `customerContracts` existed on the PostgreSQL `Customer` entity. If contracts were discovered dynamically during workflow disambiguation (`pendingContracts` / `availableContracts`), selecting an option erased the candidate list, leaving the human agent without any button to view or toggle to Contract 2 when the client clarified *"No es el 2"*.
+  - *Root Cause*: `CasePanel.tsx` only looked at `customerContracts` from the customer record, ignoring `availableContracts` and `pendingContracts` stored in the case context, and didn't fall back to context-discovered contracts when rendering the interactive pills.
+  - *Resolution*: Implemented `effectiveContracts` in `CasePanel.tsx`, merging `customerContracts` with `caseDto.context.data.availableContracts` and `pendingContracts`. When multiple contracts are found in either customer data or workflow context, the interactive pill buttons (`#Contrato`, `Sector`) are rendered. Clicking any contract pill updates `activeContract` and immediately recalculates all displayed technical metadata (OLT, PON, Serial, Sector, MikroTik status).
+- **Exact 12-Hour WhatsApp-Style Timestamps & Outbound Message Delivery Status (`datetime.ts`, `ConversationListItem.tsx`, `InternalChatShell.tsx`)**:
+  - *Context & Damage*: Conversation lists displayed relative times (e.g. `1m`, `2h`, `1d`), preventing agents from knowing the exact time of messages at a glance, unlike WhatsApp Web which displays exact times (e.g. `3:30 p.m.`, `Ayer`, `Lunes`).
+  - *Resolution*: Implemented `formatConversationTimestamp` in `src/shared/datetime.ts` with comprehensive unit tests (`datetime.test.ts`), and integrated it into `ConversationListItem.tsx` and `InternalChatShell.tsx` along with double-check icons (`CheckCheck`) for outbound message previews.
+
 ## [0.2.5] - 2026-11-04
 
 ### Added
