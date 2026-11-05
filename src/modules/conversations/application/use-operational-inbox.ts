@@ -307,11 +307,20 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
     (async () => {
       try {
-        const [msgs, convCases, automation] = await Promise.all([
+        const needsFetchConv = !conversationsRef.current.some((c) => c.id === selectedId);
+        const [singleConv, msgs, convCases, automation] = await Promise.all([
+          needsFetchConv
+            ? conversationGateway.getConversation(selectedId).catch(() => null)
+            : Promise.resolve(null),
           conversationGateway.listMessages(selectedId, { limit: MESSAGES_PAGE_SIZE }),
           conversationGateway.listCasesForConversation(selectedId),
           conversationGateway.getConversationAutomation(selectedId),
         ]);
+        if (singleConv && !cancelled) {
+          setConversations((prev) =>
+            prev.some((c) => c.id === singleConv.id) ? prev : [singleConv, ...prev],
+          );
+        }
         await conversationGateway.markAsRead(selectedId).catch(() => {});
         if (!cancelled) {
           setMessages(

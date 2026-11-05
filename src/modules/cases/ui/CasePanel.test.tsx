@@ -522,4 +522,43 @@ describe("CasePanel - quién atiende", () => {
     expect(screen.queryByText(/Atendido por Asistente IA/i)).not.toBeInTheDocument();
     expect(screen.getByText("Andres Traslados 1")).toBeInTheDocument();
   });
+
+  it("renderiza la auditoría de cierre y la nota completa en bloques destacados cuando el caso está COMPLETED", () => {
+    render(
+      <CasePanel
+        caseDto={{
+          ...mockCase,
+          status: "COMPLETED",
+          context: {
+            workflowType: "SUPPORT_INTERNET",
+            data: {},
+            closedByAgentName: "Alexandra Morquecho",
+            closeReason: "RESOLVED",
+            closedAt: "2026-11-05T13:14:00.000Z",
+            resolutionNote:
+              "Se verificó atenuación de fibra en domicilio (-19 dBm) y se reemplazó jumper óptico SC/APC.",
+          },
+        }}
+        assignedAgentName="Alexandra Morquecho"
+        busy={false}
+        canWrite={false}
+        departments={[]}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Cerrado por")).toBeInTheDocument();
+    expect(screen.getByText("Alexandra Morquecho")).toBeInTheDocument();
+    expect(screen.getAllByText("Resuelto").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Nota de Cierre \/ Resolución/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Se verificó atenuación de fibra en domicilio \(-19 dBm\)/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Estado del [cC]aso/i).length).toBeGreaterThanOrEqual(2);
+  });
 });

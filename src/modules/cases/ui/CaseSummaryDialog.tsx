@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Clock,
   FileCode2,
+  FileText,
   HelpCircle,
   ListChecks,
   Network,
@@ -774,10 +775,63 @@ export function CaseSummaryDialog({
                   "actions",
                   "workflow",
                   "_history",
+                  "closedByAgentName",
+                  "closedByAgentId",
+                  "closeReason",
+                  "closedAt",
+                  "resolutionNote",
                 ].includes(key),
             );
 
             const humanizedReason = humanizeCaseReason(summary.reason);
+
+            const caseContext = caseDto?.context as Record<string, unknown> | undefined;
+            const isTerminalCase =
+              summary.status === "COMPLETED" ||
+              summary.status === "CANCELLED" ||
+              summary.status === "EXPIRED" ||
+              caseDto?.status === "COMPLETED" ||
+              caseDto?.status === "CANCELLED" ||
+              caseDto?.status === "EXPIRED" ||
+              Boolean(
+                caseContext?.closedByAgentName ||
+                  summary.results?.closedByAgentName ||
+                  caseContext?.resolutionNote ||
+                  summary.results?.resolutionNote,
+              );
+
+            const closedByName =
+              caseContext?.closedByAgentName ||
+              summary.results?.closedByAgentName ||
+              caseDto?.assignedAgentName ||
+              "Agente";
+
+            const rawCloseReason =
+              caseContext?.closeReason || summary.results?.closeReason;
+            const closeReasonLabel =
+              rawCloseReason === "CLIENT_NO_RESPONSE"
+                ? "Cliente no respondió"
+                : "Resuelto";
+
+            const rawClosedAt =
+              caseContext?.closedAt ||
+              summary.results?.closedAt ||
+              caseDto?.lastActivityAt ||
+              caseDto?.createdAt;
+            let closedAtFormatted = "—";
+            if (rawClosedAt) {
+              try {
+                closedAtFormatted = new Date(String(rawClosedAt)).toLocaleString("es-EC", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                });
+              } catch {
+                closedAtFormatted = "—";
+              }
+            }
+
+            const resolutionNote =
+              caseContext?.resolutionNote || summary.results?.resolutionNote;
 
             return (
               <div className="space-y-4 text-sm">
@@ -787,6 +841,64 @@ export function CaseSummaryDialog({
                     <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-wide">
                       Redactado por Asistente IA · Verificado con datos reales
                     </p>
+                  </div>
+                )}
+
+                {/* Banner de Resolución y Cierre de Caso */}
+                {isTerminalCase && (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3 animate-fade-in shadow-xs">
+                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-200">
+                          Resolución y Cierre del Caso
+                        </h4>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-600 text-white shadow-xs">
+                        {closeReasonLabel}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="rounded-lg bg-background/80 p-3 border border-emerald-500/20 shadow-2xs">
+                        <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
+                          Cerrado por
+                        </p>
+                        <p className="font-bold text-sm text-foreground mt-1 break-words">
+                          {String(closedByName)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-background/80 p-3 border border-emerald-500/20 shadow-2xs">
+                        <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
+                          Motivo de cierre
+                        </p>
+                        <p className="font-semibold text-sm text-foreground mt-1">
+                          {closeReasonLabel}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-background/80 p-3 border border-emerald-500/20 shadow-2xs">
+                        <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
+                          Fecha y hora de cierre
+                        </p>
+                        <p className="font-semibold text-sm text-foreground mt-1">
+                          {closedAtFormatted}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-background/90 p-3.5 border border-emerald-500/25 shadow-2xs">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-1.5 flex items-center gap-1.5">
+                        <FileText className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                        Nota de Cierre / Resolución
+                      </p>
+                      <p className="text-xs text-foreground font-sans leading-relaxed break-words whitespace-pre-wrap">
+                        {resolutionNote ? (
+                          String(resolutionNote)
+                        ) : (
+                          <span className="text-muted-foreground italic">Sin nota registrada</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 )}
 

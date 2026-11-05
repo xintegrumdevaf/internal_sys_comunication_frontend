@@ -249,12 +249,20 @@ export type GeneralInquiryContext = {
   retrieved?: { found: boolean; answer?: string; sources?: string[] };
 };
 
-export type CaseContext =
+export type CaseContext = (
   | { workflowType: "SUPPORT_INTERNET"; data: SupportInternetContext }
   | { workflowType: "BILLING_BALANCE"; data: BillingBalanceContext }
   | { workflowType: "SALES_PACKAGES"; data: SalesPackagesContext }
   | { workflowType: "GENERAL_INQUIRY"; data: GeneralInquiryContext }
-  | { workflowType: string; data: Record<string, unknown> }; // fallback: workflows futuros/UNCLASSIFIED
+  | { workflowType: string; data: Record<string, unknown> }
+) & {
+  closedByAgentName?: string;
+  closedByAgentId?: string;
+  closeReason?: string;
+  closedAt?: string;
+  resolutionNote?: string;
+  [key: string]: unknown;
+};
 
 export type CaseScheduleTag = "AGENDADO" | "POSPUESTO" | "MONITOREO" | (string & {});
 

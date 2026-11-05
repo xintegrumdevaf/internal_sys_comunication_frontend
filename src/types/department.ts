@@ -18,6 +18,7 @@ export interface Department {
   description?: string | null; // Nuevo campo explicativo
   visibility: "shared" | "restricted";
   active: boolean;
+  maxConcurrentCases?: number; // Cupo máximo de casos activos en simultáneo por agente (default: 6)
   cases?: DepartmentCase[]; // Lista de casos/solicitudes que atiende
   createdAt?: string;
 }
@@ -27,6 +28,7 @@ export interface CreateDepartmentPayload {
   slug: string;
   description?: string;
   visibility?: "shared" | "restricted";
+  maxConcurrentCases?: number;
   cases?: Array<{
     label: string;
     description: string;
@@ -40,6 +42,7 @@ export interface UpdateDepartmentPayload {
   slug?: string;
   description?: string;
   visibility?: "shared" | "restricted";
+  maxConcurrentCases?: number;
   active?: boolean;
   cases?: Array<{
     id?: string;

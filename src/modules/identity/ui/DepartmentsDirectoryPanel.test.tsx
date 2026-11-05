@@ -163,6 +163,7 @@ describe("DepartmentsDirectoryPanel", () => {
         slug: "retenciones",
         description: "Área para evitar cancelaciones",
         visibility: "shared",
+        maxConcurrentCases: 6,
         cases: [
           {
             id: undefined,

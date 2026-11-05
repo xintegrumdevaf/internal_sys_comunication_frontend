@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { conversationDisplayName, conversationStatusLabel, formatWaPhone } from "./conversation";
+import {
+  conversationDisplayName,
+  conversationStatusLabel,
+  formatWaPhone,
+  matchesConversationSearch,
+  normalizeSearchQuery,
+  type ConversationDto,
+} from "./conversation";
 
 describe("conversationStatusLabel", () => {
   it("traduce los 4 estados reales del backend a español claro", () => {
@@ -72,5 +79,81 @@ describe("conversationDisplayName", () => {
     expect(msg.editedAt).toBe("2026-09-15T12:05:00Z");
     expect(msg.editHistory).toHaveLength(1);
     expect(msg.editHistory?.[0]?.previousBody).toBe("Mensaje original con error");
+  });
+});
+
+describe("matchesConversationSearch", () => {
+  const sampleConv: ConversationDto = {
+    id: "conv_1",
+    waPhone: "593986528447",
+    customerId: "cust_1",
+    customerName: "PEREZ SIGUA KEVIN EDURDO",
+    waProfileName: "Kevin Perez",
+    activeCaseId: "case_1",
+    status: "open",
+    lastActivityAt: "2026-11-05T12:00:00Z",
+    createdAt: "2026-11-05T10:00:00Z",
+    updatedAt: "2026-11-05T12:00:00Z",
+    unreadCount: 0,
+    lastMessagePreview: {
+      id: "msg_1",
+      body: "Buenas tardes, necesito ayuda con mi factura",
+      author: "customer",
+      direction: "inbound",
+      createdAt: "2026-11-05T12:00:00Z",
+    },
+    activeCase: {
+      id: "case_1",
+      status: "HUMAN_ACTIVE",
+      departmentId: "dept_1",
+      assignedAgentId: "agent_1",
+      assignedAgentName: "Alexandra Morquecho",
+      automationEnabled: false,
+    },
+  };
+
+  it("coincide por nombres y apellidos del cliente (customerName)", () => {
+    expect(matchesConversationSearch(sampleConv, "PEREZ SIGUA")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "perez sigua")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "kevin edurdo")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "sigua kevin")).toBe(true);
+  });
+
+  it("es insensible a mayúsculas y tildes/acentos diacríticos", () => {
+    expect(matchesConversationSearch(sampleConv, "Pérez Sigua")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "PÉREZ")).toBe(true);
+  });
+
+  it("coincide por nombre de perfil de WhatsApp (waProfileName)", () => {
+    const convWithoutCustomer: ConversationDto = {
+      ...sampleConv,
+      customerName: null,
+      waProfileName: "Kevin WhatsApp",
+    };
+    expect(matchesConversationSearch(convWithoutCustomer, "Kevin WhatsApp")).toBe(true);
+    expect(matchesConversationSearch(convWithoutCustomer, "kevin")).toBe(true);
+  });
+
+  it("coincide por número de teléfono en formato parcial, internacional o local con 0", () => {
+    expect(matchesConversationSearch(sampleConv, "986528")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "+593 986 528 447")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "593986528447")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "0986528447")).toBe(true);
+  });
+
+  it("coincide por contenido del último mensaje", () => {
+    expect(matchesConversationSearch(sampleConv, "factura")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "Buenas tardes")).toBe(true);
+  });
+
+  it("coincide por nombre del asesor asignado o que atendió", () => {
+    expect(matchesConversationSearch(sampleConv, "Alexandra")).toBe(true);
+    expect(matchesConversationSearch(sampleConv, "Morquecho")).toBe(true);
+  });
+
+  it("retorna false si no hay coincidencia con ningún campo", () => {
+    expect(matchesConversationSearch(sampleConv, "Carlos Mendoza")).toBe(false);
+    expect(matchesConversationSearch(sampleConv, "0999999999")).toBe(false);
+    expect(matchesConversationSearch(sampleConv, "soporte tecnico zte")).toBe(false);
   });
 });

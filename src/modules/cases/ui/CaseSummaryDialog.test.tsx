@@ -120,4 +120,40 @@ describe("CaseSummaryDialog - Telemetría y Trazabilidad", () => {
     expect(screen.getByText(/Query ONU power/i)).toBeInTheDocument();
     expect(screen.getByText(/\$ display ont optical-info 1 1/i)).toBeInTheDocument();
   });
+
+  it("renderiza la sección destacada de resolución y cierre con nota y agente", () => {
+    const completedSummary: CaseSummaryDto = {
+      problem: "Cliente reporta problema de internet",
+      workflow: "SUPPORT_INTERNET",
+      department: "support",
+      status: "COMPLETED",
+      reason: "Caso resuelto",
+      completedSteps: ["VALIDATE_CLIENT", "DIAGNOSTIC"],
+      results: {
+        closedByAgentName: "Alexandra Morquecho",
+        closeReason: "RESOLVED",
+        closedAt: "2026-11-05T13:14:00.000Z",
+        resolutionNote:
+          "Se verificó atenuación de fibra en domicilio (-19 dBm) y se reemplazó jumper óptico SC/APC.",
+      },
+      pendingAction: "Intervención humana",
+      timeline: [],
+    };
+
+    render(
+      <CaseSummaryDialog
+        open={true}
+        onOpenChange={() => {}}
+        summary={completedSummary}
+        timeline={[]}
+      />,
+    );
+
+    expect(screen.getByText(/Resolución y Cierre del Caso/i)).toBeInTheDocument();
+    expect(screen.getByText("Alexandra Morquecho")).toBeInTheDocument();
+    expect(screen.getAllByText("Resuelto").length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByText(/Se verificó atenuación de fibra en domicilio \(-19 dBm\)/i),
+    ).toBeInTheDocument();
+  });
 });

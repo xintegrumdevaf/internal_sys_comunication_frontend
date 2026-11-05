@@ -1,4 +1,4 @@
-import { AlertCircle, AlertTriangle, CheckCheck, Clock, FileText, Info } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCheck, CheckCircle2, Clock, FileText, Info } from "lucide-react";
 import type { ConversationDto, MessageDto } from "@/modules/conversations/domain/conversation";
 import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
 import type { SessionUser } from "@/modules/identity/domain/session";
@@ -40,6 +40,13 @@ export function ChatMessageItem({
   onOpenTemplateModal,
 }: ChatMessageItemProps) {
   if (m.author === "system") {
+    const isClosure =
+      Boolean(m.body) &&
+      (m.body.includes("Caso completado") ||
+        m.body.includes("🔒") ||
+        m.body.toLowerCase().includes("caso cerrado") ||
+        m.body.toLowerCase().includes("completado por"));
+
     return (
       <div>
         {showDaySeparator && (
@@ -50,8 +57,18 @@ export function ChatMessageItem({
           </div>
         )}
         <div className="flex justify-center my-2.5 px-2 min-w-0">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/80 text-muted-foreground text-[11px] font-medium border border-border/60 shadow-xs max-w-full min-w-0 text-center leading-normal">
-            <Info className="size-3.5 shrink-0 text-primary" />
+          <div
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-xs max-w-full min-w-0 text-center leading-normal border ${
+              isClosure
+                ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 border-emerald-500/30"
+                : "bg-muted/80 text-muted-foreground border-border/60 text-[11px] font-medium"
+            }`}
+          >
+            {isClosure ? (
+              <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <Info className="size-3.5 shrink-0 text-primary" />
+            )}
             <span className="min-w-0 break-words">{m.body}</span>
             <span className="text-[9px] opacity-70 ml-1 whitespace-nowrap shrink-0">
               {messageClock(m.createdAt)}

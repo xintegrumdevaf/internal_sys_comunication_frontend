@@ -34,6 +34,24 @@ export function listConversations(filter?: {
   return apiGet<ConversationDto[]>("/api/conversations", { query: filter });
 }
 
+export function searchConversations(
+  query: string,
+  filter?: {
+    departmentId?: string;
+    userId?: string;
+    limit?: number;
+  },
+): Promise<ConversationDto[]> {
+  return apiGet<ConversationDto[]>("/api/conversations/search", {
+    query: {
+      q: query,
+      departmentId: filter?.departmentId,
+      userId: filter?.userId,
+      limit: filter?.limit,
+    },
+  });
+}
+
 export function getConversation(conversationId: string): Promise<ConversationDto> {
   return apiGet<ConversationDto>(`/api/conversations/${conversationId}`);
 }

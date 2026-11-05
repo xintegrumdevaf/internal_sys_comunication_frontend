@@ -43,6 +43,7 @@ type FormState = {
   slug: string;
   description: string;
   visibility: DepartmentVisibility;
+  maxConcurrentCases: number;
   cases: CaseItemForm[];
 };
 
@@ -51,6 +52,7 @@ const emptyForm: FormState = {
   slug: "",
   description: "",
   visibility: "shared",
+  maxConcurrentCases: 6,
   cases: [],
 };
 
@@ -194,6 +196,7 @@ export function DepartmentsDirectoryPanel() {
       slug: dept.slug,
       description: dept.description ?? "",
       visibility: dept.visibility,
+      maxConcurrentCases: dept.maxConcurrentCases ?? 6,
       cases: initialCases,
     });
     setAutoSlugEnabled(false);
@@ -390,6 +393,7 @@ export function DepartmentsDirectoryPanel() {
       slug: form.slug.trim(),
       description: form.description.trim() || undefined,
       visibility: form.visibility,
+      maxConcurrentCases: Number(form.maxConcurrentCases) || 6,
       cases: validCases,
     };
 
@@ -468,7 +472,7 @@ export function DepartmentsDirectoryPanel() {
             </span>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-4 gap-3">
             <label className="text-[11px] space-y-1">
               <span className="font-bold uppercase tracking-wide text-muted-foreground">
                 Nombre del área
@@ -510,9 +514,26 @@ export function DepartmentsDirectoryPanel() {
                 <option value="restricted">Restringida (Solo agentes de esta área)</option>
               </select>
             </label>
+            <label className="text-[11px] space-y-1">
+              <span className="font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                Límite Casos / Asesor
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={form.maxConcurrentCases}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setForm((f) => ({ ...f, maxConcurrentCases: isNaN(val) ? 1 : Math.max(1, Math.min(50, val)) }));
+                }}
+                placeholder="6"
+                className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
 
             {/* Campo Descripción General */}
-            <label className="text-[11px] space-y-1 sm:col-span-3">
+            <label className="text-[11px] space-y-1 sm:col-span-4">
               <span className="font-bold uppercase tracking-wide text-muted-foreground">
                 Descripción o Rol del Departamento
               </span>
@@ -716,6 +737,7 @@ export function DepartmentsDirectoryPanel() {
                   <th className="px-4 py-3 font-extrabold">Slug</th>
                   <th className="px-4 py-3 font-extrabold">Visibilidad</th>
                   <th className="px-4 py-3 font-extrabold">Casos Atendidos</th>
+                  <th className="px-4 py-3 font-extrabold">Capacidad</th>
                   <th className="px-4 py-3 font-extrabold">Estado</th>
                   <th className="px-4 py-3 font-extrabold text-right">Acciones</th>
                 </tr>
@@ -728,7 +750,7 @@ export function DepartmentsDirectoryPanel() {
 
                   return (
                     <tr key={d.id} className="group">
-                      <td colSpan={7} className="p-0">
+                      <td colSpan={8} className="p-0">
                         <div
                           className={`flex items-center hover:bg-muted/30 transition-colors ${
                             isExpanded ? "bg-muted/20" : ""
@@ -792,6 +814,13 @@ export function DepartmentsDirectoryPanel() {
                                   : "0 casos"}
                               </span>
                             </button>
+                          </div>
+
+                          {/* Capacidad máxima de concurrencia */}
+                          <div className="px-4 py-3 w-32 shrink-0">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
+                              {d.maxConcurrentCases ?? 6} chats/asesor
+                            </span>
                           </div>
 
                           <div className="px-4 py-3 w-28 shrink-0">

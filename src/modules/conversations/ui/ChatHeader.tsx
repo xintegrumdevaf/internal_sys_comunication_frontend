@@ -124,18 +124,26 @@ export function ChatHeader({
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1 min-w-0 max-w-full">
         {isClosedRecord ? (
-          <span
-            className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"
-            title="Última persona que atendió este caso"
-          >
-            <UserCheck className="size-3 sm:size-3.5 shrink-0" />
-            <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
-              {assignedAgentName ? `Atendió ${assignedAgentName}` : "Sin agente registrado"}
-            </span>
-            <span className="@min-[36rem]/chat:hidden truncate min-w-0">
-              {assignedAgentName ?? "Sin agente"}
-            </span>
-          </span>
+          (() => {
+            const closedName =
+              (activeCase?.context as Record<string, unknown>)?.closedByAgentName
+                ? String((activeCase?.context as Record<string, unknown>).closedByAgentName)
+                : assignedAgentName;
+            return (
+              <span
+                className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"
+                title={closedName ? `Caso cerrado por: ${closedName}` : "Caso cerrado"}
+              >
+                <UserCheck className="size-3 sm:size-3.5 shrink-0" />
+                <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
+                  {closedName ? `Cerró ${closedName}` : "Sin agente registrado"}
+                </span>
+                <span className="@min-[36rem]/chat:hidden truncate min-w-0">
+                  {closedName ? `Cerró ${closedName}` : "Sin agente"}
+                </span>
+              </span>
+            );
+          })()
         ) : !activeCase && !selected?.activeCase ? (
           <span className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
             <UserCheck className="size-3 sm:size-3.5 shrink-0" />

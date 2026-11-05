@@ -55,6 +55,13 @@ export type ConversationDto = {
    * cualquier negocio) — por eso solo hay nombre, no foto.
    */
   waProfileName: string | null;
+  /** Mensaje histórico coincidente retornado por búsqueda profunda en base de datos. */
+  matchedMessage?: {
+    id: string;
+    body: string;
+    author: MessageAuthor;
+    createdAt: string;
+  } | null;
 };
 
 /**
@@ -98,6 +105,83 @@ const CONVERSATION_STATUS_LABELS: Record<ConversationStatus, string> = {
 /** Texto claro en español para el estado de la conversación (nunca el enum crudo en inglés). */
 export function conversationStatusLabel(status: ConversationStatus): string {
   return CONVERSATION_STATUS_LABELS[status] ?? status;
+}
+
+/**
+ * Normaliza un texto para búsquedas: minúsculas, sin tildes ni acentos diacríticos, y sin espacios sobrantes.
+ */
+export function normalizeSearchQuery(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Evalúa si una conversación coincide con un término de búsqueda.
+ * Soporta:
+ * - Nombres y apellidos del cliente (customerName, waProfileName, displayName)
+ * - Teléfono en formato crudo, formateado (+593 ...) o por dígitos (ej. 0986528447 o 986528)
+ * - Contenido del último mensaje recibido/enviado
+ * - Nombre del agente asignado o que atendió el caso
+ * - Insensible a mayúsculas y tildes / diacríticos
+ * - Búsqueda de múltiples palabras (ej. "PEREZ SIGUA")
+ */
+export function matchesConversationSearch(
+  c: ConversationDto,
+  rawQuery: string,
+  extra?: { attendedName?: string | null },
+): boolean {
+  const query = rawQuery.trim();
+  if (!query) return true;
+
+  const normalizedQuery = normalizeSearchQuery(query);
+  if (!normalizedQuery) return true;
+
+  // 1. Textos candidatos
+  const candidateTexts: (string | null | undefined)[] = [
+    c.customerName,
+    c.waProfileName,
+    conversationDisplayName(c),
+    c.lastMessagePreview?.body,
+    extra?.attendedName,
+    c.lastAttendedBy?.agentName,
+    c.activeCase?.assignedAgentName,
+  ];
+
+  const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  const searchableText = candidateTexts
+    .filter((t): t is string => Boolean(t && t.trim()))
+    .map(normalizeSearchQuery)
+    .join(" ");
+
+  const textMatches =
+    queryTokens.length > 0 && queryTokens.every((token) => searchableText.includes(token));
+  if (textMatches) return true;
+
+  // 2. Coincidencia por teléfono (cadena exacta o formateada)
+  const rawPhone = c.waPhone.toLowerCase();
+  const formattedPhone = formatWaPhone(c.waPhone).toLowerCase();
+  if (rawPhone.includes(normalizedQuery) || formattedPhone.includes(normalizedQuery)) {
+    return true;
+  }
+
+  // 3. Coincidencia por dígitos numéricos (ej. teléfono local ecuatoriano '098...' vs '+59398...')
+  const queryDigits = query.replace(/\D/g, "");
+  if (queryDigits.length >= 3) {
+    const phoneDigits = c.waPhone.replace(/\D/g, "");
+    const queryDigitsWithoutZero = queryDigits.startsWith("0") ? queryDigits.slice(1) : queryDigits;
+
+    if (
+      phoneDigits.includes(queryDigits) ||
+      (queryDigitsWithoutZero.length >= 3 && phoneDigits.includes(queryDigitsWithoutZero))
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export type MessageEditHistoryItem = {

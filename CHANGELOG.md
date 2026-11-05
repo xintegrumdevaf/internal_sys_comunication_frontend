@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.10] - 2026-11-05
+
+### Added
+
+- **Unified Deep Search in Inbox: Customer Name & Historical Message Snippets (`OperationalInbox.tsx`, `ConversationListItem.tsx`, `conversation.ts`, `conversation.gateway.ts`, `use-operational-inbox.ts`)**:
+  - _Context_: In the conversational inbox, typing a customer's name or surname (e.g. "PEREZ SIGUA") returned 0 results because the filter evaluated only `c.waPhone` and `c.lastMessagePreview.body`. Furthermore, searching for historical messages from past days or resolved cases was impossible without searching directly against the database.
+  - _Resolution_:
+    1. Implemented normalized in-memory search (`matchesConversationSearch`) matching diacritic-insensitively across customer name (`customerName`), WhatsApp profile name (`waProfileName`), display name, formatted/unformatted phone numbers (including Ecuador local `09...`), last message body, and assigned/attended agent.
+    2. Connected a debounced (350ms) server query calling `GET /api/conversations/search` when the search query has 3 or more characters, surfacing conversations matching historical messages in PostgreSQL via the trigram GIN index.
+    3. In `ConversationListItem.tsx`: displays an intuitive snippet badge (`🔍 Mensaje: "{body}"`) whenever a conversation matches on a message.
+    4. In `use-operational-inbox.ts`: automatically loads and selects conversations found via deep search even if they were not initially present in the in-memory tab.
+
+- **Visual Traceability for Case Closures (`CasePanel.tsx`, `ChatHeader.tsx`, `ConversationListItem.tsx`, `ChatComposer.tsx`)**:
+  - _Context_: When inspecting resolved conversations, advisors and supervisors could not visually determine who closed the case, when it was closed, or what resolution notes were logged.
+  - _Resolution_:
+    1. In `CasePanel.tsx`: for terminal cases, displays explicit rows for "Cerrado por", "Motivo de cierre", "Fecha de cierre" (formatted local time), and "Nota de cierre".
+    2. In `ChatHeader.tsx`: replaced ambiguous "Atendió {name}" badge with "Cerró {name}" when inspecting resolved conversations.
+    3. In `ConversationListItem.tsx`: updated badge in resolved/closed lists to read "Cerró: {name}".
+    4. In `ChatComposer.tsx`: disabled placeholder updated to "Caso completado por {name}".
+
+- **Department Concurrent Capacity Configuration (`DepartmentsDirectoryPanel.tsx`, `types/department.ts`)**:
+  - _Context_: Paced dispatch requires a configurable workload cap per department to prevent agent burnout when queued cases are drained.
+  - _Resolution_: Added `maxConcurrentCases` field (number, range 1–50, default 6) to `Department`, `CreateDepartmentPayload`, and `UpdateDepartmentPayload`. Updated `DepartmentsDirectoryPanel` with an input field in the department creation/edit modal and an explicit "Capacidad" column in the directory table showing `{maxConcurrentCases} chats/asesor`.
+
 ## [0.2.9] - 2026-11-05
 
 ### Fixed

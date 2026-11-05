@@ -75,6 +75,7 @@ import { SlaSettingsModal } from "@/modules/sla/ui/SlaSettingsModal";
 import { ContactDialog } from "@/modules/customers/ui/ContactDialog";
 import { customerGateway } from "@/modules/customers/infrastructure/customer.gateway";
 import type { CustomerDto } from "@/modules/customers/domain/customer";
+import { searchConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 
 import {
   caseStatusLabel,
@@ -86,6 +87,7 @@ import {
   conversationDisplayName,
   conversationStatusLabel,
   formatWaPhone,
+  matchesConversationSearch,
   type ConversationDto,
   type ConversationStatus,
   type MessageAuthor,
@@ -289,6 +291,45 @@ export function OperationalInbox({
           ? "closed"
           : "open";
   const [search, setSearch] = useState("");
+  const [deepSearchResults, setDeepSearchResults] = useState<ConversationDto[]>([]);
+  const [isSearchingServer, setIsSearchingServer] = useState(false);
+
+  useEffect(() => {
+    const query = search.trim();
+    if (query.length < 3) {
+      setDeepSearchResults([]);
+      setIsSearchingServer(false);
+      return;
+    }
+
+    let isCurrent = true;
+    setIsSearchingServer(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchConversations(query, {
+          departmentId: departmentId || undefined,
+          limit: 30,
+        });
+        if (isCurrent) {
+          setDeepSearchResults(results);
+        }
+      } catch {
+        if (isCurrent) {
+          setDeepSearchResults([]);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsSearchingServer(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [search, departmentId]);
 
   const agentIdParam =
     agentFilter === "all" ? undefined : agentFilter === "mine" ? session?.id : agentFilter;
@@ -764,9 +805,10 @@ export function OperationalInbox({
     if (agentFilter === "unassigned") {
       list = list.filter((c) => !c.activeCase?.assignedAgentId && !c.lastAttendedBy?.agentId);
     }
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((c) => {
+    if (!search.trim()) return list;
+
+    // 1. Filtrado instantáneo en memoria para la bandeja actual
+    const inMemoryMatches = list.filter((c) => {
       const attendedName =
         c.lastAttendedBy?.agentName?.trim() ||
         (c.lastAttendedBy?.agentId
@@ -774,13 +816,34 @@ export function OperationalInbox({
             ? session?.name || "Tú"
             : directory.find((a) => a.id === c.lastAttendedBy?.agentId)?.name
           : null);
-      return (
-        c.waPhone.toLowerCase().includes(q) ||
-        (c.lastMessagePreview?.body ?? "").toLowerCase().includes(q) ||
-        (attendedName ?? "").toLowerCase().includes(q) ||
-        (c.activeCase?.assignedAgentName ?? "").toLowerCase().includes(q)
-      );
+      return matchesConversationSearch(c, search, { attendedName });
     });
+
+    if (search.trim().length < 3 || deepSearchResults.length === 0) {
+      return inMemoryMatches;
+    }
+
+    // 2. Combinación con resultados de búsqueda profunda desde PostgreSQL
+    const serverMap = new Map<string, ConversationDto>();
+    for (const item of deepSearchResults) {
+      serverMap.set(item.id, item);
+    }
+
+    const inMemoryIds = new Set(inMemoryMatches.map((c) => c.id));
+
+    // Si la conversación ya está en memoria, enriquecerla con matchedMessage si el servidor lo encontró
+    const enrichedInMemory = inMemoryMatches.map((c) => {
+      const serverMatch = serverMap.get(c.id);
+      if (serverMatch?.matchedMessage) {
+        return { ...c, matchedMessage: serverMatch.matchedMessage };
+      }
+      return c;
+    });
+
+    // Conversaciones adicionales encontradas en el historial de la base de datos
+    const extraMatches = deepSearchResults.filter((c) => !inMemoryIds.has(c.id));
+
+    return [...enrichedInMemory, ...extraMatches];
   }, [
     conversations,
     openConversations,
@@ -791,6 +854,7 @@ export function OperationalInbox({
     search,
     session,
     directory,
+    deepSearchResults,
   ]);
 
   // Un chat nuevo reordena la lista. Sin esto el scroll vuelve a 0 y el agente
@@ -995,7 +1059,32 @@ export function OperationalInbox({
     !activeCase?.assignedAgentId &&
     (activeCase?.status === "ESCALATED" || activeCase?.status === "HUMAN_ACTIVE");
 
+  const isClosedRecord = Boolean(
+    selected &&
+    (selected.status === "resolved" || selected.status === "closed") &&
+    (!activeCase ||
+      activeCase.status === "COMPLETED" ||
+      activeCase.status === "EXPIRED" ||
+      activeCase.status === "CANCELLED"),
+  );
+
   const isAutomationActive = useMemo(() => {
+    // Si la conversación o el caso están finalizados/cerrados, no hay automatización activa:
+    if (isClosedRecord) {
+      return false;
+    }
+    if (selected && (selected.status === "resolved" || selected.status === "closed")) {
+      return false;
+    }
+    if (
+      activeCase &&
+      (activeCase.status === "COMPLETED" ||
+        activeCase.status === "CANCELLED" ||
+        activeCase.status === "EXPIRED")
+    ) {
+      return false;
+    }
+
     // Si no hay caso activo (conversación nueva, sin flujo activo o vacía),
     // la IA no está respondiendo y el agente puede escribir directamente:
     if (!activeCase && !selected?.activeCase) {
@@ -1022,16 +1111,60 @@ export function OperationalInbox({
 
     // Por defecto, toda conversación con caso activo no tomado por un humano está en manos del Asistente IA
     return true;
-  }, [activeCase, selected?.activeCase, automationState]);
+  }, [activeCase, selected?.activeCase, selected?.status, automationState, isClosedRecord]);
 
-  const isClosedRecord = Boolean(
-    selected &&
-    (selected.status === "resolved" || selected.status === "closed") &&
-    (!activeCase ||
-      activeCase.status === "COMPLETED" ||
-      activeCase.status === "EXPIRED" ||
-      activeCase.status === "CANCELLED"),
-  );
+  const closedByName = useMemo(() => {
+    if (!isClosedRecord) return null;
+    const ctx = activeCase?.context as Record<string, unknown> | undefined;
+    if (ctx?.closedByAgentName && typeof ctx.closedByAgentName === "string") {
+      return ctx.closedByAgentName;
+    }
+    if (selected?.lastAttendedBy?.agentName?.trim()) {
+      return selected.lastAttendedBy.agentName.trim();
+    }
+    if (selected?.lastAttendedBy?.agentId) {
+      if (selected.lastAttendedBy.agentId === session?.id) return "Tú";
+      const found = directory.find((a) => a.id === selected.lastAttendedBy?.agentId);
+      if (found?.name) return found.name;
+    }
+    if (activeCase?.assignedAgentName?.trim()) {
+      return activeCase.assignedAgentName.trim();
+    }
+    if (activeCase?.assignedAgentId) {
+      if (activeCase.assignedAgentId === session?.id) return "Tú";
+      const found = directory.find((a) => a.id === activeCase.assignedAgentId);
+      if (found?.name) return found.name;
+    }
+    return assignedAgentName ?? null;
+  }, [isClosedRecord, activeCase, selected, directory, session, assignedAgentName]);
+
+  const closedReasonLabel = useMemo(() => {
+    const ctx = activeCase?.context as Record<string, unknown> | undefined;
+    if (ctx?.closeReason === "CLIENT_NO_RESPONSE") return "Cliente no respondió";
+    return "Resuelto";
+  }, [activeCase]);
+
+  const closedAtFormatted = useMemo(() => {
+    const ctx = activeCase?.context as Record<string, unknown> | undefined;
+    const rawDate =
+      ctx?.closedAt ||
+      (activeCase?.status === "COMPLETED" ? activeCase.lastActivityAt : null) ||
+      selected?.updatedAt;
+    if (!rawDate) return null;
+    try {
+      return new Date(String(rawDate)).toLocaleString("es-EC", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+    } catch {
+      return null;
+    }
+  }, [activeCase, selected]);
+
+  const closedResolutionNote = useMemo(() => {
+    const ctx = activeCase?.context as Record<string, unknown> | undefined;
+    return typeof ctx?.resolutionNote === "string" ? ctx.resolutionNote : null;
+  }, [activeCase]);
 
   const alreadyInControl = activeCase?.status === "HUMAN_ACTIVE" && isAssignedToMe;
   const showTakeControl = isAutomationActive && canWriteCase && !showClaim && !alreadyInControl;
@@ -1234,7 +1367,7 @@ export function OperationalInbox({
         </div>
       </div>
 
-      <section className="grid grid-cols-12 gap-4 flex-1 min-h-0 min-w-0 w-full">
+      <section className="grid grid-cols-12 lg:grid-rows-1 gap-4 flex-1 min-h-0 min-w-0 w-full">
         {/* Lista de conversaciones */}
         <div
           className={`col-span-12 lg:col-span-4 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 min-w-0 h-full shadow-xs ${
@@ -1259,10 +1392,12 @@ export function OperationalInbox({
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar un chat o mensaje..."
+                placeholder="Buscar por nombre, teléfono o mensaje..."
                 className="w-full pl-9 pr-8 py-1.5 bg-background border border-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 transition-all"
               />
-              {search && (
+              {isSearchingServer ? (
+                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-primary animate-spin" />
+              ) : search ? (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
@@ -1271,7 +1406,7 @@ export function OperationalInbox({
                 >
                   <X className="size-3.5" />
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
           <div
@@ -1446,6 +1581,40 @@ export function OperationalInbox({
                     />
                   );
                 })}
+                {isClosedRecord &&
+                  !messages.some(
+                    (m) =>
+                      m.author === "system" &&
+                      (m.body?.includes("Caso completado") ||
+                        m.body?.includes("🔒") ||
+                        m.body?.toLowerCase().includes("caso cerrado") ||
+                        m.body?.toLowerCase().includes("completado por")),
+                  ) && (
+                    <div className="flex justify-center my-4 px-2 min-w-0 animate-fade-in">
+                      <div className="flex flex-col items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 text-xs font-semibold border border-emerald-500/30 shadow-xs max-w-md text-center leading-normal">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                          <span className="font-bold">
+                            Caso completado {closedByName ? `por ${closedByName}` : ""}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                          <span>Motivo: {closedReasonLabel}</span>
+                          {closedAtFormatted && (
+                            <>
+                              <span>•</span>
+                              <span>{closedAtFormatted}</span>
+                            </>
+                          )}
+                        </div>
+                        {closedResolutionNote && (
+                          <p className="text-[10px] italic text-muted-foreground/90 mt-1 border-t border-emerald-500/20 pt-1 w-full">
+                            "{closedResolutionNote}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 {messages.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center mt-8">
                     Todavía no hay mensajes en esta conversación.
@@ -1696,6 +1865,7 @@ export function OperationalInbox({
         onOpenChange={setSummaryOpen}
         summary={caseSummary}
         timeline={caseTimeline}
+        caseDto={activeCase}
         departments={departments}
         onClaim={
           activeCase?.assignedAgentId == null

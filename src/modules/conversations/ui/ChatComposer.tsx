@@ -207,7 +207,7 @@ export function ChatComposer({
         <div className="relative inline-block" ref={attachMenuRef}>
           <button
             type="button"
-            disabled={isAutomationActive}
+            disabled={isAutomationActive || isClosedRecord}
             onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
             title="Adjuntar y opciones"
             className={`size-10 flex items-center justify-center rounded-full transition-all shrink-0 ${
@@ -319,7 +319,7 @@ export function ChatComposer({
           ref={chatInputRef}
           rows={1}
           value={draft}
-          disabled={isAutomationActive}
+          disabled={isAutomationActive || isClosedRecord}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={(e) => {
             if (onQuickReplyKeyDown(e)) {
@@ -333,8 +333,8 @@ export function ChatComposer({
           placeholder={
             isClosedRecord
               ? assignedAgentName
-                ? `Caso resuelto. Último en atender: ${assignedAgentName}`
-                : "Caso resuelto. Sin agente registrado"
+                ? `Caso completado por ${assignedAgentName}`
+                : "Caso completado"
               : isAutomationActive
                 ? "🤖 IA activa... Haz clic en 'Tomar control' para escribir"
                 : pendingAttachment
@@ -350,7 +350,7 @@ export function ChatComposer({
         {/* Botón enviar circular característico de WhatsApp */}
         <button
           type="button"
-          disabled={isAutomationActive || (!draft.trim() && !pendingAttachment)}
+          disabled={isAutomationActive || isClosedRecord || (!draft.trim() && !pendingAttachment)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={onSend}
           title={pendingAttachment ? "Enviar adjunto (Enter)" : "Enviar mensaje (Enter)"}

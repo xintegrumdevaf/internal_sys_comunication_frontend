@@ -1045,11 +1045,64 @@ export function CasePanel({
                 : "—"
             }
           />
-          <DataRow
-            label={isTerminalCase ? "Último en atender" : "Atendido por"}
-            value={isTerminalCase ? (assignedAgentName ?? "Sin agente registrado") : handlerLabel}
-          />
+          {isTerminalCase ? (
+            <>
+              <DataRow
+                label="Cerrado por"
+                value={
+                  (caseDto.context as Record<string, unknown>)?.closedByAgentName
+                    ? String((caseDto.context as Record<string, unknown>).closedByAgentName)
+                    : assignedAgentName ?? "Sin agente registrado"
+                }
+              />
+              <DataRow
+                label="Motivo de cierre"
+                value={
+                  (caseDto.context as Record<string, unknown>)?.closeReason === "CLIENT_NO_RESPONSE"
+                    ? "Cliente no respondió"
+                    : "Resuelto"
+                }
+              />
+              <DataRow
+                label="Fecha de cierre"
+                value={(() => {
+                  const closedAt =
+                    (caseDto.context as Record<string, unknown>)?.closedAt ||
+                    caseDto.lastActivityAt ||
+                    caseDto.createdAt;
+                  try {
+                    return new Date(String(closedAt)).toLocaleString("es-EC", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    });
+                  } catch {
+                    return "—";
+                  }
+                })()}
+              />
+            </>
+          ) : (
+            <DataRow
+              label="Atendido por"
+              value={handlerLabel}
+            />
+          )}
         </div>
+
+        {isTerminalCase && (
+          <div className="pt-2 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+              Nota de Cierre / Resolución
+            </span>
+            <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-foreground text-xs leading-relaxed font-sans break-words whitespace-pre-wrap">
+              {(caseDto.context as Record<string, unknown>)?.resolutionNote ? (
+                String((caseDto.context as Record<string, unknown>).resolutionNote)
+              ) : (
+                <span className="text-muted-foreground italic">Sin nota registrada</span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <SectionLabel icon={Wrench}>Datos técnicos</SectionLabel>
@@ -1131,7 +1184,7 @@ export function CasePanel({
         </div>
       )}
 
-      {canWrite && (
+      {canWrite && !isTerminalCase && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-2">
           <h3 className="text-xs font-extrabold uppercase tracking-widest mb-1">Acciones</h3>
 
@@ -1308,6 +1361,49 @@ export function CasePanel({
               busy={busy}
             />
           )}
+        </div>
+      )}
+
+      {isTerminalCase && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3 animate-fade-in">
+          <h3 className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+            Estado del Caso
+          </h3>
+          <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200 text-xs space-y-2.5">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+              <p className="font-bold">
+                Caso finalizado ({caseStatusLabel(caseDto.status)})
+              </p>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-600 text-white shadow-2xs">
+                {(caseDto.context as Record<string, unknown>)?.closeReason === "CLIENT_NO_RESPONSE"
+                  ? "Cliente no respondió"
+                  : "Resuelto"}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {caseDto.status === "COMPLETED"
+                ? `Este caso fue completado y cerrado exitosamente${
+                    (caseDto.context as Record<string, unknown>)?.closedByAgentName
+                      ? ` por ${(caseDto.context as Record<string, unknown>).closedByAgentName}`
+                      : assignedAgentName
+                        ? ` por ${assignedAgentName}`
+                        : ""
+                  }.`
+                : "Este caso se encuentra finalizado en modo solo lectura."}
+            </p>
+            {Boolean((caseDto.context as Record<string, unknown>)?.resolutionNote) && (
+              <div className="pt-2 border-t border-emerald-500/20 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                  <FileText className="size-3 text-emerald-600 dark:text-emerald-400" />
+                  Nota de resolución:
+                </span>
+                <p className="text-xs text-foreground font-sans leading-relaxed break-words whitespace-pre-wrap bg-background/80 p-2.5 rounded-md border border-emerald-500/20 shadow-2xs">
+                  {String((caseDto.context as Record<string, unknown>).resolutionNote)}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { Bot, CheckCheck, Clock, User } from "lucide-react";
+import { Bot, CheckCheck, Clock, Search, User } from "lucide-react";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import {
   conversationDisplayName,
@@ -112,6 +112,16 @@ export function ConversationListItem({
             </span>
           )}
         </div>
+        {c.matchedMessage && (
+          <div
+            className="mt-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] truncate flex items-center gap-1 border border-amber-500/20"
+            title={`Coincidencia en mensaje: ${c.matchedMessage.body}`}
+          >
+            <Search className="size-2.5 shrink-0 opacity-80" />
+            <span className="font-semibold shrink-0">Mensaje:</span>
+            <span className="truncate italic">"{c.matchedMessage.body}"</span>
+          </div>
+        )}
         <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
           {sla.isBreached && (
             <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded flex items-center gap-1 bg-danger/15 text-danger ring-1 ring-danger/30 animate-pulse">
@@ -221,10 +231,10 @@ export function ConversationListItem({
               return (
                 <span
                   className="px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[170px] bg-foreground/5 text-muted-foreground ring-1 ring-border"
-                  title={`Última persona que atendió este caso: ${attendedName}`}
+                  title={`Caso cerrado por: ${attendedName}`}
                 >
                   <User className="size-2.5 shrink-0" />
-                  <span className="truncate">Atendió: {attendedName}</span>
+                  <span className="truncate">Cerró: {attendedName}</span>
                 </span>
               );
             })()
