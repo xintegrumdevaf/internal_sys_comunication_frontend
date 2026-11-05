@@ -7,7 +7,7 @@ import { MentionsPanel } from "@/modules/internal-chat/ui/MentionsPanel";
 import { MessageBodyWithMentions } from "@/modules/internal-chat/ui/MessageBodyWithMentions";
 import { QualityQuoteCard } from "@/modules/internal-chat/ui/QualityQuoteCard";
 import { useInternalChat } from "@/modules/internal-chat/application/use-internal-chat";
-import { relativeTime } from "@/shared/datetime";
+import { formatConversationTimestamp } from "@/shared/datetime";
 import { isSupervisorSession } from "@/modules/identity/application/access-control";
 import { useDirectoryUsers } from "@/modules/identity/application/use-session";
 import { detectAtQuery, insertMentionAt } from "@/modules/internal-chat/domain/mention-parser";
@@ -227,7 +227,7 @@ export function InternalChatShell({
                         <p className="text-sm font-semibold truncate">{peer.name}</p>
                         {existing && (
                           <span className="text-[10px] text-muted-foreground shrink-0">
-                            {relativeTime(existing.thread.updatedAt)}
+                            {formatConversationTimestamp(existing.thread.updatedAt)}
                           </span>
                         )}
                       </div>

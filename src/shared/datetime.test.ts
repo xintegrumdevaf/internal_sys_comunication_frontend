@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayLabel, messageClock, relativeTime } from "./datetime";
+import { dayLabel, formatConversationTimestamp, messageClock, relativeTime } from "./datetime";
 
 describe("relativeTime", () => {
   it("muestra minutos cuando el evento fue hace menos de una hora", () => {
@@ -20,6 +20,40 @@ describe("relativeTime", () => {
   it("muestra días cuando el evento fue hace más de 24 horas", () => {
     const iso = new Date(Date.now() - 2 * 86_400_000).toISOString();
     expect(relativeTime(iso)).toBe("2d");
+  });
+});
+
+describe("formatConversationTimestamp", () => {
+  it("muestra la hora exacta estilo WhatsApp (ej: '3:30 p.m.' o '10:15 a.m.') para eventos de hoy", () => {
+    const now = new Date();
+    const formatted = formatConversationTimestamp(now.toISOString());
+    expect(formatted).toMatch(/^\d{1,2}:\d{2}\s*(a\.m\.|p\.m\.)$/);
+  });
+
+  it("muestra 'Ayer' para eventos del día anterior", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    expect(formatConversationTimestamp(yesterday.toISOString())).toBe("Ayer");
+  });
+
+  it("muestra el nombre del día para eventos de hace 3 días", () => {
+    const past = new Date();
+    past.setDate(past.getDate() - 3);
+    const formatted = formatConversationTimestamp(past.toISOString());
+    expect(formatted.length).toBeGreaterThan(3);
+    expect(formatted).not.toContain("/");
+  });
+
+  it("muestra fecha numérica corta para eventos de hace 20 días", () => {
+    const past = new Date();
+    past.setDate(past.getDate() - 20);
+    const formatted = formatConversationTimestamp(past.toISOString());
+    expect(formatted).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+  });
+
+  it("devuelve string vacío si la fecha es nula o inválida", () => {
+    expect(formatConversationTimestamp(null)).toBe("");
+    expect(formatConversationTimestamp("invalida")).toBe("");
   });
 });
 

@@ -1,4 +1,4 @@
-import { Bot, Clock, User } from "lucide-react";
+import { Bot, CheckCheck, Clock, User } from "lucide-react";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import {
   conversationDisplayName,
@@ -11,7 +11,7 @@ import type { CaseDto } from "@/modules/cases/domain/case";
 import { extractSchedulingMetadata } from "@/modules/cases/domain/case";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 import type { SessionUser } from "@/modules/identity/domain/session";
-import { relativeTime } from "@/shared/datetime";
+import { formatConversationTimestamp } from "@/shared/datetime";
 import { ConversationAvatar } from "./ConversationAvatars";
 
 export interface ConversationListItemProps {
@@ -88,7 +88,7 @@ export function ConversationListItem({
                 : "text-muted-foreground"
             }`}
           >
-            {relativeTime(c.lastActivityAt)}
+            {formatConversationTimestamp(c.lastActivityAt)}
           </span>
         </div>
         {c.waProfileName && (
@@ -96,11 +96,14 @@ export function ConversationListItem({
         )}
         <div className="flex justify-between items-center gap-2 mt-0.5">
           <p
-            className={`text-xs truncate ${
+            className={`text-xs truncate flex items-center ${
               hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
             }`}
           >
-            {formatLastMessagePreview(c.lastMessagePreview)}
+            {c.lastMessagePreview?.direction === "outbound" && (
+              <CheckCheck className="size-3.5 inline mr-1 text-muted-foreground/70 shrink-0" />
+            )}
+            <span className="truncate">{formatLastMessagePreview(c.lastMessagePreview)}</span>
           </p>
           {hasUnread && (
             <span className="shrink-0 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25D366] dark:bg-[#00a884] text-white text-[11px] font-bold leading-none shadow-xs">
