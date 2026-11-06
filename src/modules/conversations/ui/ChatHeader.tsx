@@ -125,10 +125,9 @@ export function ChatHeader({
       <div className="flex flex-wrap items-center justify-end gap-1 min-w-0 max-w-full">
         {isClosedRecord ? (
           (() => {
-            const closedName =
-              (activeCase?.context as Record<string, unknown>)?.closedByAgentName
-                ? String((activeCase?.context as Record<string, unknown>).closedByAgentName)
-                : assignedAgentName;
+            const closedName = (activeCase?.context as Record<string, unknown>)?.closedByAgentName
+              ? String((activeCase?.context as Record<string, unknown>).closedByAgentName)
+              : assignedAgentName;
             return (
               <span
                 className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-foreground/5 text-muted-foreground ring-1 ring-border"

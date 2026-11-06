@@ -49,4 +49,3 @@ export function CircularGauge({
     </div>
   );
 }
-

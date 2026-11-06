@@ -21,15 +21,13 @@ function rect(top: number, height: number): DOMRect {
 
 describe("resolvePreservedScrollTop", () => {
   it("no mueve la lista si el agente estaba en el tope", () => {
-    expect(
-      resolvePreservedScrollTop({ id: "jaime", offset: 0, scrollTop: 0 }, 0, 120),
-    ).toBeNull();
+    expect(resolvePreservedScrollTop({ id: "jaime", offset: 0, scrollTop: 0 }, 0, 120)).toBeNull();
   });
 
   it("compensa el salto al inicio para dejar la misma fila en el mismo sitio", () => {
-    expect(
-      resolvePreservedScrollTop({ id: "jaime", offset: 12, scrollTop: 640 }, 0, 280),
-    ).toBe(268);
+    expect(resolvePreservedScrollTop({ id: "jaime", offset: 12, scrollTop: 640 }, 0, 280)).toBe(
+      268,
+    );
   });
 
   it("no corrige si la fila ya quedó en su sitio", () => {

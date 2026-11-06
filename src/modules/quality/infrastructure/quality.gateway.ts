@@ -135,9 +135,11 @@ export async function analyzeQualityBatch(
   };
 }
 
-
 export async function reanalyzeQualityReview(reviewId: string): Promise<QualityReviewDto> {
-  const data = await apiPost<Partial<QualityReviewDto>>(`/api/quality/reviews/${reviewId}/reanalyze`, {});
+  const data = await apiPost<Partial<QualityReviewDto>>(
+    `/api/quality/reviews/${reviewId}/reanalyze`,
+    {},
+  );
   return normalizeQualityReview({ ...data, id: data.id ?? reviewId });
 }
 

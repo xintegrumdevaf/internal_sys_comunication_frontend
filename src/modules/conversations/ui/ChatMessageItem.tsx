@@ -1,4 +1,12 @@
-import { AlertCircle, AlertTriangle, CheckCheck, CheckCircle2, Clock, FileText, Info } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCheck,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Info,
+} from "lucide-react";
 import type { ConversationDto, MessageDto } from "@/modules/conversations/domain/conversation";
 import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
 import type { SessionUser } from "@/modules/identity/domain/session";

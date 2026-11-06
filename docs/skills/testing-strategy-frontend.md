@@ -5,7 +5,7 @@ Estrategia y runner de tests de este frontend (misma disciplina que `isp-custome
 ## 0. Runner configurado
 
 - **Vitest** (`vitest.config.ts`, entorno `jsdom`) + **@testing-library/react** para hooks/componentes.
-- Comandos: `npm test` (una corrida, usado en CI/aceptación de etapa), `npm run test:watch` (desarrollo), `npm run typecheck` (`tsc --noEmit`).
+- Comandos: `npm test` (una corrida, usado en CI/aceptación de etapa), `npm run test:watch` (desarrollo), `npm run typecheck` (`tsc --noEmit`), `npm run lint` (`eslint .`), `npm run format` (`prettier --write .`).
 - Convención de nombre: `*.test.ts`/`*.test.tsx` **junto al archivo que prueban** (no en una carpeta `__tests__/` aparte) — así un módulo se mueve o se borra completo sin dejar tests huérfanos en otro lado.
 
 ## 1. Qué probar en cada capa (con ejemplos reales de este repo)
@@ -45,7 +45,7 @@ Cada etapa del build plan se considera "aprobada" cuando, además de la verifica
 
 1. `npm run typecheck` sin errores.
 2. `npm test` sin fallos (incluye los tests nuevos que esa etapa debía agregar).
-3. `npm run lint` sin errores nuevos (los `prettier/prettier` de fin de línea CRLF son ruido preexistente del entorno Windows — ver nota en `05_BUILD_PLAN.md`).
+3. `npm run lint` con código de salida 0 (0 errores). En caso de discrepancias de formato reportadas por `prettier/prettier`, ejecutar `npm run format` (`prettier --write .`) para alinearlas automáticamente a `.prettierrc`.
 4. `npm run build` sin errores.
 
 ## 5. Prioridad de cobertura futura (si se agrega en fases)

@@ -253,9 +253,7 @@ export function OperationalInbox({
     }
   }, [isSupervisorOrAdmin, session?.primaryDepartmentId, departmentId, visibleDepartments]);
 
-  const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>(
-    initialAgentId ?? "all",
-  );
+  const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>(initialAgentId ?? "all");
 
   // Sincronizar estado si cambian los props iniciales por navegación
   useEffect(() => {

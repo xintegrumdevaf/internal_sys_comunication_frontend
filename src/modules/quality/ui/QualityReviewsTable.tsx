@@ -200,7 +200,6 @@ export function QualityReviewsTable({
                       <td className="px-3.5 py-3 text-muted-foreground whitespace-nowrap">
                         {relativeTime(r.completedAt ?? r.createdAt)}
                       </td>
-
                     </tr>
                   );
                 })}
@@ -219,13 +218,16 @@ export function QualityReviewsTable({
         </table>
       </div>
 
-            {/* Barra de Paginación Persistente */}
+      {/* Barra de Paginación Persistente */}
       {reviews.length > 0 && (
         <div className="p-3 border-t border-border bg-background/80 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground shrink-0">
           <div className="flex items-center gap-3">
             <span>
-              Mostrando <strong className="text-foreground font-semibold">{startIndex + 1}</strong>–<strong className="text-foreground font-semibold">{Math.min(startIndex + pageSize, reviews.length)}</strong> de{" "}
-              <strong className="text-foreground font-semibold">{reviews.length}</strong> chats
+              Mostrando <strong className="text-foreground font-semibold">{startIndex + 1}</strong>–
+              <strong className="text-foreground font-semibold">
+                {Math.min(startIndex + pageSize, reviews.length)}
+              </strong>{" "}
+              de <strong className="text-foreground font-semibold">{reviews.length}</strong> chats
             </span>
             <div className="flex items-center gap-1.5 pl-2 border-l border-border">
               <span className="text-[11px] text-muted-foreground hidden sm:inline">Por pág:</span>

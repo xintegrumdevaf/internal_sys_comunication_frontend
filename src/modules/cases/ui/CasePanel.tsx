@@ -585,24 +585,24 @@ export function CasePanel({
       }
     | undefined;
 
-  const rawCandidateContracts = (
-    contextData.availableContracts ??
+  const rawCandidateContracts = (contextData.availableContracts ??
     contextData.pendingContracts ??
     rawContext?.availableContracts ??
-    rawContext?.pendingContracts
-  ) as Array<{
-    id: string;
-    contractCode?: string;
-    contractNumber?: string;
-    name?: string;
-    address?: string;
-    label?: string;
-    sector?: string;
-    oltName?: string;
-    pon?: string | number;
-    serial?: string;
-    ip?: string;
-  }> | undefined;
+    rawContext?.pendingContracts) as
+    | Array<{
+        id: string;
+        contractCode?: string;
+        contractNumber?: string;
+        name?: string;
+        address?: string;
+        label?: string;
+        sector?: string;
+        oltName?: string;
+        pon?: string | number;
+        serial?: string;
+        ip?: string;
+      }>
+    | undefined;
 
   const effectiveContracts = useMemo<ContractDto[]>(() => {
     if (customerContracts && customerContracts.length > 1) {
@@ -1052,7 +1052,7 @@ export function CasePanel({
                 value={
                   (caseDto.context as Record<string, unknown>)?.closedByAgentName
                     ? String((caseDto.context as Record<string, unknown>).closedByAgentName)
-                    : assignedAgentName ?? "Sin agente registrado"
+                    : (assignedAgentName ?? "Sin agente registrado")
                 }
               />
               <DataRow
@@ -1082,10 +1082,7 @@ export function CasePanel({
               />
             </>
           ) : (
-            <DataRow
-              label="Atendido por"
-              value={handlerLabel}
-            />
+            <DataRow label="Atendido por" value={handlerLabel} />
           )}
         </div>
 
@@ -1372,9 +1369,7 @@ export function CasePanel({
           </h3>
           <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200 text-xs space-y-2.5">
             <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-              <p className="font-bold">
-                Caso finalizado ({caseStatusLabel(caseDto.status)})
-              </p>
+              <p className="font-bold">Caso finalizado ({caseStatusLabel(caseDto.status)})</p>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-600 text-white shadow-2xs">
                 {(caseDto.context as Record<string, unknown>)?.closeReason === "CLIENT_NO_RESPONSE"
                   ? "Cliente no respondió"

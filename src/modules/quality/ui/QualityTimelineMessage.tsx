@@ -52,10 +52,8 @@ export function QualityTimelineMessage({
   const isTransfer = m.author === "system" || isSystemTransferMessage(m.body);
   const fromCustomer = m.author === "customer";
   const isAi = m.author === "ai";
-  const isOtherAgent =
-    m.author === "agent" && Boolean(m.agentId) && m.agentId !== auditedAgentId;
-  const isAuditedAgent =
-    m.author === "agent" && (!m.agentId || m.agentId === auditedAgentId);
+  const isOtherAgent = m.author === "agent" && Boolean(m.agentId) && m.agentId !== auditedAgentId;
+  const isAuditedAgent = m.author === "agent" && (!m.agentId || m.agentId === auditedAgentId);
 
   return (
     <div>
@@ -182,4 +180,3 @@ export function QualityTimelineMessage({
     </div>
   );
 }
-

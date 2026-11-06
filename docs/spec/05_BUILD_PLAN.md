@@ -11,7 +11,7 @@ Cada etapa lista, además de qué construir, su **criterio de aprobación verifi
 ```bash
 npm run typecheck   # tsc --noEmit, sin errores
 npm test            # vitest run, sin fallos
-npm run lint        # sin errores nuevos (el ruido prettier/prettier de fin de línea CRLF es preexistente del entorno Windows, no bloquea)
+npm run lint        # eslint ., código de salida 0 (0 errores; ejecutar npm run format si hay discrepancias de prettier)
 npm run build       # vite build (client + ssr), sin errores
 ```
 

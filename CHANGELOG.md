@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.12] - 2026-11-06
+
+### Fixed & Code Quality
+
+- **Estandarización de formato y resolución de errores bloqueantes de ESLint (`npm run format`, `npm run lint`)**:
+  - _Contexto y Problema_: La ejecución de `npm run lint` (`eslint .`) fallaba con código de salida 1 reportando 50 errores, todos correspondientes a la regla `prettier/prettier`. Esto provocaba el fallo automático del pipeline de CI/CD (`.github/workflows/deploy.yml` -> job `test-and-lint`) antes de cualquier despliegue a los entornos de staging o producción.
+  - _Causa Raíz_: La configuración del linter (`eslint.config.js`) incluye el plugin `eslint-plugin-prettier/recommended`, el cual promueve cualquier divergencia de estilo respecto a `.prettierrc` (indentación, saltos de línea, espaciado en llaves de importación, wrapping de operadores ternarios o líneas vacías al final de archivo) a nivel de error crítico (`error`). Con las últimas modificaciones en módulos de casos, chat interno, calidad, métricas y bandeja, se acumuló una discrepancia de formato en 17 archivos.
+  - _Resolución_:
+    1. Se ejecutó `npm run format` (`prettier --write .`) en todo el proyecto, reformateando los 17 archivos afectados bajo la configuración oficial y unificada de Prettier sin alterar ninguna regla de negocio ni tipos.
+    2. Se verificó que `npm run lint` ahora finalice exitosamente con código de salida 0 (0 errores, 242 advertencias informativas no bloqueantes de límites de líneas y variables en desarrollo).
+    3. Se verificó que el chequeo estático de TypeScript (`npm run typecheck` / `tsc --noEmit`) se mantenga limpio sin errores de tipo (0 errores).
+    4. Se verificó que la suite completa de pruebas unitarias (`npm test` / Vitest) pase al 100% (74 archivos de prueba y 425 pruebas unitarias exitosas).
+  - _Archivos normalizados_:
+    - `src/modules/cases/ui/CasePanel.tsx`
+    - `src/modules/cases/ui/CaseSummaryDialog.tsx`
+    - `src/modules/conversations/ui/ChatHeader.tsx`
+    - `src/modules/conversations/ui/ChatMessageItem.tsx`
+    - `src/modules/conversations/ui/ChatSearchBar.tsx`
+    - `src/modules/conversations/ui/OperationalInbox.tsx`
+    - `src/modules/conversations/ui/use-preserved-list-scroll.test.tsx`
+    - `src/modules/dashboard/ui/CircularGauge.tsx`
+    - `src/modules/escalations/ui/EscalationsMetrics.tsx`
+    - `src/modules/identity/ui/DepartmentsDirectoryPanel.tsx`
+    - `src/modules/internal-chat/ui/QualityQuoteCard.tsx`
+    - `src/modules/quality/infrastructure/quality.gateway.ts`
+    - `src/modules/quality/ui/QualityFiltersBar.tsx`
+    - `src/modules/quality/ui/QualityReviewDetail.tsx`
+    - `src/modules/quality/ui/QualityReviewsTable.tsx`
+    - `src/modules/quality/ui/QualityTimelineMessage.test.ts`
+    - `src/modules/quality/ui/QualityTimelineMessage.tsx`
+    - `docs/spec/04_ASSIGNMENT_MANAGEMENT.md`
+
 ## [0.2.11] - 2026-11-05
 
 ### Added
@@ -91,12 +123,12 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Multi-Contract Interactive Selector in Case Panel (`CasePanel.tsx`)**:
-  - *Context & Damage*: When a client with multiple contracts (e.g. 2 services discovered via national ID in MikroTik/OLT) had a case open, the side panel (`CasePanel.tsx`) only displayed the contract selector if `customerContracts` existed on the PostgreSQL `Customer` entity. If contracts were discovered dynamically during workflow disambiguation (`pendingContracts` / `availableContracts`), selecting an option erased the candidate list, leaving the human agent without any button to view or toggle to Contract 2 when the client clarified *"No es el 2"*.
-  - *Root Cause*: `CasePanel.tsx` only looked at `customerContracts` from the customer record, ignoring `availableContracts` and `pendingContracts` stored in the case context, and didn't fall back to context-discovered contracts when rendering the interactive pills.
-  - *Resolution*: Implemented `effectiveContracts` in `CasePanel.tsx`, merging `customerContracts` with `caseDto.context.data.availableContracts` and `pendingContracts`. When multiple contracts are found in either customer data or workflow context, the interactive pill buttons (`#Contrato`, `Sector`) are rendered. Clicking any contract pill updates `activeContract` and immediately recalculates all displayed technical metadata (OLT, PON, Serial, Sector, MikroTik status).
+  - _Context & Damage_: When a client with multiple contracts (e.g. 2 services discovered via national ID in MikroTik/OLT) had a case open, the side panel (`CasePanel.tsx`) only displayed the contract selector if `customerContracts` existed on the PostgreSQL `Customer` entity. If contracts were discovered dynamically during workflow disambiguation (`pendingContracts` / `availableContracts`), selecting an option erased the candidate list, leaving the human agent without any button to view or toggle to Contract 2 when the client clarified _"No es el 2"_.
+  - _Root Cause_: `CasePanel.tsx` only looked at `customerContracts` from the customer record, ignoring `availableContracts` and `pendingContracts` stored in the case context, and didn't fall back to context-discovered contracts when rendering the interactive pills.
+  - _Resolution_: Implemented `effectiveContracts` in `CasePanel.tsx`, merging `customerContracts` with `caseDto.context.data.availableContracts` and `pendingContracts`. When multiple contracts are found in either customer data or workflow context, the interactive pill buttons (`#Contrato`, `Sector`) are rendered. Clicking any contract pill updates `activeContract` and immediately recalculates all displayed technical metadata (OLT, PON, Serial, Sector, MikroTik status).
 - **Exact 12-Hour WhatsApp-Style Timestamps & Outbound Message Delivery Status (`datetime.ts`, `ConversationListItem.tsx`, `InternalChatShell.tsx`)**:
-  - *Context & Damage*: Conversation lists displayed relative times (e.g. `1m`, `2h`, `1d`), preventing agents from knowing the exact time of messages at a glance, unlike WhatsApp Web which displays exact times (e.g. `3:30 p.m.`, `Ayer`, `Lunes`).
-  - *Resolution*: Implemented `formatConversationTimestamp` in `src/shared/datetime.ts` with comprehensive unit tests (`datetime.test.ts`), and integrated it into `ConversationListItem.tsx` and `InternalChatShell.tsx` along with double-check icons (`CheckCheck`) for outbound message previews.
+  - _Context & Damage_: Conversation lists displayed relative times (e.g. `1m`, `2h`, `1d`), preventing agents from knowing the exact time of messages at a glance, unlike WhatsApp Web which displays exact times (e.g. `3:30 p.m.`, `Ayer`, `Lunes`).
+  - _Resolution_: Implemented `formatConversationTimestamp` in `src/shared/datetime.ts` with comprehensive unit tests (`datetime.test.ts`), and integrated it into `ConversationListItem.tsx` and `InternalChatShell.tsx` along with double-check icons (`CheckCheck`) for outbound message previews.
 
 ## [0.2.5] - 2026-11-04
 
@@ -109,27 +141,27 @@ All notable changes to this project will be documented in this file.
     - `40–69 Atención`: Filters interactions requiring coaching or with delay observations (`minScore: "40"`, `maxScore: "69"`) with amber badge.
     - `<40 Críticos`: Isolates critical violations (`minScore: ""`, `maxScore: "39"`) with crimson badge and badge counter.
 - **Timeline Multi-Agent Scope Isolation & Transfer Chips (`QualityReviewDetail.tsx`, `QualityTimelineMessage.tsx`)**:
-  - *System & Transfer Event Chips*: System handover notices (e.g. `Caso transferido al área Traslados...`) are now rendered as centered system pills (`— Caso transferido ... —`) with `ArrowRightLeft` iconography, ending the confusion of transfer logs appearing as outgoing agent bubbles to the customer.
-  - *Audited Agent vs Full Conversation Scope*: Added a toggle in the timeline header (`Solo [Agente Auditado]` vs `Conversación completa`) allowing supervisors to review solely the audited agent's interaction or inspect full multi-agent context.
-  - *Distinct Styling for Secondary Agents & AI Bot*: Messages from previous/subsequent human agents are now styled with muted backgrounds and clear headers (`[Otro agente: Nombre] · Fuera del tramo auditado`), and bot messages are badged with `[Asistente IA]`.
-  - *SLA Latency Visual Separators*: Time gaps between interactions exceeding 20 minutes now render a subtle chronological elapsed notice (`⏱ Transcurrieron 2h 58m`), visually separating response delay from message politeness.
-  - *Nuanced Finding Highlights*: Inefficiency and delay findings now highlight with subtle amber borders rather than aggressive crimson red, reserving high-severity red highlights strictly for actual discourtesy, aggression, or misinformation.
+  - _System & Transfer Event Chips_: System handover notices (e.g. `Caso transferido al área Traslados...`) are now rendered as centered system pills (`— Caso transferido ... —`) with `ArrowRightLeft` iconography, ending the confusion of transfer logs appearing as outgoing agent bubbles to the customer.
+  - _Audited Agent vs Full Conversation Scope_: Added a toggle in the timeline header (`Solo [Agente Auditado]` vs `Conversación completa`) allowing supervisors to review solely the audited agent's interaction or inspect full multi-agent context.
+  - _Distinct Styling for Secondary Agents & AI Bot_: Messages from previous/subsequent human agents are now styled with muted backgrounds and clear headers (`[Otro agente: Nombre] · Fuera del tramo auditado`), and bot messages are badged with `[Asistente IA]`.
+  - _SLA Latency Visual Separators_: Time gaps between interactions exceeding 20 minutes now render a subtle chronological elapsed notice (`⏱ Transcurrieron 2h 58m`), visually separating response delay from message politeness.
+  - _Nuanced Finding Highlights_: Inefficiency and delay findings now highlight with subtle amber borders rather than aggressive crimson red, reserving high-severity red highlights strictly for actual discourtesy, aggression, or misinformation.
 
 ## [0.2.4] - 2026-11-04
 
 ### Added
 
 - **Quality Supervision UX & Modular Architecture (`QualityBoard.tsx`, `QualityReviewDetail.tsx`)**:
-  - *Dynamic Loading State*: Integrated animated skeleton loaders in `StatCard` (`AppShell.tsx`), ranking table rows, and review table rows, replacing static `--` and blank screens with responsive loading state feedback.
-  - *Unified UI Select Dropdowns*: Replaced native HTML `<select>` elements with customized Radix UI `Select` components (`QualityFiltersBar.tsx`) for Agent, Area, and Status filters with dark theme borders and chevrons.
-  - *Direct Filter for Critical Chats*: Added a dedicated "Solo críticos" quick toggle button (`maxScore: 39`) with active badge counter, allowing supervisors to isolate critical conversations with 1 click.
-  - *Bounded Scrolling & Client-Side Pagination*: Added container with bounded height (`max-h-[580px]`), sticky header, and client-side pagination (20 chats per page) with page navigation controls, preventing infinite scrolling over 370+ rows.
-  - *Actionable Audit Column*: Transformed the empty dash `—` in the "Acción" column into an explicit "Auditar" button (`Eye` icon) that directly opens the conversation review.
-  - *Structured Detail View*: Extracted `QualitySummaryCard.tsx` featuring prominent Critical Infraction Alert Banners, context media highlights, formatted pedagogical coaching recommendations, and deduplicated efficiency cards.
-  - *Clean Code Decomposition*: Decomposed the 465-line `QualityBoard.tsx` into 4 focused subcomponents (`QualityStatsCards.tsx`, `QualityFiltersBar.tsx`, `QualityRankingTable.tsx`, `QualityReviewsTable.tsx`), with each file under 260 lines.
+  - _Dynamic Loading State_: Integrated animated skeleton loaders in `StatCard` (`AppShell.tsx`), ranking table rows, and review table rows, replacing static `--` and blank screens with responsive loading state feedback.
+  - _Unified UI Select Dropdowns_: Replaced native HTML `<select>` elements with customized Radix UI `Select` components (`QualityFiltersBar.tsx`) for Agent, Area, and Status filters with dark theme borders and chevrons.
+  - _Direct Filter for Critical Chats_: Added a dedicated "Solo críticos" quick toggle button (`maxScore: 39`) with active badge counter, allowing supervisors to isolate critical conversations with 1 click.
+  - _Bounded Scrolling & Client-Side Pagination_: Added container with bounded height (`max-h-[580px]`), sticky header, and client-side pagination (20 chats per page) with page navigation controls, preventing infinite scrolling over 370+ rows.
+  - _Actionable Audit Column_: Transformed the empty dash `—` in the "Acción" column into an explicit "Auditar" button (`Eye` icon) that directly opens the conversation review.
+  - _Structured Detail View_: Extracted `QualitySummaryCard.tsx` featuring prominent Critical Infraction Alert Banners, context media highlights, formatted pedagogical coaching recommendations, and deduplicated efficiency cards.
+  - _Clean Code Decomposition_: Decomposed the 465-line `QualityBoard.tsx` into 4 focused subcomponents (`QualityStatsCards.tsx`, `QualityFiltersBar.tsx`, `QualityRankingTable.tsx`, `QualityReviewsTable.tsx`), with each file under 260 lines.
 - **Clean Code & Modular Decomposition of Operational Inbox (`OperationalInbox.tsx`)**:
-  - *Context*: `OperationalInbox.tsx` had grown into a 2,772-line monolithic component violating Clean Code standards (target 300–400 lines max per module) and mixing rendering concerns of tabs, list items, headers, messages, composer, and search bars.
-  - *Refactoring*: Decomposed into 7 focused, single-responsibility subcomponents located under `src/modules/conversations/ui/`:
+  - _Context_: `OperationalInbox.tsx` had grown into a 2,772-line monolithic component violating Clean Code standards (target 300–400 lines max per module) and mixing rendering concerns of tabs, list items, headers, messages, composer, and search bars.
+  - _Refactoring_: Decomposed into 7 focused, single-responsibility subcomponents located under `src/modules/conversations/ui/`:
     - `InboxStatusTabs.tsx` (214 lines): Category status filters with tooltips and glossary popover.
     - `ConversationListItem.tsx` (248 lines): Sidebar conversation item rendering, SLA timers, WhatsApp-style unread badges.
     - `ChatHeader.tsx` (247 lines): Active conversation header, customer metadata, contact details toggle, manual agent claim/transfer triggers.
@@ -137,7 +169,7 @@ All notable changes to this project will be documented in this file.
     - `ChatMessageItem.tsx` (177 lines): WhatsApp-styled message bubbles with author avatar, media content, delivery status ticks, and 24h Meta error handling.
     - `ChatComposer.tsx` (365 lines): WhatsApp-like auto-expanding message composer, clip popover attachment menu, emoji picker, and circular send button.
     - `ConversationAvatars.tsx` (72 lines) & `delivery-error.ts` (41 lines): Avatar initials generator and error code formatting helper.
-  - *Result*: Shrunk `OperationalInbox.tsx` by over 1,020 lines (down to 1,746 lines) with identical visual fidelity and user experience, passing 71 test files (394 tests) and production Vite build with 0 TypeScript errors.
+  - _Result_: Shrunk `OperationalInbox.tsx` by over 1,020 lines (down to 1,746 lines) with identical visual fidelity and user experience, passing 71 test files (394 tests) and production Vite build with 0 TypeScript errors.
 - **Strict ESLint Clean Code Governance (`eslint.config.js`)**:
   - Configured rules to uphold architectural discipline across all modules:
     - `max-lines`: Warns on files exceeding 400 lines (ignoring comments/whitespace), identifying refactoring targets.

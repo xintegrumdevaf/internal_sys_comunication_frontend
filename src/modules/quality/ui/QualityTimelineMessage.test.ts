@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatElapsedNotice,
-  isSystemTransferMessage,
-} from "./QualityTimelineMessage";
+import { formatElapsedNotice, isSystemTransferMessage } from "./QualityTimelineMessage";
 
 describe("isSystemTransferMessage", () => {
   it("detecta eventos de transferencia de caso por agente o sistema", () => {
@@ -37,10 +34,7 @@ describe("formatElapsedNotice", () => {
   });
 
   it("formatea horas y minutos si transcurrieron más de una hora", () => {
-    expect(formatElapsedNotice(2 * 3600 * 1000 + 58 * 60 * 1000)).toBe(
-      "Transcurrieron 2h 58m",
-    );
+    expect(formatElapsedNotice(2 * 3600 * 1000 + 58 * 60 * 1000)).toBe("Transcurrieron 2h 58m");
     expect(formatElapsedNotice(3 * 3600 * 1000)).toBe("Transcurrieron 3h");
   });
 });
-

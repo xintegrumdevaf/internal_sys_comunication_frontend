@@ -35,10 +35,13 @@ export const QualityQuoteCard: React.FC<Props> = ({ message, onNavigateToAudit }
         <div className="flex items-center justify-between font-semibold mb-1 gap-2">
           <span>
             ⚠️ Observación de Calidad (
-            {category ? qualityFindingCategoryLabel(category as QualityFindingCategory) : "General"})
+            {category ? qualityFindingCategoryLabel(category as QualityFindingCategory) : "General"}
+            )
           </span>
           <span className="text-xs uppercase px-2 py-0.5 rounded-full bg-white/70 dark:bg-black/40">
-            {severity ? qualityFindingSeverityLabel(severity as QualityFindingSeverity) : "Revisión"}
+            {severity
+              ? qualityFindingSeverityLabel(severity as QualityFindingSeverity)
+              : "Revisión"}
           </span>
         </div>
 

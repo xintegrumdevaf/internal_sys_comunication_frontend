@@ -167,7 +167,9 @@ export function QualityReviewDetail({
             className="inline-flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40 transition-colors cursor-pointer"
             title="Volver a evaluar este chat completo con el prompt y reglas de calidad vigentes"
           >
-            <RefreshCcw className={`size-3.5 ${busy || review.status === "pending" ? "animate-spin" : ""}`} />
+            <RefreshCcw
+              className={`size-3.5 ${busy || review.status === "pending" ? "animate-spin" : ""}`}
+            />
             {busy || review.status === "pending" ? "Analizando…" : "Reanalizar con IA"}
           </button>
           {review.status === "ready" && (

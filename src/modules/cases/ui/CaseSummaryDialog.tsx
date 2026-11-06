@@ -795,9 +795,9 @@ export function CaseSummaryDialog({
               caseDto?.status === "EXPIRED" ||
               Boolean(
                 caseContext?.closedByAgentName ||
-                  summary.results?.closedByAgentName ||
-                  caseContext?.resolutionNote ||
-                  summary.results?.resolutionNote,
+                summary.results?.closedByAgentName ||
+                caseContext?.resolutionNote ||
+                summary.results?.resolutionNote,
               );
 
             const closedByName =
@@ -806,12 +806,9 @@ export function CaseSummaryDialog({
               caseDto?.assignedAgentName ||
               "Agente";
 
-            const rawCloseReason =
-              caseContext?.closeReason || summary.results?.closeReason;
+            const rawCloseReason = caseContext?.closeReason || summary.results?.closeReason;
             const closeReasonLabel =
-              rawCloseReason === "CLIENT_NO_RESPONSE"
-                ? "Cliente no respondió"
-                : "Resuelto";
+              rawCloseReason === "CLIENT_NO_RESPONSE" ? "Cliente no respondió" : "Resuelto";
 
             const rawClosedAt =
               caseContext?.closedAt ||
@@ -830,8 +827,7 @@ export function CaseSummaryDialog({
               }
             }
 
-            const resolutionNote =
-              caseContext?.resolutionNote || summary.results?.resolutionNote;
+            const resolutionNote = caseContext?.resolutionNote || summary.results?.resolutionNote;
 
             return (
               <div className="space-y-4 text-sm">

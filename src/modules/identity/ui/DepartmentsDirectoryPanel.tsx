@@ -525,7 +525,10 @@ export function DepartmentsDirectoryPanel() {
                 value={form.maxConcurrentCases}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  setForm((f) => ({ ...f, maxConcurrentCases: isNaN(val) ? 1 : Math.max(1, Math.min(50, val)) }));
+                  setForm((f) => ({
+                    ...f,
+                    maxConcurrentCases: isNaN(val) ? 1 : Math.max(1, Math.min(50, val)),
+                  }));
                 }}
                 placeholder="6"
                 className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
