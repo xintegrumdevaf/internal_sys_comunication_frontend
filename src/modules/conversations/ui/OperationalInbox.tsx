@@ -133,11 +133,13 @@ function pasteTargetBlocksChat(
 
 export type Props = {
   initialDepartmentId?: string;
+  initialAgentId?: string;
   initialConversationId?: string | null;
   initialStatus?: ConversationStatus;
   initialTab?: InboxTab;
   initialFilter?: "unassigned" | "unattended";
   onClearInitialConversation?: () => void;
+  onFilterChange?: (filters: { departmentId?: string; agentId?: string; tab?: InboxTab }) => void;
 };
 
 const STATUS_TABS: { value: ConversationStatus; label: string }[] = [
@@ -205,11 +207,13 @@ const MEDIA_ATTACH_OPTIONS: Array<{
 
 export function OperationalInbox({
   initialDepartmentId,
+  initialAgentId,
   initialConversationId,
   initialStatus,
   initialTab,
   initialFilter,
   onClearInitialConversation,
+  onFilterChange,
 }: Props) {
   const [activeTab, setActiveTab] = useState<InboxTab>(
     initialTab ??
@@ -249,7 +253,37 @@ export function OperationalInbox({
     }
   }, [isSupervisorOrAdmin, session?.primaryDepartmentId, departmentId, visibleDepartments]);
 
-  const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>("all");
+  const [agentFilter, setAgentFilter] = useState<"all" | "mine" | string>(
+    initialAgentId ?? "all",
+  );
+
+  // Sincronizar estado si cambian los props iniciales por navegación
+  useEffect(() => {
+    if (initialDepartmentId !== undefined) {
+      setDepartmentId(initialDepartmentId);
+    }
+  }, [initialDepartmentId]);
+
+  useEffect(() => {
+    if (initialAgentId !== undefined) {
+      setAgentFilter(initialAgentId);
+    }
+  }, [initialAgentId]);
+
+  useEffect(() => {
+    if (initialTab !== undefined) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Notificar al contenedor para conservar filtros en la URL al recargar con F5
+  useEffect(() => {
+    onFilterChange?.({
+      departmentId,
+      agentId: agentFilter === "all" || agentFilter === "mine" ? undefined : agentFilter,
+      tab: activeTab,
+    });
+  }, [departmentId, agentFilter, activeTab, onFilterChange]);
 
   // Filtrar agentes según el departamento activo y el rol del usuario
   const visibleAgents = useMemo(() => {

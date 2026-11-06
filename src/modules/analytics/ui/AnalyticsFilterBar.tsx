@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Calendar, Building2, RefreshCw, Filter } from "lucide-react";
-import type { AnalyticsFilterParams, DateRangePreset } from "../domain/analytics.types";
-import { calculatePresetDates } from "../domain/analytics.types";
+import { Calendar, Building2, RefreshCw } from "lucide-react";
+import {
+  type AnalyticsFilterParams,
+  type DateRangePreset,
+  calculatePresetDates,
+} from "../domain/analytics.types";
 import { useDepartmentsQuery, useSession } from "@/modules/identity/application/use-session";
 
 interface AnalyticsFilterBarProps {

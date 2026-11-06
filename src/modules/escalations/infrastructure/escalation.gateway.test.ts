@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { listEscalations } from "./escalation.gateway";
+import { drainEscalationsQueue, listEscalations } from "./escalation.gateway";
 
 function mockFetchOnce() {
   const fetchMock = vi.fn().mockResolvedValue({
@@ -48,5 +48,23 @@ describe("escalation.gateway", () => {
     const parsed = new URL(url);
     expect(parsed.searchParams.get("departmentId")).toBe("dept_support");
     expect(parsed.searchParams.has("triage")).toBe(false);
+  });
+
+  it("drainEscalationsQueue envía POST a /api/escalations/drain con departmentId", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "",
+      text: () => Promise.resolve(JSON.stringify({ data: { drainedCount: 4 } })),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await drainEscalationsQueue("dept_support");
+    expect(res).toEqual({ drainedCount: 4 });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/api/escalations/drain");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ departmentId: "dept_support" });
   });
 });

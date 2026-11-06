@@ -53,6 +53,9 @@ export function MacroKpiCards({ overview, isLoading }: MacroKpiCardsProps) {
 
   const formatMinutes = (min: number | null | undefined) => {
     if (min === null || min === undefined) return { value: "—", unit: "" };
+    if (min < 1) {
+      return { value: "< 1", unit: "min" };
+    }
     if (min < 60) {
       return { value: min.toFixed(1), unit: "min" };
     }
@@ -214,11 +217,20 @@ export function MacroKpiCards({ overview, isLoading }: MacroKpiCardsProps) {
             {formatPercent(overview?.escalationRate)}
           </p>
         </div>
-        <p className="text-[10px] sm:text-[11px] mt-2 text-muted-foreground truncate">
-          {(overview?.escalatedCases ?? 0) > 0
-            ? `${overview?.escalatedCases} derivados a humano`
-            : "Derivados a humano"}
-        </p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
+            {(overview?.escalatedCases ?? 0) > 0
+              ? `${overview?.escalatedCases} derivados`
+              : "Derivados a humano"}
+          </p>
+          <Link
+            to="/escalaciones"
+            title="Ir a la Mesa de Casos Escalados"
+            className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+          >
+            Ver mesa →
+          </Link>
+        </div>
       </div>
     </div>
   );

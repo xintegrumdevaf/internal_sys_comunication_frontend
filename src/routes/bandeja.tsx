@@ -8,6 +8,7 @@ import type { ConversationStatus } from "@/modules/conversations/domain/conversa
 type BandejaSearch = {
   conversationId?: string;
   departmentId?: string;
+  agentId?: string;
   status?: ConversationStatus;
   tab?: InboxTab;
   filter?: "unassigned" | "unattended";
@@ -44,6 +45,10 @@ export const Route = createFileRoute("/bandeja")({
         typeof search.departmentId === "string" && search.departmentId.length > 0
           ? search.departmentId
           : undefined,
+      agentId:
+        typeof search.agentId === "string" && search.agentId.length > 0
+          ? search.agentId
+          : undefined,
       status: typeof search.status === "string" ? (search.status as ConversationStatus) : undefined,
       tab: resolvedTab,
       filter: rawFilter === "unassigned" || rawFilter === "unattended" ? rawFilter : undefined,
@@ -54,7 +59,7 @@ export const Route = createFileRoute("/bandeja")({
 
 function BandejaPage() {
   const navigate = useNavigate();
-  const { conversationId, departmentId, status, tab } = Route.useSearch();
+  const { conversationId, departmentId, agentId, status, tab } = Route.useSearch();
   const initialTab: InboxTab = tab ?? (status as InboxTab) ?? "open";
 
   const handleClearInitialConversation = useCallback(() => {
@@ -69,13 +74,31 @@ function BandejaPage() {
     });
   }, [conversationId, navigate]);
 
+  const handleFilterChange = useCallback(
+    (filters: { departmentId?: string; agentId?: string; tab?: InboxTab }) => {
+      void navigate({
+        to: "/bandeja",
+        search: (prev) => ({
+          ...prev,
+          departmentId: filters.departmentId || undefined,
+          agentId: filters.agentId || undefined,
+          tab: filters.tab,
+        }),
+        replace: true,
+      });
+    },
+    [navigate],
+  );
+
   return (
     <AppShell title="Bandeja de conversaciones" icon={Inbox}>
       <OperationalInbox
         initialDepartmentId={departmentId}
+        initialAgentId={agentId}
         initialConversationId={conversationId}
         initialTab={initialTab}
         onClearInitialConversation={handleClearInitialConversation}
+        onFilterChange={handleFilterChange}
       />
     </AppShell>
   );

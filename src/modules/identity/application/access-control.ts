@@ -71,8 +71,7 @@ export function modulesForSession(session: SessionUser | null | undefined): NavI
   if (isSupervisor(session)) {
     base.push(
       { label: "Analíticas", to: "/analytics" },
-      { label: "Casos escalados", to: "/escalaciones" },
-      { label: "Carga de trabajo", to: "/asignaciones" },
+      { label: "Triaje y Rescate SLA", to: "/escalaciones" },
       { label: "Calidad", to: "/calidad" },
       { label: "Base de Conocimiento", to: "/conocimiento" },
       { label: "Campañas masivas", to: "/campanas" },

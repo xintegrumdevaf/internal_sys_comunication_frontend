@@ -3,7 +3,10 @@ export const WORKFLOW_LABELS: Record<string, string> = {
   BILLING_BALANCE: "Facturación",
   GENERAL_INQUIRY: "Consultas Generales",
   UNCLASSIFIED: "Sin clasificar",
+  SALES: "Ventas",
   SALES_PACKAGES: "Ventas",
+  HOME_RELOCATION: "Traslado de Domicilio",
+  CLAIM_TRIAGE: "Mesa de Triaje",
 };
 
 export const ESCALATION_REASON_LABELS: Record<string, string> = {

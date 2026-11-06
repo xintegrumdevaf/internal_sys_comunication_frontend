@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { analyticsApi } from "../infrastructure/analytics.api";
 import type { AnalyticsFilterParams } from "../domain/analytics.types";
 
@@ -60,8 +60,6 @@ export function useInfrastructureAlerts(params: AnalyticsFilterParams) {
 }
 
 export function useAnalyticsDashboard(params: AnalyticsFilterParams) {
-  const queryClient = useQueryClient();
-
   const overviewQuery = useAnalyticsOverview(params);
   const distributionQuery = useCasesDistribution(params);
   const aiEfficiencyQuery = useAIEfficiency(params);

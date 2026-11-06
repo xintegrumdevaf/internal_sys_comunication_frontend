@@ -1,4 +1,4 @@
-import { apiGet } from "@/shared/http/http-client";
+import { apiGet, apiPost } from "@/shared/http/http-client";
 import type { EscalationDto, EscalationStatus } from "@/modules/escalations/domain/escalation";
 
 /** Puerto de infraestructura: GET /api/escalations (docs/API_ENDPOINTS.md §6). */
@@ -16,4 +16,9 @@ export function listEscalations(filter: {
     },
     agentId: filter.agentUserId,
   });
+}
+
+/** Despacho automático / vaciado de colas hacia asesores con cupo libre. */
+export function drainEscalationsQueue(departmentId?: string): Promise<{ drainedCount: number }> {
+  return apiPost<{ drainedCount: number }>("/api/escalations/drain", { departmentId });
 }

@@ -16,8 +16,10 @@ import { useSession } from "@/modules/identity/application/use-session";
 import { getDashboard } from "@/modules/dashboard/infrastructure/dashboard.gateway";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 import type { DashboardDto } from "@/modules/dashboard/domain/dashboard";
-import type { ConversationDto } from "@/modules/conversations/domain/conversation";
-import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
+import {
+  type ConversationDto,
+  conversationDisplayName,
+} from "@/modules/conversations/domain/conversation";
 import { relativeTime } from "@/shared/datetime";
 import { useSlaConfig } from "@/modules/sla/application/use-sla-config";
 import { calculateConversationSla } from "@/modules/sla/domain/sla-config";

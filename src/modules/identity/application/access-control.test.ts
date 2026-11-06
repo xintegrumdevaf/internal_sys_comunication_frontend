@@ -121,10 +121,10 @@ describe("modulesForSession", () => {
     expect(items).toEqual(["/", "/bandeja", "/contactos", "/chat-interno", "/etiquetas"]);
   });
 
-  it("manager suma escalaciones, asignaciones, calidad y campañas masivas", () => {
+  it("manager suma escalaciones/triaje, calidad y campañas masivas, sin módulo redundante de asignaciones", () => {
     const items = modulesForSession(makeSession({ role: "manager" })).map((m) => m.to);
     expect(items).toContain("/escalaciones");
-    expect(items).toContain("/asignaciones");
+    expect(items).not.toContain("/asignaciones");
     expect(items).toContain("/calidad");
     expect(items).toContain("/campanas");
     expect(items).toContain("/plantillas");

@@ -23,12 +23,31 @@ export type DepartmentDistributionItem = {
   percentage: number;
 };
 
+export type HourlyDemandItem = {
+  hour: number;
+  label: string;
+  count: number;
+};
+
+export type DailyTrendItem = {
+  date: string;
+  incoming: number;
+  resolved: number;
+};
+
 export type CasesDistributionDto = {
   totalCases: number;
   byWorkflow: Array<{ workflowType: string; count: number; percentage: number }>;
   byFinalStatus: Array<{ status: string; count: number; percentage: number }>;
-  topEscalationReasons: Array<{ reason: string; count: number; percentage: number }>;
+  topEscalationReasons: Array<{
+    reason: string;
+    workflowType?: string;
+    count: number;
+    percentage: number;
+  }>;
   byDepartment?: DepartmentDistributionItem[];
+  hourlyDemand?: HourlyDemandItem[];
+  dailyTrend?: DailyTrendItem[];
 };
 
 export type AIEfficiencyDto = {

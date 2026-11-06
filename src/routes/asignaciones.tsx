@@ -1,16 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Users } from "lucide-react";
-import { AppShell } from "@/app/shell/AppShell";
-import { AssignmentBoard } from "@/modules/assignment/ui/AssignmentBoard";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/asignaciones")({
-  component: AsignacionesPage,
+  component: () => <Navigate to="/" replace />,
 });
-
-function AsignacionesPage() {
-  return (
-    <AppShell title="Gestión de Asignación" icon={Users}>
-      <AssignmentBoard />
-    </AppShell>
-  );
-}

@@ -1,22 +1,32 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { listEscalations } from "@/modules/escalations/infrastructure/escalation.gateway";
+import {
+  drainEscalationsQueue,
+  listEscalations,
+} from "@/modules/escalations/infrastructure/escalation.gateway";
 import type { EscalationDto, EscalationStatus } from "@/modules/escalations/domain/escalation";
 import { useCaseActions } from "@/modules/cases/application/use-case-actions";
 import { useSession } from "@/modules/identity/application/use-session";
 import { getCaseSummary, getCaseTimeline } from "@/modules/cases/infrastructure/case.gateway";
 import type { CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/cases/domain/case";
 
-export function useEscalations() {
+export function useEscalations(initialDepartmentId?: string) {
   const session = useSession();
-  const [departmentId, setDepartmentId] = useState("");
+  const [departmentId, setDepartmentId] = useState(initialDepartmentId ?? "");
   const [triage, setTriage] = useState(false);
   const [status, setStatus] = useState<EscalationStatus | "">("");
   const [escalations, setEscalations] = useState<EscalationDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draining, setDraining] = useState(false);
   const [summary, setSummary] = useState<CaseSummaryDto | null>(null);
   const [timeline, setTimeline] = useState<CaseTimelineEntryDto[]>([]);
   const [summaryFor, setSummaryFor] = useState<EscalationDto | null>(null);
+
+  useEffect(() => {
+    if (initialDepartmentId !== undefined) {
+      setDepartmentId(initialDepartmentId);
+    }
+  }, [initialDepartmentId]);
 
   const reload = async () => {
     if (!session) return;
@@ -46,6 +56,26 @@ export function useEscalations() {
     await reload();
   });
 
+  const handleDrainQueue = async () => {
+    if (draining) return;
+    setDraining(true);
+    try {
+      const res = await drainEscalationsQueue(departmentId || undefined);
+      if (res.drainedCount > 0) {
+        toast.success(
+          `Se auto-distribuyeron ${res.drainedCount} casos a los asesores disponibles.`,
+        );
+      } else {
+        toast.info("No hay casos pendientes o los asesores en turno están a capacidad máxima.");
+      }
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al vaciar cola de escalaciones");
+    } finally {
+      setDraining(false);
+    }
+  };
+
   const openSummary = async (escalation: EscalationDto) => {
     setSummaryFor(escalation);
     setSummary(null);
@@ -72,8 +102,10 @@ export function useEscalations() {
     setStatus,
     escalations,
     loading,
+    draining,
     busy: caseActions.busy,
     reload,
+    drainQueue: handleDrainQueue,
     summary,
     timeline,
     summaryFor,

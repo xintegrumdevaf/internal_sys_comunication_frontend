@@ -1,14 +1,73 @@
-import { Link } from "@tanstack/react-router";
-import { MessageSquare, Star, Users, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Users, ChevronLeft, ChevronRight, ArrowUpDown, Search, X } from "lucide-react";
 import type { AgentPerformanceDto } from "../domain/analytics.types";
-import { initialsFromName } from "@/modules/identity/domain/session";
+import { AgentPerformanceTableRow } from "./AgentPerformanceTableRow";
 
 interface AgentPerformanceTableProps {
   agents: AgentPerformanceDto[];
   isLoading?: boolean;
 }
 
+type SortField =
+  | "agentName"
+  | "activeCasesNow"
+  | "casesAssigned"
+  | "unattendedActiveCases"
+  | "avgFirstResponseTimeMs"
+  | "avgHandlingTimeMinutes"
+  | "fcrRatePercentage"
+  | "avgCordialityScore";
+
 export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTableProps) {
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortField>("activeCasesNow");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === "agentName" ? "asc" : "desc");
+    }
+    setPage(1);
+  };
+
+  // Filtrado y ordenamiento de agentes
+  const filteredAndSortedAgents = useMemo(() => {
+    let result = [...agents];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.agentName.toLowerCase().includes(q) ||
+          (a.primaryDepartmentName && a.primaryDepartmentName.toLowerCase().includes(q)),
+      );
+    }
+    result.sort((a, b) => {
+      let aVal = a[sortBy];
+      let bVal = b[sortBy];
+      if (aVal === null || aVal === undefined) aVal = sortOrder === "asc" ? Infinity : -Infinity;
+      if (bVal === null || bVal === undefined) bVal = sortOrder === "asc" ? Infinity : -Infinity;
+      if (typeof aVal === "string") {
+        return sortOrder === "asc"
+          ? aVal.localeCompare(String(bVal))
+          : String(bVal).localeCompare(aVal);
+      }
+      return sortOrder === "asc" ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
+    });
+    return result;
+  }, [agents, search, sortBy, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedAgents.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedAgents = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAndSortedAgents.slice(start, start + pageSize);
+  }, [filteredAndSortedAgents, currentPage, pageSize]);
+
   if (isLoading) {
     return (
       <div className="bg-card border border-border rounded-2xl p-5 shadow-xs animate-pulse">
@@ -22,257 +81,205 @@ export function AgentPerformanceTable({ agents, isLoading }: AgentPerformanceTab
     );
   }
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "admin":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
-            Admin
-          </span>
-        );
-      case "manager":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
-            Jefe de Área
-          </span>
-        );
-      case "agent":
-      default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-            Agente
-          </span>
-        );
-    }
-  };
-
-  const formatFrt = (ms: number | null) => {
-    if (ms === null || ms === undefined) return "—";
-    if (ms < 60000) {
-      const seconds = Math.round(ms / 1000);
-      return `${seconds}s`;
-    }
-    const minutes = ms / 60000;
-    if (minutes < 60) {
-      return `${minutes.toFixed(1)}m`;
-    }
-    return `${(minutes / 60).toFixed(1)}h`;
-  };
-
-  const formatAht = (minutes: number | null) => {
-    if (minutes === null || minutes === undefined) return "—";
-    if (minutes < 1) {
-      const seconds = Math.round(minutes * 60);
-      return `${seconds}s`;
-    }
-    if (minutes < 60) {
-      return `${minutes.toFixed(1)}m`;
-    }
-    return `${(minutes / 60).toFixed(1)}h`;
-  };
-
-  const formatPercent = (val: number | null) => {
-    if (val === null || val === undefined) return "—";
-    return `${val.toFixed(1)}%`;
-  };
-
-  const getCapacityBadge = (active: number, max: number) => {
-    const ratio = max > 0 ? active / max : 0;
-    let color = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
-    let status = "Normal";
-
-    if (ratio >= 1) {
-      color = "bg-danger/10 text-danger border-danger/30 animate-pulse";
-      status = "Saturado";
-    } else if (ratio >= 0.75) {
-      color = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
-      status = "Carga Alta";
-    }
-
-    return (
-      <div className="flex items-center gap-1.5">
-        <span
-          className={`px-2 py-0.5 rounded-full border text-xs font-mono font-bold ${color}`}
-          title={`Capacidad: ${active} de ${max} (${status})`}
-        >
-          {active}/{max}
-        </span>
-      </div>
-    );
-  };
-
-  const getCordialityBadge = (score: number | null) => {
-    if (score === null || score === undefined) {
-      return <span className="text-muted-foreground text-xs">—</span>;
-    }
-
-    const isFiveScale = score <= 5;
-    const isGood = isFiveScale ? score >= 4.2 : score >= 80;
-    const isMedium = isFiveScale ? score >= 3.5 : score >= 65;
-
-    let color = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
-    if (!isGood && isMedium) {
-      color = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
-    } else if (!isGood && !isMedium) {
-      color = "bg-danger/10 text-danger border-danger/30";
-    }
-
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-bold ${color}`}
-      >
-        <Star className="size-3 fill-current" />
-        {score.toFixed(1)}
-      </span>
-    );
-  };
+  const startEntry = filteredAndSortedAgents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endEntry = Math.min(currentPage * pageSize, filteredAndSortedAgents.length);
 
   return (
     <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-xs overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+      {/* Cabecera y Barra de Filtro/Búsqueda */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Users className="size-4 text-primary" />
           <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-foreground">
             Rendimiento y Saturación del Equipo ({agents.length} agentes)
           </h3>
         </div>
-        <p className="text-[11px] text-muted-foreground hidden sm:block">
-          Sincronizado con estado en vivo y métricas a 48h
-        </p>
+
+        <div className="flex items-center gap-2">
+          {/* Input de Búsqueda Rápida */}
+          <div className="relative w-full sm:w-56">
+            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Buscar agente o área..."
+              className="w-full pl-8 pr-7 py-1 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Selector de Tamaño de Página */}
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="px-2 py-1 text-xs font-semibold rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shrink-0"
+            title="Filas por página"
+          >
+            <option value={5}>5 / pág</option>
+            <option value={8}>8 / pág</option>
+            <option value={15}>15 / pág</option>
+            <option value={30}>30 / pág</option>
+          </select>
+        </div>
       </div>
 
+      {/* Tabla con Headers Ordenables */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-border bg-background/80 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              <th className="py-2.5 px-3">Agente</th>
+            <tr className="border-b border-border bg-background/80 text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none">
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                onClick={() => handleSort("agentName")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Agente</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
+              </th>
               <th className="py-2.5 px-3">Rol</th>
-              <th className="py-2.5 px-3">Carga en Vivo</th>
-              <th className="py-2.5 px-3" title="Casos asignados en el período">
-                Asignados
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                onClick={() => handleSort("activeCasesNow")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Carga en Vivo</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
               </th>
               <th
-                className="py-2.5 px-3"
-                title="Casos asignados activos donde el cliente espera respuesta"
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                title="Casos asignados en el período"
+                onClick={() => handleSort("casesAssigned")}
               >
-                Desatendidos
+                <div className="flex items-center gap-1">
+                  <span>Asignados</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
               </th>
-              <th className="py-2.5 px-3" title="First Response Time">
-                FRT
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                title="Casos asignados activos donde el cliente espera respuesta"
+                onClick={() => handleSort("unattendedActiveCases")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Desatendidos</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
               </th>
-              <th className="py-2.5 px-3" title="Average Handling Time">
-                AHT
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                title="Tiempo de Primera Respuesta: cuánto demora el asesor en enviar el primer mensaje al cliente"
+                onClick={() => handleSort("avgFirstResponseTimeMs")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>1ª Respuesta</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
               </th>
-              <th className="py-2.5 px-3" title="First Contact Resolution (no reincidencia en 48h)">
-                FCR % (48h)
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                title="Tiempo Medio de Atención: duración promedio para atender y resolver cada caso"
+                onClick={() => handleSort("avgHandlingTimeMinutes")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Duración Media</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
               </th>
-              <th className="py-2.5 px-3">Cordialidad</th>
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                title="Efectividad en 48 horas: porcentaje de casos resueltos sin que el cliente vuelva a reiterar su queja"
+                onClick={() => handleSort("fcrRatePercentage")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Efectividad (48h)</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
+              </th>
+              <th
+                className="py-2.5 px-3 cursor-pointer hover:text-foreground"
+                title="Score de cordialidad y empatía auditado por supervisión (0 a 100 puntos)"
+                onClick={() => handleSort("avgCordialityScore")}
+              >
+                <div className="flex items-center gap-1">
+                  <span>Cordialidad</span>
+                  <ArrowUpDown className="size-3 opacity-60" />
+                </div>
+              </th>
               <th className="py-2.5 px-3 text-right">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {agents.map((agent) => (
-              <tr key={agent.agentId} className="hover:bg-foreground/5 transition-colors group">
-                {/* Nombre y departamento */}
-                <td className="py-3 px-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="size-7 rounded-full bg-primary/10 text-primary grid place-items-center text-[10px] font-bold shrink-0 ring-1 ring-primary/20">
-                      {initialsFromName(agent.agentName)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-foreground truncate">{agent.agentName}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {agent.primaryDepartmentName ?? "Sin dpto."}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                {/* Rol */}
-                <td className="py-3 px-3">{getRoleBadge(agent.role)}</td>
-
-                {/* Carga en vivo */}
-                <td className="py-3 px-3">
-                  {getCapacityBadge(agent.activeCasesNow, agent.maxCapacityThreshold)}
-                </td>
-
-                {/* Casos Asignados */}
-                <td className="py-3 px-3">
-                  <div className="flex flex-col">
-                    <span className="font-mono font-bold text-foreground text-xs">
-                      {agent.casesAssigned}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {agent.casesCompleted} resueltos
-                    </span>
-                  </div>
-                </td>
-
-                {/* Desatendidos */}
-                <td className="py-3 px-3">
-                  {(agent.unattendedActiveCases ?? 0) > 0 ? (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 w-fit">
-                        <AlertTriangle className="size-3" />
-                        {agent.unattendedActiveCases}
-                      </span>
-                      {agent.maxPendingWaitMinutes != null && agent.maxPendingWaitMinutes > 0 && (
-                        <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold font-mono">
-                          {agent.maxPendingWaitMinutes >= 60
-                            ? `${(agent.maxPendingWaitMinutes / 60).toFixed(1)}h espera`
-                            : `${agent.maxPendingWaitMinutes}m espera`}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-semibold">
-                      <CheckCircle2 className="size-3" />0
-                    </span>
-                  )}
-                </td>
-
-                {/* FRT */}
-                <td className="py-3 px-3 font-mono font-medium text-foreground">
-                  {formatFrt(agent.avgFirstResponseTimeMs)}
-                </td>
-
-                {/* AHT */}
-                <td className="py-3 px-3 font-mono font-medium text-foreground">
-                  {formatAht(agent.avgHandlingTimeMinutes)}
-                </td>
-
-                {/* FCR % */}
-                <td className="py-3 px-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {formatPercent(agent.fcrRatePercentage)}
-                </td>
-
-                {/* Cordialidad */}
-                <td className="py-3 px-3">{getCordialityBadge(agent.avgCordialityScore)}</td>
-
-                {/* Chat 1:1 directo */}
-                <td className="py-3 px-3 text-right">
-                  <Link
-                    to="/chat-interno"
-                    search={{ peerId: agent.agentId }}
-                    title={`Abrir chat 1:1 con ${agent.agentName}`}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-background hover:bg-primary hover:text-primary-foreground hover:border-primary text-xs font-semibold text-muted-foreground transition-all shadow-xs cursor-pointer"
-                  >
-                    <MessageSquare className="size-3.5" />
-                    <span className="hidden sm:inline">Chat 1:1</span>
-                  </Link>
-                </td>
-              </tr>
+            {paginatedAgents.map((agent) => (
+              <AgentPerformanceTableRow key={agent.agentId} agent={agent} />
             ))}
 
-            {agents.length === 0 && (
+            {paginatedAgents.length === 0 && (
               <tr>
                 <td colSpan={10} className="py-8 text-center text-xs text-muted-foreground">
-                  No hay datos de rendimiento de agentes para los filtros seleccionados.
+                  {search
+                    ? `No se encontraron agentes que coincidan con "${search}".`
+                    : "No hay datos de rendimiento para los filtros seleccionados."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Controles de Paginación */}
+      <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs">
+        <p className="text-muted-foreground">
+          Mostrando <span className="font-bold text-foreground">{startEntry}</span> a{" "}
+          <span className="font-bold text-foreground">{endEntry}</span> de{" "}
+          <span className="font-bold text-foreground">{filteredAndSortedAgents.length}</span>{" "}
+          asesores
+        </p>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border bg-background hover:bg-foreground/5 text-muted-foreground hover:text-foreground font-semibold disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+          >
+            <ChevronLeft className="size-3.5" />
+            <span className="hidden sm:inline">Anterior</span>
+          </button>
+
+          <span className="px-2 py-1 text-xs font-mono font-bold text-foreground">
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border bg-background hover:bg-foreground/5 text-muted-foreground hover:text-foreground font-semibold disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+          >
+            <span className="hidden sm:inline">Siguiente</span>
+            <ChevronRight className="size-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
