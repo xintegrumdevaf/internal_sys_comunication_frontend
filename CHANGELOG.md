@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.11] - 2026-11-05
+
+### Added
+
+- **Mesa de Triaje y Rescate SLA (`EscalationsBoard.tsx`, `EscalationsMetrics.tsx`, `EscalationsTable.tsx`, `EscalationRowItem.tsx`, `use-escalations.ts`, `escalation.gateway.ts`, `escalation.ts`)**:
+  - _Context_: The legacy escalations screen was a passive listing table that offered little operational value and lacked urgency cues or real-time distribution capabilities.
+  - _Resolution_:
+    1. **1-Click Auto-Drain / Paced Dispatch**: Added "⚡ Auto-distribuir cola" action button triggering `POST /api/escalations/drain`, evenly distributing queued escalations to available connected agents up to their concurrency limits.
+    2. **Real-time SLA Alert Semaphores**: Embedded dynamic countdown badges for pending cases: `< 5m` Green (En SLA), `5-15m` Amber (Riesgo SLA), and `> 15m` Red pulsing (SLA Vencido).
+    3. **AI Triage Isolation**: Added prominent visual badges and a dedicated 1-click filter button for cases where AI could not classify the customer's intent or area (`departmentId === null`).
+    4. **Direct Row Actions**: Added instant "Atender" (claim case), direct deep-link to chat ("Chat" linking to `/bandeja?conversationId=...`), and AI diagnosis inspection ("Diagnóstico" opening `CaseSummaryDialog`).
+    5. **Live Search & Pagination**: Integrated immediate multi-field search (customer name, phone, or reason) and configurable pagination (10, 20, 50 items per page).
+    6. **Clean Code Decomposition**: Refactored the monolithic view into modular single-responsibility components (`EscalationsMetrics`, `EscalationsTable`, `EscalationRowItem`, `EscalationsBoard`), with all files under 170 lines (strict limit < 400).
+
+- **Analytics Dashboard Overhaul for Non-Technical Managers (`BurnRateTrendChart.tsx`, `FcrQualityCard.tsx`, `RootCausesChart.tsx`, `AgentPerformanceTable.tsx`, `AgentPerformanceTableRow.tsx`)**:
+  - _Context_: Managers reported chart clutter on date filters $\ge 30$ days, unreadable acronyms (FCR, FRT, AHT), duration bugs (378,946 seconds in average queue wait), lack of root cause drill-downs, and table overflowing without pagination.
+  - _Resolution_:
+    1. `BurnRateTrendChart`: Added view mode toggle (Area vs. Bars), auto-smoothing when filter range exceeds 14 days, and smart date interval spacing.
+    2. `FcrQualityCard`: Replaced technical acronyms with clear business terminology ("Resolución al Primer Contacto y Reincidencias", "Tiempo Promedio de Cierre"). Replaced raw seconds with human-readable formats (`seg`, `min`, `h`, `días`).
+    3. `RootCausesChart`: Removed internal scrollbar, and added interactive category drill-down: clicking an area bar dynamically isolates and breaks down that area's specific sub-reasons with local percentages.
+    4. `AgentPerformanceTable`: Added live search, column sorting (`1ª Respuesta`, `Duración Media`, `Efectividad 48h`, `Cordialidad`), sanitized durations (`< 1 min`, `< 10s`), and client-side pagination (5/8/15/30 per page).
+
+- **Dashboard Operational Upgrades (`CircularGauge.tsx`, `DepartmentSaturationGrid.tsx`, `AgentWorkloadMonitor.tsx`, `AgentWorkloadTableRow.tsx`, `OperationalKpiPulse.tsx`)**:
+  - Replaced linear saturation bars with high-precision SVG circular gauges.
+  - Added URL parameter preservation on department and queue shortcuts (`/bandeja?departmentId=...&status=QUEUED`) so filters persist after page reloads.
+  - Added pagination and workload-based sorting to the advisor workload monitor.
+
+### Changed
+
+- **Removed Redundant "Carga de trabajo" (`access-control.ts`, `asignaciones.tsx`)**:
+  - Removed `{ label: "Carga de trabajo", to: "/asignaciones" }` from the sidebar menu to eliminate confusion and redundancy with the Dashboard (`/`) and Bandeja (`/bandeja`).
+  - Implemented `<Navigate to="/" replace />` in `src/routes/asignaciones.tsx` for seamless backward-compatible redirection.
+
 ## [0.2.10] - 2026-11-05
 
 ### Added

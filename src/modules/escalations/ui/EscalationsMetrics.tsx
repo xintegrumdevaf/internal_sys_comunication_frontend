@@ -71,3 +71,4 @@ export function EscalationsMetrics({ escalations }: EscalationsMetricsProps) {
     </section>
   );
 }
+

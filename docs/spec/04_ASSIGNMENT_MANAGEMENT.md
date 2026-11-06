@@ -1,5 +1,11 @@
 # 04_ASSIGNMENT_MANAGEMENT.md
 
+> **Nota de Arquitectura (2026-11-05)**: La ruta `/asignaciones` ("Carga de trabajo") fue retirada del menú de navegación y unificada en dos puntos clave de la aplicación para eliminar redundancias:
+> 1. El monitoreo de carga y capacidad por asesor fue integrado directamente en el Dashboard principal (`/`) mediante el *Monitor de Carga y Disponibilidad de Asesores*.
+> 2. La gestión y despacho de casos sin asignar fue repensada en la *Mesa de Triaje y Rescate SLA* (`/escalaciones`), dotada de semáforo de tiempo de respuesta y botón de auto-distribución (*Paced FIFO Dispatch*).
+> 
+> La URL `/asignaciones` se mantiene con redirección automática hacia `/` para preservar compatibilidad con enlaces y marcadores antiguos.
+
 Gestión y monitoreo de la asignación de casos a agentes humanos, construida enteramente sobre los endpoints reales que **ya existen** en el backend (`claim`, `assign`, `reassign`). El algoritmo de asignación **automática** por departamento no existe todavía en el backend — su diseño se deja documentado en `06_BACKEND_GAPS.md`, no se implementa en este trabajo.
 
 ## 1. Ruta `/asignaciones`
