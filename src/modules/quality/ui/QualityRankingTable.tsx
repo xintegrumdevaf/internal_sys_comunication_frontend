@@ -1,9 +1,12 @@
+import { Loader2 } from "lucide-react";
 import type { AgentQualityStatsDto } from "@/modules/quality/domain/quality-review";
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface QualityRankingTableProps {
   stats: AgentQualityStatsDto[];
   loading: boolean;
+  refreshing?: boolean;
   selectedAgentId: string;
   onSelectAgent: (agentId: string) => void;
 }
@@ -11,16 +14,25 @@ interface QualityRankingTableProps {
 export function QualityRankingTable({
   stats,
   loading,
+  refreshing = false,
   selectedAgentId,
   onSelectAgent,
 }: QualityRankingTableProps) {
   return (
     <div className="col-span-1 lg:col-span-4 bg-card border border-border rounded-xl overflow-hidden shadow-xs flex flex-col h-full min-h-[480px]">
-      <div className="p-4 sm:p-5 border-b border-border bg-background/60 shrink-0">
-        <h3 className="text-xs font-extrabold uppercase tracking-widest">Ranking por Agente</h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">
-          Score promedio de chats con valoración total.
-        </p>
+      <div className="p-4 sm:p-5 border-b border-border bg-background/60 shrink-0 flex items-center justify-between gap-2">
+        <div>
+          <h3 className="text-xs font-extrabold uppercase tracking-widest">Ranking por Agente</h3>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Score promedio de chats con valoración total.
+          </p>
+        </div>
+        {refreshing && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 animate-pulse shrink-0">
+            <Loader2 className="size-3 animate-spin" />
+            <span>Actualizando</span>
+          </span>
+        )}
       </div>
       <div className="overflow-y-auto overflow-x-auto flex-1 min-h-0">
         <table className="w-full text-xs">
@@ -32,21 +44,28 @@ export function QualityRankingTable({
               <th className="text-right px-3.5 py-3">Crít.</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody
+            className={`divide-y divide-border transition-opacity duration-200 ${
+              refreshing ? "opacity-50" : ""
+            }`}
+          >
             {loading && stats.length === 0
-              ? Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-3.5 py-3">
-                      <div className="h-4 w-28 bg-foreground/10 rounded" />
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-3.5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="size-6 rounded-full shrink-0" />
+                        <Skeleton className="h-3.5 w-24 rounded" />
+                      </div>
                     </td>
-                    <td className="px-3.5 py-3 text-right">
-                      <div className="h-4 w-12 bg-foreground/10 rounded ml-auto" />
+                    <td className="px-3.5 py-3.5 text-right">
+                      <Skeleton className="h-3.5 w-10 ml-auto rounded" />
                     </td>
-                    <td className="px-3.5 py-3">
-                      <div className="h-5 w-16 bg-foreground/10 rounded-full" />
+                    <td className="px-3.5 py-3.5">
+                      <Skeleton className="h-5 w-16 rounded-full" />
                     </td>
-                    <td className="px-3.5 py-3 text-right">
-                      <div className="h-4 w-6 bg-foreground/10 rounded ml-auto" />
+                    <td className="px-3.5 py-3.5 text-right">
+                      <Skeleton className="h-3.5 w-6 ml-auto rounded" />
                     </td>
                   </tr>
                 ))

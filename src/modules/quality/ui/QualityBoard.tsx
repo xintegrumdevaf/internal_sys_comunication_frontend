@@ -35,6 +35,7 @@ export function QualityBoard({
     reviews,
     pendingCount,
     loading,
+    refreshing,
     analyzingCaseId,
     batchBusy,
     backendUnavailable,
@@ -145,6 +146,7 @@ export function QualityBoard({
           slaMinutes={slaConfig.responseThresholdMinutes}
           onOpenSlaModal={() => setSlaModalOpen(true)}
           batchBusy={batchBusy}
+          refreshing={refreshing}
           isAnalyzingAny={Boolean(analyzingCaseId)}
           onAnalyzePendingChats={() => void analyzePendingChats()}
           onReanalyzeAllChats={() => void reanalyzeAllChats()}
@@ -158,6 +160,7 @@ export function QualityBoard({
         <QualityRankingTable
           stats={stats}
           loading={loading}
+          refreshing={refreshing}
           selectedAgentId={filters.agentId}
           onSelectAgent={(agentId) =>
             setFilters((p) => ({
@@ -170,6 +173,7 @@ export function QualityBoard({
         <QualityReviewsTable
           reviews={reviews}
           loading={loading}
+          refreshing={refreshing}
           listTitle={listTitle}
           showAgentColumn={showAgentColumn}
           agentName={agentName}

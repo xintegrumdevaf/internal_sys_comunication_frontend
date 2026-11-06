@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { canAccessPath, modulesForSession } from "@/modules/identity/application/access-control";
 import {
@@ -748,7 +749,10 @@ export function StatCard({
         {label}
       </p>
       {loading ? (
-        <div className="h-8 w-24 bg-foreground/10 animate-pulse rounded-md mt-2" />
+        <div className="space-y-2.5 mt-2.5">
+          <Skeleton className="h-8 w-24 rounded-lg" />
+          <Skeleton className="h-3 w-32 rounded" />
+        </div>
       ) : (
         <p
           className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 tracking-tight ${toneMap.value}`}
@@ -761,7 +765,7 @@ export function StatCard({
           )}
         </p>
       )}
-      {hint && (
+      {!loading && hint && (
         <p className={`text-[10px] sm:text-[11px] mt-1.5 truncate ${toneMap.hint}`}>{hint}</p>
       )}
     </div>

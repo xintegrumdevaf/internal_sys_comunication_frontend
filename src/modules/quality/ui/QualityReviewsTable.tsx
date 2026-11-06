@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   highFindingCount,
   isMessageAnalysisComplete,
@@ -8,6 +8,7 @@ import {
   type QualityReviewDto,
 } from "@/modules/quality/domain/quality-review";
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { relativeTime } from "@/shared/datetime";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -15,6 +16,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 interface QualityReviewsTableProps {
   reviews: QualityReviewDto[];
   loading: boolean;
+  refreshing?: boolean;
   listTitle: string;
   showAgentColumn: boolean;
   agentName: (agentId: string) => string;
@@ -29,6 +31,7 @@ interface QualityReviewsTableProps {
 export function QualityReviewsTable({
   reviews,
   loading,
+  refreshing = false,
   listTitle,
   showAgentColumn,
   agentName,
@@ -51,13 +54,21 @@ export function QualityReviewsTable({
     <div className="col-span-1 lg:col-span-8 bg-card border border-border rounded-xl overflow-hidden shadow-xs flex flex-col h-full min-h-[480px]">
       {/* Cabecera de la Lista */}
       <div className="p-4 sm:p-5 border-b border-border bg-background/60 flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div>
-          <h3 className="text-xs font-extrabold uppercase tracking-widest">
-            {listTitle} ({reviews.length})
-          </h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Msgs = mensajes analizados / total. Score generado al completar todos los tramos.
-          </p>
+        <div className="flex items-center gap-2.5">
+          <div>
+            <h3 className="text-xs font-extrabold uppercase tracking-widest">
+              {listTitle} ({reviews.length})
+            </h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Msgs = mensajes analizados / total. Score generado al completar todos los tramos.
+            </p>
+          </div>
+          {refreshing && (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 animate-pulse">
+              <Loader2 className="size-3 animate-spin text-primary" />
+              <span>Cargando...</span>
+            </span>
+          )}
         </div>
         {onClearAgentFilter && (
           <button
@@ -71,7 +82,18 @@ export function QualityReviewsTable({
       </div>
 
       {/* Contenedor con Scroll Acotado y Sticky Header */}
-      <div className="overflow-y-auto overflow-x-auto flex-1 min-h-0">
+      <div className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0">
+        {refreshing && reviews.length > 0 && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-[1.5px] z-20 flex flex-col items-center justify-center gap-2 pointer-events-none animate-fade-in">
+            <div className="px-4 py-2.5 rounded-xl border border-border/80 bg-card/95 shadow-lg flex items-center gap-2.5">
+              <Loader2 className="size-4 animate-spin text-primary shrink-0" />
+              <span className="text-xs font-semibold text-foreground">
+                Cargando conversaciones filtradas...
+              </span>
+            </div>
+          </div>
+        )}
+
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground font-bold z-10">
             <tr>
@@ -85,39 +107,51 @@ export function QualityReviewsTable({
               <th className="text-left px-3.5 py-3">Fecha</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody
+            className={`divide-y divide-border transition-opacity duration-200 ${
+              refreshing ? "opacity-40" : ""
+            }`}
+          >
             {loading && reviews.length === 0
               ? Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-3.5 py-3">
-                      <div className="h-4 w-28 bg-foreground/10 rounded mb-1" />
-                      <div className="h-3 w-16 bg-foreground/10 rounded" />
+                  <tr key={i} className="border-b border-border/50">
+                    <td className="px-3.5 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <Skeleton className="size-8 rounded-full shrink-0" />
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <Skeleton className="h-3.5 w-32 max-w-full" />
+                          <Skeleton className="h-2.5 w-20" />
+                        </div>
+                      </div>
                     </td>
                     {showAgentColumn && (
-                      <td className="px-3.5 py-3">
-                        <div className="h-4 w-20 bg-foreground/10 rounded" />
+                      <td className="px-3.5 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <Skeleton className="size-5 rounded-full shrink-0" />
+                          <Skeleton className="h-3.5 w-24" />
+                        </div>
                       </td>
                     )}
-                    <td className="px-3.5 py-3 text-right">
-                      <div className="h-4 w-10 bg-foreground/10 rounded ml-auto" />
+                    <td className="px-3.5 py-3.5 text-right">
+                      <Skeleton className="h-3.5 w-10 ml-auto" />
                     </td>
-                    <td className="px-3.5 py-3">
-                      <div className="h-5 w-16 bg-foreground/10 rounded-full" />
+                    <td className="px-3.5 py-3.5">
+                      <Skeleton className="h-5 w-18 rounded-full" />
                     </td>
-                    <td className="px-3.5 py-3">
-                      <div className="h-4 w-14 bg-foreground/10 rounded" />
+                    <td className="px-3.5 py-3.5">
+                      <Skeleton className="h-4 w-16 rounded-md" />
                     </td>
-                    <td className="px-3.5 py-3 text-right">
-                      <div className="h-4 w-6 bg-foreground/10 rounded ml-auto" />
+                    <td className="px-3.5 py-3.5 text-right">
+                      <Skeleton className="h-3.5 w-6 ml-auto" />
                     </td>
-                    <td className="px-3.5 py-3">
-                      <div className="h-4 w-40 bg-foreground/10 rounded" />
+                    <td className="px-3.5 py-3.5">
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3 w-48 max-w-full" />
+                        <Skeleton className="h-2.5 w-32" />
+                      </div>
                     </td>
-                    <td className="px-3.5 py-3">
-                      <div className="h-4 w-12 bg-foreground/10 rounded" />
-                    </td>
-                    <td className="px-3.5 py-3 text-right">
-                      <div className="h-6 w-16 bg-foreground/10 rounded ml-auto" />
+                    <td className="px-3.5 py-3.5">
+                      <Skeleton className="h-3.5 w-12" />
                     </td>
                   </tr>
                 ))

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.14] - 2026-11-06
+
+### Added & Improved
+
+- **Feedback visual de carga en filtros y modernización de loaders gráficos en Supervisión de Calidad (`QualityFiltersBar.tsx`, `QualityReviewsTable.tsx`, `QualityRankingTable.tsx`, `skeleton.tsx`, `styles.css`)**:
+  - _Contexto y Problema_:
+    1. Al seleccionar un asesor en el ranking y accionar un filtro de semáforo (por ejemplo, `<40 Críticos`), la petición tardaba varios segundos sin ningún indicador visual o spinner en los botones ni en la tabla, dando la falsa impresión de que la interfaz estaba congelada o no respondía.
+    2. Los esqueletos de carga (_skeletons_) utilizaban un fondo tenue y plano (`bg-primary/10 animate-pulse`), el cual resultaba prácticamente imperceptible tanto en modo claro (`#F1F6F6`) como en modo oscuro (`#030E20`), careciendo de estructura gráfica clara.
+  - _Causa Raíz_:
+    1. En `useQualityBoard`, tras la primera carga inicial, `hasLoadedOnce.current` se establece en `true`. Al aplicar nuevos filtros o seleccionar asesores, el hook marca `refreshing = true` y mantiene `loading = false`. La tabla de revisiones condicionaba la visualización de skeletons únicamente a `loading && reviews.length === 0`, por lo que durante la recarga de 82 conversaciones la tabla se mantenía estática sin indicar progreso.
+    2. La implementación base de `Skeleton` dependía de un simple pulso de opacidad sobre fondos transparentes sin animación direccional de brillo ni contraste perimetral.
+  - _Resolución_:
+    1. **Feedback de carga en filtros**:
+       - En `QualityFiltersBar`: cuando `refreshing` está activo, el botón de filtro de semáforo seleccionado muestra inmediatamente un spinner rotatorio (`Loader2`) y un resplandor activo; adicionalmente se despliega una barra horizontal animada de progreso con degradado en el borde superior de la barra de filtros.
+       - En `QualityReviewsTable`: durante el refresco con datos existentes en pantalla, el cuerpo de la tabla reduce su opacidad al 40% y se presenta una tarjeta flotante centrada con fondo traslúcido y spinner informando `"Cargando conversaciones filtradas..."`. En la cabecera se añade una insignia animada de estado `"Cargando..."`.
+       - En `QualityRankingTable`: se añadió la insignia de estado `"Actualizando..."` en la cabecera durante el refresco.
+    2. **Modernización gráfica del componente Skeleton**:
+       - Se definió en `styles.css` la animación `@keyframes shimmer` y la utilidad `@utility animate-shimmer` (1.8s infinite).
+       - Se rediseñó `src/components/ui/skeleton.tsx` incorporando base de contraste slate (`bg-slate-300/70 dark:bg-slate-700/60`), borde perimetral sutil (`border-slate-300/40 dark:border-slate-600/30`) y barrido de luz direccional (`after:animate-shimmer after:bg-gradient-to-r after:from-transparent after:via-white/70 dark:after:via-white/15 after:to-transparent`).
+       - Se actualizaron las filas de skeleton en `QualityReviewsTable` y `QualityRankingTable` con avatares circulares, líneas multinivel de cliente/resumen y pastillas métricas proporcionadas.
+
 ## [0.2.13] - 2026-11-06
 
 ### Fixed

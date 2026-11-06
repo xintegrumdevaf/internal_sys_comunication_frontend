@@ -132,12 +132,25 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @utility animate-fade-up {
   animation: fadeUp 0.35s var(--ease-out-expo) both;
 }
 
 @utility animate-fade-in {
   animation: fadeIn 0.25s var(--ease-out-expo) both;
+}
+
+@utility animate-shimmer {
+  animation: shimmer 1.8s infinite ease-in-out;
 }
 
 @layer base {

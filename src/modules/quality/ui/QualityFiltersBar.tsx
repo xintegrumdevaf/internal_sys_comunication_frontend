@@ -1,4 +1,4 @@
-import { Clock, Filter, Loader2, RefreshCcw, ShieldAlert, Sparkles } from "lucide-react";
+import { Clock, Loader2, RefreshCcw, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ interface QualityFiltersBarProps {
   slaMinutes: number;
   onOpenSlaModal: () => void;
   batchBusy: boolean;
+  refreshing?: boolean;
   isAnalyzingAny: boolean;
   onAnalyzePendingChats: () => void;
   onReanalyzeAllChats?: () => void;
@@ -34,6 +35,7 @@ export function QualityFiltersBar({
   slaMinutes,
   onOpenSlaModal,
   batchBusy,
+  refreshing = false,
   isAnalyzingAny,
   onAnalyzePendingChats,
   onReanalyzeAllChats,
@@ -68,7 +70,12 @@ export function QualityFiltersBar({
   };
 
   return (
-    <section className="p-3.5 sm:p-4 rounded-xl border border-border bg-card flex flex-wrap gap-3 items-center justify-between shadow-xs">
+    <section className="relative overflow-hidden p-3.5 sm:p-4 rounded-xl border border-border bg-card flex flex-wrap gap-3 items-center justify-between shadow-xs">
+      {refreshing && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden z-10">
+          <div className="h-full bg-primary animate-shimmer w-full bg-gradient-to-r from-transparent via-primary to-transparent" />
+        </div>
+      )}
       <div className="flex flex-wrap gap-2.5 items-center w-full lg:w-auto">
         {/* Selector de Agentes */}
         <div className="w-full sm:w-auto min-w-[170px]">
@@ -185,13 +192,16 @@ export function QualityFiltersBar({
           <button
             type="button"
             onClick={() => handleSemaforoSelect("ALL")}
-            className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+            className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeSemaforo === "ALL"
                 ? "bg-card border border-border/80 text-foreground shadow-2xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Todos
+            {refreshing && activeSemaforo === "ALL" && (
+              <Loader2 className="size-3 animate-spin text-foreground shrink-0" />
+            )}
+            <span>Todos</span>
           </button>
           <button
             type="button"
@@ -203,7 +213,11 @@ export function QualityFiltersBar({
             }`}
             title="Valoración cordial (≥ 70)"
           >
-            <span className="size-2 rounded-full bg-emerald-500 inline-block" />
+            {refreshing && activeSemaforo === "CORDIAL" ? (
+              <Loader2 className="size-3 animate-spin text-emerald-500 shrink-0" />
+            ) : (
+              <span className="size-2 rounded-full bg-emerald-500 inline-block" />
+            )}
             <span>≥70 Cordiales</span>
           </button>
           <button
@@ -216,7 +230,11 @@ export function QualityFiltersBar({
             }`}
             title="Requiere atención (40 a 69)"
           >
-            <span className="size-2 rounded-full bg-amber-500 inline-block" />
+            {refreshing && activeSemaforo === "ATTENTION" ? (
+              <Loader2 className="size-3 animate-spin text-amber-500 shrink-0" />
+            ) : (
+              <span className="size-2 rounded-full bg-amber-500 inline-block" />
+            )}
             <span>40–69 Atención</span>
           </button>
           <button
@@ -224,12 +242,16 @@ export function QualityFiltersBar({
             onClick={() => handleSemaforoSelect("CRITICAL")}
             className={`h-8 px-2.5 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeSemaforo === "CRITICAL"
-                ? "bg-danger/20 text-danger border border-danger/40 font-bold shadow-2xs"
+                ? "bg-danger/20 text-danger border border-danger/40 font-bold shadow-2xs ring-2 ring-danger/30"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             title="Valoración crítica (< 40)"
           >
-            <span className="size-2 rounded-full bg-danger inline-block" />
+            {refreshing && activeSemaforo === "CRITICAL" ? (
+              <Loader2 className="size-3 animate-spin text-danger shrink-0" />
+            ) : (
+              <span className="size-2 rounded-full bg-danger inline-block" />
+            )}
             <span>&lt;40 Críticos</span>
             {criticalCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-danger text-white">
