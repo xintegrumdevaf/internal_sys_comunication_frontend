@@ -7,7 +7,7 @@ import {
   buildCampaignRecipients,
   estimateCampaignCost,
   parseImportFile,
-  CreateCampaignPayload,
+  type CreateCampaignPayload,
 } from "../domain/campaign";
 import { WhatsAppBubblePreview } from "./WhatsAppBubblePreview";
 

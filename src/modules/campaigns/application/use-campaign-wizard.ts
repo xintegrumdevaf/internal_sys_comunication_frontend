@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import type { MessageTemplate } from "@/modules/message-templates/domain/message-template";
 import {
-  ChatRoutingConfig,
-  CampaignRecipient,
+  type ChatRoutingConfig,
+  type CampaignRecipient,
   validateCampaignName,
   validateCampaignMessage,
   parseImportFile,

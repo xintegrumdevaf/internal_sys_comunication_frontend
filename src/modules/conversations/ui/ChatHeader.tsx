@@ -143,7 +143,11 @@ export function ChatHeader({
               </span>
             );
           })()
-        ) : !activeCase && !selected?.activeCase ? (
+        ) : !activeCase &&
+          (!selected?.activeCase ||
+            selected.activeCase.status === "COMPLETED" ||
+            selected.activeCase.status === "CANCELLED" ||
+            selected.activeCase.status === "EXPIRED") ? (
           <span className="inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary ring-1 ring-primary/30">
             <UserCheck className="size-3 sm:size-3.5 shrink-0" />
             <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
@@ -213,7 +217,10 @@ export function ChatHeader({
           </button>
         )}
         {!activeCase &&
-          !selected.activeCase &&
+          (!selected.activeCase ||
+            selected.activeCase.status === "COMPLETED" ||
+            selected.activeCase.status === "CANCELLED" ||
+            selected.activeCase.status === "EXPIRED") &&
           (selected.status === "open" || selected.status === "pending") && (
             <button
               type="button"

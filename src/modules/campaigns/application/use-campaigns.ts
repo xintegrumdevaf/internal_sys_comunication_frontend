@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Campaign, CreateCampaignPayload } from "../domain/campaign";
+import { type Campaign, type CreateCampaignPayload } from "../domain/campaign";
 import { campaignsGateway } from "../infrastructure/campaigns.gateway";
 
 export function useCampaignsList() {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { Campaign, CampaignStatus } from "../domain/campaign";
+import { type Campaign, CampaignStatus } from "../domain/campaign";
 import { campaignStatusMeta, formatRoutingBehaviorSummary } from "../domain/campaign";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -983,22 +983,34 @@ export function OperationalInbox({
   const assignedAgentName = useMemo(() => {
     if (activeCase?.assignedAgentName) return activeCase.assignedAgentName;
     if (selected?.activeCase?.assignedAgentName) return selected.activeCase.assignedAgentName;
-    if (selected?.lastAttendedBy?.agentName) return selected.lastAttendedBy.agentName;
-    const agentId =
-      activeCase?.assignedAgentId ||
-      selected?.activeCase?.assignedAgentId ||
-      selected?.lastAttendedBy?.agentId;
-    if (!agentId) return null;
-    if (session && agentId === session.id) return session.name || "Tú";
-    return (
-      directory.find((a) => a.id === agentId)?.name ??
-      (selected?.lastAttendedBy?.agentId
-        ? null
-        : selected?.activeCase?.departmentId
-          ? "Agente de Área"
-          : "Agente Asignado")
-    );
-  }, [activeCase, selected?.activeCase, selected?.lastAttendedBy, directory, session]);
+    const activeAgentId = activeCase?.assignedAgentId || selected?.activeCase?.assignedAgentId;
+    if (activeAgentId) {
+      if (session && activeAgentId === session.id) return session.name || "Tú";
+      return (
+        directory.find((a) => a.id === activeAgentId)?.name ??
+        (selected?.activeCase?.departmentId ? "Agente de Área" : "Agente Asignado")
+      );
+    }
+    // Solo para conversaciones resueltas o cerradas históricas, mostrar quién la atendió por última vez
+    if (selected && (selected.status === "resolved" || selected.status === "closed")) {
+      if (selected.lastAttendedBy?.agentName) return selected.lastAttendedBy.agentName;
+      if (selected.lastAttendedBy?.agentId) {
+        if (session && selected.lastAttendedBy.agentId === session.id) return session.name || "Tú";
+        return directory.find((a) => a.id === selected.lastAttendedBy?.agentId)?.name ?? null;
+      }
+    }
+    return null;
+  }, [
+    activeCase?.assignedAgentName,
+    activeCase?.assignedAgentId,
+    selected?.activeCase?.assignedAgentName,
+    selected?.activeCase?.assignedAgentId,
+    selected?.activeCase?.departmentId,
+    selected?.status,
+    selected?.lastAttendedBy,
+    directory,
+    session,
+  ]);
 
   const draftsByConvRef = useRef<Record<string, string>>({});
   const prevSelectedIdRef = useRef<string | null>(null);
@@ -1119,7 +1131,13 @@ export function OperationalInbox({
 
     // Si no hay caso activo (conversación nueva, sin flujo activo o vacía),
     // la IA no está respondiendo y el agente puede escribir directamente:
-    if (!activeCase && !selected?.activeCase) {
+    const isTerminalCase = (status?: string) =>
+      status === "COMPLETED" || status === "CANCELLED" || status === "EXPIRED";
+
+    if (
+      (!activeCase || isTerminalCase(activeCase.status)) &&
+      (!selected?.activeCase || isTerminalCase(selected.activeCase.status))
+    ) {
       return false;
     }
 

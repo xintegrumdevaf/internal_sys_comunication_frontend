@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPut, apiDelete, ApiError } from "@/shared/http/http-client";
-import { Campaign, CreateCampaignPayload } from "../domain/campaign";
+import { type Campaign, type CreateCampaignPayload } from "../domain/campaign";
 
 function shouldThrowError(err: unknown): boolean {
   if (err instanceof ApiError) {

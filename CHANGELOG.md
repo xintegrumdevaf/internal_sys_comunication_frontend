@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.13] - 2026-11-06
+
+### Fixed
+
+- **Desacoplamiento de caso finalizado en conversaciones reabiertas de la bandeja (`use-operational-inbox.ts`, `OperationalInbox.tsx`, `ChatHeader.tsx`, `ConversationListItem.tsx`)**:
+  - _Contexto y Problema_: Cuando un cliente vuelve a escribir por WhatsApp después de que su caso previo fue completado/resuelto por un asesor, el webhook del sistema reabre automáticamente la conversación (`status = "open"`). Sin embargo, en la bandeja de entrada, la interfaz mostraba simultáneamente la conversación como `ABIERTA` en la lista, pero en la cabecera y en el panel lateral derecho (`CasePanel`) aparecía fijada como `Caso finalizado (Completado) [RESUELTO]` indicando falsamente `Atendido por {agente_anterior}` con los botones de acción del caso deshabilitados y el botón de "Cerrar conversación" oculto.
+  - _Causa Raíz_:
+    1. En `use-operational-inbox.ts`, el selector memoizado `activeCase` evaluaba los casos en memoria buscando `activeCaseId` o estados en progreso. Al no encontrar ninguno (porque el nuevo mensaje del cliente no abrió un ticket formal y `activeCaseId` era `null`), recurría a un fallback ciego: `cases[0] ?? null`. En conversaciones reabiertas, `cases[0]` devolvía el caso histórico recién cerrado por el asesor anterior en estado `COMPLETED`.
+    2. Como consecuencia, `activeCase` no era `null`, lo que provocaba que:
+       - `ChatHeader` mostrara la etiqueta del caso viejo (`Completado • Consulta`) y el nombre del agente anterior (`Atendido por {nombre}`), en lugar de indicar `Sin caso activo` y `Atención directa`.
+       - `ChatHeader` ocultaba el botón `Cerrar` (porque la condición evaluaba `!activeCase`).
+       - `CasePanel` mostraba el cuadro de "Caso finalizado (Completado)" y bloqueaba las acciones de cierre/agenda en lugar de mostrar la tarjeta de cliente con las opciones "Derivar a un área" y "Cerrar conversación".
+       - En `OperationalInbox.tsx`, `assignedAgentName` recurría a `lastAttendedBy` (el agente del caso anterior) asignándole erróneamente la conversación en curso a ese agente.
+    3. En `ConversationListItem.tsx`, si `activeCase` del ítem tenía un estado terminal, se evaluaban de todas formas las etiquetas de asignación humana/área de ese caso ya cerrado.
+  - _Resolución_:
+    1. En `use-operational-inbox.ts` (`activeCase`):
+       - Se verifica si el caso explícito o los casos en memoria tienen estados terminales (`COMPLETED`, `EXPIRED`, `CANCELLED`).
+       - Si la conversación está abierta (`status: "open"`) o en espera y no tiene un caso activo en progreso (`WAITING_USER`, `ACTIVE`, `ESCALATED`, `HUMAN_ACTIVE`, `NEW`, `PAUSED`), `activeCase` retorna estrictamente `null`.
+       - Se preserva el fallback a `cases[0]` única y exclusivamente cuando la conversación se encuentra en estado `resolved` o `closed` para permitir la consulta histórica de cierres pasados.
+    2. En `OperationalInbox.tsx`:
+       - `assignedAgentName`: Se desacopló `lastAttendedBy` de las conversaciones abiertas. Ahora solo se utiliza como asesor responsable si la conversación está efectivamente en estado `resolved` o `closed`. En conversaciones abiertas sin caso activo, retorna `null` para evitar bloquear o malinterpretar la atención directa.
+       - `isAutomationActive`: Si tanto `activeCase` como `selected.activeCase` son nulos o terminales, la automatización se marca inactiva para permitir al asesor responder directamente sin advertencias engañosas de IA.
+    3. En `ChatHeader.tsx`:
+       - Se actualizaron las condiciones de `Atención directa` y del botón `Cerrar` para considerar casos terminales, permitiendo cerrar la conversación directamente o ver el badge de atención directa cuando no hay un caso abierto.
+    4. En `ConversationListItem.tsx`:
+       - Se aisló la renderización del badge de caso vivo a estados no terminales (`liveCase = c.activeCase && !isTerminalCase(...)`), evitando badges contradictorios en el listado izquierdo.
+
 ## [0.2.12] - 2026-11-06
 
 ### Fixed & Code Quality

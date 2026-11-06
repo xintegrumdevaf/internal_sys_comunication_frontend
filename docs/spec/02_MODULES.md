@@ -86,3 +86,19 @@ La columna izquierda de la bandeja es la que hace scroll (`overflow-y-auto`), no
 **Por qué.** Sin eso el navegador pone el scroll en 0. El hilo abierto no cambia, pero la lista vuelve al inicio y hay que buscar de nuevo la conversación en la que se estaba.
 
 **Qué no revertir.** No quitar `data-conversation-id` de `ConversationListItem` ni el `overflow-anchor: none` del scroller. No forzar `scrollTop = 0` ni `scrollIntoView` de la fila activa en cada recarga: eso es justo el salto que se está evitando. El test está en `use-preserved-list-scroll.test.tsx`. Registro del cambio: `CHANGELOG.md` `[0.2.9]`.
+
+## 8. Resolución de caso activo en conversaciones reabiertas (`use-operational-inbox.ts`, `OperationalInbox.tsx`, `ChatHeader.tsx`, `ConversationListItem.tsx`)
+
+Una conversación de WhatsApp reabierta por un nuevo mensaje inbound del cliente tras haber sido resuelta o cerrada no debe heredar el caso histórico completado como si estuviera activo.
+
+**Qué se cambió (2026-11-06).**
+
+- En `use-operational-inbox.ts`: el selector memoizado `activeCase` ahora solo evalúa casos con estados vigentes (`WAITING_USER`, `ACTIVE`, `ESCALATED`, `HUMAN_ACTIVE`, `NEW`, `PAUSED`). Si el caso explícito o los casos asociados son terminales (`COMPLETED`, `EXPIRED`, `CANCELLED`), retorna `null` para conversaciones abiertas (`status: "open"`). Solo si la conversación está en pestañas resueltas/cerradas (`status === "resolved" || status === "closed"`), recurre al caso completado (`cases[0]`) para permitir la inspección histórica.
+- En `OperationalInbox.tsx`: `assignedAgentName` restringe el uso de `lastAttendedBy` exclusivamente a conversaciones resueltas o cerradas. En conversaciones abiertas sin caso activo en curso, retorna `null`. La variable `isAutomationActive` detecta si tanto `activeCase` como `selected.activeCase` son nulos o terminales, apagando la bandera de IA para permitir escritura directa.
+- En `ChatHeader.tsx`: la condición de "Atención directa" y la visibilidad del botón "Cerrar conversación" ahora contemplan casos terminales, permitiendo al asesor cerrar la conversación directamente con un clic si no requiere atención operativa.
+- En `CasePanel.tsx`: al ser `activeCase = null` en conversaciones abiertas sin ticket, se activa la vista honesta ("Esta conversación no tiene un caso"), ofreciendo los botones "Derivar a un área" y "Cerrar conversación" en lugar de un bloque bloqueado de caso completado.
+- En `ConversationListItem.tsx`: la etiqueta de caso vivo en la lista se condiciona estrictamente a estados no terminales (`liveCase = c.activeCase && !isTerminalCase(...)`).
+
+**Por qué.** Al llegar un mensaje de un cliente en un chat previamente cerrado, el backend reabre la conversación (`status = "open"`). Si el mensaje entrante no dispara un nuevo ticket formal, la conversación queda abierta pero sin caso activo (`activeCaseId = null`). El fallback anterior `cases[0]` tomaba el caso cerrado previo de Aracely o de cualquier otro asesor, provocando que la cabecera y el panel derecho mostraran "Caso finalizado (Completado)" y "Atendido por {agente_anterior}", bloqueando los botones de cerrar y agendar e imposibilitando cerrar o derivar la conversación reabierta.
+
+**Qué no revertir.** No volver a colocar `cases[0] ?? null` de forma incondicional en `use-operational-inbox.ts`. No usar `lastAttendedBy` como agente activo en conversaciones con `status === "open"`. No suprimir el botón "Cerrar" en `ChatHeader` cuando no existe un caso vivo en curso. Registro del cambio: `CHANGELOG.md` `[0.2.13]`.

@@ -347,13 +347,33 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
   const activeCase = useMemo(() => {
     if (!selected) return null;
-    return (
-      cases.find((c) => c.id === selected.activeCaseId) ??
+    const isTerminal = (status?: string) =>
+      status === "COMPLETED" || status === "EXPIRED" || status === "CANCELLED";
+
+    // 1. Caso explícitamente asociado a la conversación si aún sigue activo
+    const explicitActive = selected.activeCaseId
+      ? cases.find((c) => c.id === selected.activeCaseId)
+      : null;
+    if (explicitActive && !isTerminal(explicitActive.status)) {
+      return explicitActive;
+    }
+
+    // 2. Cualquier caso en progreso no terminal
+    const inProgressCase =
       cases.find((c) => c.status === "WAITING_USER" || c.status === "ACTIVE") ??
       cases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
-      cases[0] ??
-      null
-    );
+      cases.find((c) => c.status === "NEW" || c.status === "PAUSED");
+    if (inProgressCase) {
+      return inProgressCase;
+    }
+
+    // 3. Si la conversación está resuelta o cerrada, mostrar el último caso completado para consulta histórica
+    if (selected.status === "resolved" || selected.status === "closed") {
+      return explicitActive ?? cases[0] ?? null;
+    }
+
+    // 4. Si la conversación está abierta o en espera pero no tiene un caso en curso, no hay caso activo
+    return null;
   }, [cases, selected]);
 
   // Tiempo real: refresca hilo/lista según lo que llegue por SSE (03_REALTIME_NOTIFICATIONS.md §2).
