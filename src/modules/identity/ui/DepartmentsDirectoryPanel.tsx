@@ -10,8 +10,7 @@ import type {
 } from "@/modules/identity/domain/department";
 import { DepartmentCasesBulkImportModal } from "./DepartmentCasesBulkImportModal";
 import { DepartmentsTable } from "./DepartmentsTable";
-import { DepartmentCasesDrawer } from "./DepartmentCasesDrawer";
-import { DepartmentFormCard, type DepartmentFormState } from "./DepartmentFormCard";
+import { DepartmentWorkspace, type DepartmentFormState } from "./DepartmentWorkspace";
 import { DepartmentsMetricsHeader } from "./DepartmentsMetricsHeader";
 import { MOCK_FACTURACION_CASES } from "@/modules/identity/domain/department-mocks";
 import type { CaseItemForm } from "./DepartmentCaseFormCard";
@@ -26,7 +25,12 @@ const emptyForm: DepartmentFormState = {
 };
 
 function toAutoSlug(name: string): string {
-  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 function toCaseItemForms(cases: DepartmentCase[]): CaseItemForm[] {
@@ -59,8 +63,6 @@ export function DepartmentsDirectoryPanel() {
   const [autoSlugEnabled, setAutoSlugEnabled] = useState(true);
 
   const [casesCache, setCasesCache] = useState<Record<string, DepartmentCase[]>>({});
-  const [selectedDeptForDrawer, setSelectedDeptForDrawer] = useState<Department | null>(null);
-  const [loadingCasesFor, setLoadingCasesFor] = useState<string | null>(null);
 
   const [bulkImportTarget, setBulkImportTarget] = useState<{
     targetType: "department" | "form";
@@ -87,38 +89,6 @@ export function DepartmentsDirectoryPanel() {
     );
   }, [departments, search]);
 
-  const handleLoadMockCases = useCallback((deptId: string) => {
-    setCasesCache((prev) => ({ ...prev, [deptId]: MOCK_FACTURACION_CASES }));
-    toast.success("33 casos de prueba cargados en memoria para previsualización.");
-  }, []);
-
-  const handleViewCases = useCallback(
-    async (dept: Department) => {
-      setSelectedDeptForDrawer(dept);
-      const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
-      if (isBilling && (!casesCache[dept.id] || casesCache[dept.id].length < MOCK_FACTURACION_CASES.length)) {
-        setCasesCache((prev) => ({ ...prev, [dept.id]: MOCK_FACTURACION_CASES }));
-        return;
-      }
-      if (dept.cases && dept.cases.length > 0) {
-        setCasesCache((prev) => ({ ...prev, [dept.id]: dept.cases! }));
-        return;
-      }
-      if (!casesCache[dept.id]) {
-        setLoadingCasesFor(dept.id);
-        try {
-          const fetched = await getDepartmentCases(dept.id);
-          setCasesCache((prev) => ({ ...prev, [dept.id]: fetched || [] }));
-        } catch {
-          setCasesCache((prev) => ({ ...prev, [dept.id]: [] }));
-        } finally {
-          setLoadingCasesFor(null);
-        }
-      }
-    },
-    [casesCache, getDepartmentCases],
-  );
-
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -126,44 +96,46 @@ export function DepartmentsDirectoryPanel() {
     setAutoSlugEnabled(true);
     setFormOpen(true);
   };
-  const openEdit = async (deptId: string) => {
-    const dept = departments.find((d) => d.id === deptId);
-    if (!dept) return;
-    setEditingId(deptId);
-    setDeletedCaseIds([]);
 
-    const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
-    let initialCases: CaseItemForm[] = casesCache[deptId]
-      ? toCaseItemForms(casesCache[deptId])
-      : isBilling
-        ? toCaseItemForms(MOCK_FACTURACION_CASES)
-        : dept.cases
-          ? toCaseItemForms(dept.cases)
-          : [];
+  const openEdit = useCallback(
+    (deptId: string) => {
+      const dept = departments.find((d) => d.id === deptId);
+      if (!dept) return;
+      setEditingId(deptId);
+      setDeletedCaseIds([]);
 
-    if (initialCases.length === 0 && !isBilling) {
-      try {
-        const fetched = await getDepartmentCases(deptId);
-        if (fetched && fetched.length > 0) {
-          initialCases = toCaseItemForms(fetched);
-          setCasesCache((prev) => ({ ...prev, [deptId]: fetched }));
-        }
-      } catch {
-        // Ignorar
+      const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
+      let initialCases: CaseItemForm[] = casesCache[deptId]
+        ? toCaseItemForms(casesCache[deptId])
+        : isBilling
+          ? toCaseItemForms(MOCK_FACTURACION_CASES)
+          : dept.cases && dept.cases.length > 0
+            ? toCaseItemForms(dept.cases)
+            : [];
+
+      setForm({
+        name: dept.name,
+        slug: dept.slug,
+        description: dept.description ?? "",
+        visibility: dept.visibility,
+        maxConcurrentCases: dept.maxConcurrentCases ?? 6,
+        cases: initialCases,
+      });
+      setAutoSlugEnabled(false);
+      setFormOpen(true);
+
+      // Si no tiene casos cacheados y no es billing, consultar en background
+      if (initialCases.length === 0 && !isBilling) {
+        void getDepartmentCases(deptId).then((fetched) => {
+          if (fetched && fetched.length > 0) {
+            setCasesCache((prev) => ({ ...prev, [deptId]: fetched }));
+            setForm((prev) => (prev.name === dept.name ? { ...prev, cases: toCaseItemForms(fetched) } : prev));
+          }
+        });
       }
-    }
-
-    setForm({
-      name: dept.name,
-      slug: dept.slug,
-      description: dept.description ?? "",
-      visibility: dept.visibility,
-      maxConcurrentCases: dept.maxConcurrentCases ?? 6,
-      cases: initialCases,
-    });
-    setAutoSlugEnabled(false);
-    setFormOpen(true);
-  };
+    },
+    [departments, casesCache, getDepartmentCases],
+  );
 
   const closeForm = () => {
     setFormOpen(false);
@@ -172,20 +144,10 @@ export function DepartmentsDirectoryPanel() {
     setForm(emptyForm);
   };
 
-  const openBulkImportForDepartment = (dept: Department) => {
-    const existing = casesCache[dept.id] ?? dept.cases ?? [];
-    setBulkImportTarget({
-      targetType: "department",
-      deptId: dept.id,
-      deptName: dept.name,
-      deptSlug: dept.slug,
-      existingCasesCount: existing.length,
-    });
-  };
-
   const openBulkImportForForm = () => {
     setBulkImportTarget({
       targetType: "form",
+      deptId: editingId ?? undefined,
       deptName: form.name.trim() || (editingId ? "Departamento actual" : "Nuevo Departamento"),
       deptSlug: form.slug.trim(),
       existingCasesCount: form.cases.length,
@@ -208,7 +170,10 @@ export function DepartmentsDirectoryPanel() {
       if (strategy === "replace") {
         const ids = form.cases.filter((c) => c.id).map((c) => c.id!);
         if (ids.length > 0) setDeletedCaseIds((prev) => [...prev, ...ids]);
-        setForm((prev) => ({ ...prev, cases: newCases.map((c) => ({ ...c, active: c.active ?? true })) }));
+        setForm((prev) => ({
+          ...prev,
+          cases: newCases.map((c) => ({ ...c, active: c.active ?? true })),
+        }));
       } else {
         setForm((prev) => ({
           ...prev,
@@ -217,39 +182,6 @@ export function DepartmentsDirectoryPanel() {
       }
       toast.success(`${newCases.length} casos importados al formulario. Guarda para confirmar.`);
       setBulkImportTarget(null);
-      return;
-    }
-
-    if (bulkImportTarget.targetType === "department" && bulkImportTarget.deptId) {
-      const deptId = bulkImportTarget.deptId;
-      try {
-        const dept = departments.find((d) => d.id === deptId);
-        if (!dept) return;
-        const currentCases = casesCache[deptId] ?? [];
-        const finalCases =
-          strategy === "replace"
-            ? newCases.map((c) => ({ ...c, active: c.active ?? true }))
-            : [
-                ...toCaseItemForms(currentCases),
-                ...newCases.map((c) => ({ ...c, active: c.active ?? true })),
-              ];
-
-        await updateDepartment(deptId, {
-          name: dept.name,
-          slug: dept.slug,
-          description: dept.description ?? undefined,
-          visibility: dept.visibility,
-          maxConcurrentCases: dept.maxConcurrentCases,
-          cases: finalCases,
-        });
-
-        const refreshed = await getDepartmentCases(deptId);
-        setCasesCache((prev) => ({ ...prev, [deptId]: refreshed || [] }));
-        setBulkImportTarget(null);
-        toast.success(`Carga masiva completada: ${newCases.length} casos actualizados en ${dept.name}`);
-      } catch (err: unknown) {
-        toast.error(`Error en carga masiva: ${err instanceof Error ? err.message : "Desconocido"}`);
-      }
     }
   };
 
@@ -258,7 +190,13 @@ export function DepartmentsDirectoryPanel() {
       ...prev,
       cases: [
         ...prev.cases,
-        { label: "", description: "", handlingMode: "ai_assisted", workflowType: "GENERAL_INQUIRY", active: true },
+        {
+          label: "",
+          description: "",
+          handlingMode: "ai_assisted",
+          workflowType: "GENERAL_INQUIRY",
+          active: true,
+        },
       ],
     }));
   }, []);
@@ -330,40 +268,9 @@ export function DepartmentsDirectoryPanel() {
 
   return (
     <div className="space-y-5 w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm sm:text-base font-bold text-foreground">Departamentos y Áreas</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Estructura operativa de la organización. Configura los motivos que atiende cada área
-            para el enrutamiento inteligente con IA o transferencia directa.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
-        >
-          <Plus className="size-4" />
-          Nuevo departamento
-        </button>
-      </div>
-
-      {departments.length > 0 && (
-        <DepartmentsMetricsHeader departments={departments} casesCache={casesCache} />
-      )}
-
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar departamento por nombre, slug o descripción..."
-          className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-card text-xs outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
-        />
-      </div>
-
-      {formOpen && (
-        <DepartmentFormCard
+      {/* Vista de Workspace Unificado a pantalla completa */}
+      {formOpen ? (
+        <DepartmentWorkspace
           editingId={editingId}
           form={form}
           busy={busy}
@@ -377,47 +284,72 @@ export function DepartmentsDirectoryPanel() {
           onAddCase={handleAddCase}
           onUpdateCase={handleUpdateCase}
           onRemoveCase={handleRemoveCase}
+          onLoadMockCases={() => {
+            setForm((prev) => ({
+              ...prev,
+              cases: toCaseItemForms(MOCK_FACTURACION_CASES),
+            }));
+            toast.success("33 casos de prueba cargados en el workspace.");
+          }}
         />
-      )}
-
-      {departments.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          Sin departamentos — crea el primero con el botón "Nuevo departamento".
-        </div>
-      ) : filteredDepartments.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          Ningún departamento coincide con la búsqueda.
-        </div>
       ) : (
-        <DepartmentsTable
-          departments={filteredDepartments}
-          casesCache={casesCache}
-          busy={busy}
-          selectedDeptId={selectedDeptForDrawer?.id ?? null}
-          onViewCases={(dept) => void handleViewCases(dept)}
-          onEdit={(id) => void openEdit(id)}
-          onToggleActive={(id, act) => void toggleActive(id, act)}
-        />
-      )}
+        /* Vista de Directorio y Métricas */
+        <div className="space-y-5 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-foreground">
+                Departamentos y Áreas
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Estructura operativa de la organización. Configura los motivos que atiende cada área
+                para el enrutamiento inteligente con IA o transferencia directa.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
+            >
+              <Plus className="size-4" />
+              Nuevo departamento
+            </button>
+          </div>
 
-      <DepartmentCasesDrawer
-        open={Boolean(selectedDeptForDrawer)}
-        onClose={() => setSelectedDeptForDrawer(null)}
-        department={selectedDeptForDrawer}
-        cases={
-          selectedDeptForDrawer
-            ? (casesCache[selectedDeptForDrawer.id] ??
-              (selectedDeptForDrawer.slug === "billing" ||
-              selectedDeptForDrawer.name.toLowerCase().includes("factur")
-                ? MOCK_FACTURACION_CASES
-                : selectedDeptForDrawer.cases ?? []))
-            : []
-        }
-        loading={selectedDeptForDrawer ? loadingCasesFor === selectedDeptForDrawer.id : false}
-        onEditDepartment={(id) => void openEdit(id)}
-        onBulkImport={(dept) => openBulkImportForDepartment(dept)}
-        onLoadMockCases={handleLoadMockCases}
-      />
+          {departments.length > 0 && (
+            <DepartmentsMetricsHeader departments={departments} casesCache={casesCache} />
+          )}
+
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar departamento por nombre, slug o descripción..."
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-card text-xs outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+            />
+          </div>
+
+          {departments.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              Sin departamentos — crea el primero con el botón "Nuevo departamento".
+            </div>
+          ) : filteredDepartments.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              Ningún departamento coincide con la búsqueda.
+            </div>
+          ) : (
+            <DepartmentsTable
+              departments={filteredDepartments}
+              casesCache={casesCache}
+              busy={busy}
+              selectedDeptId={editingId}
+              onViewCases={(dept) => openEdit(dept.id)}
+              onEdit={(id) => openEdit(id)}
+              onToggleActive={(id, act) => void toggleActive(id, act)}
+            />
+          )}
+        </div>
+      )}
 
       <DepartmentCasesBulkImportModal
         open={Boolean(bulkImportTarget)}
