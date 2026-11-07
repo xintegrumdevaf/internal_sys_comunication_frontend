@@ -26,9 +26,19 @@ export type RealtimeEvent =
       conversationId: string;
       departmentId: string | null;
       at: string;
+      customerName?: string | null;
+      customerPhone?: string | null;
+      reason?: string | null;
     }
   | { type: "CASE_CLAIMED"; caseId: string; agentUserId: string }
-  | { type: "HUMAN_ASSIGNED"; caseId: string; agentUserId: string }
+  | {
+      type: "HUMAN_ASSIGNED";
+      caseId: string;
+      agentUserId: string;
+      conversationId?: string;
+      customerName?: string | null;
+      customerPhone?: string | null;
+    }
   | { type: "AUTOMATION_ENABLED"; caseId: string }
   | { type: "AUTOMATION_DISABLED"; caseId: string }
   | {

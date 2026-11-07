@@ -21,6 +21,7 @@ import {
   getActiveChatId,
 } from "@/modules/realtime/application/unread.state";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
+import { formatWaPhone } from "@/modules/conversations/domain/conversation";
 
 import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
 
@@ -107,6 +108,15 @@ export function sendDesktopNotification(title: string, options?: AppNotification
         window.focus();
         if (typeof window.focus === "function") {
           window.focus();
+        }
+        if (
+          options &&
+          "data" in options &&
+          options.data &&
+          typeof options.data === "object" &&
+          "url" in options.data
+        ) {
+          window.location.href = String((options.data as { url: string }).url);
         }
         notification.close();
       };
@@ -198,29 +208,70 @@ export function useRealtimeSession(userId: string | null): void {
     if (!userId) return;
     return subscribeRealtimeEvents((event: RealtimeEvent) => {
       if (event.type === "CASE_ESCALATED") {
+        const targetUrl = `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`;
+        const customerLabel = event.customerName
+          ? `${event.customerName}${event.customerPhone ? ` (${formatWaPhone(event.customerPhone)})` : ""}`
+          : event.customerPhone
+            ? formatWaPhone(event.customerPhone)
+            : null;
+
+        const description = customerLabel
+          ? `Cliente ${customerLabel} requiere atención en la bandeja`
+          : "Un cliente requiere atención inmediata en la bandeja de entrada";
+
         toast.warning("Caso escalado a humano", {
-          description: `Conversación ${event.conversationId.slice(0, 8)}… requiere atención`,
+          description,
+          duration: 9000,
+          action: {
+            label: "Ver chat",
+            onClick: () => {
+              window.location.href = targetUrl;
+            },
+          },
         });
         if (isAppInBackground()) {
           playNotificationSound();
           flashDocumentTitle("¡Caso escalado!");
           sendDesktopNotification("Caso escalado a humano", {
-            body: "Una conversación requiere atención urgente en la plataforma.",
+            body: description,
             tag: `escalation-${event.conversationId}`,
             renotify: true,
+            data: { url: targetUrl },
           });
         }
       } else if (event.type === "HUMAN_ASSIGNED" && event.agentUserId === userId) {
+        const targetUrl = event.conversationId
+          ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`
+          : `/bandeja`;
+
+        const customerLabel = event.customerName
+          ? `${event.customerName}${event.customerPhone ? ` (${formatWaPhone(event.customerPhone)})` : ""}`
+          : event.customerPhone
+            ? formatWaPhone(event.customerPhone)
+            : null;
+
+        const description = customerLabel
+          ? `Se te asignó el chat de ${customerLabel}`
+          : "Tienes un nuevo caso asignado listo para atender en la bandeja";
+
         toast.success("Se te asignó un caso", {
-          description: `Caso ${event.caseId.slice(0, 8)}… ahora es tuyo`,
+          description,
+          duration: 9000,
+          action: {
+            label: "Atender",
+            onClick: () => {
+              window.location.href = targetUrl;
+            },
+          },
         });
         if (isAppInBackground()) {
           playNotificationSound();
           flashDocumentTitle("¡Nuevo caso asignado!");
           sendDesktopNotification("Se te asignó un nuevo caso", {
-            body: "Tienes un caso asignado listo para atender.",
+            body: description,
             tag: `assigned-${event.caseId}`,
             renotify: true,
+            data: { url: targetUrl },
           });
         }
       } else if (event.type === "CASE_SCHEDULED_REMINDER") {

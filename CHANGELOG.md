@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.21] - 2026-11-07
+
+### Improved
+
+- **Eliminación de IDs técnicos (UUIDs truncados) en notificaciones y toasts de escalamiento / asignación (`use-realtime.ts`, `realtime-event.ts`)**:
+  - _Problema_: Al escalar un caso o asignarse a un asesor, los toasts y notificaciones de escritorio mostraban un UUID truncado incomprensible para el usuario (`Conversación a1d91fbf… requiere atención` / `Caso 7b2c9d… ahora es tuyo`).
+  - _Solución_:
+    - Se reemplazó el recorte de UUID por identificación humana del cliente: muestra el nombre del cliente y/o su número de teléfono formateado (`Cliente Nombre (Teléfono) requiere atención en la bandeja`), con fallback amigable cuando no hay datos (`Un cliente requiere atención inmediata en la bandeja de entrada`).
+    - Se agregaron botones de acción directa en el toast (`[Ver chat]` en escalamiento y `[Atender]` en asignación) que navegan de inmediato a `/bandeja?conversationId=...` para que el asesor pueda atender con un solo clic.
+    - Las notificaciones nativas de escritorio ahora también incluyen el destino de navegación en su evento `onclick`.
+
 ## [0.2.20] - 2026-11-07
 
 ### Fixed
