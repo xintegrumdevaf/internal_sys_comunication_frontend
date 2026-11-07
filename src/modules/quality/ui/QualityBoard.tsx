@@ -6,6 +6,11 @@ import {
   isMessageAnalysisComplete,
 } from "@/modules/quality/domain/quality-review";
 import { useQualityBoard } from "@/modules/quality/application/use-quality-board";
+import {
+  MOCK_AGENT_ID,
+  MOCK_AGENT_NAME,
+  MOCK_QUALITY_REVIEW_ID,
+} from "@/modules/quality/infrastructure/quality-mocks";
 import { QualityReviewDetail } from "@/modules/quality/ui/QualityReviewDetail";
 import { QualityStatsCards } from "@/modules/quality/ui/QualityStatsCards";
 import { QualityFiltersBar } from "@/modules/quality/ui/QualityFiltersBar";
@@ -45,10 +50,14 @@ export function QualityBoard({
   } = useQualityBoard({ pausePolling: Boolean(reviewId) });
 
   const isAdmin = session?.role === "admin";
-  const agentName = (agentId: string) =>
-    directory.find((a) => a.id === agentId)?.name ??
-    stats.find((s) => s.agentId === agentId)?.agentName ??
-    "Agente";
+  const agentName = (agentId: string) => {
+    if (agentId === MOCK_AGENT_ID) return MOCK_AGENT_NAME;
+    return (
+      directory.find((a) => a.id === agentId)?.name ??
+      stats.find((s) => s.agentId === agentId)?.agentName ??
+      "Agente"
+    );
+  };
 
   const agentOptions = (() => {
     const byId = new Map<string, string>();
@@ -94,16 +103,27 @@ export function QualityBoard({
 
   return (
     <div className="space-y-6 animate-fade-up flex-1 flex flex-col min-h-0">
-      {/* Banner Informativo */}
-      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card text-xs sm:text-sm text-muted-foreground flex items-start gap-3 shadow-xs">
-        <ShieldCheck className="size-5 text-primary shrink-0 mt-0.5" />
-        <div>
-          <p className="font-semibold text-foreground">Supervisión y Auditoría de Calidad</p>
-          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-            Cada caso cerrado equivale a 1 conversación auditada. La IA analiza por tramos hasta
-            cubrir todos los mensajes, evaluando contexto multimedia, audios y tiempos de respuesta.
-          </p>
+      {/* Banner Informativo con acceso directo para probar el scroll */}
+      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card text-xs sm:text-sm text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="size-5 text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-foreground">Supervisión y Auditoría de Calidad</p>
+            <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+              Cada caso cerrado equivale a 1 conversación auditada. La IA analiza por tramos hasta
+              cubrir todos los mensajes, evaluando contexto multimedia, audios y tiempos de
+              respuesta.
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => onSelectReview(MOCK_QUALITY_REVIEW_ID)}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold uppercase transition-all shadow-2xs cursor-pointer self-start sm:self-auto"
+          title="Abrir chat de 34 mensajes con 3 tramos y hallazgos para probar el scroll independiente"
+        >
+          <span>🧪 Probar Scroll (34 msgs)</span>
+        </button>
       </div>
 
       {pendingCount > 0 && (

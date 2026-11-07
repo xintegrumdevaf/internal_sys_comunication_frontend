@@ -9,6 +9,11 @@ import {
   type QualityReviewDto,
 } from "@/modules/quality/domain/quality-review";
 import {
+  MOCK_CONVERSATION_ID,
+  MOCK_LONG_CHAT_MESSAGES,
+  MOCK_QUALITY_REVIEW_ID,
+} from "@/modules/quality/infrastructure/quality-mocks";
+import {
   addQualityCoachingNote,
   getQualityReview,
   markQualityReviewReviewed,
@@ -34,6 +39,10 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadMessages = useCallback(async (detail: QualityReviewDto) => {
+    if (detail.id === MOCK_QUALITY_REVIEW_ID || detail.conversationId === MOCK_CONVERSATION_ID) {
+      setMessages(MOCK_LONG_CHAT_MESSAGES);
+      return;
+    }
     try {
       const msgs = await listMessages(detail.conversationId, { limit: 200 });
       setMessages(
@@ -147,6 +156,14 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
 
   const reanalyze = async () => {
     if (!reviewId) return;
+    if (reviewId === MOCK_QUALITY_REVIEW_ID) {
+      setBusy(true);
+      setTimeout(() => {
+        setBusy(false);
+        toast.success("Reanálisis completado (mock de prueba actualizado)");
+      }, 600);
+      return;
+    }
     setBusy(true);
     try {
       const reset = await reanalyzeQualityReview(reviewId);

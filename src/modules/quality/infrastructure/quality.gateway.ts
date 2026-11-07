@@ -7,6 +7,10 @@ import {
   type QualityReviewDto,
   type QualityReviewStatus,
 } from "@/modules/quality/domain/quality-review";
+import {
+  MOCK_LONG_QUALITY_REVIEW,
+  MOCK_QUALITY_REVIEW_ID,
+} from "@/modules/quality/infrastructure/quality-mocks";
 
 /** Puerto de infraestructura: /api/quality/* (07_QUALITY_SUPERVISION.md, backend Etapa 10). */
 
@@ -53,12 +57,29 @@ export async function listQualityReviews(
       departmentId: filter.departmentId,
     },
   });
-  return (data ?? [])
+  const reviews = (data ?? [])
     .filter((row): row is Partial<QualityReviewDto> & { id: string } => Boolean(row.id))
     .map(normalizeQualityReview);
+
+  // Incluir mock de prueba si coincide con los filtros aplicados
+  const matchesAgent = !filter.agentId || filter.agentId === MOCK_LONG_QUALITY_REVIEW.agentId;
+  const matchesStatus = !filter.status || filter.status === MOCK_LONG_QUALITY_REVIEW.status;
+  const matchesScore =
+    (filter.minScore === undefined ||
+      (MOCK_LONG_QUALITY_REVIEW.cordialityScore ?? 0) >= filter.minScore) &&
+    (filter.maxScore === undefined ||
+      (MOCK_LONG_QUALITY_REVIEW.cordialityScore ?? 0) <= filter.maxScore);
+
+  if (matchesAgent && matchesStatus && matchesScore) {
+    return [MOCK_LONG_QUALITY_REVIEW, ...reviews];
+  }
+  return reviews;
 }
 
 export async function getQualityReview(reviewId: string): Promise<QualityReviewDto> {
+  if (reviewId === MOCK_QUALITY_REVIEW_ID) {
+    return MOCK_LONG_QUALITY_REVIEW;
+  }
   const data = await apiGet<Partial<QualityReviewDto>>(`/api/quality/reviews/${reviewId}`);
   return normalizeQualityReview({ ...data, id: data.id ?? reviewId });
 }
@@ -72,10 +93,27 @@ export async function addQualityCoachingNote(
   reviewId: string,
   body: string,
 ): Promise<QualityCoachingNoteDto> {
+  if (reviewId === MOCK_QUALITY_REVIEW_ID) {
+    const note: QualityCoachingNoteDto = {
+      id: `mock-note-${Date.now()}`,
+      reviewId: MOCK_QUALITY_REVIEW_ID,
+      authorAgentId: "agent-supervisor",
+      body,
+      ackStatus: "open",
+      acknowledgedAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_LONG_QUALITY_REVIEW.notes = [note, ...MOCK_LONG_QUALITY_REVIEW.notes];
+    return note;
+  }
   return apiPost<QualityCoachingNoteDto>(`/api/quality/reviews/${reviewId}/notes`, { body });
 }
 
 export async function markQualityReviewReviewed(reviewId: string): Promise<QualityReviewDto> {
+  if (reviewId === MOCK_QUALITY_REVIEW_ID) {
+    MOCK_LONG_QUALITY_REVIEW.status = "reviewed";
+    return MOCK_LONG_QUALITY_REVIEW;
+  }
   const data = await apiPatch<Partial<QualityReviewDto>>(`/api/quality/reviews/${reviewId}`, {
     status: "reviewed",
   });

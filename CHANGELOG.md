@@ -2,7 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.15] - 2026-11-07
+## [0.2.16] - 2026-11-07
+
+### Added
+
+- **Mocks realistas para pruebas de scroll y auditoría en chats extensos (`quality-mocks.ts`, `quality-mock-messages.ts`, `quality.gateway.ts`, `use-quality-review-detail.ts`, `QualityBoard.tsx`)**:
+  - _Contexto y Objetivo_: Permitir verificar y validar de forma exhaustiva el comportamiento del scroll independiente por componentes en la vista de detalle de calidad (`/calidad?reviewId=...`) frente a conversaciones largas reales sin requerir inserciones ni alterar la base de datos de producción.
+  - _Implementación_:
+    - **`quality-mock-messages.ts`**: Definición de 34 mensajes de WhatsApp con flujo técnico realista que recrea el escenario de las capturas:
+      - Interacciones entre cliente y asesor auditado ("ADRIANA CHALAVARRI").
+      - Chips de transferencia de sistema ("Caso transferido a Adriana Chalavarri...").
+      - Demoras de SLA con etiquetas automáticas (`Transcurrieron 1h 15m`, `Transcurrieron 45 min`, etc.).
+      - Contenidos multimedia variados con previsualización (imágenes y videos adjuntos).
+    - **`quality-mocks.ts`**: Revisión completa de calidad con ID `mock-chat-largo-scroll`:
+      - 34 mensajes auditados en 3 tramos (chunks de 15 msgs).
+      - Score de 48 ("Revisar") y notas de eficiencia.
+      - 3 hallazgos tipificados (Ineficiencia operativa, Abandono de SLA y Justificación técnica defensiva) enlazados a sus mensajes exactos en el timeline.
+      - 2 notas de coaching registradas con fechas reales.
+      - Desglose estructurado de los 3 tramos con detección de faltas, contexto del abonado, recomendaciones pedagógicas y ejemplos textuales de respuesta adecuada.
+    - **Integración fluida en Gateway y UI**:
+      - `quality.gateway.ts`: Atiende `mock-chat-largo-scroll` de forma local e inmediata sin peticiones de red; incluye el caso en `listQualityReviews` cuando los filtros lo permiten; soporta agregación de notas de coaching y marcado de revisión.
+      - `use-quality-review-detail.ts`: Carga automáticamente los 34 mensajes para `mock-chat-largo-scroll`.
+      - `QualityBoard.tsx`: Incorpora acceso directo mediante botón en el banner superior (`🧪 Probar Scroll (34 msgs)`) para abrir la prueba en un solo clic.
 
 ### Added & Improved
 

@@ -141,4 +141,21 @@ describe("quality.gateway", () => {
     expect(result.enqueued).toBe(2);
     expect(result.pendingTotal).toBe(2);
   });
+
+  it("gestiona el mock de chat largo (mock-chat-largo-scroll) sin golpear la red", async () => {
+    const fetchMock = mockFetchOnce();
+    const review = await getQualityReview("mock-chat-largo-scroll");
+    expect(review.id).toBe("mock-chat-largo-scroll");
+    expect(review.messagesTotal).toBe(34);
+    expect(review.findings.length).toBe(3);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const note = await addQualityCoachingNote("mock-chat-largo-scroll", "Prueba de coaching");
+    expect(note.reviewId).toBe("mock-chat-largo-scroll");
+    expect(note.body).toBe("Prueba de coaching");
+    expect(review.notes).toContain(note);
+
+    const updated = await markQualityReviewReviewed("mock-chat-largo-scroll");
+    expect(updated.status).toBe("reviewed");
+  });
 });
