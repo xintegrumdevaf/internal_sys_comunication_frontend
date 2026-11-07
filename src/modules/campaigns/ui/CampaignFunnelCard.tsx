@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Send,
-  CheckCheck,
-  Eye,
-  CornerDownLeft,
-  Clock,
-  AlertCircle,
-  Info,
-} from "lucide-react";
+import { Send, CheckCheck, Eye, CornerDownLeft, Clock, AlertCircle, Info } from "lucide-react";
 
 export type ActiveFilter = "ALL" | "sent" | "delivered" | "read" | "replied" | "failed" | "queued";
 
@@ -221,4 +213,3 @@ export const CampaignFunnelCard: React.FC<CampaignFunnelCardProps> = ({
     </div>
   );
 };
-

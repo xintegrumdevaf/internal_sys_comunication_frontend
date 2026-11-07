@@ -105,7 +105,7 @@ export function DepartmentsDirectoryPanel() {
       setDeletedCaseIds([]);
 
       const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
-      let initialCases: CaseItemForm[] = casesCache[deptId]
+      const initialCases: CaseItemForm[] = casesCache[deptId]
         ? toCaseItemForms(casesCache[deptId])
         : isBilling
           ? toCaseItemForms(MOCK_FACTURACION_CASES)
@@ -129,7 +129,9 @@ export function DepartmentsDirectoryPanel() {
         void getDepartmentCases(deptId).then((fetched) => {
           if (fetched && fetched.length > 0) {
             setCasesCache((prev) => ({ ...prev, [deptId]: fetched }));
-            setForm((prev) => (prev.name === dept.name ? { ...prev, cases: toCaseItemForms(fetched) } : prev));
+            setForm((prev) =>
+              prev.name === dept.name ? { ...prev, cases: toCaseItemForms(fetched) } : prev,
+            );
           }
         });
       }

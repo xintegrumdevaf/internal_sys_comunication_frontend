@@ -1,14 +1,5 @@
 import React from "react";
-import {
-  Calendar,
-  Eye,
-  Pause,
-  Play,
-  Trash2,
-  RotateCcw,
-  Bot,
-  UserCheck,
-} from "lucide-react";
+import { Calendar, Eye, Pause, Play, Trash2, RotateCcw, Bot, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,8 +32,7 @@ export const CampaignsTableRow: React.FC<CampaignsTableRowProps> = ({
   const behavior = formatRoutingBehaviorSummary(c.routingConfig);
   const safeSent = Math.max(0, c.sentCount || 0);
   const safeTotal = Math.max(0, c.totalRecipients || 0);
-  const progressPct =
-    safeTotal > 0 ? Math.min(100, Math.round((safeSent / safeTotal) * 100)) : 0;
+  const progressPct = safeTotal > 0 ? Math.min(100, Math.round((safeSent / safeTotal) * 100)) : 0;
 
   const createdDateStr = new Date(c.createdAt).toLocaleDateString("es-CO", {
     day: "2-digit",
@@ -241,5 +231,3 @@ export const CampaignsTableRowSkeleton: React.FC = () => {
     </tr>
   );
 };
-
-

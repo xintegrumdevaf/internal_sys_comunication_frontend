@@ -118,4 +118,3 @@ export const DepartmentCaseFormCard = memo(function DepartmentCaseFormCard({
     </div>
   );
 });
-

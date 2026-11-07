@@ -121,12 +121,9 @@ export const CampaignsMetricsHeader: React.FC<CampaignsMetricsHeaderProps> = ({ 
           )}
         </div>
         <div className="text-[11px] text-muted-foreground">
-          {summary.runningCount > 0
-            ? "Workers procesando en Redis"
-            : "No hay envíos activos"}
+          {summary.runningCount > 0 ? "Workers procesando en Redis" : "No hay envíos activos"}
         </div>
       </div>
     </div>
   );
 };
-

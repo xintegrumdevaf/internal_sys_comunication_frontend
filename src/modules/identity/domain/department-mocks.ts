@@ -299,4 +299,3 @@ export const MOCK_FACTURACION_CASES: DepartmentCase[] = [
     active: true,
   },
 ];
-

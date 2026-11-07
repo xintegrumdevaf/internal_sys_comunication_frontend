@@ -1,11 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-  X,
-  Megaphone,
-  Download,
-  RefreshCw,
-  MessageSquare,
-} from "lucide-react";
+import { X, Megaphone, Download, RefreshCw, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

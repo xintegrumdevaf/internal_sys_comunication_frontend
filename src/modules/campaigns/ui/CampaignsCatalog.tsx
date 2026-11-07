@@ -20,14 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Search,
-  Plus,
-  Layers,
-  Megaphone,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Search, Plus, Layers, Megaphone, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCampaignActions } from "../application/use-campaigns";
 import { CampaignDetailsDrawer } from "./CampaignDetailsDrawer";
 import { CampaignsMetricsHeader } from "./CampaignsMetricsHeader";
@@ -202,14 +195,14 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <CampaignsTableRowSkeleton key={i} />
-                ))
+                Array.from({ length: 4 }).map((_, i) => <CampaignsTableRowSkeleton key={i} />)
               ) : filteredCampaigns.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
                     <Layers className="w-8 h-8 mx-auto mb-2 opacity-30 text-muted-foreground" />
-                    <p className="font-semibold text-foreground text-sm">No se encontraron campañas</p>
+                    <p className="font-semibold text-foreground text-sm">
+                      No se encontraron campañas
+                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Crea tu primera campaña masiva para empezar a enviar mensajes automáticos.
                     </p>

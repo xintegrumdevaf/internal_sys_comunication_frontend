@@ -159,7 +159,10 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
             <tbody className="divide-y divide-border/60">
               {paginatedRecipients.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground text-xs italic">
+                  <td
+                    colSpan={5}
+                    className="py-12 text-center text-muted-foreground text-xs italic"
+                  >
                     No se encontraron contactos para el criterio de búsqueda o filtro.
                   </td>
                 </tr>
@@ -372,4 +375,3 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
     </div>
   );
 };
-
