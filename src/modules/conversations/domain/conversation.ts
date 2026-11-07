@@ -13,6 +13,9 @@ export type MessagePreviewDto = {
   direction: MessageDirection;
   createdAt: string;
   id?: string;
+  type?: MessageType | string;
+  caption?: string | null;
+  filename?: string | null;
   editedAt?: string | null;
 } | null;
 
@@ -213,3 +216,92 @@ export type MessageDto = {
 };
 
 export type Message = MessageDto;
+
+/**
+ * Formatea el texto de vista previa de un mensaje para bandejas y listas al estilo WhatsApp.
+ * Si es una imagen, audio, video o documento sin texto legible, muestra la etiqueta amigable con emoji/icono.
+ */
+export function formatMessagePreviewText(preview: MessagePreviewDto | null | undefined): string {
+  if (!preview) return "Sin mensajes";
+  const rawBody = preview.body?.trim() ?? "";
+  const type = preview.type?.toLowerCase();
+  const caption = preview.caption?.trim();
+  const filename = preview.filename?.trim();
+
+  // 1. Audio / Nota de voz
+  if (
+    type === "audio" ||
+    /^\[?(audio|voice note|nota de voz)\]?$/i.test(rawBody) ||
+    rawBody.startsWith("[audio/")
+  ) {
+    return "🎵 Audio";
+  }
+
+  // 2. Imagen / Foto
+  if (
+    type === "image" ||
+    /^\[?(image|imagen|photo|foto)\]?$/i.test(rawBody) ||
+    rawBody.startsWith("[image/") ||
+    rawBody.startsWith("[Adjunto: foto") ||
+    rawBody.startsWith("[Adjunto imagen")
+  ) {
+    if (rawBody.startsWith("[Adjunto imagen:")) {
+      const desc = rawBody
+        .replace(/^\[Adjunto imagen:\s*/i, "")
+        .replace(/\]$/, "")
+        .trim();
+      return desc ? `📷 ${desc}` : "📷 Foto";
+    }
+    const text =
+      caption ||
+      (!/^\[?(image|imagen|photo|foto)\]?$/i.test(rawBody) && !rawBody.startsWith("[image/")
+        ? rawBody
+        : "");
+    return text ? `📷 ${text}` : "📷 Foto";
+  }
+
+  // 3. Video
+  if (type === "video" || /^\[?(video)\]?$/i.test(rawBody) || rawBody.startsWith("[video/")) {
+    const text =
+      caption ||
+      (!/^\[?(video)\]?$/i.test(rawBody) && !rawBody.startsWith("[video/") ? rawBody : "");
+    return text ? `🎥 ${text}` : "🎥 Video";
+  }
+
+  // 4. Documento / Archivo
+  if (
+    type === "document" ||
+    type === "file" ||
+    /^\[?(document|documento|archivo|file)\]?$/i.test(rawBody) ||
+    rawBody.startsWith("[document/") ||
+    rawBody.startsWith("[file/")
+  ) {
+    const text =
+      filename ||
+      caption ||
+      (!/^\[?(document|documento|archivo|file)\]?$/i.test(rawBody) &&
+      !rawBody.startsWith("[document/")
+        ? rawBody
+        : "");
+    return text ? `📄 ${text}` : "📄 Documento";
+  }
+
+  // 5. Sticker
+  if (type === "sticker" || /^\[?(sticker)\]?$/i.test(rawBody)) {
+    return "💟 Sticker";
+  }
+
+  // 6. Ubicación
+  if (
+    type === "location" ||
+    rawBody.startsWith("Ubicación GPS") ||
+    rawBody.includes("google.com/maps") ||
+    rawBody === "📍 Location" ||
+    rawBody.includes("Location")
+  ) {
+    return "📍 Ubicación";
+  }
+
+  if (!rawBody) return "Sin mensajes";
+  return rawBody;
+}

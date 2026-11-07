@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, ChevronRight, AlertTriangle, Filter } from "lucide-react";
+import {
+  Building2,
+  ChevronRight,
+  AlertTriangle,
+  Filter,
+} from "lucide-react";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 import type { AgentPerformanceDto } from "@/modules/analytics/domain/analytics.types";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";

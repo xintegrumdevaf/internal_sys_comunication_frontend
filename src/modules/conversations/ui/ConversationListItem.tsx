@@ -1,19 +1,18 @@
 import { Bot, CheckCheck, Clock, Search, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import {
   conversationDisplayName,
   conversationStatusLabel,
   formatWaPhone,
+  type ConversationDto,
 } from "@/modules/conversations/domain/conversation";
-import { calculateConversationSla } from "@/modules/sla/domain/sla-config";
-import type { SlaConfigDto } from "@/modules/sla/domain/sla-config";
-import type { CaseDto } from "@/modules/cases/domain/case";
-import { extractSchedulingMetadata } from "@/modules/cases/domain/case";
+import { calculateConversationSla, type SlaConfigDto } from "@/modules/sla/domain/sla-config";
+import { extractSchedulingMetadata, type CaseDto } from "@/modules/cases/domain/case";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 import type { SessionUser } from "@/modules/identity/domain/session";
 import { formatConversationTimestamp } from "@/shared/datetime";
 import { ConversationAvatar } from "./ConversationAvatars";
+import { renderLastMessagePreview } from "./message-preview-format";
 
 export interface ConversationListItemProps {
   conversation: ConversationDto;
@@ -26,15 +25,6 @@ export interface ConversationListItemProps {
   session: SessionUser | null;
   directory: SessionUser[];
   departments: DepartmentDto[];
-}
-
-function formatLastMessagePreview(
-  preview: ConversationDto["lastMessagePreview"] | null | undefined,
-): string {
-  if (!preview) return "Sin mensajes";
-  const body = preview.body?.trim() ?? "";
-  if (!body) return "Sin mensajes";
-  return body;
 }
 
 export function ConversationListItem({
@@ -105,7 +95,7 @@ export function ConversationListItem({
             {c.lastMessagePreview?.direction === "outbound" && (
               <CheckCheck className="size-3.5 inline mr-1 text-muted-foreground/70 shrink-0" />
             )}
-            <span className="truncate">{formatLastMessagePreview(c.lastMessagePreview)}</span>
+            <span className="truncate">{renderLastMessagePreview(c.lastMessagePreview)}</span>
           </p>
           {hasUnread && (
             <span className="shrink-0 flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#25D366] dark:bg-[#00a884] text-white text-[11px] font-bold leading-none shadow-xs">
