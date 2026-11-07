@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.19] - 2026-11-07
+
+### Improved
+
+- **Formato comparativo lado a lado de hallazgos, botones compactos y tipificación de faltas (`QualityFindingsList.tsx`, `quality-mocks.ts`)**:
+  - _Contexto y Feedback_:
+    1. La tarjeta del mensaje era excesivamente alargada y no se percibía como un botón interactivo.
+    2. En el hallazgo de descuido/abandono, se citaba incorrectamente una frase del cliente como si fuera mensaje del asesor, cuando la falta real fue la demora de 45 minutos sin responder tras el reclamo del usuario.
+    3. El componente se extendía demasiado en vertical en pantallas medianas y grandes, necesitando una comparativa directa entre lo detectado y la acción de mejora sin perder responsividad en pantallas pequeñas.
+  - _Implementación_:
+    - **Diseño Comparativo Lado a Lado (`grid-cols-1 md:grid-cols-2`)**:
+      - Columna izquierda: **Lo detectado** con identificación clara del origen (mensaje auditado del asesor vs reclamo del cliente por demora) y diagnóstico puntual del problema.
+      - Columna derecha: **Acción de mejora y solución sugerida** con tarjeta esmeralda que incluye la pauta consultiva y el ejemplo exacto de redacción recomendada.
+      - En pantallas móviles y pequeñas (`grid-cols-1`) se apila ordenadamente manteniendo legibilidad total.
+    - **Botones con Aspecto Real**:
+      - Sustitución de barras alargadas por botones estándar compactos (`[Ver en chat]` y `[Objetar]`) con iconos, bordes, sombras y retroalimentación activa al clic.
+    - **Tipificación Clara de Faltas**:
+      - Badges e iconos diferenciados: `🚨 Desatención / Abandono SLA` (reloj y rojo), `⚡ Ineficiencia Operativa` (rayo y ámbar), `⚠️ Jerga / Explicación Defensiva` (alerta y púrpura), `⛔ Falta de Respeto / Agresión`.
+      - En `quality-mocks.ts`: vinculación del abandono al mensaje de queja real por los 45 min de silencio (`mock-msg-20`).
+
 ## [0.2.18] - 2026-11-07
 
 ### Improved

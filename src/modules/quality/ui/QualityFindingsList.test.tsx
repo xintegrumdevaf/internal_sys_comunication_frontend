@@ -14,7 +14,7 @@ describe("QualityFindingsList", () => {
     ).toBeInTheDocument();
   });
 
-  it("renderiza tarjetas de hallazgos con cita de chat, diagnóstico y botones de acción", () => {
+  it("renderiza tarjetas de hallazgos comparativas con diagnóstico, solución y botones", () => {
     const mockFindings: QualityFindingDto[] = [
       {
         id: "f1",
@@ -27,10 +27,10 @@ describe("QualityFindingsList", () => {
       },
       {
         id: "f2",
-        messageId: "m-19",
+        messageId: "m-20",
         severity: "high",
         category: "neglect",
-        excerpt: "tampoco me sale la opcion que dice",
+        excerpt: "Hola?? Sigo esperando respuesta, necesito trabajar con urgencia.",
         rationale: "Demora de más de 45 minutos sin responder.",
         recommendation: "Avisar al cliente sobre el tiempo de espera.",
       },
@@ -52,27 +52,33 @@ describe("QualityFindingsList", () => {
     expect(screen.getByText(/1 Grave/i)).toBeInTheDocument();
     expect(screen.getByText(/1 a mejorar/i)).toBeInTheDocument();
 
-    // Mensajes auditados en tarjetas de chat ejecutivas
+    // Badges diferenciados por tipo de falta
+    expect(screen.getByText(/Ineficiencia Operativa/i)).toBeInTheDocument();
+    expect(screen.getByText(/Desatención \/ Abandono SLA/i)).toBeInTheDocument();
+
+    // Textos auditados
     expect(screen.getByText(/borre las cookies de su navegador por favor/i)).toBeInTheDocument();
-    expect(screen.getByText(/tampoco me sale la opcion que dice/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Hola\?\? Sigo esperando respuesta, necesito trabajar con urgencia\./i),
+    ).toBeInTheDocument();
 
     // Diagnósticos y recomendaciones
-    expect(screen.getByText(/Instrucción aislada sin contexto./i)).toBeInTheDocument();
-    expect(screen.getByText(/Enviar un plan integral con pasos numerados./i)).toBeInTheDocument();
+    expect(screen.getByText(/Instrucción aislada sin contexto\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Enviar un plan integral con pasos numerados\./i)).toBeInTheDocument();
 
-    // Botones de acción y tarjetas interactivas
+    // Botones de acción "Ver en chat"
     const scrollButtons = screen.getAllByRole("button", { name: /Ver en chat/i });
     expect(scrollButtons.length).toBe(2);
     fireEvent.click(scrollButtons[0]);
     expect(onScroll).toHaveBeenCalledWith("m-12");
 
-    const messageCards = screen.getAllByTitle(
-      /Hacé click para ubicar este mensaje en el chat y entender el contexto previo/i,
-    );
-    expect(messageCards.length).toBe(2);
-    fireEvent.click(messageCards[0]);
-    expect(onScroll).toHaveBeenCalledWith("m-12");
+    // Botones "Ir al chat" dentro de la columna de lo detectado
+    const jumpLinks = screen.getAllByRole("button", { name: /Ir al chat/i });
+    expect(jumpLinks.length).toBe(2);
+    fireEvent.click(jumpLinks[1]);
+    expect(onScroll).toHaveBeenCalledWith("m-20");
 
+    // Botones "Objetar"
     const objectButtons = screen.getAllByRole("button", { name: /Objetar/i });
     expect(objectButtons.length).toBe(2);
     fireEvent.click(objectButtons[1]);

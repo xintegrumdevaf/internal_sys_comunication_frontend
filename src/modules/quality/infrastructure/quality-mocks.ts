@@ -53,14 +53,14 @@ Síntesis por tramos:
     },
     {
       id: "mock-f-02",
-      messageId: "mock-msg-19",
+      messageId: "mock-msg-20",
       severity: "high",
       category: "neglect",
-      excerpt: "tampoco me sale la opcion que dice",
+      excerpt: "Hola?? Sigo esperando respuesta, necesito trabajar con urgencia.",
       rationale:
         "Demora excesiva de más de 45 minutos sin responder tras confirmación del cliente y falta de seguimiento proactivo.",
       recommendation:
-        "Si la validación tomará tiempo, avisar al cliente: 'Estamos revisando en el sistema central, tardaremos unos 5 minutos' y mantener la comunicación.",
+        "Si la validación tomará tiempo, avisar al cliente: 'Estamos revisando en el sistema central, tardaremos unos 5 minutos' y mantener la comunicación periódica.",
     },
     {
       id: "mock-f-03",
