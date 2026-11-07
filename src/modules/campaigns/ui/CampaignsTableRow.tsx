@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   type Campaign,
   campaignStatusMeta,
@@ -206,3 +207,39 @@ export const CampaignsTableRow: React.FC<CampaignsTableRowProps> = ({
     </tr>
   );
 };
+
+export const CampaignsTableRowSkeleton: React.FC = () => {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-4 py-3.5">
+        <div className="space-y-1.5">
+          <Skeleton className="h-3.5 w-32 rounded-md" />
+          <Skeleton className="h-2.5 w-44 rounded-md" />
+        </div>
+      </td>
+      <td className="px-4 py-3.5">
+        <Skeleton className="h-3 w-24 rounded-md" />
+      </td>
+      <td className="px-4 py-3.5">
+        <div className="space-y-1.5">
+          <Skeleton className="h-3 w-20 rounded-md" />
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+      </td>
+      <td className="px-4 py-3.5">
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </td>
+      <td className="px-4 py-3.5">
+        <Skeleton className="h-3 w-28 rounded-md" />
+      </td>
+      <td className="px-4 py-3.5 text-right">
+        <div className="flex justify-end gap-1">
+          <Skeleton className="h-7 w-7 rounded-lg" />
+          <Skeleton className="h-7 w-16 rounded-lg" />
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+

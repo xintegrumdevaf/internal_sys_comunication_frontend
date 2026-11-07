@@ -38,7 +38,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxStatusTabs } from "./InboxStatusTabs";
-import { ConversationListItem } from "./ConversationListItem";
+import { ConversationListItem, ConversationListItemSkeleton } from "./ConversationListItem";
 import { usePreservedListScroll } from "./use-preserved-list-scroll";
 import { ChatHeader } from "./ChatHeader";
 import { ChatSearchBar } from "./ChatSearchBar";
@@ -1425,9 +1425,18 @@ export function OperationalInbox({
           }`}
         >
           <div className="p-3 sm:p-3.5 border-b border-border bg-background/60 flex justify-between items-center shrink-0">
-            <h3 className="text-xs font-bold text-muted-foreground">
-              {loading ? "Cargando…" : `${filteredConversations.length} conversaciones`}
-            </h3>
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="size-2 rounded-full bg-primary animate-ping" />
+                <span className="text-xs font-bold text-muted-foreground animate-pulse">
+                  Cargando conversaciones…
+                </span>
+              </div>
+            ) : (
+              <h3 className="text-xs font-bold text-muted-foreground">
+                {`${filteredConversations.length} conversaciones`}
+              </h3>
+            )}
             {!connected && (
               <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500 animate-pulse">
                 <WifiOff className="size-3" />
@@ -1464,21 +1473,29 @@ export function OperationalInbox({
             onScroll={conversationListScroll.onScroll}
             className="flex-1 min-h-0 overflow-y-auto divide-y divide-border [overflow-anchor:none]"
           >
-            {filteredConversations.map((c) => (
-              <ConversationListItem
-                key={c.id}
-                conversation={c}
-                active={c.id === selected?.id}
-                onSelect={setSelectedId}
-                selectedCustomerId={selected?.id}
-                selectedCustomerFullName={selectedCustomer?.fullName}
-                activeCase={activeCase}
-                slaConfig={slaConfig}
-                session={session}
-                directory={directory}
-                departments={departments}
-              />
-            ))}
+            {loading ? (
+              <div className="divide-y divide-border/60">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <ConversationListItemSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              filteredConversations.map((c) => (
+                <ConversationListItem
+                  key={c.id}
+                  conversation={c}
+                  active={c.id === selected?.id}
+                  onSelect={setSelectedId}
+                  selectedCustomerId={selected?.id}
+                  selectedCustomerFullName={selectedCustomer?.fullName}
+                  activeCase={activeCase}
+                  slaConfig={slaConfig}
+                  session={session}
+                  directory={directory}
+                  departments={departments}
+                />
+              ))
+            )}
             {!loading && filteredConversations.length === 0 && (
               <div className="p-8 text-center">
                 <UserRound className="size-8 text-muted-foreground/40 mx-auto mb-2" />

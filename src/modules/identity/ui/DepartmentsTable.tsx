@@ -8,6 +8,7 @@ import {
 import type { Department, DepartmentCase } from "@/modules/identity/domain/department";
 import { departmentVisibilityLabel } from "@/modules/identity/domain/department";
 import { MOCK_FACTURACION_CASES } from "@/modules/identity/domain/department-mocks";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DepartmentsTableProps {
   departments: Department[];
@@ -45,7 +46,43 @@ export function DepartmentsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {departments.map((d) => {
+            {busy && departments.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-3 py-4 text-center">
+                    <Skeleton className="size-5 rounded-md mx-auto" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-3.5 w-32 rounded-md" />
+                      <Skeleton className="h-2.5 w-48 rounded-md" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <Skeleton className="h-3 w-20 rounded-md" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <Skeleton className="h-3 w-32 rounded-md" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <Skeleton className="h-3 w-16 rounded-md" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex justify-end gap-1.5">
+                      <Skeleton className="h-7 w-14 rounded-lg" />
+                      <Skeleton className="h-7 w-16 rounded-lg" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              departments.map((d) => {
               const isBilling = d.slug === "billing" || d.name.toLowerCase().includes("factur");
               const cases = casesCache[d.id] ?? (isBilling ? MOCK_FACTURACION_CASES : d.cases ?? []);
               const casesCount = cases.length;
@@ -184,7 +221,7 @@ export function DepartmentsTable({
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

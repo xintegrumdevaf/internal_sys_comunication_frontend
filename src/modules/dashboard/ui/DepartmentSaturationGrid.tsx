@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Building2,
-  ChevronRight,
-  Timer,
-  Users,
-  CheckCircle2,
-  AlertTriangle,
-  Filter,
-  ArrowUpRight,
+  Building2, ChevronRight, Timer, Users, CheckCircle2,
+  AlertTriangle, Filter, ArrowUpRight,
 } from "lucide-react";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 import type { AgentPerformanceDto } from "@/modules/analytics/domain/analytics.types";
@@ -195,7 +190,31 @@ export function DepartmentSaturationGrid({
 
       {/* Grilla visual de tarjetas con indicadores circulares y atajos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayedDepts.map((item) => {
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-4 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xs flex flex-col justify-between space-y-4 animate-pulse shadow-xs"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1.5 flex-1">
+                  <Skeleton className="h-4 w-32 rounded-md" />
+                  <Skeleton className="h-3 w-20 rounded-md" />
+                </div>
+                <Skeleton className="size-14 rounded-full shrink-0" />
+              </div>
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <Skeleton className="h-3 w-full rounded-md" />
+                <Skeleton className="h-3 w-4/5 rounded-md" />
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                <Skeleton className="h-3 w-24 rounded-md" />
+                <Skeleton className="h-3 w-24 rounded-md" />
+              </div>
+            </div>
+          ))
+        ) : (
+          displayedDepts.map((item) => {
           const {
             dept,
             deptAgents,
@@ -363,9 +382,9 @@ export function DepartmentSaturationGrid({
               </div>
             </div>
           );
-        })}
+        }))}
 
-        {displayedDepts.length === 0 && (
+        {!isLoading && displayedDepts.length === 0 && (
           <div className="col-span-full py-12 text-center text-xs text-muted-foreground">
             No hay áreas operativas activas con los filtros actuales.
           </div>

@@ -1,4 +1,5 @@
 import { Bot, CheckCheck, Clock, Search, User } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ConversationDto } from "@/modules/conversations/domain/conversation";
 import {
   conversationDisplayName,
@@ -253,5 +254,27 @@ export function ConversationListItem({
         </div>
       </div>
     </button>
+  );
+}
+
+export function ConversationListItemSkeleton() {
+  return (
+    <div className="w-full p-3.5 flex gap-3 border-b border-border/50 animate-pulse">
+      <Skeleton className="size-10 rounded-full shrink-0" />
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Skeleton className="h-3.5 w-28 rounded-md" />
+          <Skeleton className="h-3 w-10 rounded-md" />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <Skeleton className="h-3 w-40 rounded-md" />
+          <Skeleton className="size-3.5 rounded-full shrink-0" />
+        </div>
+        <div className="flex items-center gap-1.5 pt-0.5">
+          <Skeleton className="h-4 w-12 rounded-full" />
+          <Skeleton className="h-4 w-16 rounded-full" />
+        </div>
+      </div>
+    </div>
   );
 }

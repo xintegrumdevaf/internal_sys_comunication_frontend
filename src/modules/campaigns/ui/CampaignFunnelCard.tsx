@@ -221,3 +221,4 @@ export const CampaignFunnelCard: React.FC<CampaignFunnelCardProps> = ({
     </div>
   );
 };
+

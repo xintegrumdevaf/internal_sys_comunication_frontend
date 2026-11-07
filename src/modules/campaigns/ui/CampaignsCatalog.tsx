@@ -31,7 +31,7 @@ import {
 import { useCampaignActions } from "../application/use-campaigns";
 import { CampaignDetailsDrawer } from "./CampaignDetailsDrawer";
 import { CampaignsMetricsHeader } from "./CampaignsMetricsHeader";
-import { CampaignsTableRow } from "./CampaignsTableRow";
+import { CampaignsTableRow, CampaignsTableRowSkeleton } from "./CampaignsTableRow";
 
 type CampaignsCatalogProps = {
   campaigns: Campaign[];
@@ -202,11 +202,9 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono">
-                    Cargando campañas...
-                  </td>
-                </tr>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <CampaignsTableRowSkeleton key={i} />
+                ))
               ) : filteredCampaigns.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
