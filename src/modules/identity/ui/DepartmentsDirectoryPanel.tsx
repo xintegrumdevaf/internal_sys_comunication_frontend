@@ -12,6 +12,7 @@ import { DepartmentCasesBulkImportModal } from "./DepartmentCasesBulkImportModal
 import { DepartmentsTable } from "./DepartmentsTable";
 import { DepartmentCasesDrawer } from "./DepartmentCasesDrawer";
 import { DepartmentFormCard, type DepartmentFormState } from "./DepartmentFormCard";
+import { DepartmentsMetricsHeader } from "./DepartmentsMetricsHeader";
 import type { CaseItemForm } from "./DepartmentCaseFormCard";
 
 const emptyForm: DepartmentFormState = {
@@ -326,10 +327,10 @@ export function DepartmentsDirectoryPanel() {
   };
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto">
+    <div className="space-y-5 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-bold text-foreground">Departamentos y Áreas</h2>
+          <h2 className="text-sm sm:text-base font-bold text-foreground">Departamentos y Áreas</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Estructura operativa de la organización. Configura los motivos que atiende cada área
             para el enrutamiento inteligente con IA o transferencia directa.
@@ -344,6 +345,10 @@ export function DepartmentsDirectoryPanel() {
           Nuevo departamento
         </button>
       </div>
+
+      {departments.length > 0 && (
+        <DepartmentsMetricsHeader departments={departments} casesCache={casesCache} />
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
