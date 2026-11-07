@@ -6,6 +6,7 @@ import {
   Clock,
   FileText,
   Info,
+  Megaphone,
 } from "lucide-react";
 import type { ConversationDto, MessageDto } from "@/modules/conversations/domain/conversation";
 import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
@@ -88,12 +89,21 @@ export function ChatMessageItem({
   }
 
   const fromCustomer = m.author === "customer";
+  const isTemplateOrCampaign =
+    !fromCustomer &&
+    m.author === "agent" &&
+    !m.agentId &&
+    (!m.agentName ||
+      m.agentName === "Agente" ||
+      m.agentName.toLowerCase().includes("plantilla") ||
+      m.agentName.toLowerCase().includes("campa"));
+
   const messageAgentName =
     m.agentName ||
     (m.agentId ? directory.find((a) => a.id === m.agentId)?.name : null) ||
     (m.agentId && session && m.agentId === session.id ? session.name || "Tú" : null) ||
-    (isAssignedToMe && !m.agentId ? "Tú" : null) ||
-    (!m.agentId ? assignedAgentName : null) ||
+    (isAssignedToMe && m.agentId ? "Tú" : null) ||
+    (m.agentId ? assignedAgentName : null) ||
     "Agente";
 
   return (
@@ -117,17 +127,26 @@ export function ChatMessageItem({
           }`}
         >
           {showSenderLabel && (
-            <p
-              className={`text-[9px] font-extrabold uppercase tracking-widest mb-1 ${
-                fromCustomer ? "text-primary" : "text-emerald-700 dark:text-emerald-300 font-bold"
-              }`}
-            >
-              {fromCustomer
-                ? conversationDisplayName(selected)
-                : m.author === "agent"
-                  ? messageAgentName
-                  : "Asistente IA"}
-            </p>
+            <div className="mb-1">
+              {fromCustomer ? (
+                <p className="text-[9px] font-extrabold uppercase tracking-widest text-primary">
+                  {conversationDisplayName(selected)}
+                </p>
+              ) : isTemplateOrCampaign ? (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25 text-[9px] font-extrabold uppercase tracking-wider">
+                  <Megaphone className="size-2.5 shrink-0" />
+                  Plantilla / Campaña
+                </span>
+              ) : m.author === "agent" ? (
+                <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 font-bold">
+                  {messageAgentName}
+                </p>
+              ) : (
+                <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 font-bold">
+                  Asistente IA
+                </p>
+              )}
+            </div>
           )}
           <MessageMediaBody message={m} />
           <div
