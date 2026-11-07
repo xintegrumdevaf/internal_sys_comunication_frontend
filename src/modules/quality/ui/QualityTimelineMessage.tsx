@@ -37,6 +37,7 @@ interface QualityTimelineMessageProps {
   day: string;
   elapsedNotice?: string | null;
   messageRef?: (el: HTMLDivElement | null) => void;
+  isHighlighted?: boolean;
 }
 
 export function QualityTimelineMessage({
@@ -48,6 +49,7 @@ export function QualityTimelineMessage({
   day,
   elapsedNotice,
   messageRef,
+  isHighlighted = false,
 }: QualityTimelineMessageProps) {
   const isTransfer = m.author === "system" || isSystemTransferMessage(m.body);
   const fromCustomer = m.author === "customer";
@@ -93,7 +95,11 @@ export function QualityTimelineMessage({
           className={`flex items-end gap-2 mb-2 ${fromCustomer ? "justify-start" : "justify-end"}`}
         >
           <div
-            className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-[12px] leading-snug shadow-xs transition-all ${
+            className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-[12px] leading-snug shadow-xs transition-all duration-300 ${
+              isHighlighted
+                ? "ring-4 ring-primary/80 ring-offset-2 ring-offset-background scale-[1.03] shadow-md animate-pulse"
+                : ""
+            } ${
               fromCustomer
                 ? "bg-card border border-border text-foreground rounded-bl-md"
                 : isOtherAgent

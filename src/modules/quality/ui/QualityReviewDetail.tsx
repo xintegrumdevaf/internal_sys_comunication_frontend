@@ -28,6 +28,8 @@ export function QualityReviewDetail({
   const navigate = useNavigate();
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [scopeFilter, setScopeFilter] = useState<"audited" | "all">("audited");
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     review,
@@ -45,10 +47,21 @@ export function QualityReviewDetail({
 
   useEffect(() => {
     messageRefs.current = {};
+    return () => {
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    };
   }, [reviewId]);
 
   const scrollToMessage = (messageId: string) => {
-    messageRefs.current[messageId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const el = messageRefs.current[messageId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(messageId);
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 3500);
+    }
   };
 
   const handleObjectInChat = async (agentId: string, revId: string, finding: QualityFindingDto) => {
@@ -257,6 +270,7 @@ export function QualityReviewDetail({
                   showDay={showDay}
                   day={day}
                   elapsedNotice={elapsedNotice}
+                  isHighlighted={m.id === highlightedMessageId}
                   messageRef={(el) => {
                     messageRefs.current[m.id] = el;
                   }}

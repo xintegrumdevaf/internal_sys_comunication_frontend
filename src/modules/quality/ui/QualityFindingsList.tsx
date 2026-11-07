@@ -1,4 +1,11 @@
-import { AlertOctagon, AlertTriangle, Eye, Lightbulb, MessageSquare } from "lucide-react";
+import {
+  AlertOctagon,
+  AlertTriangle,
+  ArrowUpRight,
+  Eye,
+  Lightbulb,
+  MessageSquare,
+} from "lucide-react";
 import {
   qualityFindingCategoryLabel,
   qualityFindingSeverityLabel,
@@ -9,6 +16,10 @@ interface QualityFindingsListProps {
   findings: QualityFindingDto[];
   onScrollToMessage?: (messageId: string) => void;
   onObjectInChat?: (finding: QualityFindingDto) => void;
+}
+
+function cleanExcerpt(text: string): string {
+  return text.replace(/^[«"']+|[»"']+$/g, "").trim();
 }
 
 export function QualityFindingsList({
@@ -50,9 +61,10 @@ export function QualityFindingsList({
         </div>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {findings.map((f) => {
           const isHigh = f.severity === "high";
+          const quoteText = cleanExcerpt(f.excerpt);
 
           return (
             <div
@@ -83,10 +95,10 @@ export function QualityFindingsList({
                     <button
                       type="button"
                       onClick={() => onScrollToMessage(f.messageId)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-muted-foreground hover:text-foreground border border-border/80 bg-background/80 hover:bg-muted transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-foreground border border-border bg-background hover:bg-muted transition-all cursor-pointer shadow-2xs"
                       title="Ver mensaje en el timeline de la conversación"
                     >
-                      <Eye className="size-3" />
+                      <Eye className="size-3 text-primary" />
                       <span>Ver en chat</span>
                     </button>
                   )}
@@ -94,7 +106,7 @@ export function QualityFindingsList({
                     <button
                       type="button"
                       onClick={() => onObjectInChat(f)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-foreground border border-border/80 bg-background hover:bg-foreground/5 transition-colors cursor-pointer shadow-2xs"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold text-foreground border border-border bg-background hover:bg-foreground/5 transition-all cursor-pointer shadow-2xs"
                       title="Enviar observación sobre este mensaje al chat interno con el asesor"
                     >
                       <MessageSquare className="size-3 text-primary" />
@@ -104,16 +116,37 @@ export function QualityFindingsList({
                 </div>
               </div>
 
-              {/* Mensaje visual auditado del Asesor */}
-              <div className="rounded-lg border border-border/80 bg-background/90 p-2.5 shadow-2xs space-y-1">
-                <div className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                  <MessageSquare className="size-3 text-primary shrink-0" />
-                  <span>Mensaje auditado del asesor:</span>
+              {/* Tarjeta Profesional Clickeable para saltar al tramo de la conversación */}
+              <button
+                type="button"
+                onClick={() => onScrollToMessage?.(f.messageId)}
+                className={`w-full text-left rounded-xl border-l-4 transition-all duration-200 cursor-pointer group shadow-2xs hover:shadow-md ${
+                  isHigh
+                    ? "border-l-danger bg-danger/10 hover:bg-danger/15 border-t border-r border-b border-danger/20"
+                    : "border-l-amber-500 bg-amber-500/10 hover:bg-amber-500/15 border-t border-r border-b border-amber-500/20"
+                } p-3 space-y-2`}
+                title="Hacé click para ubicar este mensaje en el chat y entender el contexto previo"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                    <MessageSquare className="size-3 text-primary shrink-0" />
+                    <span>Mensaje auditado del asesor</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary group-hover:underline">
+                    <span>Ver en conversación</span>
+                    <ArrowUpRight className="size-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </span>
                 </div>
-                <p className="text-xs font-semibold italic text-foreground px-1 leading-snug">
-                  «{f.excerpt}»
-                </p>
-              </div>
+
+                <div className="p-2.5 rounded-lg bg-background/95 border border-border/80 shadow-2xs">
+                  <p className="text-xs font-bold text-foreground leading-snug">{quoteText}</p>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                  <span className="size-1.5 rounded-full bg-primary/70 shrink-0" />
+                  <span>Click para saltar al momento exacto de la charla</span>
+                </div>
+              </button>
 
               {/* Diagnóstico puntual del problema */}
               <div className="flex items-start gap-2 text-xs leading-relaxed">
@@ -138,7 +171,7 @@ export function QualityFindingsList({
                     <span>Acción recomendada / Debió decir:</span>
                   </div>
                   <p className="text-xs text-foreground/95 leading-relaxed font-medium pl-5">
-                    {f.recommendation}
+                    {cleanExcerpt(f.recommendation)}
                   </p>
                 </div>
               )}

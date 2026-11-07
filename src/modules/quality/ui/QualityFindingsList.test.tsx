@@ -52,18 +52,25 @@ describe("QualityFindingsList", () => {
     expect(screen.getByText(/1 Grave/i)).toBeInTheDocument();
     expect(screen.getByText(/1 a mejorar/i)).toBeInTheDocument();
 
-    // Mensajes auditados en citas de chat
-    expect(screen.getByText(/«borre las cookies de su navegador por favor»/i)).toBeInTheDocument();
-    expect(screen.getByText(/«tampoco me sale la opcion que dice»/i)).toBeInTheDocument();
+    // Mensajes auditados en tarjetas de chat ejecutivas
+    expect(screen.getByText(/borre las cookies de su navegador por favor/i)).toBeInTheDocument();
+    expect(screen.getByText(/tampoco me sale la opcion que dice/i)).toBeInTheDocument();
 
     // Diagnósticos y recomendaciones
     expect(screen.getByText(/Instrucción aislada sin contexto./i)).toBeInTheDocument();
     expect(screen.getByText(/Enviar un plan integral con pasos numerados./i)).toBeInTheDocument();
 
-    // Botones de acción
+    // Botones de acción y tarjetas interactivas
     const scrollButtons = screen.getAllByRole("button", { name: /Ver en chat/i });
     expect(scrollButtons.length).toBe(2);
     fireEvent.click(scrollButtons[0]);
+    expect(onScroll).toHaveBeenCalledWith("m-12");
+
+    const messageCards = screen.getAllByTitle(
+      /Hacé click para ubicar este mensaje en el chat y entender el contexto previo/i,
+    );
+    expect(messageCards.length).toBe(2);
+    fireEvent.click(messageCards[0]);
     expect(onScroll).toHaveBeenCalledWith("m-12");
 
     const objectButtons = screen.getAllByRole("button", { name: /Objetar/i });

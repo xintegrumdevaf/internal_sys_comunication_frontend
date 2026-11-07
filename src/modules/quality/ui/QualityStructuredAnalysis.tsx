@@ -5,6 +5,7 @@ import {
   HelpCircle,
   Layers,
   Lightbulb,
+  MessageSquare,
   MessageSquareQuote,
   Sparkles,
 } from "lucide-react";
@@ -45,12 +46,13 @@ function HighlightedText({ text }: { text: string }) {
           (token.startsWith("«") && token.endsWith("»")) ||
           (token.startsWith("'") && token.endsWith("'"))
         ) {
+          const cleanToken = token.replace(/^[«"']+|[»"']+$/g, "");
           return (
             <span
               key={idx}
-              className="inline-block my-0.5 px-1.5 py-0.5 rounded bg-primary/10 border border-primary/25 font-bold text-foreground text-[11px] not-italic shadow-2xs"
+              className="inline-flex items-center gap-1 my-0.5 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/25 font-bold text-foreground text-[11px] not-italic shadow-2xs"
             >
-              {token}
+              <span>{cleanToken}</span>
             </span>
           );
         }
@@ -323,8 +325,9 @@ export function QualityStructuredAnalysis({ summary }: QualityStructuredAnalysis
                           <MessageSquareQuote className="size-3.5 shrink-0" />
                           <span>Ejemplo exacto de cómo debió responder el agente:</span>
                         </div>
-                        <div className="p-3 rounded-lg border border-emerald-500/30 bg-background/90 text-foreground text-xs leading-relaxed italic shadow-2xs">
-                          «{t.ejemploRespuesta.replace(/^[«"']+|[»"']+$/g, "")}»
+                        <div className="p-3 rounded-lg border border-emerald-500/35 bg-background/95 text-foreground text-xs leading-relaxed font-medium shadow-2xs flex items-start gap-2">
+                          <MessageSquare className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                          <span>{t.ejemploRespuesta.replace(/^[«"']+|[»"']+$/g, "")}</span>
                         </div>
                       </div>
                     )}

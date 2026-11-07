@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.18] - 2026-11-07
+
+### Improved
+
+- **Navegación interactiva de hallazgos al timeline y tarjeta ejecutiva de mensaje auditado (`QualityFindingsList.tsx`, `QualityReviewDetail.tsx`, `QualityTimelineMessage.tsx`, `QualityStructuredAnalysis.tsx`)**:
+  - _Contexto y Objetivo_: El usuario solicitó eliminar los símbolos de comillas tipográficas planas (`«...»`), diseñar una tarjeta ejecutiva que remarque el mensaje auditado de forma verdaderamente profesional y permitir que al hacer clic en ese mensaje, la interfaz lo traslade inmediatamente al momento exacto de la conversación para comprender el contexto de por qué el asesor respondió eso.
+  - _Implementación_:
+    - **Tarjeta Interactiva de Cita (`QualityFindingsList.tsx`)**:
+      - Eliminación total de comillas angulares planas `«...»`.
+      - Borde acentuado de 4px con el color de severidad (`border-l-danger` / `border-l-amber-500`) y fondo diferenciado con efecto card contrastada.
+      - Indicador interactivo `Ver en conversación ↗` con animación hover.
+      - Toda la tarjeta del mensaje es clickeable (`cursor-pointer`) con el hint `📍 Click para saltar al momento exacto de la charla`.
+    - **Navegación con Resaltado Dinámico en Timeline (`QualityReviewDetail.tsx`, `QualityTimelineMessage.tsx`)**:
+      - Al hacer clic en cualquier hallazgo o en su botón "Ver en chat", la vista hace scroll suave directo hacia el mensaje en el timeline.
+      - El mensaje auditado en el timeline se ilumina activamente con un anillo pulsante (`ring-4 ring-primary/80 scale-[1.03] shadow-md animate-pulse`) durante 3.5 segundos, permitiendo identificar de un vistazo el mensaje y todo el diálogo previo y posterior.
+    - **Limpieza visual en análisis estructurado (`QualityStructuredAnalysis.tsx`)**:
+      - Sustitución de comillas de texto plano en ejemplos de respuesta por burbujas de mensaje limpias con icono `MessageSquare`.
+
 ## [0.2.17] - 2026-11-07
 
 ### Improved
