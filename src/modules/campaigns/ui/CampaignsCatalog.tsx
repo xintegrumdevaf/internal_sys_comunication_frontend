@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { type Campaign, CampaignStatus } from "../domain/campaign";
-import { campaignStatusMeta, formatRoutingBehaviorSummary } from "../domain/campaign";
+import { type Campaign } from "../domain/campaign";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -25,17 +23,15 @@ import {
 import {
   Search,
   Plus,
-  Play,
-  Pause,
-  Trash2,
-  Calendar,
   Layers,
   Megaphone,
-  Eye,
-  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useCampaignActions } from "../application/use-campaigns";
 import { CampaignDetailsDrawer } from "./CampaignDetailsDrawer";
+import { CampaignsMetricsHeader } from "./CampaignsMetricsHeader";
+import { CampaignsTableRow } from "./CampaignsTableRow";
 
 type CampaignsCatalogProps = {
   campaigns: Campaign[];
@@ -43,6 +39,8 @@ type CampaignsCatalogProps = {
   onNewCampaignClick: () => void;
   onRefresh?: () => void;
 };
+
+const CAMPAIGNS_PER_PAGE = 8;
 
 export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   campaigns,
@@ -54,15 +52,26 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const { startCampaign, suspendCampaign, resumeCampaign, deleteCampaign, isProcessing } =
     useCampaignActions();
 
-  const filteredCampaigns = campaigns.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter((c) => {
+      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [campaigns, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / CAMPAIGNS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+
+  const paginatedCampaigns = useMemo(() => {
+    const start = (currentPage - 1) * CAMPAIGNS_PER_PAGE;
+    return filteredCampaigns.slice(start, start + CAMPAIGNS_PER_PAGE);
+  }, [filteredCampaigns, currentPage]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteTargetId) return;
@@ -82,7 +91,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   const handleStart = async (id: string) => {
     try {
       await startCampaign(id);
-      toast.success("Campaña iniciada");
+      toast.success("Campaña iniciada. Los workers la procesarán en segundo plano.");
       onRefresh?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo iniciar la campaña");
@@ -92,7 +101,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   const handleSuspend = async (id: string) => {
     try {
       await suspendCampaign(id);
-      toast.info("Campaña suspendida");
+      toast.info("Campaña suspendida en el servidor");
       onRefresh?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo suspender la campaña");
@@ -102,7 +111,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   const handleResume = async (id: string) => {
     try {
       await resumeCampaign(id);
-      toast.success("Campaña reanudada");
+      toast.success("Campaña reanudada en segundo plano");
       onRefresh?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo reanudar la campaña");
@@ -110,212 +119,166 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 w-full">
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-foreground">
-            <Megaphone className="w-6 h-6 text-primary" />
-            Campañas
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 text-foreground">
+            <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+            Campañas Masivas
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Envía mensajes masivos a tus contactos y sigue el progreso de cada campaña.
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Envía mensajes masivos por WhatsApp en segundo plano mediante workers asíncronos y
+            monitorea su progreso en tiempo real.
           </p>
         </div>
         <Button
           onClick={onNewCampaignClick}
-          className="gap-2 w-full sm:w-auto font-bold text-xs shadow-sm"
+          className="gap-2 w-full sm:w-auto font-bold text-xs uppercase tracking-wider rounded-xl shadow-xs cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           Nueva campaña
         </Button>
       </div>
 
+      {/* KPI Metrics Header */}
+      {campaigns.length > 0 && <CampaignsMetricsHeader campaigns={campaigns} />}
+
       {/* Filters section */}
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <div className="relative sm:w-80 w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 text-xs"
-          />
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <div className="relative sm:w-80 w-full">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre de campaña..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-8 text-xs rounded-xl border-border bg-card shadow-2xs"
+            />
+          </div>
+
+          <Select
+            value={statusFilter}
+            onValueChange={(val) => {
+              setStatusFilter(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-48 text-xs rounded-xl border-border bg-card cursor-pointer">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos los estados</SelectItem>
+              <SelectItem value="DRAFT">Borrador</SelectItem>
+              <SelectItem value="RUNNING">En curso</SelectItem>
+              <SelectItem value="SUSPENDED">Suspendido</SelectItem>
+              <SelectItem value="COMPLETED">Terminado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48 text-xs">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Todos los estados</SelectItem>
-            <SelectItem value="DRAFT">Borrador</SelectItem>
-            <SelectItem value="RUNNING">En curso</SelectItem>
-            <SelectItem value="SUSPENDED">Suspendido</SelectItem>
-            <SelectItem value="COMPLETED">Terminado</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="text-xs text-muted-foreground font-semibold self-end sm:self-auto">
+          {filteredCampaigns.length} campaña{filteredCampaigns.length === 1 ? "" : "s"} encontrada
+          {filteredCampaigns.length === 1 ? "" : "s"}
+        </div>
       </div>
 
-      {/* Table section matching Whaticket */}
-      <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
+      {/* Table section */}
+      <div className="rounded-2xl border border-border/80 overflow-hidden bg-card/80 shadow-xs backdrop-blur-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
+          <table className="w-full text-xs text-left table-fixed">
+            <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border/80 font-bold">
               <tr>
-                <th className="px-4 py-3 font-semibold">Nombre de campaña</th>
-                <th className="px-4 py-3 font-semibold">Creado en</th>
-                <th className="px-4 py-3 font-semibold">Progreso</th>
-                <th className="px-4 py-3 font-semibold">Estado</th>
-                <th className="px-4 py-3 font-semibold">Comportamiento</th>
-                <th className="px-4 py-3 font-semibold text-right">Acciones</th>
+                <th className="px-4 py-3 w-[26%]">Nombre de campaña</th>
+                <th className="px-4 py-3 w-[15%]">Creado en</th>
+                <th className="px-4 py-3 w-[20%]">Progreso de envío</th>
+                <th className="px-4 py-3 w-[12%]">Estado</th>
+                <th className="px-4 py-3 w-[17%]">Comportamiento</th>
+                <th className="px-4 py-3 w-[10%] text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono">
                     Cargando campañas...
                   </td>
                 </tr>
               ) : filteredCampaigns.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                    <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    No se encontraron campañas.
+                  <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
+                    <Layers className="w-8 h-8 mx-auto mb-2 opacity-30 text-muted-foreground" />
+                    <p className="font-semibold text-foreground text-sm">No se encontraron campañas</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Crea tu primera campaña masiva para empezar a enviar mensajes automáticos.
+                    </p>
                   </td>
                 </tr>
               ) : (
-                filteredCampaigns.map((c) => {
-                  const meta = campaignStatusMeta(c.status);
-                  const behavior = formatRoutingBehaviorSummary(c.routingConfig);
-                  const progressStr = `${c.sentCount}/${c.totalRecipients || 0}`;
-                  const createdDateStr = new Date(c.createdAt).toLocaleDateString("es-CO", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-
-                  return (
-                    <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3.5 font-medium text-foreground">
-                        <div className="font-semibold text-xs text-foreground">{c.name}</div>
-                        {c.messageText && (
-                          <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 max-w-xs">
-                            {c.messageText}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-[11px]">
-                          <Calendar className="w-3.5 h-3.5 opacity-70" />
-                          {createdDateStr}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono whitespace-nowrap">
-                        <span className="bg-muted px-2 py-0.5 rounded text-[11px] font-semibold">
-                          {progressStr}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <Badge variant="outline" className={`text-[11px] ${meta.badgeClass}`}>
-                          {meta.label}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5 text-muted-foreground max-w-[200px] truncate text-[11px]">
-                        {behavior}
-                      </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Ver reporte y estadísticas */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => setSelectedCampaignId(c.id)}
-                            title="Ver reporte y detalles"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-
-                          {c.status === "RUNNING" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[11px] gap-1 text-amber-500 hover:text-amber-600 border-amber-500/30"
-                              onClick={() => handleSuspend(c.id)}
-                              disabled={isProcessing}
-                            >
-                              <Pause className="w-3.5 h-3.5" />
-                              Suspender
-                            </Button>
-                          )}
-
-                          {c.status === "SUSPENDED" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[11px] gap-1 text-emerald-500 hover:text-emerald-600 border-emerald-500/30"
-                              onClick={() => handleResume(c.id)}
-                              disabled={isProcessing}
-                            >
-                              <Play className="w-3.5 h-3.5" />
-                              Reanudar
-                            </Button>
-                          )}
-
-                          {c.status === "DRAFT" && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-[11px] gap-1 text-blue-500 hover:text-blue-600 border-blue-500/30"
-                                onClick={() => handleStart(c.id)}
-                                disabled={isProcessing}
-                              >
-                                <Play className="w-3.5 h-3.5" />
-                                Iniciar
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-red-500 hover:bg-red-500/10"
-                                onClick={() => setDeleteTargetId(c.id)}
-                                disabled={isProcessing}
-                                title="Eliminar borrador"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </>
-                          )}
-
-                          {(c.status === "COMPLETED" || c.status === "FINISHED") && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[11px] gap-1 text-primary hover:text-primary/90 border-primary/30"
-                              onClick={() => handleStart(c.id)}
-                              disabled={isProcessing}
-                              title="Reenviar campaña"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              Reenviar
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                paginatedCampaigns.map((c) => (
+                  <CampaignsTableRow
+                    key={c.id}
+                    campaign={c}
+                    isProcessing={isProcessing}
+                    onSelect={(id) => setSelectedCampaignId(id)}
+                    onStart={(id) => void handleStart(id)}
+                    onSuspend={(id) => void handleSuspend(id)}
+                    onResume={(id) => void handleResume(id)}
+                    onDeleteRequest={(id) => setDeleteTargetId(id)}
+                  />
+                ))
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Paginador de Campañas */}
+        {totalPages > 1 && (
+          <div className="p-3 border-t border-border/70 bg-muted/10 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              Mostrando{" "}
+              <strong className="text-foreground font-mono">
+                {(currentPage - 1) * CAMPAIGNS_PER_PAGE + 1}
+              </strong>{" "}
+              a{" "}
+              <strong className="text-foreground font-mono">
+                {Math.min(currentPage * CAMPAIGNS_PER_PAGE, filteredCampaigns.length)}
+              </strong>{" "}
+              de <strong className="text-foreground font-mono">{filteredCampaigns.length}</strong>{" "}
+              campañas
+            </span>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="p-1 rounded-lg border border-border hover:bg-muted disabled:opacity-30 cursor-pointer"
+                title="Página anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-2 font-mono text-xs font-bold text-foreground">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="p-1 rounded-lg border border-border hover:bg-muted disabled:opacity-30 cursor-pointer"
+                title="Página siguiente"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Campaign Details & Monitoring Drawer */}
+      {/* Campaign Details & Monitoring Modal */}
       <CampaignDetailsDrawer
         campaignId={selectedCampaignId}
         onClose={() => setSelectedCampaignId(null)}
@@ -323,7 +286,7 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
 
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={Boolean(deleteTargetId)} onOpenChange={() => setDeleteTargetId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar campaña?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -332,10 +295,10 @@ export const CampaignsCatalog: React.FC<CampaignsCatalogProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 rounded-xl"
             >
               Eliminar
             </AlertDialogAction>
