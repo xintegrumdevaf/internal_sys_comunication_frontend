@@ -67,3 +67,16 @@ export type RealtimeEvent =
       agentId?: string;
       [key: string]: unknown;
     };
+
+export function formatEscalationReason(reason?: string | null): string {
+  if (!reason) return "Atención manual requerida";
+  const upper = reason.toUpperCase();
+  if (upper.includes("REQUEST_HUMAN")) return "Solicitud de asesor humano";
+  if (upper.includes("TIMEOUT")) return "Tiempo de respuesta excedido";
+  if (upper.includes("EXTERNAL_SERVICE_ERROR")) return "Falla en servicio externo";
+  if (upper.includes("AI_ERROR") || upper.includes("UNSUPPORTED"))
+    return "Consulta fuera de alcance IA";
+  if (upper.includes("TRIAGE")) return "Pool de triage y derivación";
+  if (upper.includes("TECHNICAL")) return "Incidencia técnica en enlace";
+  return reason;
+}

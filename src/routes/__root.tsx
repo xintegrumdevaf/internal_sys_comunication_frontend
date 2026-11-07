@@ -147,7 +147,7 @@ function RootComponent() {
     <ThemeProvider defaultTheme="system" storageKey="goticket_theme">
       <QueryClientProvider client={queryClient}>
         <Outlet />
-        <Toaster richColors position="top-right" />
+        <Toaster position="top-right" closeButton />
       </QueryClientProvider>
     </ThemeProvider>
   );

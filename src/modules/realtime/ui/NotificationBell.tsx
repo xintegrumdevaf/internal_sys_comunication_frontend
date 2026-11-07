@@ -1,7 +1,9 @@
-import { Bell, Volume2 } from "lucide-react";
+import { Bell, Volume2, AlertTriangle, UserCheck, Clock, Phone } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { relativeTime } from "@/shared/datetime";
+import { formatWaPhone } from "@/modules/conversations/domain/conversation";
+import { formatEscalationReason } from "@/modules/realtime/domain/realtime-event";
 import {
   useNotifications,
   useRealtimeConnected,
@@ -38,13 +40,17 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-30">
-          <div className="p-3 border-b border-border text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
-            Notificaciones
+        <div className="absolute right-0 mt-2 w-88 sm:w-96 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-30 animate-fade-in">
+          <div className="p-3 border-b border-border text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between bg-muted/20">
+            Centro de notificaciones
             {connected ? (
-              <span className="text-primary normal-case font-normal">Conectado</span>
+              <span className="text-primary normal-case font-semibold text-[11px] flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-primary animate-pulse" /> Conectado
+              </span>
             ) : (
-              <span className="text-warning normal-case font-normal">Reconectando…</span>
+              <span className="text-warning normal-case font-semibold text-[11px]">
+                Reconectando…
+              </span>
             )}
           </div>
 
@@ -91,39 +97,85 @@ export function NotificationBell() {
                 humano o cuando te asignen un caso.
               </p>
             )}
-            {notifications.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  const targetStatus = n.kind === "CASE_SCHEDULED_REMINDER" ? "pending" : undefined;
-                  void navigate({
-                    to: "/bandeja",
-                    search: { conversationId: n.conversationId, status: targetStatus },
-                  });
-                }}
-                className="w-full text-left p-3 hover:bg-foreground/5 text-xs"
-              >
-                <p className="font-bold">
-                  {n.kind === "CASE_SCHEDULED_REMINDER"
-                    ? `⏰ Recordatorio [${n.scheduleTag ?? "AGENDADO"}]`
-                    : n.kind === "CASE_ESCALATED"
-                      ? "Un cliente necesita un agente humano"
-                      : n.isMine
-                        ? "Te asignaron una conversación"
-                        : "Se asignó una conversación a otro agente"}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {n.kind === "CASE_SCHEDULED_REMINDER"
-                    ? n.reminderReason || "Es momento de revisar el caso agendado"
-                    : n.kind === "CASE_ESCALATED"
-                      ? "Toca aquí para revisar el resumen y atenderlo"
-                      : "Toca aquí para abrir la conversación"}{" "}
-                  · {relativeTime(n.createdAt)}
-                </p>
-              </button>
-            ))}
+            {notifications.map((n) => {
+              const isEsc = n.kind === "CASE_ESCALATED";
+              const isAsg = n.kind === "HUMAN_ASSIGNED";
+              const isRem = n.kind === "CASE_SCHEDULED_REMINDER";
+
+              const Icon = isEsc ? AlertTriangle : isAsg ? UserCheck : Clock;
+              const iconColor = isEsc
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                : isAsg
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-sky-500/10 text-sky-600 dark:text-sky-400";
+
+              const title = isRem
+                ? `Recordatorio [${n.scheduleTag ?? "AGENDADO"}]`
+                : isEsc
+                  ? "Caso escalado a humano"
+                  : n.isMine
+                    ? "Caso asignado a ti"
+                    : "Caso asignado";
+
+              const customer =
+                n.customerName || (n.customerPhone ? formatWaPhone(n.customerPhone) : null);
+              const reasonText =
+                n.reason || n.reminderReason
+                  ? formatEscalationReason(n.reason || n.reminderReason)
+                  : null;
+
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    const targetStatus = isRem ? "pending" : undefined;
+                    void navigate({
+                      to: "/bandeja",
+                      search: { conversationId: n.conversationId, status: targetStatus },
+                    });
+                  }}
+                  className={`w-full text-left p-3 hover:bg-foreground/5 transition-colors flex items-start gap-2.5 text-xs cursor-pointer ${
+                    !n.read ? "bg-primary/5" : ""
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${iconColor}`}>
+                    <Icon className="size-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <p className="font-bold text-foreground text-xs truncate">{title}</p>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {relativeTime(n.createdAt)}
+                      </span>
+                    </div>
+
+                    {customer && (
+                      <p className="text-[11px] font-semibold text-foreground/90 mt-0.5 truncate">
+                        {customer}
+                        {n.customerName && n.customerPhone && (
+                          <span className="font-mono text-[10px] text-muted-foreground ml-1 font-normal">
+                            ({formatWaPhone(n.customerPhone)})
+                          </span>
+                        )}
+                      </p>
+                    )}
+
+                    {reasonText && (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50 truncate max-w-[240px]">
+                          {reasonText}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {!n.read && (
+                    <span className="size-2 rounded-full bg-primary shrink-0 self-center" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

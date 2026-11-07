@@ -5,6 +5,9 @@ export type UiNotification = {
   caseId: string;
   conversationId?: string;
   departmentId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  reason?: string | null;
   scheduleTag?: string | null;
   reminderReason?: string | null;
   scheduledAt?: string;

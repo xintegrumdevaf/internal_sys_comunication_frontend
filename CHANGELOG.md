@@ -6,12 +6,23 @@ All notable changes to this project will be documented in this file.
 
 ### Improved
 
-- **Eliminación de IDs técnicos (UUIDs truncados) en notificaciones y toasts de escalamiento / asignación (`use-realtime.ts`, `realtime-event.ts`)**:
-  - _Problema_: Al escalar un caso o asignarse a un asesor, los toasts y notificaciones de escritorio mostraban un UUID truncado incomprensible para el usuario (`Conversación a1d91fbf… requiere atención` / `Caso 7b2c9d… ahora es tuyo`).
+- **Notificaciones y Toasts Ejecutivos con Datos de Alto Valor y Eliminación de UUIDs (`RealtimeToastCard.tsx`, `use-realtime.tsx`, `NotificationBell.tsx`, `sonner.tsx`)**:
+  - _Problema_:
+    - Al escalar un caso o asignarse a un asesor, los toasts y notificaciones mostraban un UUID truncado incomprensible (`Conversación a1d91fbf… requiere atención`).
+    - El diseño visual del toast era una alerta genérica en bloque amarillo pastel apagado (estilo Sonner `richColors` por defecto), sin jerarquía visual ni contexto operativo.
+    - La campanita de notificaciones solo listaba textos planos sin información del cliente ni del motivo del escalamiento.
   - _Solución_:
-    - Se reemplazó el recorte de UUID por identificación humana del cliente: muestra el nombre del cliente y/o su número de teléfono formateado (`Cliente Nombre (Teléfono) requiere atención en la bandeja`), con fallback amigable cuando no hay datos (`Un cliente requiere atención inmediata en la bandeja de entrada`).
-    - Se agregaron botones de acción directa en el toast (`[Ver chat]` en escalamiento y `[Atender]` en asignación) que navegan de inmediato a `/bandeja?conversationId=...` para que el asesor pueda atender con un solo clic.
-    - Las notificaciones nativas de escritorio ahora también incluyen el destino de navegación en su evento `onclick`.
+    - **Tarjetas Toast Ejecutivas (`RealtimeToastCard.tsx`)**:
+      - Sustitución de alertas genéricas por tarjetas SaaS con diseño limpio, backdrop-blur y borde sutil.
+      - Acentos cromáticos según la naturaleza del evento: ámbar para escalamiento humano, esmeralda para asignación de caso y cyan para recordatorios programados.
+      - Datos de negocio destacados: Nombre del cliente, número de WhatsApp formateado (`+593 987 654 321`), badge con motivo pedagógico legible (ej. "Reclamo reiterado", "SLA excedido", "Falla técnica no resuelta") y hora relativa.
+      - Botón de acción directa interactivo (`[Atender Caso]`, `[Ver Chat]`) con redirección inmediata a `/bandeja?conversationId=...`.
+    - **Centro de Notificaciones Enriquecido (`NotificationBell.tsx`)**:
+      - Cada ítem del menú desplegable incluye ahora avatar con iniciales, nombre del cliente, teléfono formateado y badge tipificado con el motivo del escalamiento.
+    - **Estilizado Elegante en Sonner (`sonner.tsx`, `__root.tsx`)**:
+      - Eliminación de `richColors` para evitar fondos pasteles planos; incorporación de `closeButton`, sombras profundas (`shadow-2xl`) y esquinas redondeadas (`rounded-xl`).
+    - **Backend Enriquecido (`realtime-broadcaster.ts`, `escalation.service.ts`)**:
+      - Propagación de `customerName`, `customerPhone` y `reason` en los eventos `CASE_ESCALATED` y `HUMAN_ASSIGNED`.
 
 ## [0.2.20] - 2026-11-07
 

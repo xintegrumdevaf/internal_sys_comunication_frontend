@@ -22,6 +22,7 @@ import {
 } from "@/modules/realtime/application/unread.state";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 import { formatWaPhone } from "@/modules/conversations/domain/conversation";
+import { RealtimeToastCard } from "@/modules/realtime/ui/RealtimeToastCard";
 
 import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
 
@@ -209,31 +210,32 @@ export function useRealtimeSession(userId: string | null): void {
     return subscribeRealtimeEvents((event: RealtimeEvent) => {
       if (event.type === "CASE_ESCALATED") {
         const targetUrl = `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`;
-        const customerLabel = event.customerName
-          ? `${event.customerName}${event.customerPhone ? ` (${formatWaPhone(event.customerPhone)})` : ""}`
-          : event.customerPhone
-            ? formatWaPhone(event.customerPhone)
-            : null;
-
-        const description = customerLabel
-          ? `Cliente ${customerLabel} requiere atención en la bandeja`
-          : "Un cliente requiere atención inmediata en la bandeja de entrada";
-
-        toast.warning("Caso escalado a humano", {
-          description,
-          duration: 9000,
-          action: {
-            label: "Ver chat",
-            onClick: () => {
-              window.location.href = targetUrl;
-            },
-          },
-        });
+        toast.custom(
+          (t) => (
+            <RealtimeToastCard
+              type="escalated"
+              title="Caso escalado a humano"
+              customerName={event.customerName}
+              customerPhone={event.customerPhone}
+              reason={event.reason}
+              actionLabel="Atender conversación"
+              onAction={() => {
+                toast.dismiss(t);
+                window.location.href = targetUrl;
+              }}
+              onDismiss={() => toast.dismiss(t)}
+            />
+          ),
+          { duration: 10000 },
+        );
         if (isAppInBackground()) {
           playNotificationSound();
           flashDocumentTitle("¡Caso escalado!");
-          sendDesktopNotification("Caso escalado a humano", {
-            body: description,
+          const customerLabel =
+            event.customerName ||
+            (event.customerPhone ? formatWaPhone(event.customerPhone) : "Cliente");
+          sendDesktopNotification("🚨 Caso escalado a humano", {
+            body: `${customerLabel} requiere atención inmediata en la bandeja de entrada.`,
             tag: `escalation-${event.conversationId}`,
             renotify: true,
             data: { url: targetUrl },
@@ -244,62 +246,68 @@ export function useRealtimeSession(userId: string | null): void {
           ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`
           : `/bandeja`;
 
-        const customerLabel = event.customerName
-          ? `${event.customerName}${event.customerPhone ? ` (${formatWaPhone(event.customerPhone)})` : ""}`
-          : event.customerPhone
-            ? formatWaPhone(event.customerPhone)
-            : null;
-
-        const description = customerLabel
-          ? `Se te asignó el chat de ${customerLabel}`
-          : "Tienes un nuevo caso asignado listo para atender en la bandeja";
-
-        toast.success("Se te asignó un caso", {
-          description,
-          duration: 9000,
-          action: {
-            label: "Atender",
-            onClick: () => {
-              window.location.href = targetUrl;
-            },
-          },
-        });
+        toast.custom(
+          (t) => (
+            <RealtimeToastCard
+              type="assigned"
+              title="Se te asignó un caso"
+              customerName={event.customerName}
+              customerPhone={event.customerPhone}
+              actionLabel="Atender caso"
+              onAction={() => {
+                toast.dismiss(t);
+                window.location.href = targetUrl;
+              }}
+              onDismiss={() => toast.dismiss(t)}
+            />
+          ),
+          { duration: 10000 },
+        );
         if (isAppInBackground()) {
           playNotificationSound();
           flashDocumentTitle("¡Nuevo caso asignado!");
-          sendDesktopNotification("Se te asignó un nuevo caso", {
-            body: description,
+          const customerLabel =
+            event.customerName ||
+            (event.customerPhone ? formatWaPhone(event.customerPhone) : "Nuevo cliente");
+          sendDesktopNotification("🎯 Se te asignó un nuevo caso", {
+            body: `${customerLabel} ha sido asignado a tu bandeja listo para atender.`,
             tag: `assigned-${event.caseId}`,
             renotify: true,
             data: { url: targetUrl },
           });
         }
       } else if (event.type === "CASE_SCHEDULED_REMINDER") {
-        const tagTitle = event.scheduleTag ? `🏷️ [${event.scheduleTag}] ` : "";
-        const reason = event.reminderReason
-          ? `${tagTitle}${event.reminderReason}`
-          : `${tagTitle}Es momento de verificar el caso agendado`;
-        toast.info("⏰ Recordatorio de Caso Agendado", {
-          description: reason,
-          duration: 10000,
-          action: event.conversationId
-            ? {
-                label: "Ver Caso",
-                onClick: () => {
-                  window.location.href = `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=pending`;
-                },
-              }
-            : undefined,
-        });
+        const targetUrl = event.conversationId
+          ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=pending`
+          : `/bandeja`;
+
+        toast.custom(
+          (t) => (
+            <RealtimeToastCard
+              type="reminder"
+              title="Recordatorio de caso agendado"
+              scheduleTag={event.scheduleTag}
+              reminderReason={event.reminderReason}
+              actionLabel="Ver caso agendado"
+              onAction={() => {
+                toast.dismiss(t);
+                window.location.href = targetUrl;
+              }}
+              onDismiss={() => toast.dismiss(t)}
+            />
+          ),
+          { duration: 12000 },
+        );
         playNotificationSound();
         if (isAppInBackground()) {
           flashDocumentTitle("⏰ Recordatorio de caso");
+          sendDesktopNotification("⏰ Recordatorio de caso agendado", {
+            body: event.reminderReason || "Es momento de verificar el caso agendado.",
+            tag: `reminder-${event.caseId}-${Date.now()}`,
+            renotify: true,
+            data: { url: targetUrl },
+          });
         }
-        sendDesktopNotification("⏰ Recordatorio de caso agendado", {
-          body: reason,
-          tag: `reminder-${event.caseId}-${Date.now()}`,
-          renotify: true,
-        });
       } else if (event.type === "MESSAGE_RECEIVED") {
         const isCurrentActiveChat = getActiveChatId() === event.conversationId;
         const inBackground = isAppInBackground();
