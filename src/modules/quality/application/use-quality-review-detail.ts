@@ -37,6 +37,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
   const [busy, setBusy] = useState(false);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
+  const [hasMutated, setHasMutated] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadMessages = useCallback(async (detail: QualityReviewDto) => {
@@ -117,6 +118,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     try {
       await addQualityCoachingNote(reviewId, noteDraft.trim());
       setNoteDraft("");
+      setHasMutated(true);
       toast.success("Nota de coaching guardada");
       await reload();
     } catch (e) {
@@ -131,6 +133,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     setBusy(true);
     try {
       await markQualityReviewReviewed(reviewId);
+      setHasMutated(true);
       toast.success("Revisión marcada como revisada");
       await reload();
     } catch (e) {
@@ -145,6 +148,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     setBusy(true);
     try {
       const created = await requestOnDemandReview(review.caseId);
+      setHasMutated(true);
       toast.success(created.status === "pending" ? "Análisis en curso…" : "Análisis solicitado");
       return created.id;
     } catch (e) {
@@ -164,6 +168,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
         MOCK_LONG_QUALITY_REVIEW.cordialityScore = nextScore;
         MOCK_LONG_QUALITY_REVIEW.status = "ready";
         setReview({ ...MOCK_LONG_QUALITY_REVIEW });
+        setHasMutated(true);
         setBusy(false);
         toast.success(`Reanálisis completado: nuevo score ${nextScore}/100`);
       }, 600);
@@ -173,6 +178,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     try {
       const reset = await reanalyzeQualityReview(reviewId);
       setReview(reset);
+      setHasMutated(true);
       toast.success("Reanálisis iniciado con el prompt vigente...");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo reanalizar la conversación");
@@ -190,6 +196,7 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     loading,
     busy,
     backendUnavailable,
+    hasMutated,
     noteDraft,
     setNoteDraft,
     reload,

@@ -14,10 +14,9 @@ All notable changes to this project will be documented in this file.
     3. Si `pendingCount === 0`, el intervalo de sondeo estaba inactivo, dejando el estado local de `reviews` estancado en la carga inicial.
     4. En el mock de prueba interactivo, la acción `reanalyze` emitía un toast pero no alternaba el score ni mutaba el estado de la revisión en memoria.
   - _Solución_:
-    - Detección de reactivación en `use-quality-board.ts`: se introdujo `prevPausePolling = useRef(pausePolling)` para disparar automáticamente un `reload({ silent: true })` en cuanto el usuario sale del detalle de una revisión.
-    - Recarga explícita en `QualityBoard.tsx`: el handler `onBack` invoca `void reload({ silent: true })` junto con `onClearReview()`.
+    - Optimización quirúrgica de red (`hasMutated`): `useQualityReviewDetail` trackea si hubo mutación (`submitNote`, `markReviewed`, `reanalyze`, `requestOnDemand`). Al presionar "Volver al ranking", `QualityBoard` solo ejecuta el `reload({ silent: true })` si `mutated === true`, ahorrando peticiones innecesarias cuando el usuario solo entra a consultar el chat.
     - Simulación interactiva de reanálisis en `use-quality-review-detail.ts`: al reanalizar el mock `MOCK_QUALITY_REVIEW_ID`, se recalcula dinámicamente el puntaje (alternando 48 y 85/100) y se sincroniza inmediatamente tanto en la vista de detalle como en la tabla principal.
-    - Test de integración agregado en `use-quality-board.test.ts`.
+    - Tests unitarios agregados en `use-quality-board.test.ts` y `use-quality-review-detail.test.ts`.
 
 ## [0.2.19] - 2026-11-07
 

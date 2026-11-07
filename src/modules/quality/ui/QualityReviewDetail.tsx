@@ -22,7 +22,7 @@ export function QualityReviewDetail({
   agentName,
 }: {
   reviewId: string;
-  onBack: () => void;
+  onBack: (opts?: { mutated?: boolean }) => void;
   agentName: (agentId: string) => string;
 }) {
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ export function QualityReviewDetail({
     loading,
     busy,
     backendUnavailable,
+    hasMutated,
     noteDraft,
     setNoteDraft,
     submitNote,
@@ -44,6 +45,10 @@ export function QualityReviewDetail({
     reanalyze,
     chatDeepLink,
   } = useQualityReviewDetail(reviewId);
+
+  const handleBack = () => {
+    onBack({ mutated: hasMutated });
+  };
 
   useEffect(() => {
     messageRefs.current = {};
@@ -96,7 +101,7 @@ export function QualityReviewDetail({
       <div className="space-y-4 animate-fade-up">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleBack}
           className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Volver
@@ -122,7 +127,7 @@ export function QualityReviewDetail({
       <div className="space-y-4 animate-fade-up">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleBack}
           className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Volver
@@ -153,7 +158,7 @@ export function QualityReviewDetail({
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl border border-border bg-card shadow-xs">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleBack}
           className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           <ArrowLeft className="size-4" /> Volver al ranking

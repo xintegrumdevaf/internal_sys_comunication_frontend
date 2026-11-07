@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useQualityBoard } from "./use-quality-board";
 import type { SessionUser } from "@/modules/identity/domain/session";
@@ -70,18 +70,15 @@ describe("useQualityBoard", () => {
     expect(result.current.reviews[0].cordialityScore).toBe(48);
   });
 
-  it("automatically reloads reviews silently when pausePolling transitions from true to false", async () => {
-    const { result, rerender } = renderHook(
-      ({ pausePolling }: { pausePolling: boolean }) => useQualityBoard({ pausePolling }),
-      { initialProps: { pausePolling: true } },
-    );
+  it("reloads reviews and stats silently when reload({ silent: true }) is invoked", async () => {
+    const { result } = renderHook(() => useQualityBoard());
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
     expect(listQualityReviewsMock).toHaveBeenCalledTimes(1);
 
-    // Mock an updated review score in backend
+    // Mock updated score
     listQualityReviewsMock.mockResolvedValueOnce([
       {
         id: "rev-1",
@@ -93,12 +90,12 @@ describe("useQualityBoard", () => {
       },
     ]);
 
-    // User returns from review detail to board -> pausePolling becomes false
-    rerender({ pausePolling: false });
-
-    await waitFor(() => {
-      expect(listQualityReviewsMock).toHaveBeenCalledTimes(2);
-      expect(result.current.reviews[0].cordialityScore).toBe(85);
+    await act(async () => {
+      await result.current.reload({ silent: true });
     });
+
+    expect(listQualityReviewsMock).toHaveBeenCalledTimes(2);
+    expect(result.current.reviews[0].cordialityScore).toBe(85);
+    expect(result.current.loading).toBe(false);
   });
 });

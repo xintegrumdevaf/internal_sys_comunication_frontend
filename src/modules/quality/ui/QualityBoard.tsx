@@ -77,8 +77,10 @@ export function QualityBoard({
     return (
       <QualityReviewDetail
         reviewId={reviewId}
-        onBack={() => {
-          void reload({ silent: true });
+        onBack={(opts) => {
+          if (opts?.mutated) {
+            void reload({ silent: true });
+          }
           onClearReview();
         }}
         agentName={agentName}
