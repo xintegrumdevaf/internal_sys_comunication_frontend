@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.17] - 2026-11-07
+
+### Improved
+
+- **Rediseño visual no redundante del Análisis de Calidad y Observaciones (`QualityFindingsList.tsx`, `QualitySummaryCard.tsx`, `QualityStructuredAnalysis.tsx`, `QualityReviewDetail.tsx`)**:
+  - _Contexto y Problema_: La columna de auditoría presentaba información cuadruplicada: (1) tarjeta de faltas graves, (2) tarjeta de puntos a mejorar, (3) lista global de puntos a mejorar en texto dentro de la síntesis, (4) nota de eficiencia repetida 3 veces, y (5) lista idéntica de hallazgos al pie. Además, las citas de los mensajes del asesor se limitaban a comillas tipográficas planas (`«...»`), sin una interfaz gráfica que diferenciara claramente los mensajes auditados de las indicaciones pedagógicas.
+  - _Resolución Arquitectónica_:
+    - **Nuevo componente `QualityFindingsList.tsx` (Unificación de Hallazgos)**:
+      - Cero duplicación: reemplaza las tres listas redundantes en una sola sección visual e interactiva.
+      - Citas gráficas de chat: cada mensaje auditado se enmarca en una burbuja con icono, tipografía destacada y etiqueta de mensaje de asesor.
+      - Diagnóstico preciso: problema puntual marcado con icono de alerta (rojo para faltas graves, ámbar para oportunidades de mejora).
+      - Indicación correctiva: tarjeta esmeralda con icono de bombilla (`💡 Acción recomendada / Debió decir:`).
+      - Acciones integradas en cada tarjeta: botón `[Ver en chat]` con scroll al mensaje en timeline y botón `[Objetar]` con deep-link al chat interno.
+    - **`QualitySummaryCard.tsx` deduplicado**:
+      - Tarjeta de eficiencia operativa única, concisa y ejecutiva.
+      - Eliminación de bloques redundantes previos de faltas graves y puntos a mejorar planos.
+    - **`QualityStructuredAnalysis.tsx` enfocado en tramos**:
+      - Eliminación del volcado de notas generales globales que repetían los puntos a mejorar.
+      - Estructuración de tramos con contexto concreto del cliente, evaluación de la atención del asesor y ejemplo exacto de redacción recomendada.
+    - **`QualityReviewDetail.tsx`**:
+      - Eliminada la lista repetida de hallazgos que ocupaba espacio al pie de la columna.
+
 ## [0.2.16] - 2026-11-07
 
 ### Added

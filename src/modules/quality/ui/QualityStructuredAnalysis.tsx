@@ -113,27 +113,15 @@ function HighlightedText({ text }: { text: string }) {
 
 export function QualityStructuredAnalysis({ summary }: QualityStructuredAnalysisProps) {
   // Parser estructurado de síntesis y tramos
-  const { generalNotes, tramos } = useMemo(() => {
-    if (!summary) return { generalNotes: [], tramos: [] };
+  const { tramos } = useMemo(() => {
+    if (!summary) return { tramos: [] };
 
     // Buscar sección "Síntesis por tramos:"
     const tramosSplit = summary.split(/Síntesis por tramos:\s*/i);
-    const preTramoText = tramosSplit[0] ? tramosSplit[0].trim() : "";
     const tramoSection = tramosSplit[1] ? tramosSplit[1].trim() : "";
 
-    // Parsear notas generales previas (excluyendo valoraciones repetidas)
-    const generalLines = preTramoText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(
-        (l) =>
-          l.length > 0 &&
-          !l.startsWith("Valoración total:") &&
-          !l.startsWith("Conversación completa:"),
-      );
-
     if (!tramoSection) {
-      return { generalNotes: generalLines, tramos: [] };
+      return { tramos: [] };
     }
 
     // Separar por cada número de tramo "1. ", "2. ", etc.
@@ -193,7 +181,7 @@ export function QualityStructuredAnalysis({ summary }: QualityStructuredAnalysis
       };
     });
 
-    return { generalNotes: generalLines, tramos: parsedTramos };
+    return { tramos: parsedTramos };
   }, [summary]);
 
   const [activeTramo, setActiveTramo] = useState<number>(1);
@@ -214,17 +202,6 @@ export function QualityStructuredAnalysis({ summary }: QualityStructuredAnalysis
           </span>
         )}
       </div>
-
-      {/* Notas generales o puntos a mejorar si existen en el preámbulo */}
-      {tramos.length > 0 && generalNotes.length > 0 && (
-        <div className="p-3.5 rounded-xl border border-border bg-background/60 space-y-2 text-xs leading-relaxed">
-          {generalNotes.map((note, i) => (
-            <p key={i} className="text-foreground/90">
-              <HighlightedText text={note} />
-            </p>
-          ))}
-        </div>
-      )}
 
       {/* Selector de Tramos si hay más de 1 */}
       {tramos.length > 1 && (

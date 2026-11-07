@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, MessageSquare, MessagesSquare, RefreshCcw } from "lucide-react";
+import { ArrowLeft, Loader2, MessagesSquare, RefreshCcw } from "lucide-react";
 import { dayLabel } from "@/shared/datetime";
-import {
-  qualityFindingCategoryLabel,
-  qualityFindingSeverityLabel,
-  type QualityFindingDto,
-} from "@/modules/quality/domain/quality-review";
+import type { QualityFindingDto } from "@/modules/quality/domain/quality-review";
 import { useQualityReviewDetail } from "@/modules/quality/application/use-quality-review-detail";
 import { QualitySummaryCard } from "@/modules/quality/ui/QualitySummaryCard";
 import {
@@ -279,58 +275,11 @@ export function QualityReviewDetail({
         {/* Columna Derecha: Resumen, Hallazgos y Notas con scroll propio */}
         <aside className="col-span-12 lg:col-span-5 flex flex-col min-h-0 h-full overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1 sm:pr-2">
-            <QualitySummaryCard review={review} />
-
-            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
-              <div className="p-3.5 sm:p-4 border-b border-border bg-background/50">
-                <h3 className="text-xs font-extrabold uppercase tracking-widest">
-                  Hallazgos ({review.findings.length})
-                </h3>
-              </div>
-              <ul className="divide-y divide-border max-h-64 overflow-y-auto">
-                {review.findings.map((f) => (
-                  <li key={f.id} className="p-3 hover:bg-foreground/5 transition-colors">
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => scrollToMessage(f.messageId)}
-                        className="text-left flex-1 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold uppercase">
-                            {qualityFindingSeverityLabel(f.severity)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {qualityFindingCategoryLabel(f.category)}
-                          </span>
-                        </div>
-                        <p className="text-[11px] font-medium line-clamp-2">{f.excerpt}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-                          {f.rationale}
-                        </p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleObjectInChat(review.agentId, review.id, f);
-                        }}
-                        title="Objetar al agente en Chat"
-                        className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border border-border bg-background hover:bg-muted shrink-0 text-foreground transition-colors cursor-pointer"
-                      >
-                        <MessageSquare className="size-3" />
-                        Objetar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-                {review.findings.length === 0 && (
-                  <li className="p-4 text-[11px] text-muted-foreground">
-                    Sin hallazgos en esta revisión.
-                  </li>
-                )}
-              </ul>
-            </div>
+            <QualitySummaryCard
+              review={review}
+              onScrollToMessage={scrollToMessage}
+              onObjectInChat={(f) => void handleObjectInChat(review.agentId, review.id, f)}
+            />
 
             <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
               <h3 className="text-xs font-extrabold uppercase tracking-widest">
