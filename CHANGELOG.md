@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.22] - 2026-11-07
+
+### Refactored
+
+- **Arquitectura Master-Detail y Optimización de Rendimiento en Departamentos y Áreas (`DepartmentsDirectoryPanel.tsx`, `DepartmentCasesDrawer.tsx`, `DepartmentFormCard.tsx`, `DepartmentCaseFormCard.tsx`, `DepartmentsTable.tsx`)**:
+  - _Problema_:
+    - **Lag severo al tipear o estirar el textarea**: En departamentos con gran volumen de casos (ej. Facturación con 260 casos), todos los inputs y textareas residían en un único array de estado monolítico. Cada pulsación de tecla o redimensionamiento disparaba un re-render de 260 componentes hijos y reflow del DOM en el navegador.
+    - **Pérdida de contexto por expansión inline en tablas**: Al hacer clic en un departamento para ver sus casos, se insertaba una grilla masiva de 260 tarjetas dentro de una fila `<tr>`, empujando la tabla hacia abajo por kilómetros de scroll sin posibilidad de volver fácilmente a los demás departamentos.
+    - **Componentes alargados y desproporcionados**: Los inputs y tarjetas se extendían al 100% del viewport en monitores panorámicos, dejando enormes espacios vacíos.
+  - _Solución_:
+    - **Panel Lateral Deslizante (Drawer / Sheet con Radix UI)** (`DepartmentCasesDrawer.tsx`):
+      - La tabla principal de departamentos se mantiene estática, limpia y acotada (`max-w-7xl`).
+      - Al hacer clic en "Ver casos" o en el badge interactivo de un departamento, se abre un Drawer lateral con scroll independiente, barra de búsqueda reactiva por motivo o síntoma, filtros por tipo de atención (`Todos`, `🤖 IA`, `👤 Humano`) y paginación de 12 casos por página.
+      - Botón sticky visible de "Cerrar / Volver a departamentos" para nunca perder la ubicación.
+    - **Aislamiento de Componentes y Paginación en Formulario** (`DepartmentFormCard.tsx`, `DepartmentCaseFormCard.tsx`):
+      - Tarjetas de caso memoizadas con `React.memo` para que editar o redimensionar un textarea solo re-renderice esa tarjeta individual.
+      - Paginación interna de casos en el formulario (8 por página) con buscador rápido: solo 8 textareas residen en el DOM al mismo tiempo en vez de 260, eliminando el lag al 100%.
+    - **Modularización Estricta (< 400 líneas por archivo)**:
+      - Desacoplamiento del archivo monolítico original de 980 líneas en 5 módulos enfocados de alta cohesión.
+
 ## [0.2.21] - 2026-11-07
 
 ### Improved

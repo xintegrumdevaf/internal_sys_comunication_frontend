@@ -1,53 +1,20 @@
-import { useMemo, useState, useEffect } from "react";
-import {
-  Plus,
-  Search,
-  Building2,
-  ShieldCheck,
-  LayoutDashboard,
-  Bot,
-  UserCheck,
-  Trash2,
-  ChevronDown,
-  Sparkles,
-  HelpCircle,
-  FileSpreadsheet,
-} from "lucide-react";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { useDepartmentsAdmin } from "@/modules/identity/application/use-departments-admin";
-import * as agentDirectoryGateway from "@/modules/identity/infrastructure/agent-directory.gateway";
 import type {
   Department,
   DepartmentCase,
   DepartmentHandlingMode,
-  DepartmentVisibility,
-} from "@/modules/identity/domain/department";
-import {
-  departmentVisibilityLabel,
-  departmentHandlingModeLabel,
 } from "@/modules/identity/domain/department";
 import { DepartmentCasesBulkImportModal } from "./DepartmentCasesBulkImportModal";
+import { DepartmentsTable } from "./DepartmentsTable";
+import { DepartmentCasesDrawer } from "./DepartmentCasesDrawer";
+import { DepartmentFormCard, type DepartmentFormState } from "./DepartmentFormCard";
+import type { CaseItemForm } from "./DepartmentCaseFormCard";
 
-type CaseItemForm = {
-  id?: string;
-  label: string;
-  description: string;
-  handlingMode: DepartmentHandlingMode;
-  workflowType?: string;
-  active?: boolean;
-};
-
-type FormState = {
-  name: string;
-  slug: string;
-  description: string;
-  visibility: DepartmentVisibility;
-  maxConcurrentCases: number;
-  cases: CaseItemForm[];
-};
-
-const emptyForm: FormState = {
+const emptyForm: DepartmentFormState = {
   name: "",
   slug: "",
   description: "",
@@ -60,9 +27,20 @@ function toAutoSlug(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function toCaseItemForms(cases: DepartmentCase[]): CaseItemForm[] {
+  return cases.map((c) => ({
+    id: c.id,
+    label: c.label,
+    description: c.description,
+    handlingMode: c.handlingMode,
+    workflowType: c.workflowType,
+    active: c.active,
+  }));
 }
 
 export function DepartmentsDirectoryPanel() {
@@ -78,17 +56,15 @@ export function DepartmentsDirectoryPanel() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setForm] = useState<DepartmentFormState>(emptyForm);
   const [deletedCaseIds, setDeletedCaseIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [autoSlugEnabled, setAutoSlugEnabled] = useState(true);
 
-  // Cache de casos cargados bajo demanda para la vista expandible
   const [casesCache, setCasesCache] = useState<Record<string, DepartmentCase[]>>({});
-  const [expandedDeptId, setExpandedDeptId] = useState<string | null>(null);
+  const [selectedDeptForDrawer, setSelectedDeptForDrawer] = useState<Department | null>(null);
   const [loadingCasesFor, setLoadingCasesFor] = useState<string | null>(null);
 
-  // Estado para la modal de carga masiva de casos vía Excel
   const [bulkImportTarget, setBulkImportTarget] = useState<{
     targetType: "department" | "form";
     deptId?: string;
@@ -114,29 +90,27 @@ export function DepartmentsDirectoryPanel() {
     );
   }, [departments, search]);
 
-  const toggleExpand = async (deptId: string) => {
-    if (expandedDeptId === deptId) {
-      setExpandedDeptId(null);
-      return;
-    }
-    setExpandedDeptId(deptId);
-    const dept = departments.find((d) => d.id === deptId);
-    if (dept?.cases && dept.cases.length > 0) {
-      setCasesCache((prev) => ({ ...prev, [deptId]: dept.cases! }));
-      return;
-    }
-    if (!casesCache[deptId]) {
-      setLoadingCasesFor(deptId);
-      try {
-        const fetched = await getDepartmentCases(deptId);
-        setCasesCache((prev) => ({ ...prev, [deptId]: fetched || [] }));
-      } catch {
-        setCasesCache((prev) => ({ ...prev, [deptId]: [] }));
-      } finally {
-        setLoadingCasesFor(null);
+  const handleViewCases = useCallback(
+    async (dept: Department) => {
+      setSelectedDeptForDrawer(dept);
+      if (dept.cases && dept.cases.length > 0) {
+        setCasesCache((prev) => ({ ...prev, [dept.id]: dept.cases! }));
+        return;
       }
-    }
-  };
+      if (!casesCache[dept.id]) {
+        setLoadingCasesFor(dept.id);
+        try {
+          const fetched = await getDepartmentCases(dept.id);
+          setCasesCache((prev) => ({ ...prev, [dept.id]: fetched || [] }));
+        } catch {
+          setCasesCache((prev) => ({ ...prev, [dept.id]: [] }));
+        } finally {
+          setLoadingCasesFor(null);
+        }
+      }
+    },
+    [casesCache, getDepartmentCases],
+  );
 
   const openCreate = () => {
     setEditingId(null);
@@ -153,41 +127,20 @@ export function DepartmentsDirectoryPanel() {
     setDeletedCaseIds([]);
 
     let initialCases: CaseItemForm[] = dept.cases
-      ? dept.cases.map((c) => ({
-          id: c.id,
-          label: c.label,
-          description: c.description,
-          handlingMode: c.handlingMode,
-          workflowType: c.workflowType,
-          active: c.active,
-        }))
-      : [];
+      ? toCaseItemForms(dept.cases)
+      : casesCache[deptId]
+        ? toCaseItemForms(casesCache[deptId])
+        : [];
 
-    if (initialCases.length === 0 && casesCache[deptId]) {
-      initialCases = casesCache[deptId].map((c) => ({
-        id: c.id,
-        label: c.label,
-        description: c.description,
-        handlingMode: c.handlingMode,
-        workflowType: c.workflowType,
-        active: c.active,
-      }));
-    } else if (initialCases.length === 0) {
+    if (initialCases.length === 0) {
       try {
         const fetched = await getDepartmentCases(deptId);
         if (fetched && fetched.length > 0) {
-          initialCases = fetched.map((c) => ({
-            id: c.id,
-            label: c.label,
-            description: c.description,
-            handlingMode: c.handlingMode,
-            workflowType: c.workflowType,
-            active: c.active,
-          }));
+          initialCases = toCaseItemForms(fetched);
           setCasesCache((prev) => ({ ...prev, [deptId]: fetched }));
         }
       } catch {
-        // Ignorar error al pre-cargar casos
+        // Ignorar
       }
     }
 
@@ -244,105 +197,54 @@ export function DepartmentsDirectoryPanel() {
 
     if (bulkImportTarget.targetType === "form") {
       if (strategy === "replace") {
-        const idsToDelete = form.cases.filter((c) => c.id).map((c) => c.id!);
-        if (idsToDelete.length > 0) {
-          setDeletedCaseIds((prev) => [...prev, ...idsToDelete]);
-        }
-        setForm((prev) => ({
-          ...prev,
-          cases: newCases.map((c) => ({
-            label: c.label,
-            description: c.description,
-            handlingMode: c.handlingMode,
-            workflowType: c.workflowType || "GENERAL_INQUIRY",
-            active: true,
-          })),
-        }));
+        const ids = form.cases.filter((c) => c.id).map((c) => c.id!);
+        if (ids.length > 0) setDeletedCaseIds((prev) => [...prev, ...ids]);
+        setForm((prev) => ({ ...prev, cases: newCases.map((c) => ({ ...c, active: c.active ?? true })) }));
       } else {
         setForm((prev) => ({
           ...prev,
-          cases: [
-            ...prev.cases,
-            ...newCases.map((c) => ({
-              label: c.label,
-              description: c.description,
-              handlingMode: c.handlingMode,
-              workflowType: c.workflowType || "GENERAL_INQUIRY",
-              active: true,
-            })),
-          ],
+          cases: [...prev.cases, ...newCases.map((c) => ({ ...c, active: c.active ?? true }))],
         }));
       }
-      toast.success(
-        `Se ${strategy === "replace" ? "reemplazaron por" : "agregaron"} ${newCases.length} casos en el formulario. Recuerda guardar el departamento.`,
-      );
+      toast.success(`${newCases.length} casos importados al formulario. Guarda para confirmar.`);
       setBulkImportTarget(null);
       return;
     }
 
-    const deptId = bulkImportTarget.deptId!;
-    const dept = departments.find((d) => d.id === deptId);
-    if (!dept) return;
-
-    let existingCases: DepartmentCase[] = casesCache[deptId] ?? dept.cases ?? [];
-    if (existingCases.length === 0) {
+    if (bulkImportTarget.targetType === "department" && bulkImportTarget.deptId) {
+      const deptId = bulkImportTarget.deptId;
       try {
-        const fetched = await getDepartmentCases(deptId);
-        if (fetched && fetched.length > 0) {
-          existingCases = fetched;
-        }
-      } catch {
-        // Ignorar
+        const dept = departments.find((d) => d.id === deptId);
+        if (!dept) return;
+        const currentCases = casesCache[deptId] ?? [];
+        const finalCases =
+          strategy === "replace"
+            ? newCases.map((c) => ({ ...c, active: c.active ?? true }))
+            : [
+                ...toCaseItemForms(currentCases),
+                ...newCases.map((c) => ({ ...c, active: c.active ?? true })),
+              ];
+
+        await updateDepartment(deptId, {
+          name: dept.name,
+          slug: dept.slug,
+          description: dept.description ?? undefined,
+          visibility: dept.visibility,
+          maxConcurrentCases: dept.maxConcurrentCases,
+          cases: finalCases,
+        });
+
+        const refreshed = await getDepartmentCases(deptId);
+        setCasesCache((prev) => ({ ...prev, [deptId]: refreshed || [] }));
+        setBulkImportTarget(null);
+        toast.success(`Carga masiva completada: ${newCases.length} casos actualizados en ${dept.name}`);
+      } catch (err: unknown) {
+        toast.error(`Error en carga masiva: ${err instanceof Error ? err.message : "Desconocido"}`);
       }
-    }
-
-    let finalCases: Array<{
-      id?: string;
-      label: string;
-      description: string;
-      handlingMode: DepartmentHandlingMode;
-      workflowType?: string;
-      active?: boolean;
-    }> = [];
-
-    if (strategy === "append") {
-      finalCases = [
-        ...existingCases.map((c) => ({
-          id: c.id,
-          label: c.label,
-          description: c.description,
-          handlingMode: c.handlingMode,
-          workflowType: c.workflowType || "GENERAL_INQUIRY",
-          active: c.active ?? true,
-        })),
-        ...newCases,
-      ];
-    } else {
-      finalCases = newCases;
-    }
-
-    const ok = await updateDepartment(deptId, {
-      cases: finalCases,
-    });
-
-    if (ok) {
-      try {
-        const updated = await getDepartmentCases(deptId);
-        setCasesCache((prev) => ({
-          ...prev,
-          [deptId]: updated,
-        }));
-      } catch {
-        // fallback
-      }
-      toast.success(
-        `Carga masiva completada: ${newCases.length} casos ${strategy === "replace" ? "reemplazados" : "agregados"} en ${dept.name}`,
-      );
-      setBulkImportTarget(null);
     }
   };
 
-  const handleAddCase = () => {
+  const handleAddCase = useCallback(() => {
     setForm((prev) => ({
       ...prev,
       cases: [
@@ -356,82 +258,76 @@ export function DepartmentsDirectoryPanel() {
         },
       ],
     }));
-  };
+  }, []);
 
-  const handleRemoveCase = (index: number) => {
-    const targetCase = form.cases[index];
-    if (targetCase?.id) {
-      setDeletedCaseIds((prev) => [...prev, targetCase.id!]);
-    }
-    setForm((prev) => ({
-      ...prev,
-      cases: prev.cases.filter((_, idx) => idx !== index),
-    }));
-  };
+  const handleUpdateCase = useCallback((index: number, patch: Partial<CaseItemForm>) => {
+    setForm((prev) => {
+      const nextCases = [...prev.cases];
+      nextCases[index] = { ...nextCases[index], ...patch };
+      return { ...prev, cases: nextCases };
+    });
+  }, []);
 
-  const handleUpdateCase = (index: number, patch: Partial<CaseItemForm>) => {
-    setForm((prev) => ({
-      ...prev,
-      cases: prev.cases.map((c, idx) => (idx === index ? { ...c, ...patch } : c)),
-    }));
-  };
+  const handleRemoveCase = useCallback((index: number) => {
+    setForm((prev) => {
+      const target = prev.cases[index];
+      if (target?.id) setDeletedCaseIds((ids) => [...ids, target.id!]);
+      return { ...prev, cases: prev.cases.filter((_, i) => i !== index) };
+    });
+  }, []);
+
+  const canSubmit = form.name.trim().length > 0 && form.slug.trim().length > 0;
 
   const handleSubmit = async () => {
-    const validCases = form.cases
-      .map((c) => ({
-        id: c.id,
-        label: c.label.trim(),
-        description: c.description.trim(),
-        handlingMode: c.handlingMode,
-        workflowType: c.workflowType || "GENERAL_INQUIRY",
-        active: c.active ?? true,
-      }))
-      .filter((c) => c.label.length > 0);
-
-    const payload = {
-      name: form.name.trim(),
-      slug: form.slug.trim(),
-      description: form.description.trim() || undefined,
-      visibility: form.visibility,
-      maxConcurrentCases: Number(form.maxConcurrentCases) || 6,
-      cases: validCases,
-    };
+    if (!canSubmit) return;
+    const payloadCases = form.cases.map((c) => ({
+      id: c.id,
+      label: c.label.trim() || "Sin nombre",
+      description: c.description.trim(),
+      handlingMode: c.handlingMode,
+      workflowType: c.workflowType || "GENERAL_INQUIRY",
+      active: c.active ?? true,
+    }));
 
     if (editingId) {
-      if (deletedCaseIds.length > 0) {
-        await Promise.allSettled(
-          deletedCaseIds.map((caseId) => agentDirectoryGateway.deleteDepartmentCase(caseId)),
-        );
-      }
-      const ok = await updateDepartment(editingId, payload);
+      const ok = await updateDepartment(editingId, {
+        name: form.name.trim(),
+        slug: form.slug.trim(),
+        description: form.description.trim(),
+        visibility: form.visibility,
+        maxConcurrentCases: form.maxConcurrentCases,
+        cases: payloadCases,
+      });
       if (ok) {
-        setCasesCache((prev) => ({
-          ...prev,
-          [editingId]: validCases as DepartmentCase[],
-        }));
+        try {
+          const refreshed = await getDepartmentCases(editingId);
+          setCasesCache((prev) => ({ ...prev, [editingId]: refreshed || [] }));
+        } catch {
+          // Ignorar
+        }
         closeForm();
       }
-      return;
-    }
-    const ok = await createDepartment(payload);
-    if (ok) {
-      closeForm();
-    }
-  };
-
-  const toggleActive = async (deptId: string, currentlyActive: boolean) => {
-    if (currentlyActive) {
-      await deactivateDepartment(deptId);
     } else {
-      await reactivateDepartment(deptId);
+      const ok = await createDepartment({
+        name: form.name.trim(),
+        slug: form.slug.trim(),
+        description: form.description.trim(),
+        visibility: form.visibility,
+        maxConcurrentCases: form.maxConcurrentCases,
+        cases: payloadCases,
+      });
+      if (ok) closeForm();
     }
   };
 
-  const canSubmit = form.name.trim().length >= 2 && form.slug.trim().length >= 2;
+  const toggleActive = async (deptId: string, currentActive: boolean) => {
+    if (currentActive) await deactivateDepartment(deptId);
+    else await reactivateDepartment(deptId);
+  };
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card flex flex-wrap items-center justify-between gap-4 shadow-xs">
+    <div className="space-y-4 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-bold text-foreground">Departamentos y Áreas</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -442,7 +338,7 @@ export function DepartmentsDirectoryPanel() {
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-bold uppercase hover:bg-primary/90 transition-colors shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
         >
           <Plus className="size-4" />
           Nuevo departamento
@@ -450,275 +346,31 @@ export function DepartmentsDirectoryPanel() {
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
         <input
-          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar departamento por nombre, slug o descripción..."
-          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-xs outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+          className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-card text-xs outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
         />
       </div>
 
       {formOpen && (
-        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4 shadow-sm animate-fade-in">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest flex items-center gap-2">
-              <Building2 className="size-4 text-primary" />
-              {editingId ? "Editar departamento" : "Nuevo departamento"}
-            </h3>
-            <span className="text-[11px] text-muted-foreground">
-              Define el rol y los casos que este departamento resuelve
-            </span>
-          </div>
-
-          <div className="grid sm:grid-cols-4 gap-3">
-            <label className="text-[11px] space-y-1">
-              <span className="font-bold uppercase tracking-wide text-muted-foreground">
-                Nombre del área
-              </span>
-              <input
-                autoFocus
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Ej: Soporte Técnico"
-                className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </label>
-            <label className="text-[11px] space-y-1">
-              <span className="font-bold uppercase tracking-wide text-muted-foreground">
-                Slug (identificador corto)
-              </span>
-              <input
-                value={form.slug}
-                onChange={(e) => {
-                  setAutoSlugEnabled(false);
-                  setForm((f) => ({ ...f, slug: e.target.value }));
-                }}
-                placeholder="soporte-tecnico"
-                className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </label>
-            <label className="text-[11px] space-y-1">
-              <span className="font-bold uppercase tracking-wide text-muted-foreground">
-                Visibilidad de casos
-              </span>
-              <select
-                value={form.visibility}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, visibility: e.target.value as DepartmentVisibility }))
-                }
-                className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
-              >
-                <option value="shared">Compartida (Visible para todos)</option>
-                <option value="restricted">Restringida (Solo agentes de esta área)</option>
-              </select>
-            </label>
-            <label className="text-[11px] space-y-1">
-              <span className="font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                Límite Casos / Asesor
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={form.maxConcurrentCases}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setForm((f) => ({
-                    ...f,
-                    maxConcurrentCases: isNaN(val) ? 1 : Math.max(1, Math.min(50, val)),
-                  }));
-                }}
-                placeholder="6"
-                className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </label>
-
-            {/* Campo Descripción General */}
-            <label className="text-[11px] space-y-1 sm:col-span-4">
-              <span className="font-bold uppercase tracking-wide text-muted-foreground">
-                Descripción o Rol del Departamento
-              </span>
-              <textarea
-                rows={2}
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Ej: Área técnica encargada de atender caídas de enlace, lentitud o incidencias de fibra óptica."
-                className="w-full px-3 py-2 rounded-md border border-border bg-background text-xs outline-none focus:ring-2 focus:ring-primary/20 resize-y"
-              />
-            </label>
-          </div>
-
-          {/* Sección Dinámica: Casos y Solicitudes que Atiende */}
-          <div className="pt-3 border-t border-border space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="size-3.5 text-primary" />
-                  Casos y Solicitudes que Atiende
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
-                    {form.cases.length}
-                  </span>
-                </h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Entrena a la IA para clasificar y enrutar las conversaciones automáticamente a
-                  esta área según la intención del cliente.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={openBulkImportForForm}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors shadow-xs cursor-pointer"
-                >
-                  <FileSpreadsheet className="size-3.5" />
-                  Carga masiva Excel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddCase}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-bold uppercase hover:bg-primary/20 transition-colors shadow-xs cursor-pointer"
-                >
-                  <Plus className="size-3.5" />
-                  Agregar Motivo/Caso
-                </button>
-              </div>
-            </div>
-
-            {form.cases.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center text-xs text-muted-foreground space-y-2">
-                <p className="font-medium text-foreground">Sin casos configurados aún</p>
-                <p className="text-[11px]">
-                  Agrega al menos un caso (ej. <em>Cancelación de Contrato</em>,{" "}
-                  <em>Lentitud de Internet</em>) o realiza una carga masiva desde un archivo Excel.
-                </p>
-                <button
-                  type="button"
-                  onClick={openBulkImportForForm}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors shadow-xs cursor-pointer"
-                >
-                  <FileSpreadsheet className="size-3.5" />
-                  Importar casos desde Excel
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {form.cases.map((caseItem, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 sm:p-4 rounded-xl border border-border bg-background/60 space-y-3 shadow-xs"
-                  >
-                    <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold grid place-items-center">
-                          {idx + 1}
-                        </span>
-                        <span className="text-xs font-bold text-foreground">
-                          {caseItem.label.trim() || `Caso #${idx + 1}`}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCase(idx)}
-                        className="p-1 rounded-md text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
-                        title="Eliminar este caso"
-                        aria-label="Eliminar este caso"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="grid sm:grid-cols-12 gap-3">
-                      <div className="sm:col-span-5 space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Nombre del Caso
-                        </label>
-                        <input
-                          value={caseItem.label}
-                          onChange={(e) => handleUpdateCase(idx, { label: e.target.value })}
-                          placeholder="Ej: Cancelación de Contrato"
-                          className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-xs outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-7 space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                          <span>Tipo de Atención</span>
-                          <span className="text-[9px] lowercase text-muted-foreground font-normal">
-                            {caseItem.handlingMode === "ai_assisted"
-                              ? "IA responde primero"
-                              : "Pasa directo a humano"}
-                          </span>
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateCase(idx, { handlingMode: "ai_assisted" })}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-left text-[11px] font-medium transition-all ${
-                              caseItem.handlingMode === "ai_assisted"
-                                ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
-                                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-                            }`}
-                          >
-                            <Bot className="size-3.5 shrink-0" />
-                            <span className="truncate">🤖 Asistido por IA</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateCase(idx, { handlingMode: "human_direct" })}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-left text-[11px] font-medium transition-all ${
-                              caseItem.handlingMode === "human_direct"
-                                ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-xs"
-                                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-                            }`}
-                          >
-                            <UserCheck className="size-3.5 shrink-0" />
-                            <span className="truncate">👤 Directo a Humano</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-12 space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                          <span>¿Cómo lo dice el cliente?</span>
-                          <span className="text-[10px] text-primary/80 font-normal">
-                            (Entrenamiento directo para el modelo de IA)
-                          </span>
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={caseItem.description}
-                          onChange={(e) => handleUpdateCase(idx, { description: e.target.value })}
-                          placeholder="Ej: cuando el cliente pide darse de baja, devolver los equipos o cancelar el servicio"
-                          className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-xs outline-none focus:ring-2 focus:ring-primary/20 resize-y"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
-            <button
-              type="button"
-              disabled={busy || !canSubmit}
-              onClick={() => void handleSubmit()}
-              className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold uppercase disabled:opacity-40 hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
-            >
-              {editingId ? "Guardar cambios" : "Crear departamento"}
-            </button>
-            <button
-              type="button"
-              onClick={closeForm}
-              className="px-4 py-2 rounded-md border border-border text-xs font-bold uppercase hover:bg-foreground/5 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
+        <DepartmentFormCard
+          editingId={editingId}
+          form={form}
+          busy={busy}
+          canSubmit={canSubmit}
+          autoSlugEnabled={autoSlugEnabled}
+          onFormChange={setForm}
+          onToggleAutoSlug={setAutoSlugEnabled}
+          onSubmit={() => void handleSubmit()}
+          onCancel={closeForm}
+          onOpenBulkImport={openBulkImportForForm}
+          onAddCase={handleAddCase}
+          onUpdateCase={handleUpdateCase}
+          onRemoveCase={handleRemoveCase}
+        />
       )}
 
       {departments.length === 0 ? (
@@ -730,243 +382,31 @@ export function DepartmentsDirectoryPanel() {
           Ningún departamento coincide con la búsqueda.
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border bg-background/60 text-[10px] uppercase tracking-widest text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-extrabold w-8"></th>
-                  <th className="px-4 py-3 font-extrabold">Nombre</th>
-                  <th className="px-4 py-3 font-extrabold">Slug</th>
-                  <th className="px-4 py-3 font-extrabold">Visibilidad</th>
-                  <th className="px-4 py-3 font-extrabold">Casos Atendidos</th>
-                  <th className="px-4 py-3 font-extrabold">Capacidad</th>
-                  <th className="px-4 py-3 font-extrabold">Estado</th>
-                  <th className="px-4 py-3 font-extrabold text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredDepartments.map((d) => {
-                  const cases = d.cases ?? casesCache[d.id] ?? [];
-                  const casesCount = cases.length;
-                  const isExpanded = expandedDeptId === d.id;
-
-                  return (
-                    <tr key={d.id} className="group">
-                      <td colSpan={8} className="p-0">
-                        <div
-                          className={`flex items-center hover:bg-muted/30 transition-colors ${
-                            isExpanded ? "bg-muted/20" : ""
-                          }`}
-                        >
-                          <div className="px-3 py-3 w-8 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => void toggleExpand(d.id)}
-                              className="p-1 rounded hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-colors"
-                              title={isExpanded ? "Ocultar casos" : "Ver casos atendidos"}
-                              aria-label={isExpanded ? "Ocultar casos" : "Ver casos atendidos"}
-                            >
-                              <ChevronDown
-                                className={`size-3.5 transition-transform duration-200 ${
-                                  isExpanded ? "rotate-180 text-primary" : ""
-                                }`}
-                              />
-                            </button>
-                          </div>
-
-                          <div className="px-4 py-3 font-semibold text-foreground flex-1 min-w-[140px]">
-                            <div>{d.name}</div>
-                            {d.description && (
-                              <div className="text-[11px] text-muted-foreground font-normal truncate max-w-sm">
-                                {d.description}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="px-4 py-3 font-mono text-[11px] text-muted-foreground w-36 shrink-0">
-                            {d.slug}
-                          </div>
-
-                          <div className="px-4 py-3 w-48 shrink-0">
-                            <span className="inline-flex items-center gap-1">
-                              {d.visibility === "restricted" ? (
-                                <ShieldCheck className="size-3.5 text-danger" />
-                              ) : (
-                                <LayoutDashboard className="size-3.5 text-muted-foreground" />
-                              )}
-                              {departmentVisibilityLabel(d.visibility)}
-                            </span>
-                          </div>
-
-                          {/* Badge de contador de casos */}
-                          <div className="px-4 py-3 w-36 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => void toggleExpand(d.id)}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors cursor-pointer ${
-                                casesCount > 0
-                                  ? "bg-primary/10 text-primary hover:bg-primary/20"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
-                            >
-                              <Sparkles className="size-3" />
-                              <span>
-                                {casesCount > 0
-                                  ? `${casesCount} ${casesCount === 1 ? "caso" : "casos"}`
-                                  : "0 casos"}
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Capacidad máxima de concurrencia */}
-                          <div className="px-4 py-3 w-32 shrink-0">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
-                              {d.maxConcurrentCases ?? 6} chats/asesor
-                            </span>
-                          </div>
-
-                          <div className="px-4 py-3 w-28 shrink-0">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                d.active
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {d.active ? "Activo" : "Inactivo"}
-                            </span>
-                          </div>
-
-                          <div className="px-4 py-3 text-right w-44 shrink-0">
-                            <div className="flex justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => openEdit(d.id)}
-                                className="px-2 py-1 rounded border border-border text-[10px] font-bold uppercase hover:bg-muted transition-colors cursor-pointer"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void toggleActive(d.id, d.active)}
-                                title={
-                                  d.active
-                                    ? "Desactivar departamento. Ya no aparecerá al asignar agentes o casos."
-                                    : "Reactivar departamento"
-                                }
-                                className={`px-2 py-1 rounded border text-[10px] font-bold uppercase disabled:opacity-40 transition-colors cursor-pointer ${
-                                  d.active
-                                    ? "border-danger/30 text-danger hover:bg-danger/10"
-                                    : "border-primary/30 text-primary hover:bg-primary/10"
-                                }`}
-                              >
-                                {d.active ? "Desactivar" : "Reactivar"}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Vista Expandible de Casos y Solicitudes */}
-                        {isExpanded && (
-                          <div className="border-t border-border/70 bg-muted/15 px-6 py-4 animate-fade-in">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <Sparkles className="size-3.5 text-primary" />
-                                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                                  Motivos y Casos que Resuelve ({casesCount})
-                                </h4>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => openBulkImportForDepartment(d)}
-                                  className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold hover:underline cursor-pointer"
-                                >
-                                  <FileSpreadsheet className="size-3.5" />
-                                  Carga masiva Excel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => openEdit(d.id)}
-                                  className="text-[11px] text-primary hover:underline font-bold cursor-pointer"
-                                >
-                                  Administrar casos en formulario
-                                </button>
-                              </div>
-                            </div>
-
-                            {loadingCasesFor === d.id ? (
-                              <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                                <div className="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                                <span>Cargando motivos atendidos...</span>
-                              </div>
-                            ) : casesCount === 0 ? (
-                              <div className="p-4 rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground space-y-2">
-                                <p>
-                                  Este departamento aún no tiene casos configurados. Puedes hacer
-                                  clic en "Editar" para agregarlos o usar una carga masiva desde
-                                  Excel.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => openBulkImportForDepartment(d)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors shadow-xs cursor-pointer"
-                                >
-                                  <FileSpreadsheet className="size-3.5" />
-                                  Carga masiva desde Excel
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                                {cases.map((c, i) => (
-                                  <div
-                                    key={c.id ?? i}
-                                    className="p-3 rounded-lg border border-border bg-card shadow-xs space-y-1.5"
-                                  >
-                                    <div className="flex items-center justify-between gap-1.5">
-                                      <span className="font-bold text-xs text-foreground truncate">
-                                        {c.label}
-                                      </span>
-                                      <span
-                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
-                                          c.handlingMode === "human_direct"
-                                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                                            : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                                        }`}
-                                      >
-                                        {c.handlingMode === "human_direct" ? (
-                                          <>
-                                            <UserCheck className="size-2.5" /> Directo
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Bot className="size-2.5" /> IA
-                                          </>
-                                        )}
-                                      </span>
-                                    </div>
-                                    <p className="text-[11px] text-muted-foreground line-clamp-2">
-                                      {c.description || "Sin descripción"}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DepartmentsTable
+          departments={filteredDepartments}
+          casesCache={casesCache}
+          busy={busy}
+          selectedDeptId={selectedDeptForDrawer?.id ?? null}
+          onViewCases={(dept) => void handleViewCases(dept)}
+          onEdit={(id) => void openEdit(id)}
+          onToggleActive={(id, act) => void toggleActive(id, act)}
+        />
       )}
 
-      {/* Modal de Carga Masiva desde Excel */}
+      <DepartmentCasesDrawer
+        open={Boolean(selectedDeptForDrawer)}
+        onClose={() => setSelectedDeptForDrawer(null)}
+        department={selectedDeptForDrawer}
+        cases={
+          selectedDeptForDrawer
+            ? (selectedDeptForDrawer.cases ?? casesCache[selectedDeptForDrawer.id] ?? [])
+            : []
+        }
+        loading={selectedDeptForDrawer ? loadingCasesFor === selectedDeptForDrawer.id : false}
+        onEditDepartment={(id) => void openEdit(id)}
+        onBulkImport={(dept) => openBulkImportForDepartment(dept)}
+      />
+
       <DepartmentCasesBulkImportModal
         open={Boolean(bulkImportTarget)}
         onClose={() => setBulkImportTarget(null)}
