@@ -39,6 +39,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
 
+  const isDynamicImportError =
+    error?.message?.includes("Failed to fetch dynamically imported module") ||
+    error?.message?.includes("dynamically imported module");
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -46,7 +50,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Esta página no cargó
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Algo salió mal. Puedes reintentar o volver al inicio.
+          {isDynamicImportError
+            ? "Se detectaron cambios en el código o una versión nueva del bundle. Recarga la página para obtener la versión más reciente."
+            : "Algo salió mal. Puedes reintentar o volver al inicio."}
         </p>
         {error && (
           <div className="mt-4 p-3 bg-destructive/15 border border-destructive/30 text-destructive text-xs text-left rounded-lg font-mono overflow-auto max-h-60 select-text">
@@ -61,12 +67,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              if (isDynamicImportError) {
+                window.location.reload();
+              } else {
+                router.invalidate();
+                reset();
+              }
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 cursor-pointer"
           >
-            Reintentar
+            {isDynamicImportError ? "Recargar página" : "Reintentar"}
           </button>
           <a
             href="/"
