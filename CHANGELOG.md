@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.20] - 2026-11-07
+
+### Fixed
+
+- **Actualización reactiva de tabla y ranking al volver de un reanálisis de calidad (`use-quality-board.ts`, `QualityBoard.tsx`, `use-quality-review-detail.ts`)**:
+  - _Problema_: Al solicitar un reanálisis con IA o actualizar notas/estado dentro de `QualityReviewDetail` y regresar al ranking/tabla de calidad mediante "Volver al ranking", la tabla mantenía el score y estado previo. El usuario debía presionar F5 manualmente para ver reflejados los cambios.
+  - _Causa Raíz_:
+    1. Al abrir el detalle, `QualityBoard` pausaba el polling (`pausePolling: true`) en `useQualityBoard`.
+    2. Al presionar "Volver al ranking", `pausePolling` regresaba a `false`, pero no existía ningún efecto que disparase un `reload()` inmediato de la lista de revisiones y estadísticas.
+    3. Si `pendingCount === 0`, el intervalo de sondeo estaba inactivo, dejando el estado local de `reviews` estancado en la carga inicial.
+    4. En el mock de prueba interactivo, la acción `reanalyze` emitía un toast pero no alternaba el score ni mutaba el estado de la revisión en memoria.
+  - _Solución_:
+    - Detección de reactivación en `use-quality-board.ts`: se introdujo `prevPausePolling = useRef(pausePolling)` para disparar automáticamente un `reload({ silent: true })` en cuanto el usuario sale del detalle de una revisión.
+    - Recarga explícita en `QualityBoard.tsx`: el handler `onBack` invoca `void reload({ silent: true })` junto con `onClearReview()`.
+    - Simulación interactiva de reanálisis en `use-quality-review-detail.ts`: al reanalizar el mock `MOCK_QUALITY_REVIEW_ID`, se recalcula dinámicamente el puntaje (alternando 48 y 85/100) y se sincroniza inmediatamente tanto en la vista de detalle como en la tabla principal.
+    - Test de integración agregado en `use-quality-board.test.ts`.
+
 ## [0.2.19] - 2026-11-07
 
 ### Improved

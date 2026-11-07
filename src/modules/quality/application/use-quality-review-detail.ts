@@ -11,6 +11,7 @@ import {
 import {
   MOCK_CONVERSATION_ID,
   MOCK_LONG_CHAT_MESSAGES,
+  MOCK_LONG_QUALITY_REVIEW,
   MOCK_QUALITY_REVIEW_ID,
 } from "@/modules/quality/infrastructure/quality-mocks";
 import {
@@ -159,8 +160,12 @@ export function useQualityReviewDetail(reviewId: string | undefined) {
     if (reviewId === MOCK_QUALITY_REVIEW_ID) {
       setBusy(true);
       setTimeout(() => {
+        const nextScore = MOCK_LONG_QUALITY_REVIEW.cordialityScore === 48 ? 85 : 48;
+        MOCK_LONG_QUALITY_REVIEW.cordialityScore = nextScore;
+        MOCK_LONG_QUALITY_REVIEW.status = "ready";
+        setReview({ ...MOCK_LONG_QUALITY_REVIEW });
         setBusy(false);
-        toast.success("Reanálisis completado (mock de prueba actualizado)");
+        toast.success(`Reanálisis completado: nuevo score ${nextScore}/100`);
       }, 600);
       return;
     }

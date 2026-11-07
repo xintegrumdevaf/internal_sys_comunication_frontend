@@ -67,6 +67,7 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const hasLoadedOnce = useRef(false);
   const pollTicks = useRef(0);
+  const prevPausePolling = useRef(pausePolling);
 
   const reload = useCallback(
     async (optsReload?: { silent?: boolean }) => {
@@ -127,6 +128,13 @@ export function useQualityBoard(opts?: { pausePolling?: boolean }) {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (prevPausePolling.current && !pausePolling && hasLoadedOnce.current) {
+      void reload({ silent: true });
+    }
+    prevPausePolling.current = pausePolling;
+  }, [pausePolling, reload]);
 
   useEffect(() => {
     if (pausePolling || !session || backendUnavailable || pendingCount <= 0) return;

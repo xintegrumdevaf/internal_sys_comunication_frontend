@@ -44,6 +44,7 @@ export function QualityBoard({
     analyzingCaseId,
     batchBusy,
     backendUnavailable,
+    reload,
     analyzeChat,
     analyzePendingChats,
     reanalyzeAllChats,
@@ -73,7 +74,16 @@ export function QualityBoard({
   })();
 
   if (reviewId) {
-    return <QualityReviewDetail reviewId={reviewId} onBack={onClearReview} agentName={agentName} />;
+    return (
+      <QualityReviewDetail
+        reviewId={reviewId}
+        onBack={() => {
+          void reload({ silent: true });
+          onClearReview();
+        }}
+        agentName={agentName}
+      />
+    );
   }
 
   if (backendUnavailable) {
