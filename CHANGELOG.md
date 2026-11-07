@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.15] - 2026-11-07
+
+### Added & Improved
+
+- **Scroll independiente por componentes y análisis ejecutivo estructurado en Detalle de Calidad (`QualityReviewDetail.tsx`, `QualitySummaryCard.tsx`, `QualityStructuredAnalysis.tsx`)**:
+  - _Contexto y Problema_:
+    1. Al abrir la auditoría de un caso en `/calidad`, la columna derecha de análisis y la columna izquierda del timeline forzaban un scroll general sobre toda la ventana del navegador. El supervisor perdía de vista la barra de acciones superior y la cabecera del chat, teniendo que desplazarse verticalmente por toda la pantalla en lugar de scrollear cada panel por separado.
+    2. La síntesis y análisis de la IA se volcaban como un bloque plano y denso de texto gris (`whitespace-pre-wrap`), obligando al supervisor a leer línea por línea sin destacar faltas graves, conductas sancionables, recomendaciones pedagógicas ni ejemplos prácticos.
+  - _Causa Raíz_:
+    1. `QualityReviewDetail` y su `<section>`/`<aside>` no delimitaban una altura fija ligada al viewport (`h-[calc(100dvh-130px)] max-h-[calc(100dvh-130px)] overflow-hidden`). La columna derecha crecía libremente según el contenido, desbordando el contenedor principal de `AppShell`.
+    2. `QualitySummaryCard` carecía de un parser estructurado para descomponer las secciones de la evaluación (`FALTAS DETECTADAS`, `CONTEXTO Y MOTIVO`, `RECOMENDACIÓN PEDAGÓGICA`, `Ejemplo de respuesta adecuada`, `Puntos a mejorar`), renderizando todo el `review.summary` en un único contenedor sin tipografía jerárquica.
+  - _Resolución_:
+    1. **Scroll independiente por componentes**:
+       - `QualityReviewDetail`: Anclado con `h-[calc(100dvh-130px)] max-h-[calc(100dvh-130px)]` y barra superior fija (`shrink-0`).
+       - Columna izquierda (Timeline): `h-full flex flex-col overflow-hidden` con su lista de mensajes en `flex-1 min-h-0 overflow-y-auto`.
+       - Columna derecha (Auditoría): `h-full flex flex-col overflow-hidden` con contenedor interno en `flex-1 min-h-0 overflow-y-auto`. Ambos paneles operan de forma independiente sin mover la ventana.
+    2. **Nuevo componente `QualityStructuredAnalysis`**:
+       - Segmentación automática de tramos (`Tramo 1`, `Tramo 2`, etc.) con selector interactivo.
+       - Bloques visuales de alto impacto:
+         - **Faltas u Oportunidades**: Cuadro de alerta con borde rojo/ámbar e iconos de advertencia cuando se detectan fallas, o indicador verde de conducta correcta cuando no hay faltas. Resaltado con etiquetas en negrita sobre términos críticos (`agresividad`, `ineficiencia`, `falta de respeto`, `desatención`).
+         - **Contexto y Motivo**: Cuadro informativo con acento azul/cielo destacando la solicitud real del cliente.
+         - **Recomendación Pedagógica**: Cuadro de coaching con acento esmeralda y palabras clave remarcadas.
+         - **Ejemplo Exacto de Respuesta**: Burbuja destacada con estilo de mensaje de WhatsApp/chat que muestra cómo debió responder el asesor.
+       - Citas (`«...»` o `'...'`) y pasos numerados (`1)`, `2)`) estilizados con insignias gráficas.
+
 ## [0.2.14] - 2026-11-06
 
 ### Added & Improved

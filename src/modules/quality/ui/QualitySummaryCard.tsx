@@ -1,5 +1,6 @@
-import { AlertTriangle, Clock, Lightbulb } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { CordialityBadge } from "@/modules/quality/ui/CordialityBadge";
+import { QualityStructuredAnalysis } from "@/modules/quality/ui/QualityStructuredAnalysis";
 import {
   qualityFindingCategoryLabel,
   qualityReviewStatusLabel,
@@ -114,17 +115,9 @@ export function QualitySummaryCard({ review }: QualitySummaryCardProps) {
         </div>
       )}
 
-      {/* Resumen Detallado / Síntesis */}
+      {/* Resumen Detallado / Síntesis Estructurada y Gráfica */}
       {review.summary && (
-        <div className="space-y-1.5">
-          <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <Lightbulb className="size-3.5 text-primary" />
-            <span>Análisis y Síntesis</span>
-          </h4>
-          <div className="p-3 rounded-lg border border-border bg-background/50 text-[12px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
-            {review.summary}
-          </div>
-        </div>
+        <QualityStructuredAnalysis summary={review.summary} score={review.cordialityScore} />
       )}
 
       {/* Eficiencia Operativa */}

@@ -43,7 +43,6 @@ export function QualityReviewDetail({
     setNoteDraft,
     submitNote,
     markReviewed,
-    requestOnDemand,
     reanalyze,
     chatDeepLink,
   } = useQualityReviewDetail(reviewId);
@@ -140,9 +139,9 @@ export function QualityReviewDetail({
   let lastMessageTime: Date | null = null;
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      {/* Barra de Acciones Superior */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl border border-border bg-card shadow-xs">
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 h-[calc(100dvh-130px)] max-h-[calc(100dvh-130px)] gap-3 sm:gap-4 animate-fade-up">
+      {/* Barra de Acciones Superior Fija */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl border border-border bg-card shadow-xs">
         <button
           type="button"
           onClick={onBack}
@@ -150,12 +149,12 @@ export function QualityReviewDetail({
         >
           <ArrowLeft className="size-4" /> Volver al ranking
         </button>
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2 sm:gap-2.5">
           {chatDeepLink && (
             <button
               type="button"
               onClick={() => void navigate({ to: chatDeepLink.to, search: chatDeepLink.search })}
-              className="inline-flex items-center gap-2 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 text-xs px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 transition-colors cursor-pointer"
             >
               <MessagesSquare className="size-4" /> Abrir chat interno
             </button>
@@ -164,7 +163,7 @@ export function QualityReviewDetail({
             type="button"
             disabled={busy || review.status === "pending"}
             onClick={() => void reanalyze()}
-            className="inline-flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg border border-border font-bold uppercase hover:bg-foreground/5 disabled:opacity-40 transition-colors cursor-pointer"
             title="Volver a evaluar este chat completo con el prompt y reglas de calidad vigentes"
           >
             <RefreshCcw
@@ -177,7 +176,7 @@ export function QualityReviewDetail({
               type="button"
               disabled={busy}
               onClick={() => void markReviewed()}
-              className="text-xs px-3.5 py-2 rounded-lg bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
+              className="text-xs px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
             >
               Marcar revisada
             </button>
@@ -185,10 +184,10 @@ export function QualityReviewDetail({
         </div>
       </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[560px]">
-        {/* Columna Izquierda: Timeline */}
-        <div className="col-span-1 lg:col-span-7 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-[480px] shadow-xs">
-          <div className="p-4 sm:p-5 border-b border-border bg-background/60 flex flex-wrap items-center justify-between gap-3">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 flex-1 min-h-0 h-full overflow-hidden">
+        {/* Columna Izquierda: Timeline con scroll propio */}
+        <div className="col-span-12 lg:col-span-7 bg-card border border-border rounded-xl flex flex-col overflow-hidden min-h-0 h-full shadow-xs">
+          <div className="shrink-0 p-3 sm:p-4 border-b border-border bg-background/60 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-xs font-extrabold uppercase tracking-widest">
                 Timeline · {review.customerLabel || "Cliente"}
@@ -230,7 +229,7 @@ export function QualityReviewDetail({
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-background/40">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1 bg-background/40">
             {review.status === "pending" && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
                 <Loader2 className="size-3.5 animate-spin" /> Análisis en curso…
@@ -277,94 +276,98 @@ export function QualityReviewDetail({
           </div>
         </div>
 
-        {/* Columna Derecha: Resumen, Hallazgos y Notas */}
-        <aside className="col-span-12 lg:col-span-5 space-y-4">
-          <QualitySummaryCard review={review} />
+        {/* Columna Derecha: Resumen, Hallazgos y Notas con scroll propio */}
+        <aside className="col-span-12 lg:col-span-5 flex flex-col min-h-0 h-full overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1 sm:pr-2">
+            <QualitySummaryCard review={review} />
 
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest">
-                Hallazgos ({review.findings.length})
-              </h3>
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+              <div className="p-3.5 sm:p-4 border-b border-border bg-background/50">
+                <h3 className="text-xs font-extrabold uppercase tracking-widest">
+                  Hallazgos ({review.findings.length})
+                </h3>
+              </div>
+              <ul className="divide-y divide-border max-h-64 overflow-y-auto">
+                {review.findings.map((f) => (
+                  <li key={f.id} className="p-3 hover:bg-foreground/5 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollToMessage(f.messageId)}
+                        className="text-left flex-1 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-bold uppercase">
+                            {qualityFindingSeverityLabel(f.severity)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {qualityFindingCategoryLabel(f.category)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-medium line-clamp-2">{f.excerpt}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                          {f.rationale}
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleObjectInChat(review.agentId, review.id, f);
+                        }}
+                        title="Objetar al agente en Chat"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border border-border bg-background hover:bg-muted shrink-0 text-foreground transition-colors cursor-pointer"
+                      >
+                        <MessageSquare className="size-3" />
+                        Objetar
+                      </button>
+                    </div>
+                  </li>
+                ))}
+                {review.findings.length === 0 && (
+                  <li className="p-4 text-[11px] text-muted-foreground">
+                    Sin hallazgos en esta revisión.
+                  </li>
+                )}
+              </ul>
             </div>
-            <ul className="divide-y divide-border max-h-64 overflow-y-auto">
-              {review.findings.map((f) => (
-                <li key={f.id} className="p-3 hover:bg-foreground/5 transition-colors">
-                  <div className="flex items-start justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => scrollToMessage(f.messageId)}
-                      className="text-left flex-1 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-bold uppercase">
-                          {qualityFindingSeverityLabel(f.severity)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {qualityFindingCategoryLabel(f.category)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-medium line-clamp-2">{f.excerpt}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-                        {f.rationale}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleObjectInChat(review.agentId, review.id, f);
-                      }}
-                      title="Objetar al agente en Chat"
-                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border border-border bg-background hover:bg-muted shrink-0 text-foreground transition-colors cursor-pointer"
-                    >
-                      <MessageSquare className="size-3" />
-                      Objetar
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {review.findings.length === 0 && (
-                <li className="p-4 text-[11px] text-muted-foreground">
-                  Sin hallazgos en esta revisión.
-                </li>
-              )}
-            </ul>
-          </div>
 
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest">Notas de coaching</h3>
-            <ul className="space-y-2 max-h-36 overflow-y-auto">
-              {review.notes.map((n) => (
-                <li
-                  key={n.id}
-                  className="p-2 rounded-md border border-border bg-background/40 text-[11px]"
-                >
-                  <p className="leading-relaxed">{n.body}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {new Date(n.createdAt).toLocaleString("es-CO")}
-                  </p>
-                </li>
-              ))}
-              {review.notes.length === 0 && (
-                <li className="text-[11px] text-muted-foreground">Aún no hay notas.</li>
-              )}
-            </ul>
-            <textarea
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              rows={3}
-              placeholder="Escribe una nota de coaching…"
-              className="w-full text-xs px-3 py-2 border border-border rounded-md bg-background resize-y outline-none focus:ring-2 focus:ring-primary/30"
-            />
-            <button
-              type="button"
-              disabled={busy || !noteDraft.trim()}
-              onClick={() => void submitNote()}
-              className="w-full text-[11px] px-3 py-2 rounded-md bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 cursor-pointer"
-            >
-              Guardar nota
-            </button>
+            <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-xs">
+              <h3 className="text-xs font-extrabold uppercase tracking-widest">
+                Notas de coaching
+              </h3>
+              <ul className="space-y-2 max-h-36 overflow-y-auto">
+                {review.notes.map((n) => (
+                  <li
+                    key={n.id}
+                    className="p-2 rounded-md border border-border bg-background/40 text-[11px]"
+                  >
+                    <p className="leading-relaxed">{n.body}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {new Date(n.createdAt).toLocaleString("es-CO")}
+                    </p>
+                  </li>
+                ))}
+                {review.notes.length === 0 && (
+                  <li className="text-[11px] text-muted-foreground">Aún no hay notas.</li>
+                )}
+              </ul>
+              <textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                rows={3}
+                placeholder="Escribe una nota de coaching…"
+                className="w-full text-xs px-3 py-2 border border-border rounded-md bg-background resize-y outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                type="button"
+                disabled={busy || !noteDraft.trim()}
+                onClick={() => void submitNote()}
+                className="w-full text-[11px] px-3 py-2 rounded-md bg-primary text-primary-foreground font-bold uppercase disabled:opacity-40 cursor-pointer"
+              >
+                Guardar nota
+              </button>
+            </div>
           </div>
         </aside>
       </section>
