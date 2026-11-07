@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.23] - 2026-11-07
+
+### Improved & Fixed
+
+- **Badge Distintivo para Mensajes de Plantilla y Campañas Masivas (`ChatMessageItem.tsx`)**:
+  - _Problema_: Los mensajes salientes automáticos generados por plantillas de cobro o campañas (`m.author === 'agent' && !m.agentId`) mostraban un encabezado en mayúsculas `"AGENTE"`, generando confusión visual al hacer creer a los operadores que un humano había enviado el mensaje de forma manual.
+  - _Solución_: Se implementó un badge visual distintivo con ícono y tonalidad ámbar `📢 Plantilla / Campaña`, reservando el nombre del asesor únicamente para respuestas enviadas por humanos reales con `agentId`.
+
+- **Previsualizaciones Multimedia Humanas estilo WhatsApp en Bandeja (`message-preview-format.tsx`, `ConversationListItem.tsx`, `conversation.ts`)**:
+  - _Problema_: En la lista de conversaciones de la bandeja, cuando el último mensaje era un medio, se renderizaba texto crudo como `[image]`, `[audio]` o nombres de archivo crudos sin contexto ni iconos.
+  - _Solución_: Módulo unificado `message-preview-format.tsx` que detecta el tipo de mensaje y renderiza iconos de Lucide con etiquetas amigables en español (📷 Foto, 🎵 Audio, 🎥 Video, 📄 Documento, 📍 Ubicación, 💟 Sticker) y la leyenda o pie de foto si existe.
+
+- **Modularización y Corrección Gráfica en Campañas y Saturación de Departamentos (`DepartmentSaturationGrid.tsx`, `DepartmentSaturationCard.tsx`, `CampaignsTableRow.tsx`)**:
+  - _Problema_:
+    - `DepartmentSaturationGrid.tsx` excedía el límite arquitectónico de 400 líneas.
+    - En el catálogo de campañas, una campaña con conteo no sincronizado mostraba progreso negativo `"-1/287"` sin barra de progreso visual.
+  - _Solución_:
+    - Extracción de `DepartmentSaturationCard.tsx` (225 líneas) manteniendo `DepartmentSaturationGrid.tsx` en 335 líneas.
+    - Sanitización de contadores con `Math.max(0, count)` e inclusión de barra de progreso visual animada con porcentaje en `CampaignsTableRow.tsx`.
+
 ## [0.2.22] - 2026-11-07
 
 ### Refactored
