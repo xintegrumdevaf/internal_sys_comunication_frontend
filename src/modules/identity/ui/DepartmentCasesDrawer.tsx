@@ -27,6 +27,7 @@ interface DepartmentCasesDrawerProps {
   loading?: boolean;
   onEditDepartment: (deptId: string) => void;
   onBulkImport: (dept: Department) => void;
+  onLoadMockCases?: (deptId: string) => void;
 }
 
 const PAGE_SIZE = 12;
@@ -39,6 +40,7 @@ export function DepartmentCasesDrawer({
   loading = false,
   onEditDepartment,
   onBulkImport,
+  onLoadMockCases,
 }: DepartmentCasesDrawerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [modeFilter, setModeFilter] = useState<"all" | "ai_assisted" | "human_direct">("all");
@@ -212,14 +214,26 @@ export function DepartmentCasesDrawer({
                 Podés agregarlos manualmente en el formulario de edición o importar un catálogo
                 completo desde una plantilla Excel.
               </p>
-              <button
-                type="button"
-                onClick={() => onBulkImport(department)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors cursor-pointer"
-              >
-                <FileSpreadsheet className="size-3.5" />
-                Carga masiva desde Excel
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => onBulkImport(department)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="size-3.5" />
+                  Carga masiva desde Excel
+                </button>
+                {onLoadMockCases && (
+                  <button
+                    type="button"
+                    onClick={() => onLoadMockCases(department.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-bold uppercase hover:bg-primary/20 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="size-3.5" />
+                    Cargar 33 casos de prueba (Demo)
+                  </button>
+                )}
+              </div>
             </div>
           ) : filteredCases.length === 0 ? (
             <div className="py-12 text-center text-xs text-muted-foreground">

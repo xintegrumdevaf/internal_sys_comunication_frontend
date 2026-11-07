@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { Department, DepartmentCase } from "@/modules/identity/domain/department";
 import { departmentVisibilityLabel } from "@/modules/identity/domain/department";
+import { MOCK_FACTURACION_CASES } from "@/modules/identity/domain/department-mocks";
 
 interface DepartmentsTableProps {
   departments: Department[];
@@ -45,7 +46,8 @@ export function DepartmentsTable({
           </thead>
           <tbody className="divide-y divide-border/60">
             {departments.map((d) => {
-              const cases = d.cases ?? casesCache[d.id] ?? [];
+              const isBilling = d.slug === "billing" || d.name.toLowerCase().includes("factur");
+              const cases = casesCache[d.id] ?? (isBilling ? MOCK_FACTURACION_CASES : d.cases ?? []);
               const casesCount = cases.length;
               const isSelected = selectedDeptId === d.id;
 

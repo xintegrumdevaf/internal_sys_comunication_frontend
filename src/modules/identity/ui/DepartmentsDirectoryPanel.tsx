@@ -13,6 +13,7 @@ import { DepartmentsTable } from "./DepartmentsTable";
 import { DepartmentCasesDrawer } from "./DepartmentCasesDrawer";
 import { DepartmentFormCard, type DepartmentFormState } from "./DepartmentFormCard";
 import { DepartmentsMetricsHeader } from "./DepartmentsMetricsHeader";
+import { MOCK_FACTURACION_CASES } from "@/modules/identity/domain/department-mocks";
 import type { CaseItemForm } from "./DepartmentCaseFormCard";
 
 const emptyForm: DepartmentFormState = {
@@ -25,12 +26,7 @@ const emptyForm: DepartmentFormState = {
 };
 
 function toAutoSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
 function toCaseItemForms(cases: DepartmentCase[]): CaseItemForm[] {
@@ -91,9 +87,19 @@ export function DepartmentsDirectoryPanel() {
     );
   }, [departments, search]);
 
+  const handleLoadMockCases = useCallback((deptId: string) => {
+    setCasesCache((prev) => ({ ...prev, [deptId]: MOCK_FACTURACION_CASES }));
+    toast.success("33 casos de prueba cargados en memoria para previsualización.");
+  }, []);
+
   const handleViewCases = useCallback(
     async (dept: Department) => {
       setSelectedDeptForDrawer(dept);
+      const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
+      if (isBilling && (!casesCache[dept.id] || casesCache[dept.id].length < MOCK_FACTURACION_CASES.length)) {
+        setCasesCache((prev) => ({ ...prev, [dept.id]: MOCK_FACTURACION_CASES }));
+        return;
+      }
       if (dept.cases && dept.cases.length > 0) {
         setCasesCache((prev) => ({ ...prev, [dept.id]: dept.cases! }));
         return;
@@ -120,20 +126,22 @@ export function DepartmentsDirectoryPanel() {
     setAutoSlugEnabled(true);
     setFormOpen(true);
   };
-
   const openEdit = async (deptId: string) => {
     const dept = departments.find((d) => d.id === deptId);
     if (!dept) return;
     setEditingId(deptId);
     setDeletedCaseIds([]);
 
-    let initialCases: CaseItemForm[] = dept.cases
-      ? toCaseItemForms(dept.cases)
-      : casesCache[deptId]
-        ? toCaseItemForms(casesCache[deptId])
-        : [];
+    const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
+    let initialCases: CaseItemForm[] = casesCache[deptId]
+      ? toCaseItemForms(casesCache[deptId])
+      : isBilling
+        ? toCaseItemForms(MOCK_FACTURACION_CASES)
+        : dept.cases
+          ? toCaseItemForms(dept.cases)
+          : [];
 
-    if (initialCases.length === 0) {
+    if (initialCases.length === 0 && !isBilling) {
       try {
         const fetched = await getDepartmentCases(deptId);
         if (fetched && fetched.length > 0) {
@@ -250,13 +258,7 @@ export function DepartmentsDirectoryPanel() {
       ...prev,
       cases: [
         ...prev.cases,
-        {
-          label: "",
-          description: "",
-          handlingMode: "ai_assisted",
-          workflowType: "GENERAL_INQUIRY",
-          active: true,
-        },
+        { label: "", description: "", handlingMode: "ai_assisted", workflowType: "GENERAL_INQUIRY", active: true },
       ],
     }));
   }, []);
@@ -404,12 +406,17 @@ export function DepartmentsDirectoryPanel() {
         department={selectedDeptForDrawer}
         cases={
           selectedDeptForDrawer
-            ? (selectedDeptForDrawer.cases ?? casesCache[selectedDeptForDrawer.id] ?? [])
+            ? (casesCache[selectedDeptForDrawer.id] ??
+              (selectedDeptForDrawer.slug === "billing" ||
+              selectedDeptForDrawer.name.toLowerCase().includes("factur")
+                ? MOCK_FACTURACION_CASES
+                : selectedDeptForDrawer.cases ?? []))
             : []
         }
         loading={selectedDeptForDrawer ? loadingCasesFor === selectedDeptForDrawer.id : false}
         onEditDepartment={(id) => void openEdit(id)}
         onBulkImport={(dept) => openBulkImportForDepartment(dept)}
+        onLoadMockCases={handleLoadMockCases}
       />
 
       <DepartmentCasesBulkImportModal
