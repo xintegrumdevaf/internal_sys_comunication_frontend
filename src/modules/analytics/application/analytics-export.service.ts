@@ -229,3 +229,4 @@ export function exportAnalyticsToExcel(params: AnalyticsExportParams): string {
   XLSX.writeFile(wb, filename);
   return filename;
 }
+

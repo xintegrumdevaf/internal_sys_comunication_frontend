@@ -112,3 +112,4 @@ describe("analytics-export.service", () => {
     expect(rows1[1]?.[1]).toBe("Toda la empresa (Global)");
   });
 });
+
