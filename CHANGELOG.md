@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.24] - 2026-11-09
+
+### Added & Improved
+
+- **Exportación Ejecutiva de Métricas a Excel (.xlsx multi-pestaña) y Reporte PDF / Imprimible (`AnalyticsPrintReportModal.tsx`, `analytics-export.service.ts`, `analytics-translations.ts`, `DashboardOverview.tsx`, `AnalyticsDashboard.tsx`)**:
+  - _Problema_:
+    1. El sistema carecía de una herramienta para exportar o imprimir reportes ejecutivos consolidados para reuniones gerenciales y auditorías operativas.
+    2. Al desplegar el modal de vista previa imprimible, el contenedor padre con animación CSS (`animate-fade-up` con `transform`) creaba un nuevo *containing block* para `position: fixed`, desplazando el modal hacia abajo y cortándolo en pantallas estándar o móviles.
+    3. Métricas en cero o asesores sin actividad mostraban `N/D` (confundible con error de datos) en tiempos de espera y atención.
+    4. La tabla de motivos de escalamiento mostraba filas duplicadas para un mismo motivo (ej: *"Caso resuelto"* repetido) debido a que la consulta SQL agrupaba por `(reason, workflow_type)` pero la UI omitía la columna de proceso.
+    5. Los tiempos de resolución y atención se expresaban en segundos crudos (ej: `6763s`), dificultando la lectura ágil.
+    6. Desde el dashboard principal (`/`) no existía acceso directo al reporte gerencial sin navegar hasta analíticas.
+  - _Solución_:
+    1. **Exportación Multi-Pestaña a Excel (`analytics-export.service.ts`)**:
+       - Generación de archivo Excel nativo estructurado en 4 hojas temáticas: *Resumen Ejecutivo*, *Capacidad y Saturación*, *Rendimiento Asesores* y *Motivos y Tráfico*.
+    2. **Modal Ejecutivo Imprimible / PDF con React Portal (`AnalyticsPrintReportModal.tsx`)**:
+       - Renderizado desacoplado mediante `createPortal(modalContent, document.body)` para escapar de la trampa de *containing block* CSS, asegurando centrado responsivo absoluto (Mobile-first, 320px hasta 4K/Ultrawide `xl:max-w-6xl`).
+       - Encabezado sticky con controles de descarga (`Excel`, `Imprimir / PDF`, `Cerrar`) y área de lectura con scroll independiente (`max-h-[84vh]`).
+       - Reglas `@media print` optimizadas para hojas tamaño A4 vertical con saltos de página limpios (`break-inside: avoid`) y márgenes balanceados.
+    3. **Semáforo de Capacidad Instalada y Saturación por Área**:
+       - Sección *"5. Capacidad Instalada y Semáforo de Saturación por Área"* que desglosa en tiempo real cupos por asesor, asesores en turno, cupo total instalado, casos activos atendidos, ocupación porcentual (%) y estado de saturación operativo.
+    4. **Formateo Humano de Tiempos y Consolidación de Motivos (`analytics-translations.ts`)**:
+       - Conversión de segundos y minutos a formato legible (ej: `6763s` $\to$ `1h 53m`, `0 seg (inmediato)` para esperas nulas, `-` para asesores sin actividad).
+       - Consolidación y reagrupación de motivos duplicados sumando frecuencias y recalculando porcentajes relativos en el cliente.
+    5. **Acceso Rápido desde Cockpit Operativo (`DashboardOverview.tsx`)**:
+       - Botón directo *"Reporte Ejecutivo"* en el encabezado del panel principal (`/`).
+
+- **Indicadores Visuales de Reintento Secuencial en Campañas Masivas (`CampaignRecipientsTable.tsx`, `campaign.ts`)**:
+  - Incorporación de insignias y tooltips que indican el número de reintento (`retryCount`/`maxRetries`), próxima fecha de ejecución y último error cuando un envío sufre un fallo transitorio de WhatsApp.
+
 ## [0.2.23] - 2026-11-07
 
 ### Improved & Fixed
