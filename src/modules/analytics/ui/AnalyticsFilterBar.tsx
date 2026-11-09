@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Building2, RefreshCw } from "lucide-react";
+import { Calendar, Building2, RefreshCw, FileSpreadsheet, Printer } from "lucide-react";
 import {
   type AnalyticsFilterParams,
   type DateRangePreset,
@@ -12,6 +12,8 @@ interface AnalyticsFilterBarProps {
   onFilterChange: (newFilters: AnalyticsFilterParams) => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onExportExcel?: () => void;
+  onOpenPrintModal?: () => void;
 }
 
 export function AnalyticsFilterBar({
@@ -19,6 +21,8 @@ export function AnalyticsFilterBar({
   onFilterChange,
   onRefresh,
   isRefreshing = false,
+  onExportExcel,
+  onOpenPrintModal,
 }: AnalyticsFilterBarProps) {
   const session = useSession();
   const { data: departments = [] } = useDepartmentsQuery();
@@ -165,6 +169,32 @@ export function AnalyticsFilterBar({
               <RefreshCw
                 className={`size-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`}
               />
+            </button>
+          )}
+
+          {onExportExcel && (
+            <button
+              type="button"
+              onClick={onExportExcel}
+              disabled={isRefreshing}
+              title="Exportar a Excel (.xlsx)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-muted text-foreground text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <FileSpreadsheet className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Excel</span>
+            </button>
+          )}
+
+          {onOpenPrintModal && (
+            <button
+              type="button"
+              onClick={onOpenPrintModal}
+              disabled={isRefreshing}
+              title="Imprimir o exportar reporte a PDF"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-muted text-foreground text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Printer className="size-3.5 text-sky-600 dark:text-sky-400" />
+              <span>PDF / Imprimir</span>
             </button>
           )}
         </div>

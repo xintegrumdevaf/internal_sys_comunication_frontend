@@ -2,7 +2,10 @@ import { useState } from "react";
 import { AlertCircle, BarChart3, Users } from "lucide-react";
 import { useAnalyticsDashboard } from "../application/use-analytics";
 import { type AnalyticsFilterParams, calculatePresetDates } from "../domain/analytics.types";
+import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
+import { exportAnalyticsToExcel } from "../application/analytics-export.service";
 import { AnalyticsFilterBar } from "./AnalyticsFilterBar";
+import { AnalyticsPrintReportModal } from "./AnalyticsPrintReportModal";
 import { MacroKpiCards } from "./MacroKpiCards";
 import { AgentPerformanceTable } from "./AgentPerformanceTable";
 import { HourlyDemandChart } from "./HourlyDemandChart";
@@ -18,6 +21,9 @@ export function AnalyticsDashboard() {
     return { from, to };
   });
 
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const { data: departments = [] } = useDepartmentsQuery();
+
   const {
     overviewQuery,
     distributionQuery,
@@ -28,6 +34,20 @@ export function AnalyticsDashboard() {
     refetchAll,
   } = useAnalyticsDashboard(filters);
 
+  const currentDepartment = departments.find((d) => d.id === filters.departmentId);
+  const departmentName = currentDepartment?.name;
+
+  const handleExportExcel = () => {
+    exportAnalyticsToExcel({
+      overview: overviewQuery.data,
+      distribution: distributionQuery.data,
+      aiEfficiency: aiEfficiencyQuery.data,
+      agentsPerformance: agentsPerformanceQuery.data,
+      filters,
+      departmentName,
+    });
+  };
+
   return (
     <div className="space-y-6 animate-fade-up">
       {/* 1. Header y Filtros Globales de Fecha y Área */}
@@ -36,6 +56,8 @@ export function AnalyticsDashboard() {
         onFilterChange={setFilters}
         onRefresh={() => void refetchAll()}
         isRefreshing={isLoading}
+        onExportExcel={handleExportExcel}
+        onOpenPrintModal={() => setIsPrintModalOpen(true)}
       />
 
       {/* Mensaje de Error si falla la API */}
@@ -113,6 +135,18 @@ export function AnalyticsDashboard() {
           isLoading={agentsPerformanceQuery.isLoading}
         />
       </section>
+
+      {/* 7. Modal de Impresión / Guardado PDF y Reporte Ejecutivo */}
+      <AnalyticsPrintReportModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        overview={overviewQuery.data}
+        distribution={distributionQuery.data}
+        aiEfficiency={aiEfficiencyQuery.data}
+        agentsPerformance={agentsPerformanceQuery.data}
+        filters={filters}
+        departmentName={departmentName}
+      />
     </div>
   );
 }

@@ -8,21 +8,11 @@ const mockCampaign: Campaign = {
   id: "camp-1",
   name: "Campaña Test",
   status: "RUNNING",
-  messageBody: "Hola mundo",
+  lineName: "Linea 1",
   quickMode: false,
-  quickModeIntervalSeconds: 0,
-  chatRouting: {
-    initialStatus: "OPEN",
-    departmentId: null,
-    assignedAgentId: null,
-    keepAssignedToUser: false,
-    delegateToBot: false,
-    forceChatUpdate: false,
-  },
-  contactEnrichment: {
-    tagIds: [],
-    additionalFields: {},
-  },
+  intervalSeconds: 0,
+  messageText: "Hola mundo",
+  messageBody: "Hola mundo",
   totalRecipients: 3,
   sentCount: 1,
   failedCount: 1,
@@ -30,7 +20,19 @@ const mockCampaign: Campaign = {
   deliveredCount: 1,
   readCount: 0,
   repliedCount: 0,
-  variableMapping: {},
+  createdAt: "2026-11-09T00:00:00.000Z",
+  updatedAt: "2026-11-09T00:00:00.000Z",
+  routingConfig: {
+    chatStatus: "open",
+    keepAssigned: false,
+    delegateToBot: false,
+    forceChatUpdate: false,
+  },
+  contactConfig: {
+    tags: [],
+    customFields: [],
+    forceContactUpdate: false,
+  },
 };
 
 describe("CampaignRecipientsTable UI", () => {
