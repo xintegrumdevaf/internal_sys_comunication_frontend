@@ -18,7 +18,6 @@ import type { CaseDto, CaseSummaryDto, CaseTimelineEntryDto } from "@/modules/ca
 import { useSession } from "@/modules/identity/application/use-session";
 import { subscribeRealtimeEvents } from "@/modules/realtime/infrastructure/realtime-bus";
 import {
-  setTotalUnread,
   setActiveChatId,
   setUnreadConversations,
   markConversationRead,
@@ -136,7 +135,21 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         setConversations(normalizedData);
 
         const unreadIds = normalizedData
-          .filter((c) => (c.unreadCount || 0) > 0 && c.id !== nextId)
+          .filter((c) => {
+            if ((c.unreadCount || 0) <= 0 || c.id === nextId) return false;
+            // Para agente: solo contar sus asignadas o en cola de su área
+            if (session?.role === "agent") {
+              const isAssignedToMe = c.activeCase?.assignedAgentId === session?.id;
+              const isMyDeptUnassigned = Boolean(
+                c.activeCase?.departmentId &&
+                  session?.departmentIds?.includes(c.activeCase.departmentId) &&
+                  !c.activeCase.assignedAgentId,
+              );
+              return isAssignedToMe || isMyDeptUnassigned;
+            }
+            // Para managers y admins: visión general
+            return true;
+          })
           .map((c) => c.id);
         setUnreadConversations(unreadIds);
 
@@ -182,14 +195,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       setActiveChatId(id);
       if (id) {
         markConversationRead(id);
-        setConversations((prev) => {
-          const next = prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c));
-          setTotalUnread(next.reduce((acc, c) => acc + (c.unreadCount || 0), 0));
-          setUnreadConversations(
-            next.filter((c) => (c.unreadCount || 0) > 0 && c.id !== id).map((c) => c.id),
-          );
-          return next;
-        });
+        setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c)));
         void conversationGateway.markAsRead(id).catch(() => {});
       }
     },
@@ -297,13 +303,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     }
 
     // Optimísticamente garantizar que la conversación abierta tenga 0 en el badge local
-    setConversations((prev) => {
-      const next = prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c));
-      setUnreadConversations(
-        next.filter((c) => (c.unreadCount || 0) > 0 && c.id !== selectedId).map((c) => c.id),
-      );
-      return next;
-    });
+    setConversations((prev) => prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c)));
+    markConversationRead(selectedId);
 
     (async () => {
       try {

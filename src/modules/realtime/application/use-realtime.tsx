@@ -18,6 +18,7 @@ import {
   setTotalUnread,
   setUnreadConversations,
   markConversationUnread,
+  markConversationRead,
   getActiveChatId,
 } from "@/modules/realtime/application/unread.state";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
@@ -208,12 +209,28 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
 
       void listConversations({ status: "open" })
         .then((conversations) => {
-          const unreadIds = conversations.filter((c) => (c.unreadCount || 0) > 0).map((c) => c.id);
+          const unreadIds = conversations
+            .filter((c) => {
+              if ((c.unreadCount || 0) <= 0) return false;
+              // Para agentes: el badge se acota a sus casos asignados o en la cola de su área
+              if (userRole === "agent") {
+                const isAssignedToMe = c.activeCase?.assignedAgentId === userId;
+                const isMyDeptUnassigned = Boolean(
+                  c.activeCase?.departmentId &&
+                    userDepartmentIds.includes(c.activeCase.departmentId) &&
+                    !c.activeCase.assignedAgentId,
+                );
+                return isAssignedToMe || isMyDeptUnassigned;
+              }
+              // Para managers y admins: se conserva la visión general de la empresa
+              return true;
+            })
+            .map((c) => c.id);
           setUnreadConversations(unreadIds);
         })
         .catch(() => {});
     }
-  }, [userId]);
+  }, [userId, userRole, userDepartmentIds]);
 
   useEffect(() => {
     if (!userId) return;
@@ -251,10 +268,16 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
             data: { url: targetUrl },
           });
         }
-      } else if (event.type === "HUMAN_ASSIGNED" && event.agentUserId === userId) {
-        const targetUrl = event.conversationId
-          ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`
-          : `/bandeja`;
+      } else if (event.type === "HUMAN_ASSIGNED") {
+        // Si el caso fue asignado a otro asesor y el usuario actual es agente, removerlo de sus no leídos
+        if (event.agentUserId !== userId && userRole === "agent" && event.conversationId) {
+          markConversationRead(event.conversationId);
+        }
+
+        if (event.agentUserId === userId) {
+          const targetUrl = event.conversationId
+            ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`
+            : `/bandeja`;
 
         toast.custom(
           (t) => (
@@ -286,7 +309,8 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
             data: { url: targetUrl },
           });
         }
-      } else if (event.type === "CASE_SCHEDULED_REMINDER") {
+      }
+    } else if (event.type === "CASE_SCHEDULED_REMINDER") {
         const isAssignedToMe = Boolean(event.assignedAgentId && event.assignedAgentId === userId);
         const isMyDept = Boolean(
           event.departmentId && userDepartmentIds.includes(event.departmentId),
@@ -331,15 +355,6 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
         const isCurrentActiveChat = getActiveChatId() === event.conversationId;
         const inBackground = isAppInBackground();
 
-        if (!isCurrentActiveChat) {
-          markConversationUnread(event.conversationId);
-        }
-
-        // Filtro estricto de notificación sonora y alerta de escritorio:
-        // - NUNCA sonar si el mensaje está siendo atendido automáticamente por el bot de IA (!isHumanActive).
-        // - NUNCA sonar si el caso está delegado a otro asesor específico.
-        // - SÍ sonar si el caso está asignado a este asesor, o si es un caso humano en cola de su área, o si es supervisor.
-        const isBotHandling = event.isHumanActive === false;
         const isAssignedToOther = Boolean(event.assignedAgentId && event.assignedAgentId !== userId);
         const isAssignedToMe = Boolean(event.assignedAgentId && event.assignedAgentId === userId);
         const isMyDepartmentQueue = Boolean(
@@ -349,6 +364,21 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
         );
         const isPrivilegedSupervisor = userRole === "manager" || userRole === "admin";
 
+        // Filtro del badge de no leídos:
+        // - Para managers y admins: se mantiene general para cualquier conversación
+        // - Para agentes: solo cuentan mensajes de sus casos asignados o en cola de su área
+        const shouldCountUnread =
+          isPrivilegedSupervisor || isAssignedToMe || isMyDepartmentQueue;
+
+        if (!isCurrentActiveChat && shouldCountUnread) {
+          markConversationUnread(event.conversationId);
+        }
+
+        // Filtro estricto de notificación sonora y alerta de escritorio:
+        // - NUNCA sonar si el mensaje está siendo atendido automáticamente por el bot de IA (!isHumanActive).
+        // - NUNCA sonar si el caso está delegado a otro asesor específico.
+        // - SÍ sonar si el caso está asignado a este asesor, o si es un caso humano en cola de su área, o si es supervisor.
+        const isBotHandling = event.isHumanActive === false;
         const shouldNotifySound =
           !isBotHandling &&
           !isAssignedToOther &&
