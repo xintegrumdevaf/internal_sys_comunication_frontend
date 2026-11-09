@@ -1,5 +1,5 @@
 import React from "react";
-import { Send, CheckCheck, Eye, CornerDownLeft, Clock, AlertCircle, Info } from "lucide-react";
+import { Send, CheckCheck, Eye, CornerDownLeft, Clock, AlertCircle, Info, RotateCw } from "lucide-react";
 
 export type ActiveFilter = "ALL" | "sent" | "delivered" | "read" | "replied" | "failed" | "queued";
 
@@ -7,6 +7,7 @@ export interface CampaignMetricsData {
   total: number;
   processed: number;
   queued: number;
+  retrying?: number;
   failed: number;
   sent: number;
   delivered: number;
@@ -49,6 +50,13 @@ export const CampaignFunnelCard: React.FC<CampaignFunnelCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {Boolean(metrics.retrying && metrics.retrying > 0) && (
+            <div className="border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 animate-pulse">
+              <RotateCw className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+              <span>{metrics.retrying} en reintento automático</span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => toggleFilter("queued")}

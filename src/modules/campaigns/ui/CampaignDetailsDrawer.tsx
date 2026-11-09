@@ -77,6 +77,10 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
   };
 
   const handleRetryFailed = () => {
+    if (campaign?.status === "RUNNING") {
+      toast.warning("La campaña está en ejecución. Los reintentos automáticos están activos para evitar duplicados.");
+      return;
+    }
     if (metrics.failed === 0) {
       toast.info("No hay contactos fallidos que reprogramar.");
       return;
@@ -177,11 +181,19 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
             <Button
               variant="default"
               size="sm"
+              disabled={campaign?.status === "RUNNING" || metrics.failed === 0}
               onClick={handleRetryFailed}
-              className="text-xs font-semibold gap-1.5 rounded-xl shadow-xs cursor-pointer"
+              className="text-xs font-semibold gap-1.5 rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                campaign?.status === "RUNNING"
+                  ? "La campaña está en ejecución. Los fallos transitorios se están reintentando automáticamente con backoff para evitar duplicados."
+                  : undefined
+              }
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Reprogramar {metrics.failed} fallidas
+              <RefreshCw className={`w-3.5 h-3.5 ${campaign?.status === "RUNNING" ? "animate-spin text-amber-500" : ""}`} />
+              {campaign?.status === "RUNNING"
+                ? "Reintentando automáticamente..."
+                : `Reprogramar ${metrics.failed} fallidas`}
             </Button>
           </div>
         </div>

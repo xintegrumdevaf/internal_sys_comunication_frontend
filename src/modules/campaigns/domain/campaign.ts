@@ -15,6 +15,8 @@ export type CampaignRecipient = {
   errorMessage?: string;
   updatedAt?: string;
   sentAt?: string;
+  retryCount?: number;
+  nextRetryAt?: string | null;
 };
 
 export type ChatRoutingConfig = {
@@ -403,6 +405,7 @@ export function calculateCampaignMetrics(campaign: Campaign) {
   const recipients = campaign.recipients || [];
 
   let queued = 0;
+  let retrying = 0;
   let sent = 0;
   let delivered = 0;
   let read = 0;
@@ -412,7 +415,11 @@ export function calculateCampaignMetrics(campaign: Campaign) {
   if (recipients.length > 0) {
     recipients.forEach((r) => {
       const st = (r.status || "pending").toLowerCase();
-      if (st === "queued" || st === "pending" || st === "draft") {
+      const isRetrying = (st === "queued" || st === "pending") && (r.retryCount ?? 0) > 0;
+      if (isRetrying) {
+        retrying++;
+        queued++;
+      } else if (st === "queued" || st === "pending" || st === "draft") {
         queued++;
       } else if (st === "failed" || st === "skipped") {
         failed++;
@@ -440,6 +447,7 @@ export function calculateCampaignMetrics(campaign: Campaign) {
       total,
       processed,
       queued,
+      retrying,
       failed,
       sent,
       delivered,
@@ -462,6 +470,7 @@ export function calculateCampaignMetrics(campaign: Campaign) {
     total,
     processed,
     queued,
+    retrying: 0,
     failed,
     sent,
     delivered,

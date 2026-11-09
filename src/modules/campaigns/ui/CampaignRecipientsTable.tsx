@@ -12,12 +12,14 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageSquare,
+  RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Campaign, CampaignRecipient } from "../domain/campaign";
 import type { ActiveFilter } from "./CampaignFunnelCard";
+import { RecipientMessageModal, type RecipientMessageData } from "./RecipientMessageModal";
 
 interface CampaignRecipientsTableProps {
   recipients: CampaignRecipient[];
@@ -36,12 +38,7 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedRecipientMessage, setSelectedRecipientMessage] = useState<{
-    name: string;
-    phone: string;
-    message: string;
-    isError?: boolean;
-  } | null>(null);
+  const [selectedRecipientMessage, setSelectedRecipientMessage] = useState<RecipientMessageData | null>(null);
 
   // Filtrado de contactos
   const filteredRecipients = useMemo(() => {
@@ -169,6 +166,7 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
               ) : (
                 paginatedRecipients.map((r, idx) => {
                   const st = (r.status || "sent").toLowerCase();
+                  const isRetrying = (st === "pending" || st === "queued") && (r.retryCount ?? 0) > 0;
                   const isFailed = st === "failed";
                   const isReplied = st === "replied";
                   const isRead = st === "read";
@@ -208,6 +206,24 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
                           >
                             ⚠️ {errorText}
                           </div>
+                        ) : isRetrying ? (
+                          <div
+                            onClick={() =>
+                              setSelectedRecipientMessage({
+                                name: r.name || r.number || "Destinatario",
+                                phone: r.number || r.phone || "",
+                                message: `${r.errorMessage || "Fallo transitorio temporal"} (Próximo intento programado: ${r.nextRetryAt ? new Date(r.nextRetryAt).toLocaleTimeString() : "en breve"})`,
+                                isError: true,
+                              })
+                            }
+                            className="text-amber-600 dark:text-amber-400 font-medium text-xs truncate cursor-pointer hover:underline flex items-center gap-1.5"
+                            title="Fallo transitorio - Reintentando automáticamente con backoff"
+                          >
+                            <span className="shrink-0">⏳</span>
+                            <span className="truncate">
+                              {r.errorMessage || `Reintentando (${r.retryCount}/3)...`}
+                            </span>
+                          </div>
                         ) : (
                           <div
                             onClick={() =>
@@ -228,15 +244,33 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
 
                       {/* Actualizado */}
                       <td className="py-2.5 px-4 text-muted-foreground font-mono text-[11px] whitespace-nowrap">
-                        {r.updatedAt || "31/08 11:57"}
+                        <div className="flex flex-col">
+                          <span>{r.updatedAt || "31/08 11:57"}</span>
+                          {isRetrying && r.nextRetryAt && (
+                            <span className="text-[9px] text-amber-600 dark:text-amber-400 font-mono font-bold" title="Hora programada del próximo reintento">
+                              Reintenta: {new Date(r.nextRetryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Estado */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
                         {isFailed ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/10 text-red-500 border border-red-500/20">
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/10 text-red-500 border border-red-500/20"
+                            title={(r.retryCount ?? 0) >= 3 ? "Agotó los 3 reintentos automáticos" : "Fallo definitivo"}
+                          >
                             <AlertCircle className="w-3 h-3" />
-                            Falló
+                            {(r.retryCount ?? 0) >= 3 ? "Falló (3/3)" : "Falló"}
+                          </span>
+                        ) : isRetrying ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                            title={r.nextRetryAt ? `Próximo reintento: ${new Date(r.nextRetryAt).toLocaleTimeString()}` : "Reintentando automáticamente"}
+                          >
+                            <RotateCw className="w-3 h-3 text-amber-600 dark:text-amber-400 animate-spin" />
+                            Reintento {r.retryCount}/3
                           </span>
                         ) : isReplied ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
@@ -330,48 +364,10 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
       </div>
 
       {/* Modal flotante de mensaje completo */}
-      {selectedRecipientMessage && (
-        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-3.5">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-primary" />
-                <h4 className="text-sm font-bold text-foreground">
-                  {selectedRecipientMessage.name} ({selectedRecipientMessage.phone})
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedRecipientMessage(null)}
-                className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div
-              className={`p-3.5 rounded-xl border text-xs leading-relaxed max-h-60 overflow-y-auto whitespace-pre-wrap font-sans ${
-                selectedRecipientMessage.isError
-                  ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 font-mono"
-                  : "bg-muted/40 border-border text-foreground"
-              }`}
-            >
-              {selectedRecipientMessage.message}
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedRecipientMessage(null)}
-                className="text-xs font-bold uppercase"
-              >
-                Cerrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RecipientMessageModal
+        data={selectedRecipientMessage}
+        onClose={() => setSelectedRecipientMessage(null)}
+      />
     </div>
   );
 };
