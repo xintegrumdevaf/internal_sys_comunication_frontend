@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Printer, FileSpreadsheet } from "lucide-react";
 import type {
   AnalyticsOverviewDto,
@@ -49,6 +50,12 @@ export function AnalyticsPrintReportModal({
   filters,
   departmentName,
 }: AnalyticsPrintReportModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,7 +65,7 @@ export function AnalyticsPrintReportModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const areaLabel = departmentName || "Toda la empresa (Global)";
   const periodLabel = `Desde: ${formatDateLabel(filters.from)} | Hasta: ${formatDateLabel(filters.to)}`;
@@ -85,8 +92,8 @@ export function AnalyticsPrintReportModal({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 md:p-6 print:p-0 print:bg-white print:static print:inset-auto print:block">
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-5 md:p-6 print:p-0 print:bg-white print:static print:inset-auto print:block">
       {/* Estilos específicos de impresión para garantizar vectorizado limpio sin UI del sistema */}
       <style>{`
         @media print {
@@ -120,10 +127,10 @@ export function AnalyticsPrintReportModal({
         }
       `}</style>
 
-      {/* Contenedor Principal: Mobile-first responsive (desde 320px hasta ultra-wide) */}
-      <div className="relative w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-card rounded-xl sm:rounded-2xl border border-border shadow-2xl flex flex-col max-h-[94vh] sm:max-h-[90vh] text-foreground print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white print:text-slate-900 overflow-hidden">
+      {/* Contenedor Principal: Viewport acotado a 84vh para flotar centrado sin tocar bordes del navegador */}
+      <div className="relative w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-card rounded-xl sm:rounded-2xl border border-border shadow-2xl flex flex-col max-h-[84vh] text-foreground print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white print:text-slate-900 overflow-hidden">
         {/* Barra superior fija de controles */}
-        <div className="no-print shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-5 border-b border-border/70 bg-card">
+        <div className="no-print shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4.5 border-b border-border/70 bg-card">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-foreground">Vista Previa del Reporte Operativo</h2>
             <p className="text-xs text-muted-foreground">
@@ -381,4 +388,6 @@ export function AnalyticsPrintReportModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : null;
 }
