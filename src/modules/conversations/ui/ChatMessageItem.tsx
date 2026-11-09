@@ -91,12 +91,14 @@ export function ChatMessageItem({
   const fromCustomer = m.author === "customer";
   const isTemplateOrCampaign =
     !fromCustomer &&
-    m.author === "agent" &&
-    !m.agentId &&
-    (!m.agentName ||
-      m.agentName === "Agente" ||
-      m.agentName.toLowerCase().includes("plantilla") ||
-      m.agentName.toLowerCase().includes("campa"));
+    (Boolean(m.caption?.startsWith("template:")) ||
+      Boolean(m.body?.startsWith("📋 [Plantilla:")) ||
+      (m.author === "agent" &&
+        !m.agentId &&
+        (!m.agentName ||
+          m.agentName === "Agente" ||
+          m.agentName.toLowerCase().includes("plantilla") ||
+          m.agentName.toLowerCase().includes("campa"))));
 
   const messageAgentName =
     m.agentName ||
