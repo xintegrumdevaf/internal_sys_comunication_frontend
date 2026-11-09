@@ -5,6 +5,9 @@ export type RealtimeEvent =
       messageId: string;
       bodyPreview?: string;
       authorName?: string;
+      departmentId?: string | null;
+      assignedAgentId?: string | null;
+      isHumanActive?: boolean;
     }
   | { type: "MESSAGE_SENT"; conversationId: string; messageId: string; author: "ai" | "agent" }
   | {

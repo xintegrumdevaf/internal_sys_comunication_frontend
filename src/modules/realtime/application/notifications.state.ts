@@ -63,7 +63,7 @@ export function wireNotifications(userId: string | null): void {
         scheduleTag: event.scheduleTag,
         reminderReason: event.reminderReason,
         scheduledAt: event.scheduledAt,
-        isMine: true,
+        isMine: Boolean(event.assignedAgentId && event.assignedAgentId === userId),
         createdAt: new Date().toISOString(),
         read: false,
       });

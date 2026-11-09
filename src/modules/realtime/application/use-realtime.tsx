@@ -23,6 +23,7 @@ import {
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
 import { formatWaPhone } from "@/modules/conversations/domain/conversation";
 import { RealtimeToastCard } from "@/modules/realtime/ui/RealtimeToastCard";
+import type { SessionUser } from "@/modules/identity/domain/session";
 
 import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
 
@@ -173,7 +174,16 @@ export function sendTestDesktopNotification(): void {
  * propio (docs/spec/03_REALTIME_NOTIFICATIONS.md §2-3). Se llama una sola vez
  * desde AppShell.
  */
-export function useRealtimeSession(userId: string | null): void {
+export function useRealtimeSession(sessionOrUserId: SessionUser | string | null): void {
+  const userId =
+    typeof sessionOrUserId === "string" ? sessionOrUserId : sessionOrUserId?.id ?? null;
+  const userRole = typeof sessionOrUserId === "object" ? sessionOrUserId?.role : undefined;
+  const userDepartmentIds =
+    typeof sessionOrUserId === "object" && sessionOrUserId
+      ? sessionOrUserId.activeDepartmentIds && sessionOrUserId.activeDepartmentIds.length > 0
+        ? sessionOrUserId.activeDepartmentIds
+        : sessionOrUserId.departmentIds
+      : [];
   const unreadCount = useUnreadBadge();
 
   useEffect(() => {
@@ -277,36 +287,45 @@ export function useRealtimeSession(userId: string | null): void {
           });
         }
       } else if (event.type === "CASE_SCHEDULED_REMINDER") {
-        const targetUrl = event.conversationId
-          ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=pending`
-          : `/bandeja`;
-
-        toast.custom(
-          (t) => (
-            <RealtimeToastCard
-              type="reminder"
-              title="Recordatorio de caso agendado"
-              scheduleTag={event.scheduleTag}
-              reminderReason={event.reminderReason}
-              actionLabel="Ver caso agendado"
-              onAction={() => {
-                toast.dismiss(t);
-                window.location.href = targetUrl;
-              }}
-              onDismiss={() => toast.dismiss(t)}
-            />
-          ),
-          { duration: 12000 },
+        const isAssignedToMe = Boolean(event.assignedAgentId && event.assignedAgentId === userId);
+        const isMyDept = Boolean(
+          event.departmentId && userDepartmentIds.includes(event.departmentId),
         );
-        playNotificationSound();
-        if (isAppInBackground()) {
-          flashDocumentTitle("⏰ Recordatorio de caso");
-          sendDesktopNotification("⏰ Recordatorio de caso agendado", {
-            body: event.reminderReason || "Es momento de verificar el caso agendado.",
-            tag: `reminder-${event.caseId}-${Date.now()}`,
-            renotify: true,
-            data: { url: targetUrl },
-          });
+        const isPrivilegedSupervisor = userRole === "manager" || userRole === "admin";
+
+        // Solo alertar si el caso está asignado al usuario actual, o está en la cola de su área, o si es supervisor
+        if (isAssignedToMe || (!event.assignedAgentId && isMyDept) || isPrivilegedSupervisor) {
+          const targetUrl = event.conversationId
+            ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=pending`
+            : `/bandeja`;
+
+          toast.custom(
+            (t) => (
+              <RealtimeToastCard
+                type="reminder"
+                title="Recordatorio de caso agendado"
+                scheduleTag={event.scheduleTag}
+                reminderReason={event.reminderReason}
+                actionLabel="Ver caso agendado"
+                onAction={() => {
+                  toast.dismiss(t);
+                  window.location.href = targetUrl;
+                }}
+                onDismiss={() => toast.dismiss(t)}
+              />
+            ),
+            { duration: 12000 },
+          );
+          playNotificationSound();
+          if (isAppInBackground()) {
+            flashDocumentTitle("⏰ Recordatorio de caso");
+            sendDesktopNotification("⏰ Recordatorio de caso agendado", {
+              body: event.reminderReason || "Es momento de verificar el caso agendado.",
+              tag: `reminder-${event.caseId}-${Date.now()}`,
+              renotify: true,
+              data: { url: targetUrl },
+            });
+          }
         }
       } else if (event.type === "MESSAGE_RECEIVED") {
         const isCurrentActiveChat = getActiveChatId() === event.conversationId;
@@ -315,7 +334,27 @@ export function useRealtimeSession(userId: string | null): void {
         if (!isCurrentActiveChat) {
           markConversationUnread(event.conversationId);
         }
-        if (inBackground || !isCurrentActiveChat) {
+
+        // Filtro estricto de notificación sonora y alerta de escritorio:
+        // - NUNCA sonar si el mensaje está siendo atendido automáticamente por el bot de IA (!isHumanActive).
+        // - NUNCA sonar si el caso está delegado a otro asesor específico.
+        // - SÍ sonar si el caso está asignado a este asesor, o si es un caso humano en cola de su área, o si es supervisor.
+        const isBotHandling = event.isHumanActive === false;
+        const isAssignedToOther = Boolean(event.assignedAgentId && event.assignedAgentId !== userId);
+        const isAssignedToMe = Boolean(event.assignedAgentId && event.assignedAgentId === userId);
+        const isMyDepartmentQueue = Boolean(
+          event.departmentId &&
+            userDepartmentIds.includes(event.departmentId) &&
+            !event.assignedAgentId,
+        );
+        const isPrivilegedSupervisor = userRole === "manager" || userRole === "admin";
+
+        const shouldNotifySound =
+          !isBotHandling &&
+          !isAssignedToOther &&
+          (isAssignedToMe || isMyDepartmentQueue || isPrivilegedSupervisor);
+
+        if (shouldNotifySound && (inBackground || !isCurrentActiveChat)) {
           playNotificationSound();
           const author = event.authorName || "Cliente";
           const body = event.bodyPreview || "Tienes un nuevo mensaje";

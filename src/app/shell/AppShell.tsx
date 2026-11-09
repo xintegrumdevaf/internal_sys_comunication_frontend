@@ -113,7 +113,7 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
-  useRealtimeSession(session?.id ?? null);
+  useRealtimeSession(session);
   const connected = useRealtimeConnected();
 
   const activeIds = useMemo(() => {
