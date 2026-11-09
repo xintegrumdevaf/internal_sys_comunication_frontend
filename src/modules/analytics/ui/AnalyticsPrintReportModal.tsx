@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { X, Printer, FileSpreadsheet } from "lucide-react";
 import type {
@@ -8,7 +8,12 @@ import type {
   AgentPerformanceDto,
   AnalyticsFilterParams,
 } from "../domain/analytics.types";
-import { formatWorkflow, formatEscalationReason } from "../domain/analytics-translations";
+import {
+  formatWorkflow,
+  formatEscalationReason,
+  formatDurationSeconds,
+  formatDurationMinutes,
+} from "../domain/analytics-translations";
 import { exportAnalyticsToExcel } from "../application/analytics-export.service";
 
 export interface AnalyticsPrintReportModalProps {
@@ -23,7 +28,7 @@ export interface AnalyticsPrintReportModalProps {
 }
 
 function formatDateLabel(iso?: string): string {
-  if (!iso) return "N/D";
+  if (!iso) return "-";
   try {
     const d = new Date(iso);
     return isNaN(d.getTime())
@@ -65,6 +70,34 @@ export function AnalyticsPrintReportModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Consolidar motivos idénticos para no duplicar filas en la vista ejecutiva
+  const consolidatedReasons = useMemo(() => {
+    if (!distribution?.topEscalationReasons) return [];
+    const map = new Map<string, { reason: string; count: number }>();
+    let totalCount = 0;
+    for (const r of distribution.topEscalationReasons) {
+      const key = r.reason.trim();
+      const prev = map.get(key) || { reason: key, count: 0 };
+      prev.count += r.count;
+      map.set(key, prev);
+      totalCount += r.count;
+    }
+    return Array.from(map.values())
+      .map((item) => ({
+        ...item,
+        percentage: totalCount > 0 ? (item.count / totalCount) * 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [distribution?.topEscalationReasons]);
+
+  // Ordenar asesores por actividad (mayor a menor)
+  const sortedAgents = useMemo(() => {
+    return [...agentsPerformance].sort((a, b) => {
+      if (b.casesAssigned !== a.casesAssigned) return b.casesAssigned - a.casesAssigned;
+      return b.casesCompleted - a.casesCompleted;
+    });
+  }, [agentsPerformance]);
+
   if (!isOpen || !mounted) return null;
 
   const areaLabel = departmentName || "Toda la empresa (Global)";
@@ -77,16 +110,13 @@ export function AnalyticsPrintReportModal({
     minute: "2-digit",
   });
 
-  const handlePrint = () => {
-    window.print();
-  };
-
+  const handlePrint = () => window.print();
   const handleExcelExport = () => {
     exportAnalyticsToExcel({
       overview,
       distribution,
       aiEfficiency,
-      agentsPerformance,
+      agentsPerformance: sortedAgents,
       filters,
       departmentName,
     });
@@ -94,48 +124,28 @@ export function AnalyticsPrintReportModal({
 
   const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-5 md:p-6 print:p-0 print:bg-white print:static print:inset-auto print:block">
-      {/* Estilos específicos de impresión para garantizar vectorizado limpio sin UI del sistema */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #analytics-printable-report,
-          #analytics-printable-report * {
-            visibility: visible !important;
-          }
+          body * { visibility: hidden !important; }
+          #analytics-printable-report, #analytics-printable-report * { visibility: visible !important; }
           #analytics-printable-report {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 24px !important;
-            background: #ffffff !important;
-            color: #0f172a !important;
-            font-size: 11px !important;
-            box-shadow: none !important;
-            border: none !important;
+            position: absolute !important; left: 0 !important; top: 0 !important;
+            width: 100% !important; margin: 0 !important; padding: 24px !important;
+            background: #ffffff !important; color: #0f172a !important; font-size: 11px !important;
+            box-shadow: none !important; border: none !important;
           }
-          .no-print {
-            display: none !important;
-          }
-          .avoid-break {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
+          .no-print { display: none !important; }
+          .avoid-break { break-inside: avoid !important; page-break-inside: avoid !important; }
         }
       `}</style>
 
-      {/* Contenedor Principal: Viewport acotado a 84vh para flotar centrado sin tocar bordes del navegador */}
+      {/* Contenedor Principal Flotante Centrado (max-h 84vh) */}
       <div className="relative w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-card rounded-xl sm:rounded-2xl border border-border shadow-2xl flex flex-col max-h-[84vh] text-foreground print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white print:text-slate-900 overflow-hidden">
-        {/* Barra superior fija de controles */}
+        {/* Barra superior de controles */}
         <div className="no-print shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4.5 border-b border-border/70 bg-card">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-foreground">Vista Previa del Reporte Operativo</h2>
-            <p className="text-xs text-muted-foreground">
-              Ajusta e imprime o guarda directamente en formato PDF o Excel.
-            </p>
+            <p className="text-xs text-muted-foreground">Ajusta e imprime o guarda directamente en formato PDF o Excel.</p>
           </div>
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
@@ -165,7 +175,7 @@ export function AnalyticsPrintReportModal({
           </div>
         </div>
 
-        {/* CONTENIDO DEL REPORTE IMPRIMIBLE (Cuerpo scrolleable e independiente) */}
+        {/* Cuerpo scrolleable del informe */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div id="analytics-printable-report" className="space-y-6">
             {/* Encabezado Membretado */}
@@ -182,12 +192,8 @@ export function AnalyticsPrintReportModal({
                 </p>
               </div>
               <div className="text-left sm:text-right text-[11px] text-slate-600 space-y-0.5 shrink-0">
-                <p>
-                  <strong>Período:</strong> {periodLabel}
-                </p>
-                <p>
-                  <strong>Emisión:</strong> {generatedAt}
-                </p>
+                <p><strong>Período:</strong> {periodLabel}</p>
+                <p><strong>Emisión:</strong> {generatedAt}</p>
               </div>
             </div>
 
@@ -207,26 +213,26 @@ export function AnalyticsPrintReportModal({
                 </div>
                 <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                   <span className="text-[10px] font-semibold text-slate-500 uppercase">Contención IA</span>
-                  <p className="text-lg font-bold text-sky-700">
-                    {overview?.botContainmentRate?.toFixed(1) ?? "0.0"}%
-                  </p>
+                  <p className="text-lg font-bold text-sky-700">{overview?.botContainmentRate?.toFixed(1) ?? "0.0"}%</p>
                 </div>
                 <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                   <span className="text-[10px] font-semibold text-slate-500 uppercase">Tasa Escalamiento</span>
-                  <p className="text-lg font-bold text-amber-700">
-                    {overview?.escalationRate?.toFixed(1) ?? "0.0"}%
-                  </p>
+                  <p className="text-lg font-bold text-amber-700">{overview?.escalationRate?.toFixed(1) ?? "0.0"}%</p>
                 </div>
                 <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                   <span className="text-[10px] font-semibold text-slate-500 uppercase">Tiempo Resolución</span>
                   <p className="text-lg font-bold text-slate-900">
-                    {overview?.avgResolutionTimeMinutes ? `${overview.avgResolutionTimeMinutes.toFixed(1)} min` : "N/D"}
+                    {overview?.avgResolutionTimeMinutes != null && overview.avgResolutionTimeMinutes > 0
+                      ? `${formatDurationMinutes(overview.avgResolutionTimeMinutes)} (${overview.avgResolutionTimeMinutes.toFixed(1)}m)`
+                      : "0m"}
                   </p>
                 </div>
                 <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                   <span className="text-[10px] font-semibold text-slate-500 uppercase">Espera en Cola</span>
                   <p className="text-lg font-bold text-slate-900">
-                    {overview?.avgQueueWaitTimeSeconds ? `${overview.avgQueueWaitTimeSeconds.toFixed(0)} seg` : "N/D"}
+                    {overview?.avgQueueWaitTimeSeconds != null && overview.avgQueueWaitTimeSeconds > 0
+                      ? formatDurationSeconds(overview.avgQueueWaitTimeSeconds)
+                      : "0 seg (inmediato)"}
                   </p>
                 </div>
                 <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
@@ -240,7 +246,7 @@ export function AnalyticsPrintReportModal({
               </div>
             </div>
 
-            {/* 2. Distribución por Proceso (Workflow) y Causas de Escalamiento */}
+            {/* 2. Distribución por Proceso y Causas de Escalamiento Consolidada */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 avoid-break">
               {/* Procesos */}
               <div className="space-y-2">
@@ -266,18 +272,14 @@ export function AnalyticsPrintReportModal({
                           </tr>
                         ))
                       ) : (
-                        <tr>
-                          <td colSpan={3} className="py-2 px-3 text-center text-slate-400">
-                            Sin datos de procesos
-                          </td>
-                        </tr>
+                        <tr><td colSpan={3} className="py-2 px-3 text-center text-slate-400">Sin datos de procesos</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Motivos de Escalamiento */}
+              {/* Motivos de Escalamiento Consolidados (Sin filas repetidas) */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-sky-600 pl-2">
                   3. Motivos de Escalamiento a Asesor
@@ -292,10 +294,10 @@ export function AnalyticsPrintReportModal({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {distribution?.topEscalationReasons && distribution.topEscalationReasons.length > 0 ? (
-                        distribution.topEscalationReasons.slice(0, 5).map((r, idx) => (
+                      {consolidatedReasons.length > 0 ? (
+                        consolidatedReasons.slice(0, 5).map((r, idx) => (
                           <tr key={`${r.reason}-${idx}`}>
-                            <td className="py-1 px-3 text-slate-800 truncate max-w-[160px]">
+                            <td className="py-1 px-3 text-slate-800 truncate max-w-[170px]">
                               {formatEscalationReason(r.reason)}
                             </td>
                             <td className="py-1 px-3 text-right font-medium text-slate-700">{r.count}</td>
@@ -303,11 +305,7 @@ export function AnalyticsPrintReportModal({
                           </tr>
                         ))
                       ) : (
-                        <tr>
-                          <td colSpan={3} className="py-2 px-3 text-center text-slate-400">
-                            Sin escalamientos registrados
-                          </td>
-                        </tr>
+                        <tr><td colSpan={3} className="py-2 px-3 text-center text-slate-400">Sin escalamientos registrados</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -315,7 +313,7 @@ export function AnalyticsPrintReportModal({
               </div>
             </div>
 
-            {/* 3. Rendimiento del Equipo de Asesores */}
+            {/* 3. Rendimiento del Equipo de Asesores (Formato Humano sin N/D) */}
             <div className="space-y-2 avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-sky-600 pl-2">
                 4. Rendimiento Individual de Asesores
@@ -335,43 +333,33 @@ export function AnalyticsPrintReportModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {agentsPerformance.length > 0 ? (
-                      agentsPerformance.map((a) => (
+                    {sortedAgents.length > 0 ? (
+                      sortedAgents.map((a) => (
                         <tr key={a.agentId}>
-                          <td className="py-1 px-3 font-medium text-slate-800 truncate max-w-[140px]">
-                            {a.agentName}
-                          </td>
-                          <td className="py-1 px-2 text-slate-600 truncate max-w-[110px]">
-                            {a.primaryDepartmentName || "Sin asignar"}
-                          </td>
+                          <td className="py-1 px-3 font-medium text-slate-800 truncate max-w-[140px]">{a.agentName}</td>
+                          <td className="py-1 px-2 text-slate-600 truncate max-w-[110px]">{a.primaryDepartmentName || "Sin asignar"}</td>
                           <td className="py-1 px-2 text-right text-slate-700">{a.casesAssigned}</td>
-                          <td className="py-1 px-2 text-right font-semibold text-emerald-700">
-                            {a.casesCompleted}
+                          <td className="py-1 px-2 text-right font-semibold text-emerald-700">{a.casesCompleted}</td>
+                          <td className="py-1 px-2 text-right text-slate-600">
+                            {a.avgFirstResponseTimeMs ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000)) : "-"}
                           </td>
                           <td className="py-1 px-2 text-right text-slate-600">
-                            {a.avgFirstResponseTimeMs ? `${Math.round(a.avgFirstResponseTimeMs / 1000)}s` : "N/D"}
-                          </td>
-                          <td className="py-1 px-2 text-right text-slate-600">
-                            {a.avgHandlingTimeMinutes ? `${a.avgHandlingTimeMinutes.toFixed(1)}m` : "N/D"}
+                            {a.avgHandlingTimeMinutes ? formatDurationMinutes(a.avgHandlingTimeMinutes) : "-"}
                           </td>
                           <td className="py-1 px-2 text-right text-slate-700">
-                            {a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined
+                            {a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined && a.casesAssigned > 0
                               ? `${a.fcrRatePercentage.toFixed(1)}%`
-                              : "N/D"}
+                              : "-"}
                           </td>
                           <td className="py-1 px-2 text-right font-medium text-slate-800">
                             {a.avgCordialityScore !== null && a.avgCordialityScore !== undefined
                               ? `${a.avgCordialityScore.toFixed(0)}/100`
-                              : "N/D"}
+                              : "-"}
                           </td>
                         </tr>
                       ))
                     ) : (
-                      <tr>
-                        <td colSpan={8} className="py-2.5 px-3 text-center text-slate-400">
-                          No hay datos de asesores para este período o área
-                        </td>
-                      </tr>
+                      <tr><td colSpan={8} className="py-2.5 px-3 text-center text-slate-400">No hay datos de asesores</td></tr>
                     )}
                   </tbody>
                 </table>

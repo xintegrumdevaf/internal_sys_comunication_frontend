@@ -57,3 +57,30 @@ export function formatStep(val?: string | null): string {
   const key = val.toUpperCase().trim();
   return STEP_LABELS[key] ?? val.replace(/_/g, " ");
 }
+
+/**
+ * Formatea segundos a tiempo humano legible (ej: 6763s -> 1h 53m, 150s -> 2m 30s).
+ */
+export function formatDurationSeconds(sec?: number | null): string {
+  if (sec === null || sec === undefined || isNaN(sec) || sec <= 0) return "-";
+  const totalSec = Math.round(sec);
+  if (totalSec < 60) return `${totalSec}s`;
+  const mins = Math.floor(totalSec / 60);
+  const remSec = totalSec % 60;
+  if (mins < 60) return `${mins}m ${remSec > 0 ? `${remSec}s` : ""}`.trim();
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return `${hours}h ${remMins > 0 ? `${remMins}m` : ""}`.trim();
+}
+
+/**
+ * Formatea minutos a tiempo humano legible (ej: 225m -> 3h 45m).
+ */
+export function formatDurationMinutes(mins?: number | null): string {
+  if (mins === null || mins === undefined || isNaN(mins) || mins <= 0) return "-";
+  const totalMin = Math.round(mins);
+  if (totalMin < 60) return `${totalMin}m`;
+  const hours = Math.floor(totalMin / 60);
+  const remMins = totalMin % 60;
+  return `${hours}h ${remMins > 0 ? `${remMins}m` : ""}`.trim();
+}

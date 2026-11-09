@@ -5,7 +5,12 @@ import type {
   AIEfficiencyDto,
   AgentPerformanceDto,
 } from "../domain/analytics.types";
-import { formatWorkflow, formatEscalationReason } from "../domain/analytics-translations";
+import {
+  formatWorkflow,
+  formatEscalationReason,
+  formatDurationSeconds,
+  formatDurationMinutes,
+} from "../domain/analytics-translations";
 
 export interface AnalyticsExportParams {
   overview?: AnalyticsOverviewDto;
@@ -64,8 +69,8 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
     ["Casos Resueltos / Completados", overview?.completedCases ?? 0, "Casos"],
     ["Tasa de Contención de IA", `${overview?.botContainmentRate?.toFixed(1) ?? 0}%`, "Resueltos sin intervención humana"],
     ["Tasa de Escalamiento a Humano", `${overview?.escalationRate?.toFixed(1) ?? 0}%`, "Derivados a agentes"],
-    ["Tiempo Promedio de Resolución", overview?.avgResolutionTimeMinutes ? Number(overview.avgResolutionTimeMinutes.toFixed(1)) : "N/D", "Minutos"],
-    ["Tiempo Promedio de Espera en Cola", overview?.avgQueueWaitTimeSeconds ? Number(overview.avgQueueWaitTimeSeconds.toFixed(0)) : "N/D", "Segundos"],
+    ["Tiempo Promedio de Resolución", overview?.avgResolutionTimeMinutes ? Number(overview.avgResolutionTimeMinutes.toFixed(1)) : 0, "Minutos"],
+    ["Tiempo Promedio de Espera en Cola", overview?.avgQueueWaitTimeSeconds ? Number(overview.avgQueueWaitTimeSeconds.toFixed(0)) : 0, "Segundos"],
     ["Casos Escalados a Asesor", overview?.escalatedCases ?? (aiEfficiency?.humanEscalatedCases ?? 0), "Casos"],
     ["Casos Resueltos 100% por IA", aiEfficiency?.botCompletedCases ?? 0, "Casos"],
     [],
@@ -122,17 +127,17 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
       admin: "Administrador",
     };
     const firstReply = a.avgFirstResponseTimeMs
-      ? `${Math.round(a.avgFirstResponseTimeMs / 1000)}s`
-      : "N/D";
+      ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000))
+      : "-";
     const handlingTime = a.avgHandlingTimeMinutes
-      ? Number(a.avgHandlingTimeMinutes.toFixed(1))
-      : "N/D";
-    const fcr = a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined
+      ? formatDurationMinutes(a.avgHandlingTimeMinutes)
+      : "-";
+    const fcr = a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined && a.casesAssigned > 0
       ? `${a.fcrRatePercentage.toFixed(1)}%`
-      : "N/D";
+      : "-";
     const cordiality = a.avgCordialityScore !== null && a.avgCordialityScore !== undefined
       ? Number(a.avgCordialityScore.toFixed(0))
-      : "N/D";
+      : "-";
 
     return [
       a.agentName,
