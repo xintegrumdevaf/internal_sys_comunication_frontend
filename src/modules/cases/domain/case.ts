@@ -21,7 +21,7 @@ export type CaseStatus =
  * transfiere — mostrar el botón "Cancelar" ahí solo confundiría (el backend
  * lo rechazaría con un error de negocio).
  */
-export const CANCELLABLE_STATUSES: CaseStatus[] = ["ACTIVE", "PAUSED", "WAITING_USER"];
+export const CANCELLABLE_STATUSES: CaseStatus[] = ["NEW", "ACTIVE", "PAUSED", "WAITING_USER"];
 
 /**
  * Telemetria real de la ONU (mikrotik_api → TechnicalDataResponseDTO,
