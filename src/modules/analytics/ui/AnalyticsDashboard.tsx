@@ -43,6 +43,7 @@ export function AnalyticsDashboard() {
       distribution: distributionQuery.data,
       aiEfficiency: aiEfficiencyQuery.data,
       agentsPerformance: agentsPerformanceQuery.data,
+      departments,
       filters,
       departmentName,
     });
@@ -144,6 +145,7 @@ export function AnalyticsDashboard() {
         distribution={distributionQuery.data}
         aiEfficiency={aiEfficiencyQuery.data}
         agentsPerformance={agentsPerformanceQuery.data}
+        departments={departments}
         filters={filters}
         departmentName={departmentName}
       />

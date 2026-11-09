@@ -62,6 +62,16 @@ describe("AnalyticsPrintReportModal", () => {
         openCoachingNotesCount: 0,
       },
     ],
+    departments: [
+      {
+        id: "dept-1",
+        name: "Soporte Técnico",
+        slug: "soporte",
+        visibility: "shared" as const,
+        active: true,
+        maxConcurrentCases: 6,
+      },
+    ],
     filters: {
       from: "2026-11-01T00:00:00.000Z",
       to: "2026-11-09T23:59:59.000Z",
@@ -85,7 +95,7 @@ describe("AnalyticsPrintReportModal", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renderiza el reporte ejecutivo con métricas, área, procesos y asesores cuando isOpen es true", () => {
+  it("renderiza el reporte ejecutivo con métricas, área, procesos, asesores y semáforo de capacidad cuando isOpen es true", () => {
     render(<AnalyticsPrintReportModal {...defaultProps} />);
 
     expect(screen.getByText(/Reporte Ejecutivo de Operaciones y Calidad/i)).toBeInTheDocument();
@@ -94,6 +104,8 @@ describe("AnalyticsPrintReportModal", () => {
     expect(screen.getByText("110")).toBeInTheDocument();
     expect(screen.getByText("75.0%")).toBeInTheDocument();
     expect(screen.getByText("Elena Ramos")).toBeInTheDocument();
+    expect(screen.getByText(/Capacidad Instalada y Semáforo de Saturación/i)).toBeInTheDocument();
+    expect(screen.getByText(/6 cupos/i)).toBeInTheDocument();
   });
 
   it("invoca window.print al hacer clic en el botón Imprimir / PDF", () => {

@@ -8,6 +8,7 @@ import type {
   AgentPerformanceDto,
   AnalyticsFilterParams,
 } from "../domain/analytics.types";
+import type { DepartmentDto } from "@/modules/identity/domain/department";
 import {
   formatWorkflow,
   formatEscalationReason,
@@ -23,6 +24,7 @@ export interface AnalyticsPrintReportModalProps {
   distribution?: CasesDistributionDto;
   aiEfficiency?: AIEfficiencyDto;
   agentsPerformance?: AgentPerformanceDto[];
+  departments?: DepartmentDto[];
   filters: AnalyticsFilterParams;
   departmentName?: string;
 }
@@ -52,6 +54,7 @@ export function AnalyticsPrintReportModal({
   distribution,
   aiEfficiency,
   agentsPerformance = [],
+  departments = [],
   filters,
   departmentName,
 }: AnalyticsPrintReportModalProps) {
@@ -70,7 +73,7 @@ export function AnalyticsPrintReportModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Consolidar motivos idénticos para no duplicar filas en la vista ejecutiva
+  // Consolidar motivos idénticos
   const consolidatedReasons = useMemo(() => {
     if (!distribution?.topEscalationReasons) return [];
     const map = new Map<string, { reason: string; count: number }>();
@@ -83,14 +86,11 @@ export function AnalyticsPrintReportModal({
       totalCount += r.count;
     }
     return Array.from(map.values())
-      .map((item) => ({
-        ...item,
-        percentage: totalCount > 0 ? (item.count / totalCount) * 100 : 0,
-      }))
+      .map((item) => ({ ...item, percentage: totalCount > 0 ? (item.count / totalCount) * 100 : 0 }))
       .sort((a, b) => b.count - a.count);
   }, [distribution?.topEscalationReasons]);
 
-  // Ordenar asesores por actividad (mayor a menor)
+  // Ordenar asesores por actividad
   const sortedAgents = useMemo(() => {
     return [...agentsPerformance].sort((a, b) => {
       if (b.casesAssigned !== a.casesAssigned) return b.casesAssigned - a.casesAssigned;
@@ -98,25 +98,71 @@ export function AnalyticsPrintReportModal({
     });
   }, [agentsPerformance]);
 
+  // Semáforo de capacidad por área
+  const capacityMetrics = useMemo(() => {
+    return departments
+      .filter((d) => d.active)
+      .map((d) => {
+        const deptAgents = agentsPerformance.filter((a) => a.primaryDepartmentId === d.id);
+        const onShift = deptAgents.filter((a) => a.autoAssignEnabled).length;
+        const maxPerAgent = d.maxConcurrentCases || 6;
+        const totalCapacity = onShift * maxPerAgent;
+        const activeHandled = deptAgents.reduce((acc, a) => acc + (a.activeCasesNow || 0), 0);
+        const occupancy = totalCapacity > 0 ? Math.min(Math.round((activeHandled / totalCapacity) * 100), 100) : activeHandled > 0 ? 100 : 0;
+        let badge = "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
+        let label = "Disponible";
+        if (totalCapacity === 0 && deptAgents.length === 0) {
+          badge = "bg-slate-500/15 text-slate-700 border-slate-500/30";
+          label = "Sin personal";
+        } else if (occupancy >= 85 || (totalCapacity === 0 && activeHandled > 0)) {
+          badge = "bg-rose-500/15 text-rose-700 border-rose-500/30";
+          label = "Saturado";
+        } else if (occupancy >= 60) {
+          badge = "bg-amber-500/15 text-amber-700 border-amber-500/30";
+          label = "Moderado";
+        }
+        return { d, deptAgents, onShift, maxPerAgent, totalCapacity, activeHandled, occupancy, badge, label };
+      });
+  }, [departments, agentsPerformance]);
+
   if (!isOpen || !mounted) return null;
 
   const areaLabel = departmentName || "Toda la empresa (Global)";
   const periodLabel = `Desde: ${formatDateLabel(filters.from)} | Hasta: ${formatDateLabel(filters.to)}`;
   const generatedAt = new Date().toLocaleString("es-EC", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
-  const handlePrint = () => window.print();
+  const kpis = [
+    { label: "Total Casos", val: overview?.totalCases ?? 0, color: "text-slate-900" },
+    { label: "Completados / Resueltos", val: overview?.completedCases ?? 0, color: "text-emerald-700" },
+    { label: "Contención IA", val: `${overview?.botContainmentRate?.toFixed(1) ?? "0.0"}%`, color: "text-sky-700" },
+    { label: "Tasa Escalamiento", val: `${overview?.escalationRate?.toFixed(1) ?? "0.0"}%`, color: "text-amber-700" },
+    {
+      label: "Tiempo Resolución",
+      val: overview?.avgResolutionTimeMinutes != null && overview.avgResolutionTimeMinutes > 0
+        ? `${formatDurationMinutes(overview.avgResolutionTimeMinutes)} (${overview.avgResolutionTimeMinutes.toFixed(1)}m)`
+        : "0m",
+      color: "text-slate-900",
+    },
+    {
+      label: "Espera en Cola",
+      val: overview?.avgQueueWaitTimeSeconds != null && overview.avgQueueWaitTimeSeconds > 0
+        ? formatDurationSeconds(overview.avgQueueWaitTimeSeconds)
+        : "0 seg (inmediato)",
+      color: "text-slate-900",
+    },
+    { label: "Casos Activos", val: overview?.activeCases ?? 0, color: "text-slate-900" },
+    { label: "Resueltos 100% IA", val: aiEfficiency?.botCompletedCases ?? 0, color: "text-slate-900" },
+  ];
+
   const handleExcelExport = () => {
     exportAnalyticsToExcel({
       overview,
       distribution,
       aiEfficiency,
       agentsPerformance: sortedAgents,
+      departments,
       filters,
       departmentName,
     });
@@ -139,13 +185,13 @@ export function AnalyticsPrintReportModal({
         }
       `}</style>
 
-      {/* Contenedor Principal Flotante Centrado (max-h 84vh) */}
-      <div className="relative w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-card rounded-xl sm:rounded-2xl border border-border shadow-2xl flex flex-col max-h-[84vh] text-foreground print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white print:text-slate-900 overflow-hidden">
-        {/* Barra superior de controles */}
+      {/* Tarjeta Flotante Centrada */}
+      <div className="relative w-full max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-card rounded-xl sm:rounded-2xl border border-border shadow-2xl flex flex-col max-h-[85vh] text-foreground print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none print:bg-white print:text-slate-900 overflow-hidden">
+        {/* Barra de Controles Fija */}
         <div className="no-print shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4.5 border-b border-border/70 bg-card">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-foreground">Vista Previa del Reporte Operativo</h2>
-            <p className="text-xs text-muted-foreground">Ajusta e imprime o guarda directamente en formato PDF o Excel.</p>
+            <p className="text-xs text-muted-foreground">Reporte ejecutivo con KPIs, rendimiento, procesos y capacidad instalada.</p>
           </div>
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
@@ -158,7 +204,7 @@ export function AnalyticsPrintReportModal({
             </button>
             <button
               type="button"
-              onClick={handlePrint}
+              onClick={() => window.print()}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
             >
               <Printer className="size-4" />
@@ -175,7 +221,7 @@ export function AnalyticsPrintReportModal({
           </div>
         </div>
 
-        {/* Cuerpo scrolleable del informe */}
+        {/* Cuerpo Scrolleable */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div id="analytics-printable-report" className="space-y-6">
             {/* Encabezado Membretado */}
@@ -197,58 +243,23 @@ export function AnalyticsPrintReportModal({
               </div>
             </div>
 
-            {/* 1. Indicadores Clave de Desempeño (KPIs) */}
+            {/* 1. Macro KPIs */}
             <div className="space-y-2.5 avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-sky-600 pl-2">
                 1. Indicadores Clave de Desempeño (Macro KPIs)
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Total Casos</span>
-                  <p className="text-lg font-bold text-slate-900">{overview?.totalCases ?? 0}</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Completados / Resueltos</span>
-                  <p className="text-lg font-bold text-emerald-700">{overview?.completedCases ?? 0}</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Contención IA</span>
-                  <p className="text-lg font-bold text-sky-700">{overview?.botContainmentRate?.toFixed(1) ?? "0.0"}%</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Tasa Escalamiento</span>
-                  <p className="text-lg font-bold text-amber-700">{overview?.escalationRate?.toFixed(1) ?? "0.0"}%</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Tiempo Resolución</span>
-                  <p className="text-lg font-bold text-slate-900">
-                    {overview?.avgResolutionTimeMinutes != null && overview.avgResolutionTimeMinutes > 0
-                      ? `${formatDurationMinutes(overview.avgResolutionTimeMinutes)} (${overview.avgResolutionTimeMinutes.toFixed(1)}m)`
-                      : "0m"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Espera en Cola</span>
-                  <p className="text-lg font-bold text-slate-900">
-                    {overview?.avgQueueWaitTimeSeconds != null && overview.avgQueueWaitTimeSeconds > 0
-                      ? formatDurationSeconds(overview.avgQueueWaitTimeSeconds)
-                      : "0 seg (inmediato)"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Casos Activos</span>
-                  <p className="text-lg font-bold text-slate-900">{overview?.activeCases ?? 0}</p>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Resueltos 100% IA</span>
-                  <p className="text-lg font-bold text-slate-900">{aiEfficiency?.botCompletedCases ?? 0}</p>
-                </div>
+                {kpis.map((k, i) => (
+                  <div key={i} className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase">{k.label}</span>
+                    <p className={`text-lg font-bold ${k.color}`}>{k.val}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* 2. Distribución por Proceso y Causas de Escalamiento Consolidada */}
+            {/* 2. Distribución de Procesos y Motivos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 avoid-break">
-              {/* Procesos */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-sky-600 pl-2">
                   2. Distribución por Proceso
@@ -256,11 +267,7 @@ export function AnalyticsPrintReportModal({
                 <div className="border border-slate-200 rounded-lg overflow-x-auto">
                   <table className="w-full text-left text-xs min-w-[280px]">
                     <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="py-1.5 px-3">Proceso</th>
-                        <th className="py-1.5 px-3 text-right">Casos</th>
-                        <th className="py-1.5 px-3 text-right">%</th>
-                      </tr>
+                      <tr><th className="py-1.5 px-3">Proceso</th><th className="py-1.5 px-3 text-right">Casos</th><th className="py-1.5 px-3 text-right">%</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {distribution?.byWorkflow && distribution.byWorkflow.length > 0 ? (
@@ -279,7 +286,6 @@ export function AnalyticsPrintReportModal({
                 </div>
               </div>
 
-              {/* Motivos de Escalamiento Consolidados (Sin filas repetidas) */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-sky-600 pl-2">
                   3. Motivos de Escalamiento a Asesor
@@ -287,19 +293,13 @@ export function AnalyticsPrintReportModal({
                 <div className="border border-slate-200 rounded-lg overflow-x-auto">
                   <table className="w-full text-left text-xs min-w-[300px]">
                     <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="py-1.5 px-3">Motivo</th>
-                        <th className="py-1.5 px-3 text-right">Casos</th>
-                        <th className="py-1.5 px-3 text-right">%</th>
-                      </tr>
+                      <tr><th className="py-1.5 px-3">Motivo</th><th className="py-1.5 px-3 text-right">Casos</th><th className="py-1.5 px-3 text-right">%</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {consolidatedReasons.length > 0 ? (
                         consolidatedReasons.slice(0, 5).map((r, idx) => (
                           <tr key={`${r.reason}-${idx}`}>
-                            <td className="py-1 px-3 text-slate-800 truncate max-w-[170px]">
-                              {formatEscalationReason(r.reason)}
-                            </td>
+                            <td className="py-1 px-3 text-slate-800 truncate max-w-[170px]">{formatEscalationReason(r.reason)}</td>
                             <td className="py-1 px-3 text-right font-medium text-slate-700">{r.count}</td>
                             <td className="py-1 px-3 text-right text-slate-500">{r.percentage.toFixed(1)}%</td>
                           </tr>
@@ -313,7 +313,7 @@ export function AnalyticsPrintReportModal({
               </div>
             </div>
 
-            {/* 3. Rendimiento del Equipo de Asesores (Formato Humano sin N/D) */}
+            {/* 3. Rendimiento de Asesores */}
             <div className="space-y-2 avoid-break">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-sky-600 pl-2">
                 4. Rendimiento Individual de Asesores
@@ -352,9 +352,7 @@ export function AnalyticsPrintReportModal({
                               : "-"}
                           </td>
                           <td className="py-1 px-2 text-right font-medium text-slate-800">
-                            {a.avgCordialityScore !== null && a.avgCordialityScore !== undefined
-                              ? `${a.avgCordialityScore.toFixed(0)}/100`
-                              : "-"}
+                            {a.avgCordialityScore !== null && a.avgCordialityScore !== undefined ? `${a.avgCordialityScore.toFixed(0)}/100` : "-"}
                           </td>
                         </tr>
                       ))
@@ -365,6 +363,47 @@ export function AnalyticsPrintReportModal({
                 </table>
               </div>
             </div>
+
+            {/* 4. Capacidad Instalada y Semáforo de Saturación */}
+            {capacityMetrics.length > 0 && (
+              <div className="space-y-2.5 avoid-break">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-l-3 border-emerald-600 pl-2">
+                  5. Capacidad Instalada y Semáforo de Saturación por Área
+                </h3>
+                <div className="border border-slate-200 rounded-lg overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[620px] sm:min-w-full">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="py-1.5 px-3">Área / Departamento</th>
+                        <th className="py-1.5 px-2 text-right">Asesores (Turno / Totales)</th>
+                        <th className="py-1.5 px-2 text-right">Cupo / Asesor</th>
+                        <th className="py-1.5 px-2 text-right">Capacidad Total</th>
+                        <th className="py-1.5 px-2 text-right">Activos Ahora</th>
+                        <th className="py-1.5 px-2 text-right">Ocupación</th>
+                        <th className="py-1.5 px-3 text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {capacityMetrics.map((c) => (
+                        <tr key={c.d.id}>
+                          <td className="py-1 px-3 font-medium text-slate-800">{c.d.name}</td>
+                          <td className="py-1 px-2 text-right text-slate-700">{c.onShift} / {c.deptAgents.length}</td>
+                          <td className="py-1 px-2 text-right text-slate-600">{c.maxPerAgent}</td>
+                          <td className="py-1 px-2 text-right font-medium text-slate-800">{c.totalCapacity} cupos</td>
+                          <td className="py-1 px-2 text-right font-semibold text-slate-900">{c.activeHandled}</td>
+                          <td className="py-1 px-2 text-right font-bold text-slate-800">{c.occupancy}%</td>
+                          <td className="py-1 px-3 text-center">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.badge}`}>
+                              {c.label}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Pie de Página */}
             <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[10px] text-slate-500">

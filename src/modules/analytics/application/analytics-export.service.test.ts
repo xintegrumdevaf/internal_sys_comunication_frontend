@@ -58,6 +58,16 @@ describe("analytics-export.service", () => {
         openCoachingNotesCount: 0,
       },
     ],
+    departments: [
+      {
+        id: "dept-1",
+        name: "Soporte Técnico",
+        slug: "soporte",
+        visibility: "shared" as const,
+        active: true,
+        maxConcurrentCases: 6,
+      },
+    ],
     filters: {
       from: "2026-10-10T00:00:00.000Z",
       to: "2026-11-09T23:59:59.000Z",
@@ -66,7 +76,7 @@ describe("analytics-export.service", () => {
     departmentName: "Soporte Técnico",
   };
 
-  it("construye un libro Excel con 3 hojas estructuradas", () => {
+  it("construye un libro Excel con 4 hojas estructuradas incluyendo Capacidad y Saturación", () => {
     const { wb, filename } = buildAnalyticsWorkbook(mockParams);
 
     expect(filename).toContain("reporte_operativo_soporte_tecnico_");
@@ -74,6 +84,7 @@ describe("analytics-export.service", () => {
 
     expect(wb.SheetNames).toEqual([
       "Resumen Ejecutivo",
+      "Capacidad y Saturación",
       "Rendimiento Asesores",
       "Motivos y Tráfico",
     ]);
@@ -84,7 +95,17 @@ describe("analytics-export.service", () => {
     expect(rows1[0]?.[0]).toContain("REPORTE EJECUTIVO DE OPERACIONES");
     expect(rows1[1]?.[1]).toBe("Soporte Técnico");
 
-    // Validar Hoja 2: Rendimiento Asesores
+    // Validar Hoja 2: Capacidad y Saturación
+    const sheetCapacity = wb.Sheets["Capacidad y Saturación"]!;
+    const rowsCapacity = XLSX.utils.sheet_to_json<string[]>(sheetCapacity, { header: 1 });
+    expect(rowsCapacity[0]).toContain("Capacidad Total Instalada");
+    expect(rowsCapacity[0]).toContain("Estado Operativo");
+    expect(rowsCapacity[1]?.[0]).toBe("Soporte Técnico");
+    expect(rowsCapacity[1]?.[4]).toBe(6); // 1 asesor en turno * cupo 6
+    expect(rowsCapacity[1]?.[5]).toBe(2); // 2 casos activos
+    expect(rowsCapacity[1]?.[7]).toBe("Disponible");
+
+    // Validar Hoja 3: Rendimiento Asesores
     const sheet2 = wb.Sheets["Rendimiento Asesores"]!;
     const rows2 = XLSX.utils.sheet_to_json<string[]>(sheet2, { header: 1 });
     expect(rows2[0]).toContain("Asesor");
@@ -93,7 +114,7 @@ describe("analytics-export.service", () => {
     expect(rows2[1]?.[1]).toBe("Soporte Técnico");
     expect(rows2[1]?.[8]).toBe("88.5%");
 
-    // Validar Hoja 3: Motivos y Tráfico
+    // Validar Hoja 4: Motivos y Tráfico
     const sheet3 = wb.Sheets["Motivos y Tráfico"]!;
     const rows3 = XLSX.utils.sheet_to_json<string[]>(sheet3, { header: 1 });
     expect(rows3[0]?.[0]).toContain("PRINCIPALES MOTIVOS DE ESCALAMIENTO");
@@ -112,4 +133,3 @@ describe("analytics-export.service", () => {
     expect(rows1[1]?.[1]).toBe("Toda la empresa (Global)");
   });
 });
-

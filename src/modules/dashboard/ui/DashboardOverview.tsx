@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Sparkles, ArrowRight, Inbox, TrendingUp } from "lucide-react";
+import { Sparkles, ArrowRight, Inbox, TrendingUp, Printer } from "lucide-react";
 import { useSession, useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { getDashboard } from "@/modules/dashboard/infrastructure/dashboard.gateway";
 import { listConversations } from "@/modules/conversations/infrastructure/conversation.gateway";
@@ -9,8 +9,11 @@ import type { ConversationDto } from "@/modules/conversations/domain/conversatio
 import {
   useAnalyticsOverview,
   useAgentsPerformance,
+  useCasesDistribution,
+  useAIEfficiency,
 } from "@/modules/analytics/application/use-analytics";
 import { calculatePresetDates } from "@/modules/analytics/domain/analytics.types";
+import { AnalyticsPrintReportModal } from "@/modules/analytics/ui/AnalyticsPrintReportModal";
 import { OperationalKpiPulse } from "./OperationalKpiPulse";
 import { DepartmentSaturationGrid } from "./DepartmentSaturationGrid";
 import { AgentWorkloadMonitor, type FilterStatus } from "./AgentWorkloadMonitor";
@@ -39,7 +42,11 @@ export function DashboardOverview({ initialFilters }: DashboardOverviewProps) {
   // Queries analíticas en tiempo real
   const overviewQuery = useAnalyticsOverview(todayFilter);
   const agentsPerformanceQuery = useAgentsPerformance(todayFilter);
+  const distributionQuery = useCasesDistribution(todayFilter);
+  const aiEfficiencyQuery = useAIEfficiency(todayFilter);
   const { data: departments = [], isLoading: isLoadingDepts } = useDepartmentsQuery();
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Estados locales para métricas rápidas de bandeja
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
@@ -200,7 +207,15 @@ export function DashboardOverview({ initialFilters }: DashboardOverviewProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsReportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-background hover:bg-muted text-foreground text-xs font-semibold transition-all shadow-xs cursor-pointer"
+          >
+            <Printer className="size-3.5 text-sky-600 dark:text-sky-400" />
+            <span>Reporte Ejecutivo</span>
+          </button>
           <Link
             to="/analytics"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-background hover:bg-muted text-foreground text-xs font-semibold transition-all shadow-xs"
@@ -252,6 +267,19 @@ export function DashboardOverview({ initialFilters }: DashboardOverviewProps) {
         initialPage={initialFilters?.page}
         initialPageSize={initialFilters?.pageSize}
         onFilterChange={handleAgentFiltersChange}
+      />
+
+      {/* Modal de Reporte Ejecutivo y Capacidad */}
+      <AnalyticsPrintReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        overview={overview}
+        distribution={distributionQuery.data}
+        aiEfficiency={aiEfficiencyQuery.data}
+        agentsPerformance={agentsPerformance}
+        departments={departments}
+        filters={todayFilter}
+        departmentName="Toda la empresa (Global)"
       />
     </div>
   );

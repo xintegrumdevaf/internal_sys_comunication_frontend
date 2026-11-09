@@ -5,6 +5,7 @@ import type {
   AIEfficiencyDto,
   AgentPerformanceDto,
 } from "../domain/analytics.types";
+import type { DepartmentDto } from "@/modules/identity/domain/department";
 import {
   formatWorkflow,
   formatEscalationReason,
@@ -17,6 +18,7 @@ export interface AnalyticsExportParams {
   distribution?: CasesDistributionDto;
   aiEfficiency?: AIEfficiencyDto;
   agentsPerformance?: AgentPerformanceDto[];
+  departments?: DepartmentDto[];
   filters: { from?: string; to?: string; departmentId?: string };
   departmentName?: string;
 }
@@ -25,13 +27,15 @@ function formatDate(iso?: string): string {
   if (!iso) return "N/D";
   try {
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? iso : d.toLocaleDateString("es-EC", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return isNaN(d.getTime())
+      ? iso
+      : d.toLocaleDateString("es-EC", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
   } catch {
     return iso;
   }
@@ -39,13 +43,21 @@ function formatDate(iso?: string): string {
 
 /**
  * Construye el libro de trabajo Excel multi-pestaña con el reporte ejecutivo
- * de analítica operativa, calidad y productividad.
+ * de analítica operativa, calidad, productividad y capacidad instalada.
  */
 export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
   wb: XLSX.WorkBook;
   filename: string;
 } {
-  const { overview, distribution, aiEfficiency, agentsPerformance = [], filters, departmentName } = params;
+  const {
+    overview,
+    distribution,
+    aiEfficiency,
+    agentsPerformance = [],
+    departments = [],
+    filters,
+    departmentName,
+  } = params;
   const wb = XLSX.utils.book_new();
 
   const areaLabel = departmentName || "Toda la empresa (Global)";
@@ -73,6 +85,8 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
     ["Tiempo Promedio de Espera en Cola", overview?.avgQueueWaitTimeSeconds ? Number(overview.avgQueueWaitTimeSeconds.toFixed(0)) : 0, "Segundos"],
     ["Casos Escalados a Asesor", overview?.escalatedCases ?? (aiEfficiency?.humanEscalatedCases ?? 0), "Casos"],
     ["Casos Resueltos 100% por IA", aiEfficiency?.botCompletedCases ?? 0, "Casos"],
+    ["Casos Sin Asignar en Cola", overview?.unassignedCases ?? 0, "Casos"],
+    ["Casos Desatendidos (Alerta)", overview?.unattendedCases ?? 0, "Casos"],
     [],
     ["2. DISTRIBUCIÓN POR PROCESO (WORKFLOW)"],
     ["Proceso / Workflow", "Casos", "Participación (%)"],
@@ -102,36 +116,73 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
   XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen Ejecutivo");
 
   // ==========================================
-  // HOJA 2: RENDIMIENTO INDIVIDUAL DE ASESORES
+  // HOJA 2: CAPACIDAD Y SATURACIÓN POR ÁREA
+  // ==========================================
+  if (departments.length > 0) {
+    const capacityHeaders = [
+      "Área / Departamento",
+      "Asesores Totales",
+      "Asesores en Turno",
+      "Cupo Máx / Asesor",
+      "Capacidad Total Instalada",
+      "Casos Activos Ahora",
+      "Ocupación / Saturación",
+      "Estado Operativo",
+    ];
+
+    const capacityRows = departments
+      .filter((d) => d.active)
+      .map((d) => {
+        const deptAgents = agentsPerformance.filter((a) => a.primaryDepartmentId === d.id);
+        const onShiftCount = deptAgents.filter((a) => a.autoAssignEnabled).length;
+        const maxPerAgent = d.maxConcurrentCases || 6;
+        const totalCapacity = onShiftCount * maxPerAgent;
+        const activeHandled = deptAgents.reduce((acc, a) => acc + (a.activeCasesNow || 0), 0);
+        const occupancyPct =
+          totalCapacity > 0
+            ? Math.min(Math.round((activeHandled / totalCapacity) * 100), 100)
+            : activeHandled > 0
+              ? 100
+              : 0;
+
+        let statusLabel = "Disponible";
+        if (totalCapacity === 0 && deptAgents.length === 0) statusLabel = "Sin personal";
+        else if (occupancyPct >= 85 || (totalCapacity === 0 && activeHandled > 0)) statusLabel = "Saturado";
+        else if (occupancyPct >= 60) statusLabel = "Moderado";
+
+        return [
+          d.name,
+          deptAgents.length,
+          onShiftCount,
+          maxPerAgent,
+          totalCapacity,
+          activeHandled,
+          `${occupancyPct}%`,
+          statusLabel,
+        ];
+      });
+
+    const wsCapacity = XLSX.utils.aoa_to_sheet([capacityHeaders, ...capacityRows]);
+    wsCapacity["!cols"] = [
+      { wch: 26 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+      { wch: 24 }, { wch: 20 }, { wch: 22 }, { wch: 18 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsCapacity, "Capacidad y Saturación");
+  }
+
+  // ==========================================
+  // HOJA 3: RENDIMIENTO INDIVIDUAL DE ASESORES
   // ==========================================
   const agentHeaders = [
-    "Asesor",
-    "Departamento",
-    "Rol",
-    "Casos Asignados",
-    "Casos Resueltos",
-    "Casos Derivados",
-    "T. Primera Respuesta",
-    "T. Medio Atención (min)",
-    "FCR (% 1er Contacto)",
-    "Cordialidad (0-100)",
-    "Casos Activos Ahora",
-    "Alertas Críticas",
-    "Auto-Asignación",
+    "Asesor", "Departamento", "Rol", "Casos Asignados", "Casos Resueltos", "Casos Derivados",
+    "T. Primera Respuesta", "T. Medio Atención (min)", "FCR (% 1er Contacto)",
+    "Cordialidad (0-100)", "Casos Activos Ahora", "Alertas Críticas", "Auto-Asignación",
   ];
 
   const agentRows = agentsPerformance.map((a) => {
-    const roleMap: Record<string, string> = {
-      agent: "Asesor",
-      manager: "Supervisor",
-      admin: "Administrador",
-    };
-    const firstReply = a.avgFirstResponseTimeMs
-      ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000))
-      : "-";
-    const handlingTime = a.avgHandlingTimeMinutes
-      ? formatDurationMinutes(a.avgHandlingTimeMinutes)
-      : "-";
+    const roleMap: Record<string, string> = { agent: "Asesor", manager: "Supervisor", admin: "Administrador" };
+    const firstReply = a.avgFirstResponseTimeMs ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000)) : "-";
+    const handlingTime = a.avgHandlingTimeMinutes ? formatDurationMinutes(a.avgHandlingTimeMinutes) : "-";
     const fcr = a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined && a.casesAssigned > 0
       ? `${a.fcrRatePercentage.toFixed(1)}%`
       : "-";
@@ -158,24 +209,13 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
 
   const wsAgents = XLSX.utils.aoa_to_sheet([agentHeaders, ...agentRows]);
   wsAgents["!cols"] = [
-    { wch: 28 }, // Asesor
-    { wch: 22 }, // Departamento
-    { wch: 14 }, // Rol
-    { wch: 16 }, // Asignados
-    { wch: 16 }, // Resueltos
-    { wch: 16 }, // Derivados
-    { wch: 20 }, // 1ra Respuesta
-    { wch: 22 }, // T. Atención
-    { wch: 20 }, // FCR
-    { wch: 18 }, // Cordialidad
-    { wch: 18 }, // Activos
-    { wch: 16 }, // Alertas
-    { wch: 16 }, // Auto-asignación
+    { wch: 28 }, { wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
+    { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 },
   ];
   XLSX.utils.book_append_sheet(wb, wsAgents, "Rendimiento Asesores");
 
   // ==========================================
-  // HOJA 3: MOTIVOS, CAUSA RAÍZ Y TRÁFICO
+  // HOJA 4: MOTIVOS, CAUSA RAÍZ Y TRÁFICO
   // ==========================================
   const detailsRows: (string | number)[][] = [
     ["1. PRINCIPALES MOTIVOS DE ESCALAMIENTO / CONSULTA"],
@@ -234,4 +274,3 @@ export function exportAnalyticsToExcel(params: AnalyticsExportParams): string {
   XLSX.writeFile(wb, filename);
   return filename;
 }
-
