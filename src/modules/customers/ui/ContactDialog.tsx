@@ -515,23 +515,34 @@ export function ContactDialog({
                 Contratos Técnicos ISP ({customer.contracts.length})
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {customer.contracts.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-3 rounded-xl border border-border/80 bg-background text-xs space-y-1.5 shadow-2xs"
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-primary text-sm">#{c.contractNumber}</span>
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          c.status === "active"
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-destructive/15 text-destructive"
-                        }`}
+                {[...customer.contracts]
+                  .sort((a, b) => {
+                    const aAct = a.status?.toLowerCase() === "active" || a.status?.toLowerCase() === "activo";
+                    const bAct = b.status?.toLowerCase() === "active" || b.status?.toLowerCase() === "activo";
+                    if (aAct && !bAct) return -1;
+                    if (!aAct && bAct) return 1;
+                    return 0;
+                  })
+                  .map((c) => {
+                    const isStrictActive =
+                      c.status?.toLowerCase() === "active" || c.status?.toLowerCase() === "activo";
+                    return (
+                      <div
+                        key={c.id}
+                        className="p-3 rounded-xl border border-border/80 bg-background text-xs space-y-1.5 shadow-2xs"
                       >
-                        {c.status}
-                      </span>
-                    </div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold text-primary text-sm">#{c.contractNumber}</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              isStrictActive
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                : "bg-destructive/15 text-destructive"
+                            }`}
+                          >
+                            {c.status}
+                          </span>
+                        </div>
                     <div className="grid grid-cols-2 gap-1 text-[11px]">
                       <p className="text-muted-foreground">
                         Sector:{" "}
@@ -562,7 +573,8 @@ export function ContactDialog({
                       </p>
                     )}
                   </div>
-                ))}
+                );
+              })}
               </div>
             </div>
           )}

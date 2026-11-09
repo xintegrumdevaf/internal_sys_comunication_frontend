@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ### Added & Improved
 
+- **Badges de Estado y Priorización Activa en Ficha de Contratos (`CasePanel.tsx`, `ContactDialog.tsx`)**:
+  - _Problema_: En el panel de atención de casos (`CasePanel`) y en la ficha de detalle del cliente (`ContactDialog`), los contratos de clientes históricos se listaban sin distinguir claramente contratos cancelados o anulados de contratos en operación. Además, el selector por defecto tomaba el primer contrato sin priorizar los activos.
+  - _Solución_:
+    1. **Preselección y Badges en `CasePanel.tsx`**:
+       - Búsqueda y preselección del contrato activo (`c.status === 'active' || c.status === 'activo'`) al cargar el panel de caso.
+       - Badges visuales en los botones de alternancia de contrato: `[ACTIVO]` en esmeralda y `[ANULADO]` / `[RETIRADO]` en rojo tenue destructivo para claridad inmediata del asesor.
+    2. **Ordenamiento y Normalización en `ContactDialog.tsx`**:
+       - Ordenamiento prioritario que ubica los contratos activos al inicio de la lista de contratos ISP.
+       - Normalización case-insensitive del estado (`ACTIVO` / `activo`) asegurando badges cromáticos correctos.
+
 - **Exportación Ejecutiva de Métricas a Excel (.xlsx multi-pestaña) y Reporte PDF / Imprimible (`AnalyticsPrintReportModal.tsx`, `analytics-export.service.ts`, `analytics-translations.ts`, `DashboardOverview.tsx`, `AnalyticsDashboard.tsx`)**:
   - _Problema_:
     1. El sistema carecía de una herramienta para exportar o imprimir reportes ejecutivos consolidados para reuniones gerenciales y auditorías operativas.

@@ -104,6 +104,7 @@ function CaseContextBody({
   const contract = (activeContract ??
     data.contract ??
     rawContext?.contract ??
+    customerContracts?.find((c) => c.status === "active" || c.status === "activo") ??
     customerContracts?.[0]) as
     | {
         contractNumber?: string;
@@ -275,6 +276,9 @@ function CaseContextBody({
                 (activeContract.id === c.id || activeContract.contractNumber === c.contractNumber);
               const label = c.contractNumber ? "#" + c.contractNumber : c.sector || "Contrato";
               const sectorBadge = c.sector ? c.sector.toUpperCase() : null;
+              const normalizedStatus = c.status?.toLowerCase().trim() || "";
+              const isInactive = ["anulado", "retirado", "rechazado", "inactivo", "cancelado", "baja"].includes(normalizedStatus);
+              const isStrictlyActive = normalizedStatus === "activo" || normalizedStatus === "active";
               return (
                 <button
                   key={c.id || c.contractNumber}
@@ -284,10 +288,28 @@ function CaseContextBody({
                     "px-2.5 py-1 rounded-md text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95",
                     isSelected
                       ? "bg-primary text-primary-foreground border-primary ring-1 ring-primary/30"
-                      : "bg-background/80 text-foreground border-border hover:bg-muted",
+                      : isInactive
+                        ? "bg-destructive/10 text-destructive/80 border-destructive/25 hover:bg-destructive/20"
+                        : "bg-background/80 text-foreground border-border hover:bg-muted",
                   )}
                 >
                   <span>{label}</span>
+                  {c.status && (
+                    <span
+                      className={cn(
+                        "px-1 py-0.2 rounded text-[8px] font-mono uppercase font-bold",
+                        isSelected
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : isInactive
+                            ? "bg-destructive/20 text-destructive"
+                            : isStrictlyActive
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {c.status}
+                    </span>
+                  )}
                   {sectorBadge && (
                     <span
                       className={cn(
