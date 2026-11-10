@@ -31,6 +31,7 @@ describe("TelegramSettingsCard", () => {
     render(<TelegramSettingsCard />);
 
     expect(await screen.findByText("Centinela & Ops de Telegram")).toBeDefined();
+    expect(screen.getByText(/Guía Rápida: ¿Cómo obtener el Token/i)).toBeDefined();
     expect(screen.getByText("Credenciales de Telegram Bot API")).toBeDefined();
     expect(screen.getByText("Enrutamiento por Temas (Supergrupo con Foros)")).toBeDefined();
     expect(screen.getByText("Agregar Tema")).toBeDefined();
