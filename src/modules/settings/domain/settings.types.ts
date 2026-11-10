@@ -175,6 +175,7 @@ export interface TelegramSettings {
   webhookSecret?: string;
   commandsEnabled: boolean;
   aiCopilotEnabled: boolean;
+  frontendUrl?: string;
 }
 
 export interface TestTelegramAlertInput {

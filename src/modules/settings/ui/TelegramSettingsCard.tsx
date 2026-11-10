@@ -26,6 +26,7 @@ import {
   Sparkles,
   MessageSquare,
   BellRing,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +117,7 @@ const DEFAULT_TELEGRAM_SETTINGS: TelegramSettings = {
   webhookSecret: "",
   commandsEnabled: true,
   aiCopilotEnabled: false,
+  frontendUrl: "",
 };
 
 export function TelegramSettingsCard() {
@@ -804,6 +806,23 @@ export function TelegramSettingsCard() {
               />
               <p className="text-xs text-muted-foreground">
                 ID numérico del grupo de gerencia (los supergrupos suelen comenzar con <code>-100</code>). ¡Sumá tu bot al grupo y hacé clic en <b>Detectar Grupo</b> para completarlo solo!
+              </p>
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="frontend-url" className="text-xs font-semibold flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-sky-500" />
+                URL Pública de la Plataforma Web (Frontend)
+              </Label>
+              <Input
+                id="frontend-url"
+                placeholder="http://localhost:8080 o https://tu-dominio.com"
+                value={settings.frontendUrl || ""}
+                onChange={(e) => setSettings((prev) => ({ ...prev, frontendUrl: e.target.value }))}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                URL base del panel web que se abrirá al presionar botones en Telegram como <i>"Abrir caso en Panel"</i> o <i>"Atender caso"</i>. Si estás testeando desde tu celular, podés configurar acá tu túnel o IP local.
               </p>
             </div>
           </div>
