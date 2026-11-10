@@ -24,6 +24,8 @@ import {
   HelpCircle,
   Info,
   Sparkles,
+  MessageSquare,
+  BellRing,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +101,7 @@ const DEFAULT_TELEGRAM_SETTINGS: TelegramSettings = {
   enabled: false,
   botToken: "",
   defaultChatId: "",
+  topicsEnabled: false,
   topics: DEFAULT_TELEGRAM_TOPICS,
   slaTopicId: 10,
   infraTopicId: 20,
@@ -129,6 +132,8 @@ export function TelegramSettingsCard() {
   const [newHourInput, setNewHourInput] = useState("");
   const [showGuide, setShowGuide] = useState(false);
   const [detectingChat, setDetectingChat] = useState(false);
+  const [testingTopicId, setTestingTopicId] = useState<string | null>(null);
+  const [testingAlertCategory, setTestingAlertCategory] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -141,6 +146,7 @@ export function TelegramSettingsCard() {
       if (data) {
         setSettings({
           ...data,
+          topicsEnabled: Boolean(data.topicsEnabled),
           topics: data.topics && data.topics.length > 0 ? data.topics : DEFAULT_TELEGRAM_TOPICS,
           alertRules: data.alertRules && data.alertRules.length > 0 ? data.alertRules : DEFAULT_TELEGRAM_ALERT_RULES,
         });
@@ -245,19 +251,78 @@ export function TelegramSettingsCard() {
   };
 
   const handleSendDigestNow = async () => {
+    if (!settings.defaultChatId?.trim()) {
+      toast.warning("Cargá o detectá primero el Chat ID antes de enviar la prueba de pulso.");
+      return;
+    }
     setSendingDigest(true);
     try {
-      const res = await settingsApi.sendTelegramDigest();
-      if (res.ok) {
+      const res = await settingsApi.sendTelegramDigest({
+        chatId: settings.defaultChatId.trim(),
+        botToken: settings.botToken?.trim() || undefined,
+      });
+      if (res?.ok) {
         toast.success("Pulso operativo ejecutivo enviado a Telegram exitosamente");
       } else {
-        toast.warning("El pulso no se emitió (revisá que la integración y el chatId estén activos)");
+        toast.warning("El pulso no se emitió (revisá que el Chat ID sea válido y el bot sea administrador)");
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al emitir el digest";
       toast.error(message);
     } finally {
       setSendingDigest(false);
+    }
+  };
+
+  const handleTestTopic = async (topic: TelegramTopicConfig) => {
+    if (!settings.defaultChatId?.trim()) {
+      toast.warning("Ingresá o detectá primero el Chat ID del grupo antes de probar el hilo.");
+      return;
+    }
+    setTestingTopicId(topic.id);
+    try {
+      const res = await settingsApi.testTelegramTopic({
+        threadId: topic.threadId,
+        topicName: topic.name,
+        chatId: settings.defaultChatId.trim(),
+        botToken: settings.botToken?.trim() || undefined,
+      });
+      if (res?.ok) {
+        toast.success(`Mensaje de prueba enviado exitosamente al hilo "${topic.name}" (ID: ${topic.threadId})`);
+      } else {
+        toast.warning(`No se pudo enviar al hilo "${topic.name}". Verificá si el ID del hilo existe en tu supergrupo.`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al enviar mensaje al hilo";
+      toast.error(message);
+    } finally {
+      setTestingTopicId(null);
+    }
+  };
+
+  const handleTestAlert = async (category: "SLA" | "INFRASTRUCTURE" | "QUEUE") => {
+    if (!settings.defaultChatId?.trim()) {
+      toast.warning("Ingresá o detectá primero el Chat ID del grupo antes de simular alertas.");
+      return;
+    }
+    setTestingAlertCategory(category);
+    try {
+      const res = await settingsApi.testTelegramAlert({
+        category,
+        chatId: settings.defaultChatId.trim(),
+        botToken: settings.botToken?.trim() || undefined,
+      });
+      if (res?.ok) {
+        const catLabel = category === "SLA" ? "SLA" : category === "INFRASTRUCTURE" ? "Corte OLT" : "Saturación de Cola";
+        toast.success(`Alerta reactiva simulada (${catLabel}) enviada exitosamente a Telegram`);
+      } else {
+        toast.warning("No se pudo entregar la alerta de prueba. Verificá los permisos del bot en el grupo.");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al simular alerta";
+      toast.error(message);
+    } finally {
+      setTestingAlertCategory(null);
     }
   };
 
@@ -695,136 +760,217 @@ export function TelegramSettingsCard() {
 
         {/* SECCIÓN 2: ORGANIZACIÓN POR TEMAS (FORUM TOPICS DINÁMICOS) */}
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-2">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-              <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
-                Enrutamiento por Temas (Supergrupo con Foros)
-              </h3>
-              <Badge variant="outline" className="text-xs font-normal">Dinámico</Badge>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
+                  Enrutamiento por Temas (Supergrupo con Foros)
+                </h3>
+                {settings.topicsEnabled ? (
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 text-xs">
+                    Activado
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    Modo Chat Único
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Divide los avisos en hilos independientes si tenés un <b>Supergrupo con Temas/Foros</b> en Telegram.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddTopic}
-                className="gap-1.5 h-8 text-xs"
-              >
-                <Plus className="h-3.5 w-3.5" /> Agregar Tema
-              </Button>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Si utilizás un Supergrupo con <b>Temas (Topics)</b> activados en Telegram, podés dirigir cada categoría de aviso a su propio hilo ingresando el <code>message_thread_id</code>. Podés añadir, editar, activar/silenciar o eliminar los temas que desees. Si una alerta no coincide con ningún tema activo, se dirigirá al chat general.
-          </p>
 
-          <div className="space-y-2.5">
-            {settings.topics && settings.topics.length > 0 ? (
-              settings.topics.map((topic) => (
-                <div
-                  key={topic.id}
-                  className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors"
-                >
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Switch
-                      id={`topic-switch-${topic.id}`}
-                      checked={topic.enabled}
-                      onCheckedChange={(checked) => handleUpdateTopic(topic.id, { enabled: checked })}
-                    />
-                    <Badge
-                      variant={topic.enabled ? "default" : "secondary"}
-                      className="text-[11px] font-normal"
-                    >
-                      {topic.enabled ? "Activo" : "Silenciado"}
-                    </Badge>
-                  </div>
+            <div className="flex items-center gap-3 self-start sm:self-auto">
+              <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-lg border">
+                <Switch
+                  id="topics-master-switch"
+                  checked={settings.topicsEnabled ?? false}
+                  onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, topicsEnabled: checked }))}
+                />
+                <Label htmlFor="topics-master-switch" className="text-xs font-medium cursor-pointer">
+                  {settings.topicsEnabled ? "Temas Habilitados" : "Usar Chat Único"}
+                </Label>
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground font-medium">
-                        Nombre del Tema
-                      </Label>
-                      <Input
-                        value={topic.name}
-                        onChange={(e) => handleUpdateTopic(topic.id, { name: e.target.value })}
-                        placeholder="Ej. Alertas de SLA"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground font-medium">
-                        Categoría de Avisos
-                      </Label>
-                      <Select
-                        value={topic.category}
-                        onValueChange={(val) =>
-                          handleUpdateTopic(topic.id, { category: val as TelegramTopicCategory })
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SLA">Alertas de SLA & Esperas</SelectItem>
-                          <SelectItem value="INFRASTRUCTURE">Infraestructura & Fibra / OLT</SelectItem>
-                          <SelectItem value="DIGEST">Pulso Operativo (Digests)</SelectItem>
-                          <SelectItem value="QUEUE">Desborde de Cola</SelectItem>
-                          <SelectItem value="QUALITY">Supervisión de Calidad IA</SelectItem>
-                          <SelectItem value="GENERAL">Avisos Generales</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground font-medium">
-                        ID del Hilo (thread_id)
-                      </Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={topic.threadId || ""}
-                        onChange={(e) =>
-                          handleUpdateTopic(topic.id, {
-                            threadId: Number(e.target.value) || 1,
-                          })
-                        }
-                        placeholder="Ej. 12"
-                        className="h-8 text-xs font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteTopic(topic.id)}
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 self-end md:self-center"
-                    title="Eliminar tema"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  No hay temas configurados. Todos los avisos se despacharán al chat general.
-                </p>
+              {settings.topicsEnabled && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleResetTopics}
-                  className="text-xs h-8"
+                  onClick={handleAddTopic}
+                  className="gap-1.5 h-8 text-xs"
                 >
-                  Restablecer temas recomendados
+                  <Plus className="h-3.5 w-3.5" /> Agregar Tema
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {!settings.topicsEnabled ? (
+            <div className="rounded-xl border border-sky-200/60 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-900/40 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 shrink-0">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Modo Chat Único / Grupo Estándar Activo (Recomendado)
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Todos los avisos de SLA, caídas de fibra y pulsos operativos ejecutivos se enviarán al <b>chat principal</b> de tu grupo de Telegram (sin separarse por hilos ni pestañas).
+                  </p>
+                  <div className="pt-2 text-xs text-muted-foreground space-y-1.5 border-t border-sky-200/40 dark:border-sky-900/30">
+                    <p className="font-semibold text-foreground/80">¿Qué es un Supergrupo con Foros / Temas?</p>
+                    <p>
+                      En Telegram, podés convertir cualquier grupo en un foro (en los ajustes del grupo en la app de Telegram: <i>Editar grupo &rarr; Temas</i>). Eso crea pestañas separadas dentro del mismo grupo (ej. un hilo para "Alertas SLA", otro para "Infraestructura", otro para "Pulsos").
+                    </p>
+                    <p>
+                      Si tu grupo es estándar (un solo chat continuo), <b>dejá este switch apagado</b> para garantizar que los mensajes lleguen perfectamente sin fallar con errores de hilos inexistentes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSettings((prev) => ({ ...prev, topicsEnabled: true }))}
+                  className="text-xs h-8 gap-1.5 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-100/60"
+                >
+                  <Layers className="h-3.5 w-3.5" /> Activar Enrutamiento por Temas
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {settings.topics && settings.topics.length > 0 ? (
+                settings.topics.map((topic) => (
+                  <div
+                    key={topic.id}
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Switch
+                        id={`topic-switch-${topic.id}`}
+                        checked={topic.enabled}
+                        onCheckedChange={(checked) => handleUpdateTopic(topic.id, { enabled: checked })}
+                      />
+                      <Badge
+                        variant={topic.enabled ? "default" : "secondary"}
+                        className="text-[11px] font-normal"
+                      >
+                        {topic.enabled ? "Activo" : "Silenciado"}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">
+                          Nombre del Tema
+                        </Label>
+                        <Input
+                          value={topic.name}
+                          onChange={(e) => handleUpdateTopic(topic.id, { name: e.target.value })}
+                          placeholder="Ej. Alertas de SLA"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">
+                          Categoría de Avisos
+                        </Label>
+                        <Select
+                          value={topic.category}
+                          onValueChange={(val) =>
+                            handleUpdateTopic(topic.id, { category: val as TelegramTopicCategory })
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SLA">Alertas de SLA & Esperas</SelectItem>
+                            <SelectItem value="INFRASTRUCTURE">Infraestructura & Fibra / OLT</SelectItem>
+                            <SelectItem value="DIGEST">Pulso Operativo (Digests)</SelectItem>
+                            <SelectItem value="QUEUE">Desborde de Cola</SelectItem>
+                            <SelectItem value="QUALITY">Supervisión de Calidad IA</SelectItem>
+                            <SelectItem value="GENERAL">Avisos Generales</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground font-medium">
+                          ID del Hilo (thread_id)
+                        </Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={topic.threadId || ""}
+                          onChange={(e) =>
+                            handleUpdateTopic(topic.id, {
+                              threadId: Number(e.target.value) || 1,
+                            })
+                          }
+                          placeholder="Ej. 12"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleTestTopic(topic)}
+                        disabled={testingTopicId === topic.id}
+                        className="h-8 text-xs gap-1.5"
+                        title="Enviar mensaje de prueba a este hilo"
+                      >
+                        {testingTopicId === topic.id ? (
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                        )}
+                        <span>Probar Hilo</span>
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteTopic(topic.id)}
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                        title="Eliminar tema"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    No hay temas configurados. Los avisos se dirigirán al chat general.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetTopics}
+                    className="text-xs h-8"
+                  >
+                    Restablecer temas recomendados
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* SECCIÓN 3: PULSO EJECUTIVO Y REPORTES PROGRAMADOS */}
@@ -1102,16 +1248,35 @@ export function TelegramSettingsCard() {
                     </div>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteRule(rule.id)}
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 self-end md:self-center"
-                    title="Eliminar regla"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleTestAlert(rule.category)}
+                      disabled={testingAlertCategory === rule.category}
+                      className="h-8 text-xs gap-1.5"
+                      title={`Simular y enviar alerta de ${rule.name} a Telegram`}
+                    >
+                      {testingAlertCategory === rule.category ? (
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <BellRing className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      )}
+                      <span>Simular Alerta</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteRule(rule.id)}
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      title="Eliminar regla"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             ) : (

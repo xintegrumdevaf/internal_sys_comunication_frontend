@@ -14,6 +14,9 @@ import type {
   TestTelegramResult,
   SetTelegramWebhookResult,
   DetectTelegramChatsResult,
+  TestTelegramAlertInput,
+  TestTelegramTopicInput,
+  TestTelegramMessageResult,
 } from "../domain/settings.types";
 
 function unwrap<T>(response: unknown): T {
@@ -339,12 +342,41 @@ export const settingsApi = {
   /**
    * Dispara un envío manual inmediato del pulso operativo ejecutivo.
    */
-  sendTelegramDigest: async (): Promise<{ ok: boolean; messageId?: number }> => {
+  sendTelegramDigest: async (payload?: {
+    chatId?: string;
+    botToken?: string;
+  }): Promise<{ ok: boolean; messageId?: number }> => {
     const res = await apiPost<{ ok: boolean; messageId?: number } | { data: { ok: boolean; messageId?: number } }>(
       "/api/admin/settings/telegram/send-digest",
-      {},
+      payload ?? {},
     );
     return unwrap<{ ok: boolean; messageId?: number }>(res);
+  },
+
+  /**
+   * Envía una alerta reactiva simulada de prueba (SLA, Infraestructura o Cola).
+   */
+  testTelegramAlert: async (
+    payload: TestTelegramAlertInput,
+  ): Promise<TestTelegramMessageResult> => {
+    const res = await apiPost<TestTelegramMessageResult | { data: TestTelegramMessageResult }>(
+      "/api/admin/settings/telegram/test-alert",
+      payload,
+    );
+    return unwrap<TestTelegramMessageResult>(res);
+  },
+
+  /**
+   * Envía un mensaje de prueba a un hilo/tema específico de un supergrupo.
+   */
+  testTelegramTopic: async (
+    payload: TestTelegramTopicInput,
+  ): Promise<TestTelegramMessageResult> => {
+    const res = await apiPost<TestTelegramMessageResult | { data: TestTelegramMessageResult }>(
+      "/api/admin/settings/telegram/test-topic",
+      payload,
+    );
+    return unwrap<TestTelegramMessageResult>(res);
   },
 
   /**

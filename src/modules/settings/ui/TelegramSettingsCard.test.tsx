@@ -14,6 +14,7 @@ describe("TelegramSettingsCard", () => {
       enabled: true,
       botToken: "123456:••••••••••••cdef",
       defaultChatId: "-1001234567890",
+      topicsEnabled: true,
       slaTopicId: 10,
       infraTopicId: 20,
       digestsTopicId: 30,
@@ -44,6 +45,29 @@ describe("TelegramSettingsCard", () => {
     expect(screen.getByText("14:00")).toBeDefined();
     expect(screen.getByText("19:00")).toBeDefined();
     expect(screen.getByText("Guardar Configuración de Telegram")).toBeDefined();
+  });
+
+  it("renderiza el modo chat único con explicación cuando topicsEnabled es false", async () => {
+    vi.spyOn(settingsApi, "getTelegramSettings").mockResolvedValueOnce({
+      enabled: true,
+      botToken: "123456:••••••••••••cdef",
+      defaultChatId: "-1001234567890",
+      topicsEnabled: false,
+      digestsEnabled: true,
+      digestHours: ["09:00"],
+      timeZone: "America/Guayaquil",
+      slaThresholdMinutes: 15,
+      infraAlertMinCases: 3,
+      queueSaturationThreshold: 10,
+      commandsEnabled: true,
+      aiCopilotEnabled: false,
+    });
+
+    render(<TelegramSettingsCard />);
+
+    expect(await screen.findByText("Modo Chat Único / Grupo Estándar Activo (Recomendado)")).toBeDefined();
+    expect(screen.getByText("Disparar Pulso Ahora (Prueba en Vivo)")).toBeDefined();
+    expect(screen.getAllByText("Simular Alerta").length).toBeGreaterThan(0);
   });
 });
 

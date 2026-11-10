@@ -160,6 +160,7 @@ export interface TelegramSettings {
   enabled: boolean;
   botToken: string;
   defaultChatId: string;
+  topicsEnabled?: boolean;
   topics?: TelegramTopicConfig[];
   slaTopicId?: number | null;
   infraTopicId?: number | null;
@@ -174,6 +175,27 @@ export interface TelegramSettings {
   webhookSecret?: string;
   commandsEnabled: boolean;
   aiCopilotEnabled: boolean;
+}
+
+export interface TestTelegramAlertInput {
+  category: TelegramAlertRuleCategory;
+  chatId?: string;
+  botToken?: string;
+  messageThreadId?: number;
+}
+
+export interface TestTelegramTopicInput {
+  threadId?: number;
+  topicName?: string;
+  chatId?: string;
+  botToken?: string;
+}
+
+export interface TestTelegramMessageResult {
+  ok: boolean;
+  messageId?: number;
+  chatId?: string;
+  date?: number;
 }
 
 export interface TestTelegramResult {
