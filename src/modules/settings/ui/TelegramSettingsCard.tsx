@@ -174,6 +174,14 @@ export function TelegramSettingsCard() {
     return JSON.stringify(settings) !== JSON.stringify(savedSettings);
   }, [settings, savedSettings]);
 
+  const getCleanBotToken = (): string | undefined => {
+    const t = settings.botToken?.trim();
+    if (!t || t.includes("•") || t.includes("*")) {
+      return undefined;
+    }
+    return t;
+  };
+
   const handleDiscard = () => {
     setSettings(savedSettings);
     toast.info("Cambios descartados. Se restauró la última configuración guardada.");
@@ -186,7 +194,7 @@ export function TelegramSettingsCard() {
     }
     setDetectingChat(true);
     try {
-      const res = await settingsApi.detectTelegramChats({ botToken: settings.botToken });
+      const res = await settingsApi.detectTelegramChats({ botToken: getCleanBotToken() });
       if (res.chats && res.chats.length > 0) {
         const found = res.chats[0];
         setSettings((prev) => ({ ...prev, defaultChatId: found.id }));
@@ -235,7 +243,7 @@ export function TelegramSettingsCard() {
     setTestResult(null);
     try {
       const res = await settingsApi.testTelegram({
-        botToken: settings.botToken,
+        botToken: getCleanBotToken(),
         chatId: settings.defaultChatId || undefined,
         sendSampleMessage: sendSampleOnTest && Boolean(settings.defaultChatId),
       });
@@ -279,7 +287,7 @@ export function TelegramSettingsCard() {
     try {
       const res = await settingsApi.sendTelegramDigest({
         chatId: settings.defaultChatId.trim(),
-        botToken: settings.botToken?.trim() || undefined,
+        botToken: getCleanBotToken(),
       });
       if (res?.ok) {
         toast.success("Pulso operativo ejecutivo enviado a Telegram exitosamente");
@@ -305,7 +313,7 @@ export function TelegramSettingsCard() {
         threadId: topic.threadId,
         topicName: topic.name,
         chatId: settings.defaultChatId.trim(),
-        botToken: settings.botToken?.trim() || undefined,
+        botToken: getCleanBotToken(),
       });
       if (res?.ok) {
         toast.success(`Mensaje de prueba enviado exitosamente al hilo "${topic.name}" (ID: ${topic.threadId})`);
@@ -330,7 +338,7 @@ export function TelegramSettingsCard() {
       const res = await settingsApi.testTelegramAlert({
         category,
         chatId: settings.defaultChatId.trim(),
-        botToken: settings.botToken?.trim() || undefined,
+        botToken: getCleanBotToken(),
       });
       if (res?.ok) {
         const catLabel = category === "SLA" ? "SLA" : category === "INFRASTRUCTURE" ? "Corte OLT" : "Saturación de Cola";
@@ -826,94 +834,139 @@ export function TelegramSettingsCard() {
           </div>
         </div>
 
-        {/* SECCIÓN 2: ORGANIZACIÓN POR TEMAS (FORUM TOPICS DINÁMICOS) */}
+        {/* SECCIÓN 2: ENRUTAMIENTO Y ORGANIZACIÓN DEL GRUPO */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-3">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                 <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
-                  Enrutamiento por Temas (Supergrupo con Foros)
+                  Modo de Recepción en Telegram
                 </h3>
-                {settings.topicsEnabled ? (
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 text-xs">
-                    Activado
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-xs">
-                    Modo Chat Único
-                  </Badge>
-                )}
+                <Badge
+                  variant="outline"
+                  className={
+                    settings.topicsEnabled
+                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 text-xs"
+                      : "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 text-xs"
+                  }
+                >
+                  {settings.topicsEnabled ? "Foro con Temas / Hilos" : "Chat Único / General"}
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Divide los avisos en hilos independientes si tenés un <b>Supergrupo con Temas/Foros</b> en Telegram.
+                Elegí cómo querés recibir los avisos en tu grupo de Telegram: en un solo chat o divididos en foros.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 self-start sm:self-auto">
-              <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-lg border">
-                <Switch
-                  id="topics-master-switch"
-                  checked={settings.topicsEnabled ?? false}
-                  onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, topicsEnabled: checked }))}
-                />
-                <Label htmlFor="topics-master-switch" className="text-xs font-medium cursor-pointer">
-                  {settings.topicsEnabled ? "Temas Habilitados" : "Usar Chat Único"}
-                </Label>
-              </div>
+            {/* SELECTOR SEGMENTADO CLARO DE 2 MODOS */}
+            <div className="inline-flex p-1 bg-muted/60 dark:bg-muted/30 rounded-xl border self-start sm:self-auto shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setSettings((prev) => ({ ...prev, topicsEnabled: false }))}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  !settings.topicsEnabled
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground font-normal"
+                }`}
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                <span>Modo Chat Único</span>
+                {!settings.topicsEnabled && (
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                )}
+              </button>
 
-              {settings.topicsEnabled && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddTopic}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Agregar Tema
-                </Button>
-              )}
+              <button
+                type="button"
+                onClick={() => setSettings((prev) => ({ ...prev, topicsEnabled: true }))}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  settings.topicsEnabled
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground font-normal"
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                <span>Modo Temas / Foros</span>
+                {settings.topicsEnabled && (
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                )}
+              </button>
             </div>
           </div>
 
           {!settings.topicsEnabled ? (
-            <div className="rounded-xl border border-sky-200/60 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-900/40 p-4 space-y-3">
+            <div className="rounded-xl border border-sky-200/70 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-900/50 p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 shrink-0">
+                <div className="p-2.5 rounded-lg bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 shrink-0">
                   <MessageSquare className="h-5 w-5" />
                 </div>
-                <div className="space-y-1 flex-1">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Modo Chat Único / Grupo Estándar Activo (Recomendado)
-                  </h4>
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Modo Chat Único Activo (Recomendado para grupos estándar)
+                    </h4>
+                    <Badge className="bg-emerald-600 text-white text-[10px] font-semibold">
+                      En uso
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Todos los avisos de SLA, caídas de fibra y pulsos operativos ejecutivos se enviarán al <b>chat principal</b> de tu grupo de Telegram (sin separarse por hilos ni pestañas).
+                    Todos los avisos de SLA, caídas de fibra y pulsos operativos ejecutivos se enviarán directamente al <b>chat principal de tu grupo</b> (un único flujo continuo).
                   </p>
-                  <div className="pt-2 text-xs text-muted-foreground space-y-1.5 border-t border-sky-200/40 dark:border-sky-900/30">
-                    <p className="font-semibold text-foreground/80">¿Qué es un Supergrupo con Foros / Temas?</p>
+                  <div className="pt-2 text-xs text-muted-foreground space-y-1 border-t border-sky-200/50 dark:border-sky-900/40">
+                    <p className="font-semibold text-foreground/80">¿Cuándo usar el Modo Temas / Foros?</p>
                     <p>
-                      En Telegram, podés convertir cualquier grupo en un foro (en los ajustes del grupo en la app de Telegram: <i>Editar grupo &rarr; Temas</i>). Eso crea pestañas separadas dentro del mismo grupo (ej. un hilo para "Alertas SLA", otro para "Infraestructura", otro para "Pulsos").
-                    </p>
-                    <p>
-                      Si tu grupo es estándar (un solo chat continuo), <b>dejá este switch apagado</b> para garantizar que los mensajes lleguen perfectamente sin fallar con errores de hilos inexistentes.
+                      Solo si en Telegram entraste a los ajustes de tu grupo y activaste la opción <b>"Temas" (Foros)</b>. Eso divide el grupo en pestañas separadas. Si tu grupo es normal, <b>mantené este Modo Chat Único</b>.
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end pt-1">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setSettings((prev) => ({ ...prev, topicsEnabled: true }))}
-                  className="text-xs h-8 gap-1.5 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-100/60"
+                  className="text-xs h-8 gap-1.5 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/40 font-medium"
                 >
-                  <Layers className="h-3.5 w-3.5" /> Activar Enrutamiento por Temas
+                  <Layers className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                  Cambiar a Modo Temas (Foro)
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50/40 dark:bg-purple-950/20 text-xs">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span>
+                    <b>Modo Temas Activo:</b> Cada categoría se envía al hilo (<code>message_thread_id</code>) correspondiente.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSettings((prev) => ({ ...prev, topicsEnabled: false }))}
+                    className="text-xs h-7 gap-1"
+                  >
+                    <MessageSquare className="h-3 w-3 text-sky-600" />
+                    Volver a Chat Único
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddTopic}
+                    className="text-xs h-7 gap-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Agregar Tema
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
               {settings.topics && settings.topics.length > 0 ? (
                 settings.topics.map((topic) => (
                   <div
@@ -1037,6 +1090,7 @@ export function TelegramSettingsCard() {
                   </Button>
                 </div>
               )}
+              </div>
             </div>
           )}
         </div>

@@ -34,7 +34,7 @@ describe("TelegramSettingsCard", () => {
     expect(await screen.findByText("Centinela & Ops de Telegram")).toBeDefined();
     expect(screen.getByText(/Guía Rápida: ¿Cómo obtener el Token/i)).toBeDefined();
     expect(screen.getByText("Credenciales de Telegram Bot API")).toBeDefined();
-    expect(screen.getByText("Enrutamiento por Temas (Supergrupo con Foros)")).toBeDefined();
+    expect(screen.getByText("Modo de Recepción en Telegram")).toBeDefined();
     expect(screen.getByText("Agregar Tema")).toBeDefined();
     expect(screen.getByText("Pulso Operativo Ejecutivo (Digests Programados)")).toBeDefined();
     expect(screen.getByText("Envío Automático de Pulso Programado")).toBeDefined();
@@ -65,9 +65,17 @@ describe("TelegramSettingsCard", () => {
 
     render(<TelegramSettingsCard />);
 
-    expect(await screen.findByText("Modo Chat Único / Grupo Estándar Activo (Recomendado)")).toBeDefined();
+    expect(await screen.findByText("Modo Chat Único Activo (Recomendado para grupos estándar)")).toBeDefined();
     expect(screen.getByText("Disparar Pulso Ahora (Prueba en Vivo)")).toBeDefined();
     expect(screen.getAllByText("Simular Alerta").length).toBeGreaterThan(0);
+
+    // Cambiar a modo temas
+    fireEvent.click(screen.getByText("Modo Temas / Foros"));
+    expect(await screen.findByText("Modo Temas Activo:")).toBeDefined();
+
+    // Volver a modo chat único
+    fireEvent.click(screen.getByText("Volver a Chat Único"));
+    expect(await screen.findByText("Modo Chat Único Activo (Recomendado para grupos estándar)")).toBeDefined();
   });
 
   it("detecta cambios pendientes, muestra barra flotante y permite descartar", async () => {
