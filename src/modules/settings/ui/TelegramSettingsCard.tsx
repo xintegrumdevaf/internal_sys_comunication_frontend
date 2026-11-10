@@ -474,19 +474,29 @@ export function TelegramSettingsCard() {
                     <h5 className="font-semibold text-foreground">Crear Grupo y obtener Chat ID</h5>
                   </div>
                   <ol className="list-disc list-inside space-y-1.5 text-muted-foreground text-[11px] leading-relaxed">
-                    <li>Creá un grupo en Telegram con los gerentes/admins y <b>agregá a tu bot como Administrador</b> con permisos de enviar mensajes.</li>
                     <li>
-                      Para saber el Chat ID numérico:
-                      <ul className="list-circle list-inside pl-2 pt-0.5 space-y-0.5">
+                      Creá un grupo en Telegram con tus gerentes/admins.
+                    </li>
+                    <li>
+                      <b>Cómo añadir al bot al grupo:</b> Tocá el botón <b>"Añadir miembros"</b> arriba en el chat (o tocá el nombre del grupo arriba $\rightarrow$ <i>Añadir participantes</i>). <b>Buscá el username de tu bot</b>, seleccionalo y dale al tilde de confirmación. Luego dalé permisos de administrador.
+                    </li>
+                    <li>
+                      <b>Cómo obtener el Chat ID con @RawDataBot:</b>
+                      <ul className="list-circle list-inside pl-2 pt-0.5 space-y-1">
                         <li>
-                          <b>Opción bot rápida:</b> Agregá temporalmente a <code>@RawDataBot</code> al grupo; te responderá un JSON donde verás <code>"chat": {"{"} "id": -100xxxxxxxxxx {"}"}</code>. Copiá ese número con el signo <code>-</code>.
+                          Tocá el botón <b>"Añadir miembros"</b> arriba en el grupo (<i>no lo escribas en el chat como mensaje</i>).
                         </li>
                         <li>
-                          <b>Opción web:</b> Abrí el grupo en <a href="https://web.telegram.org" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">web.telegram.org</a> y mirá la URL del navegador: termina en <code>#-1002345678901</code>.
+                          En el buscador de contactos escribí: <code>@RawDataBot</code> y añadilo como miembro del grupo.
+                        </li>
+                        <li>
+                          Ni bien entre, enviará un mensaje con datos técnicos. Buscá el bloque <code>"chat": {"{"} "id": -100xxxxxxxxxx {"}"}</code>.
+                        </li>
+                        <li>
+                          Copiá ese número completo (con el signo <code>-</code> incluido) y pegalo abajo en <b>Chat ID Directivo</b>. Luego podés eliminar a RawDataBot del grupo.
                         </li>
                       </ul>
                     </li>
-                    <li>Pegalo en <b>Chat ID Directivo</b>.</li>
                   </ol>
                 </div>
 
