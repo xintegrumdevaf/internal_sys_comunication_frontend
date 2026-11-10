@@ -127,16 +127,47 @@ export interface TestNetworkConnectionResult {
   };
 }
 
+export type TelegramTopicCategory =
+  | "SLA"
+  | "INFRASTRUCTURE"
+  | "DIGEST"
+  | "QUEUE"
+  | "QUALITY"
+  | "GENERAL";
+
+export interface TelegramTopicConfig {
+  id: string;
+  name: string;
+  category: TelegramTopicCategory;
+  threadId: number;
+  enabled: boolean;
+}
+
+export type TelegramAlertRuleCategory = "SLA" | "INFRASTRUCTURE" | "QUEUE";
+
+export interface TelegramAlertRuleConfig {
+  id: string;
+  name: string;
+  category: TelegramAlertRuleCategory;
+  threshold: number;
+  unit: string;
+  severity: "CRITICAL" | "WARNING" | "INFO";
+  enabled: boolean;
+  description: string;
+}
+
 export interface TelegramSettings {
   enabled: boolean;
   botToken: string;
   defaultChatId: string;
+  topics?: TelegramTopicConfig[];
   slaTopicId?: number | null;
   infraTopicId?: number | null;
   digestsTopicId?: number | null;
   digestsEnabled: boolean;
   digestHours: string[];
   timeZone: string;
+  alertRules?: TelegramAlertRuleConfig[];
   slaThresholdMinutes: number;
   infraAlertMinCases: number;
   queueSaturationThreshold: number;

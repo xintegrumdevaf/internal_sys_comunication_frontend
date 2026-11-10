@@ -15,11 +15,10 @@ import {
   Save,
   Plus,
   X,
-  HelpCircle,
+  Trash2,
   Activity,
   Cpu,
   Layers,
-  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,21 +33,75 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { settingsApi } from "../infrastructure/settings.api";
-import type { TelegramSettings, TestTelegramResult } from "../domain/settings.types";
+import type {
+  TelegramSettings,
+  TelegramTopicConfig,
+  TelegramAlertRuleConfig,
+  TelegramTopicCategory,
+  TelegramAlertRuleCategory,
+  TestTelegramResult,
+} from "../domain/settings.types";
 import { toast } from "sonner";
+
+export const DEFAULT_TELEGRAM_TOPICS: TelegramTopicConfig[] = [
+  { id: "topic-sla", name: "Alertas de SLA & Demoras", category: "SLA", threadId: 10, enabled: true },
+  { id: "topic-infra", name: "Infraestructura & Fibra / OLT", category: "INFRASTRUCTURE", threadId: 20, enabled: true },
+  { id: "topic-digests", name: "Pulso Operativo Ejecutivo", category: "DIGEST", threadId: 30, enabled: true },
+];
+
+export const DEFAULT_TELEGRAM_ALERT_RULES: TelegramAlertRuleConfig[] = [
+  {
+    id: "rule-sla-delay",
+    name: "Demora Crítica en Atención Humana",
+    category: "SLA",
+    threshold: 15,
+    unit: "minutos",
+    severity: "CRITICAL",
+    enabled: true,
+    description: "Alerta roja si un cliente asignado a un asesor supera este tiempo sin respuesta.",
+  },
+  {
+    id: "rule-infra-outage",
+    name: "Corte Masivo o Falla de Sector (OLT)",
+    category: "INFRASTRUCTURE",
+    threshold: 3,
+    unit: "reclamos",
+    severity: "CRITICAL",
+    enabled: true,
+    description: "Dispara aviso urgente si varios clientes del mismo sector reportan fallas en los últimos 30m.",
+  },
+  {
+    id: "rule-queue-overflow",
+    name: "Saturación de Cola de Espera",
+    category: "QUEUE",
+    threshold: 10,
+    unit: "casos en cola",
+    severity: "WARNING",
+    enabled: true,
+    description: "Avisa si la cola de espera de cualquier departamento supera este volumen sin agentes libres.",
+  },
+];
 
 const DEFAULT_TELEGRAM_SETTINGS: TelegramSettings = {
   enabled: false,
   botToken: "",
   defaultChatId: "",
-  slaTopicId: null,
-  infraTopicId: null,
-  digestsTopicId: null,
+  topics: DEFAULT_TELEGRAM_TOPICS,
+  slaTopicId: 10,
+  infraTopicId: 20,
+  digestsTopicId: 30,
   digestsEnabled: true,
   digestHours: ["09:00", "14:00", "19:00"],
   timeZone: "America/Guayaquil",
+  alertRules: DEFAULT_TELEGRAM_ALERT_RULES,
   slaThresholdMinutes: 15,
   infraAlertMinCases: 3,
   queueSaturationThreshold: 10,
@@ -78,7 +131,15 @@ export function TelegramSettingsCard() {
     setLoading(true);
     try {
       const data = await settingsApi.getTelegramSettings();
-      setSettings(data || DEFAULT_TELEGRAM_SETTINGS);
+      if (data) {
+        setSettings({
+          ...data,
+          topics: data.topics && data.topics.length > 0 ? data.topics : DEFAULT_TELEGRAM_TOPICS,
+          alertRules: data.alertRules && data.alertRules.length > 0 ? data.alertRules : DEFAULT_TELEGRAM_ALERT_RULES,
+        });
+      } else {
+        setSettings(DEFAULT_TELEGRAM_SETTINGS);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al cargar configuración de Telegram";
       toast.error(message);
@@ -204,6 +265,83 @@ export function TelegramSettingsCard() {
       ...prev,
       digestHours: prev.digestHours.filter((h) => h !== hourToRemove),
     }));
+  };
+
+  // --- GESTIÓN DINÁMICA DE TEMAS (TOPICS) ---
+  const handleAddTopic = () => {
+    const newTopic: TelegramTopicConfig = {
+      id: `topic-${Date.now()}`,
+      name: "Nuevo Tema",
+      category: "GENERAL",
+      threadId: 1,
+      enabled: true,
+    };
+    setSettings((prev) => ({
+      ...prev,
+      topics: [...(prev.topics || []), newTopic],
+    }));
+  };
+
+  const handleUpdateTopic = (id: string, updates: Partial<TelegramTopicConfig>) => {
+    setSettings((prev) => ({
+      ...prev,
+      topics: (prev.topics || []).map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    }));
+  };
+
+  const handleDeleteTopic = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      topics: (prev.topics || []).filter((t) => t.id !== id),
+    }));
+  };
+
+  const handleResetTopics = () => {
+    setSettings((prev) => ({
+      ...prev,
+      topics: DEFAULT_TELEGRAM_TOPICS,
+    }));
+    toast.info("Temas restablecidos a los valores recomendados");
+  };
+
+  // --- GESTIÓN DINÁMICA DE REGLAS DE CENTINELA ---
+  const handleAddRule = () => {
+    const newRule: TelegramAlertRuleConfig = {
+      id: `rule-${Date.now()}`,
+      name: "Nueva Regla de Alerta",
+      category: "SLA",
+      threshold: 15,
+      unit: "minutos",
+      severity: "CRITICAL",
+      enabled: true,
+      description: "Descripción de la condición que dispara este aviso.",
+    };
+    setSettings((prev) => ({
+      ...prev,
+      alertRules: [...(prev.alertRules || []), newRule],
+    }));
+  };
+
+  const handleUpdateRule = (id: string, updates: Partial<TelegramAlertRuleConfig>) => {
+    setSettings((prev) => ({
+      ...prev,
+      alertRules: (prev.alertRules || []).map((r) => (r.id === id ? { ...r, ...updates } : r)),
+    }));
+  };
+
+  const handleDeleteRule = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      alertRules: (prev.alertRules || []).filter((r) => r.id !== id),
+    }));
+  };
+
+  const handleResetRules = () => {
+    setSettings((prev) => ({
+      ...prev,
+      alertRules: DEFAULT_TELEGRAM_ALERT_RULES,
+    }));
+    toast.info("Reglas restablecidas a los valores recomendados");
   };
 
   if (loading) {
@@ -361,103 +499,177 @@ export function TelegramSettingsCard() {
           </div>
         </div>
 
-        {/* SECCIÓN 2: ORGANIZACIÓN POR TEMAS (FORUM TOPICS) */}
+        {/* SECCIÓN 2: ORGANIZACIÓN POR TEMAS (FORUM TOPICS DINÁMICOS) */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b pb-2">
-            <Layers className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-            <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
-              Enrutamiento por Temas (Supergrupo con Foros)
-            </h3>
-            <Badge variant="outline" className="text-xs font-normal">Opcional</Badge>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-2">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+              <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
+                Enrutamiento por Temas (Supergrupo con Foros)
+              </h3>
+              <Badge variant="outline" className="text-xs font-normal">Dinámico</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddTopic}
+                className="gap-1.5 h-8 text-xs"
+              >
+                <Plus className="h-3.5 w-3.5" /> Agregar Tema
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Si utilizás un Supergrupo con <b>Temas (Topics)</b> activados en Telegram, podés dirigir cada tipo de evento a su propio hilo ingresando el <code>message_thread_id</code> correspondiente. Si los dejás vacíos, todos los avisos llegarán al chat general.
+            Si utilizás un Supergrupo con <b>Temas (Topics)</b> activados en Telegram, podés dirigir cada categoría de aviso a su propio hilo ingresando el <code>message_thread_id</code>. Podés añadir, editar, activar/silenciar o eliminar los temas que desees. Si una alerta no coincide con ningún tema activo, se dirigirá al chat general.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="sla-topic" className="text-xs font-medium">
-                Tema de Alertas SLA
-              </Label>
-              <Input
-                id="sla-topic"
-                type="number"
-                placeholder="Ej. 12"
-                value={settings.slaTopicId ?? ""}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    slaTopicId: e.target.value ? Number(e.target.value) : null,
-                  }))
-                }
-                className="text-sm"
-              />
-            </div>
+          <div className="space-y-2.5">
+            {settings.topics && settings.topics.length > 0 ? (
+              settings.topics.map((topic) => (
+                <div
+                  key={topic.id}
+                  className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Switch
+                      id={`topic-switch-${topic.id}`}
+                      checked={topic.enabled}
+                      onCheckedChange={(checked) => handleUpdateTopic(topic.id, { enabled: checked })}
+                    />
+                    <Badge
+                      variant={topic.enabled ? "default" : "secondary"}
+                      className="text-[11px] font-normal"
+                    >
+                      {topic.enabled ? "Activo" : "Silenciado"}
+                    </Badge>
+                  </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="infra-topic" className="text-xs font-medium">
-                Tema de Infraestructura / OLT
-              </Label>
-              <Input
-                id="infra-topic"
-                type="number"
-                placeholder="Ej. 18"
-                value={settings.infraTopicId ?? ""}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    infraTopicId: e.target.value ? Number(e.target.value) : null,
-                  }))
-                }
-                className="text-sm"
-              />
-            </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        Nombre del Tema
+                      </Label>
+                      <Input
+                        value={topic.name}
+                        onChange={(e) => handleUpdateTopic(topic.id, { name: e.target.value })}
+                        placeholder="Ej. Alertas de SLA"
+                        className="h-8 text-xs"
+                      />
+                    </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="digests-topic" className="text-xs font-medium">
-                Tema de Pulso Diario (Digests)
-              </Label>
-              <Input
-                id="digests-topic"
-                type="number"
-                placeholder="Ej. 24"
-                value={settings.digestsTopicId ?? ""}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    digestsTopicId: e.target.value ? Number(e.target.value) : null,
-                  }))
-                }
-                className="text-sm"
-              />
-            </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        Categoría de Avisos
+                      </Label>
+                      <Select
+                        value={topic.category}
+                        onValueChange={(val) =>
+                          handleUpdateTopic(topic.id, { category: val as TelegramTopicCategory })
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SLA">Alertas de SLA & Esperas</SelectItem>
+                          <SelectItem value="INFRASTRUCTURE">Infraestructura & Fibra / OLT</SelectItem>
+                          <SelectItem value="DIGEST">Pulso Operativo (Digests)</SelectItem>
+                          <SelectItem value="QUEUE">Desborde de Cola</SelectItem>
+                          <SelectItem value="QUALITY">Supervisión de Calidad IA</SelectItem>
+                          <SelectItem value="GENERAL">Avisos Generales</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        ID del Hilo (thread_id)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={topic.threadId || ""}
+                        onChange={(e) =>
+                          handleUpdateTopic(topic.id, {
+                            threadId: Number(e.target.value) || 1,
+                          })
+                        }
+                        placeholder="Ej. 12"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteTopic(topic.id)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 self-end md:self-center"
+                    title="Eliminar tema"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  No hay temas configurados. Todos los avisos se despacharán al chat general.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetTopics}
+                  className="text-xs h-8"
+                >
+                  Restablecer temas recomendados
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* SECCIÓN 3: PULSO EJECUTIVO Y REPORTES PROGRAMADOS */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b pb-2">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-              <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
-                Pulso Operativo Ejecutivo (Digests Programados)
-              </h3>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="digests-enabled"
-                checked={settings.digestsEnabled}
-                onCheckedChange={(checked) =>
-                  setSettings((prev) => ({ ...prev, digestsEnabled: checked }))
-                }
-              />
-              <Label htmlFor="digests-enabled" className="text-xs text-muted-foreground cursor-pointer">
-                Habilitado
-              </Label>
-            </div>
+          <div className="flex items-center gap-2 border-b pb-2">
+            <Clock className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+            <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
+              Pulso Operativo Ejecutivo (Digests Programados)
+            </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Banner explicativo con switch explícito para eliminar cualquier ambigüedad */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-muted/20 gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="digests-enabled" className="text-sm font-semibold cursor-pointer">
+                  Envío Automático de Pulso Programado
+                </Label>
+                <Badge
+                  variant={settings.digestsEnabled ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {settings.digestsEnabled ? "Activo" : "Pausado"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cuando está activo, el sistema genera y despacha automáticamente el reporte ejecutivo del ISP en los horarios configurados a continuación.
+              </p>
+            </div>
+            <Switch
+              id="digests-enabled"
+              checked={settings.digestsEnabled}
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({ ...prev, digestsEnabled: checked }))
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
             <div className="space-y-3">
               <Label className="text-sm font-medium">
                 Horarios de Envío Automático (Formato 24h)
@@ -550,92 +762,180 @@ export function TelegramSettingsCard() {
           </div>
         </div>
 
-        {/* SECCIÓN 4: UMBRALES DE ALERTAS REACTIVAS (CENTINELA) */}
+        {/* SECCIÓN 4: UMBRALES DE ALERTAS REACTIVAS (CENTINELA DINÁMICO) */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-2">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-sky-600 dark:text-sky-400" />
               <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
                 Umbrales del Centinela Reactivo
               </h3>
+              <Badge variant="outline" className="text-xs font-normal">Configurable</Badge>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleCheckAlertsNow}
-              disabled={testingAlerts || !settings.defaultChatId}
-              className="gap-2"
-            >
-              {testingAlerts ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Bell className="h-4 w-4 text-rose-500" />
-              )}
-              Evaluar Alertas Ahora
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddRule}
+                className="gap-1.5 h-8 text-xs"
+              >
+                <Plus className="h-3.5 w-3.5" /> Agregar Regla
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCheckAlertsNow}
+                disabled={testingAlerts || !settings.defaultChatId}
+                className="gap-1.5 h-8 text-xs"
+              >
+                {testingAlerts ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bell className="h-3.5 w-3.5 text-rose-500" />
+                )}
+                Evaluar Alertas Ahora
+              </Button>
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            El Centinela supervisa continuamente casos desatendidos, colas de espera y caídas de infraestructura. Podés añadir nuevas reglas, ajustar umbrales, pausar o eliminar alertas según los requerimientos operativos.
+          </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="sla-threshold" className="text-xs font-medium">
-                Demora Crítica de SLA (minutos)
-              </Label>
-              <Input
-                id="sla-threshold"
-                type="number"
-                min={5}
-                max={120}
-                value={settings.slaThresholdMinutes}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, slaThresholdMinutes: Number(e.target.value) || 15 }))
-                }
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Alerta roja si un cliente en atención humana espera más de este tiempo.
-              </p>
-            </div>
+          <div className="space-y-3">
+            {settings.alertRules && settings.alertRules.length > 0 ? (
+              settings.alertRules.map((rule) => (
+                <div
+                  key={rule.id}
+                  className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-lg border bg-card hover:bg-muted/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Switch
+                      id={`rule-switch-${rule.id}`}
+                      checked={rule.enabled}
+                      onCheckedChange={(checked) => handleUpdateRule(rule.id, { enabled: checked })}
+                    />
+                    <Badge
+                      variant={rule.enabled ? (rule.severity === "CRITICAL" ? "destructive" : "default") : "secondary"}
+                      className="text-[11px] font-normal"
+                    >
+                      {rule.enabled ? rule.severity : "Pausada"}
+                    </Badge>
+                  </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="infra-threshold" className="text-xs font-medium">
-                Corte Masivo OLT (mínimo reclamos)
-              </Label>
-              <Input
-                id="infra-threshold"
-                type="number"
-                min={2}
-                max={20}
-                value={settings.infraAlertMinCases}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, infraAlertMinCases: Number(e.target.value) || 3 }))
-                }
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Reclamos simultáneos en el mismo sector para emitir alerta de caída de fibra.
-              </p>
-            </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 flex-1">
+                    <div className="sm:col-span-4 space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        Nombre de la Regla
+                      </Label>
+                      <Input
+                        value={rule.name}
+                        onChange={(e) => handleUpdateRule(rule.id, { name: e.target.value })}
+                        placeholder="Ej. Demora Crítica de SLA"
+                        className="h-8 text-xs font-medium"
+                      />
+                      {rule.description && (
+                        <p className="text-[10px] text-muted-foreground line-clamp-1">{rule.description}</p>
+                      )}
+                    </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="queue-threshold" className="text-xs font-medium">
-                Saturación de Cola (casos en espera)
-              </Label>
-              <Input
-                id="queue-threshold"
-                type="number"
-                min={3}
-                max={50}
-                value={settings.queueSaturationThreshold}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, queueSaturationThreshold: Number(e.target.value) || 10 }))
-                }
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Dispara aviso si una cola departamental excede esta cantidad sin agentes libres.
-              </p>
-            </div>
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        Tipo de Alerta
+                      </Label>
+                      <Select
+                        value={rule.category}
+                        onValueChange={(val) =>
+                          handleUpdateRule(rule.id, { category: val as TelegramAlertRuleCategory })
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SLA">Demoras en SLA (Asesor)</SelectItem>
+                          <SelectItem value="INFRASTRUCTURE">Corte Masivo / OLT</SelectItem>
+                          <SelectItem value="QUEUE">Saturación de Cola</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        Umbral & Unidad
+                      </Label>
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={rule.threshold}
+                          onChange={(e) =>
+                            handleUpdateRule(rule.id, {
+                              threshold: Number(e.target.value) || 1,
+                            })
+                          }
+                          className="h-8 w-20 text-xs font-mono"
+                        />
+                        <Input
+                          value={rule.unit}
+                          onChange={(e) => handleUpdateRule(rule.id, { unit: e.target.value })}
+                          placeholder="minutos"
+                          className="h-8 text-xs flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2 space-y-1">
+                      <Label className="text-[11px] text-muted-foreground font-medium">
+                        Severidad
+                      </Label>
+                      <Select
+                        value={rule.severity}
+                        onValueChange={(val) =>
+                          handleUpdateRule(rule.id, { severity: val as "CRITICAL" | "WARNING" | "INFO" })
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CRITICAL">🚨 Crítico</SelectItem>
+                          <SelectItem value="WARNING">⚠️ Alerta</SelectItem>
+                          <SelectItem value="INFO">ℹ️ Info</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteRule(rule.id)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 self-end md:self-center"
+                    title="Eliminar regla"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  No hay reglas de alerta configuradas. El Centinela no evaluará anomalías reactivas.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetRules}
+                  className="text-xs h-8"
+                >
+                  Restablecer reglas recomendadas
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -33,8 +33,11 @@ describe("TelegramSettingsCard", () => {
     expect(await screen.findByText("Centinela & Ops de Telegram")).toBeDefined();
     expect(screen.getByText("Credenciales de Telegram Bot API")).toBeDefined();
     expect(screen.getByText("Enrutamiento por Temas (Supergrupo con Foros)")).toBeDefined();
+    expect(screen.getByText("Agregar Tema")).toBeDefined();
     expect(screen.getByText("Pulso Operativo Ejecutivo (Digests Programados)")).toBeDefined();
+    expect(screen.getByText("Envío Automático de Pulso Programado")).toBeDefined();
     expect(screen.getByText("Umbrales del Centinela Reactivo")).toBeDefined();
+    expect(screen.getByText("Agregar Regla")).toBeDefined();
     expect(screen.getByText("Interacción Bidireccional & Copilot con IA")).toBeDefined();
     expect(screen.getByText("09:00")).toBeDefined();
     expect(screen.getByText("14:00")).toBeDefined();
@@ -42,3 +45,4 @@ describe("TelegramSettingsCard", () => {
     expect(screen.getByText("Guardar Configuración de Telegram")).toBeDefined();
   });
 });
+
