@@ -192,3 +192,13 @@ export interface SetTelegramWebhookResult {
   webhookUrl: string;
   registered: boolean;
 }
+
+export interface TelegramDetectedChat {
+  id: string;
+  title: string;
+  type: string;
+}
+
+export interface DetectTelegramChatsResult {
+  chats: TelegramDetectedChat[];
+}

@@ -128,6 +128,7 @@ export function TelegramSettingsCard() {
   const [sendSampleOnTest, setSendSampleOnTest] = useState(true);
   const [newHourInput, setNewHourInput] = useState("");
   const [showGuide, setShowGuide] = useState(false);
+  const [detectingChat, setDetectingChat] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -156,6 +157,32 @@ export function TelegramSettingsCard() {
       toast.error(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDetectChatId = async () => {
+    if (!settings.botToken.trim()) {
+      toast.error("Por favor ingresá primero el Bot Token antes de detectar grupos");
+      return;
+    }
+    setDetectingChat(true);
+    try {
+      const res = await settingsApi.detectTelegramChats({ botToken: settings.botToken });
+      if (res.chats && res.chats.length > 0) {
+        const found = res.chats[0];
+        setSettings((prev) => ({ ...prev, defaultChatId: found.id }));
+        toast.success(`¡Grupo detectado!: "${found.title}" (${found.id})`);
+      } else {
+        toast.info(
+          "No se detectaron mensajes recientes. Asegurate de haber sumado tu bot al grupo con 'Añadir miembros' y escribir cualquier mensaje (ej. 'hola') en el grupo.",
+          { duration: 8000 }
+        );
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al detectar grupos del bot";
+      toast.error(message);
+    } finally {
+      setDetectingChat(false);
     }
   };
 
@@ -478,22 +505,19 @@ export function TelegramSettingsCard() {
                       Creá un grupo en Telegram con tus gerentes/admins.
                     </li>
                     <li>
-                      <b>Cómo añadir al bot al grupo:</b> Tocá el botón <b>"Añadir miembros"</b> arriba en el chat (o tocá el nombre del grupo arriba $\rightarrow$ <i>Añadir participantes</i>). <b>Buscá el username de tu bot</b>, seleccionalo y dale al tilde de confirmación. Luego dalé permisos de administrador.
+                      <b>Sumá a tu propio bot al grupo:</b> Tocá el botón <b>"Añadir miembros"</b> arriba en el chat (o tocá el nombre del grupo arriba $\rightarrow$ <i>Añadir participantes</i>). <b>Buscá el username de tu bot</b>, seleccionalo y dale al tilde de confirmación. Luego dalé permisos de administrador.
                     </li>
                     <li>
-                      <b>Cómo obtener el Chat ID con @RawDataBot:</b>
+                      <b>Cómo obtener el Chat ID (3 formas):</b>
                       <ul className="list-circle list-inside pl-2 pt-0.5 space-y-1">
                         <li>
-                          Tocá el botón <b>"Añadir miembros"</b> arriba en el grupo (<i>no lo escribas en el chat como mensaje</i>).
+                          <b>Detección Automática (Recomendado):</b> Escribí cualquier mensaje en el grupo (ej. <code>hola</code>) y presioná el botón <b>"Detectar Grupo"</b> abajo. ¡El sistema lo rellena solo!
                         </li>
                         <li>
-                          En el buscador de contactos escribí: <code>@RawDataBot</code> y añadilo como miembro del grupo.
+                          <b>Vía Telegram Web:</b> Abrí el grupo en <a href="https://web.telegram.org" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">web.telegram.org</a>; la URL del navegador termina en <code>#-1002345678901</code>.
                         </li>
                         <li>
-                          Ni bien entre, enviará un mensaje con datos técnicos. Buscá el bloque <code>"chat": {"{"} "id": -100xxxxxxxxxx {"}"}</code>.
-                        </li>
-                        <li>
-                          Copiá ese número completo (con el signo <code>-</code> incluido) y pegalo abajo en <b>Chat ID Directivo</b>. Luego podés eliminar a RawDataBot del grupo.
+                          <b>Vía bot auxiliar:</b> Buscá a <code>@myidbot</code>, sumalo al grupo y enviá <code>/getgroupid</code> (no uses RawDataBot ya que tiene bloqueada la entrada a grupos).
                         </li>
                       </ul>
                     </li>
@@ -587,9 +611,27 @@ export function TelegramSettingsCard() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="default-chat-id" className="text-sm font-medium">
-                Chat ID Directivo (Supergrupo o Canal)
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="default-chat-id" className="text-sm font-medium">
+                  Chat ID Directivo (Supergrupo o Canal)
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDetectChatId}
+                  disabled={detectingChat || !settings.botToken.trim()}
+                  className="h-6 text-[11px] gap-1 px-2 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950 font-normal"
+                  title="Detecta automáticamente el grupo donde añadiste a tu bot"
+                >
+                  {detectingChat ? (
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                  )}
+                  Detectar Grupo
+                </Button>
+              </div>
               <Input
                 id="default-chat-id"
                 placeholder="-1001234567890 o @MiCanalDirectivo"
@@ -598,7 +640,7 @@ export function TelegramSettingsCard() {
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                ID numérico del grupo de gerencia (los supergrupos suelen comenzar con <code>-100</code>). Podés obtenerlo agregando a <code>@RawDataBot</code>.
+                ID numérico del grupo de gerencia (los supergrupos suelen comenzar con <code>-100</code>). ¡Sumá tu bot al grupo y hacé clic en <b>Detectar Grupo</b> para completarlo solo!
               </p>
             </div>
           </div>

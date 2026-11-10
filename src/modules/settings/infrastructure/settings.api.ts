@@ -13,6 +13,7 @@ import type {
   TelegramSettings,
   TestTelegramResult,
   SetTelegramWebhookResult,
+  DetectTelegramChatsResult,
 } from "../domain/settings.types";
 
 function unwrap<T>(response: unknown): T {
@@ -358,5 +359,18 @@ export const settingsApi = {
       payload ?? {},
     );
     return unwrap<SetTelegramWebhookResult>(res);
+  },
+
+  /**
+   * Consulta las actualizaciones recientes del bot para detectar automáticamente grupos donde fue agregado.
+   */
+  detectTelegramChats: async (payload?: {
+    botToken?: string;
+  }): Promise<DetectTelegramChatsResult> => {
+    const res = await apiPost<DetectTelegramChatsResult | { data: DetectTelegramChatsResult }>(
+      "/api/admin/settings/telegram/detect-chat",
+      payload ?? {},
+    );
+    return unwrap<DetectTelegramChatsResult>(res);
   },
 };
