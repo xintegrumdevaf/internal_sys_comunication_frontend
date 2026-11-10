@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TelegramSettingsCard } from "./TelegramSettingsCard";
 import { settingsApi } from "../infrastructure/settings.api";
@@ -68,6 +68,43 @@ describe("TelegramSettingsCard", () => {
     expect(await screen.findByText("Modo Chat Único / Grupo Estándar Activo (Recomendado)")).toBeDefined();
     expect(screen.getByText("Disparar Pulso Ahora (Prueba en Vivo)")).toBeDefined();
     expect(screen.getAllByText("Simular Alerta").length).toBeGreaterThan(0);
+  });
+
+  it("detecta cambios pendientes, muestra barra flotante y permite descartar", async () => {
+    vi.spyOn(settingsApi, "getTelegramSettings").mockResolvedValueOnce({
+      enabled: true,
+      botToken: "123456:••••••••••••cdef",
+      defaultChatId: "-1001234567890",
+      topicsEnabled: false,
+      digestsEnabled: true,
+      digestHours: ["09:00"],
+      timeZone: "America/Guayaquil",
+      slaThresholdMinutes: 15,
+      infraAlertMinCases: 3,
+      queueSaturationThreshold: 10,
+      commandsEnabled: true,
+      aiCopilotEnabled: false,
+    });
+
+    render(<TelegramSettingsCard />);
+
+    expect((await screen.findAllByText("Guardado")).length).toBeGreaterThan(0);
+
+    // Modificar el input de Chat ID
+    const chatIdInput = screen.getByPlaceholderText("-1001234567890 o @MiCanalDirectivo");
+    fireEvent.change(chatIdInput, { target: { value: "-1009999999999" } });
+
+    // Ahora debe mostrar el estado sucio (isDirty)
+    expect(await screen.findByText("Cambios sin guardar")).toBeDefined();
+    expect(screen.getAllByText("Guardar Cambios").length).toBeGreaterThan(0);
+
+    // Descartar cambios
+    const discardButtons = screen.getAllByText("Descartar");
+    fireEvent.click(discardButtons[0]);
+
+    // Vuelve al valor original y estado guardado
+    expect(screen.getAllByText("Guardado").length).toBeGreaterThan(0);
+    expect((chatIdInput as HTMLInputElement).value).toBe("-1001234567890");
   });
 });
 

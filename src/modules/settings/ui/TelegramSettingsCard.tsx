@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Send,
   Bot,
@@ -120,6 +120,7 @@ const DEFAULT_TELEGRAM_SETTINGS: TelegramSettings = {
 
 export function TelegramSettingsCard() {
   const [settings, setSettings] = useState<TelegramSettings>(DEFAULT_TELEGRAM_SETTINGS);
+  const [savedSettings, setSavedSettings] = useState<TelegramSettings>(DEFAULT_TELEGRAM_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -144,18 +145,21 @@ export function TelegramSettingsCard() {
     try {
       const data = await settingsApi.getTelegramSettings();
       if (data) {
-        setSettings({
+        const normalized: TelegramSettings = {
           ...data,
           topicsEnabled: Boolean(data.topicsEnabled),
           topics: data.topics && data.topics.length > 0 ? data.topics : DEFAULT_TELEGRAM_TOPICS,
           alertRules: data.alertRules && data.alertRules.length > 0 ? data.alertRules : DEFAULT_TELEGRAM_ALERT_RULES,
-        });
+        };
+        setSettings(normalized);
+        setSavedSettings(normalized);
         // Si no hay token configurado, abrir la guía explicativa automáticamente
         if (!data.botToken || data.botToken.trim() === "") {
           setShowGuide(true);
         }
       } else {
         setSettings(DEFAULT_TELEGRAM_SETTINGS);
+        setSavedSettings(DEFAULT_TELEGRAM_SETTINGS);
         setShowGuide(true);
       }
     } catch (err: unknown) {
@@ -164,6 +168,15 @@ export function TelegramSettingsCard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(settings) !== JSON.stringify(savedSettings);
+  }, [settings, savedSettings]);
+
+  const handleDiscard = () => {
+    setSettings(savedSettings);
+    toast.info("Cambios descartados. Se restauró la última configuración guardada.");
   };
 
   const handleDetectChatId = async () => {
@@ -196,8 +209,15 @@ export function TelegramSettingsCard() {
     setSaving(true);
     try {
       const updated = await settingsApi.updateTelegramSettings(settings);
-      setSettings(updated);
-      toast.success("Configuración de Telegram guardada exitosamente");
+      const normalized: TelegramSettings = {
+        ...updated,
+        topicsEnabled: Boolean(updated.topicsEnabled),
+        topics: updated.topics && updated.topics.length > 0 ? updated.topics : DEFAULT_TELEGRAM_TOPICS,
+        alertRules: updated.alertRules && updated.alertRules.length > 0 ? updated.alertRules : DEFAULT_TELEGRAM_ALERT_RULES,
+      };
+      setSettings(normalized);
+      setSavedSettings(normalized);
+      toast.success("Configuración de Telegram guardada y aplicada exitosamente");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al guardar configuración";
       toast.error(message);
@@ -459,11 +479,11 @@ export function TelegramSettingsCard() {
   }
 
   return (
-    <Card className="border shadow-sm">
+    <Card className="border shadow-sm relative">
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="p-2 bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 rounded-lg">
                 <Send className="h-5 w-5" />
               </div>
@@ -477,26 +497,68 @@ export function TelegramSettingsCard() {
                   Inactivo
                 </Badge>
               )}
+              {isDirty ? (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 text-xs">
+                  Cambios sin guardar
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 text-xs">
+                  Guardado
+                </Badge>
+              )}
             </div>
             <CardDescription>
               Canal ejecutivo de supervisión para gerentes y directores: alertas reactivas de SLA y OLT, pulso periódico automático y copilot interactivo con IA.
             </CardDescription>
           </div>
 
-          <div className="flex items-center space-x-2 self-start sm:self-auto bg-muted/40 p-2 rounded-lg border">
-            <Switch
-              id="telegram-enabled"
-              checked={settings.enabled}
-              onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, enabled: checked }))}
-            />
-            <Label htmlFor="telegram-enabled" className="text-sm font-medium cursor-pointer">
-              {settings.enabled ? "Integración Habilitada" : "Integración Pausada"}
-            </Label>
+          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+            <div className="flex items-center space-x-2 bg-muted/40 p-2 rounded-lg border">
+              <Switch
+                id="telegram-enabled"
+                checked={settings.enabled}
+                onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, enabled: checked }))}
+              />
+              <Label htmlFor="telegram-enabled" className="text-sm font-medium cursor-pointer">
+                {settings.enabled ? "Integración Habilitada" : "Integración Pausada"}
+              </Label>
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              variant={isDirty ? "default" : "outline"}
+              className="gap-2 h-9 text-xs font-semibold"
+            >
+              {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {isDirty ? "Guardar Cambios" : "Guardado"}
+            </Button>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-8">
+        {/* BANNER INFORMATIVO CUANDO HAY CAMBIOS PENDIENTES */}
+        {isDirty && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                <b>Modificaciones pendientes de confirmar:</b> Podés probar en vivo con lo que ingresaste en los campos (ej. pulsos, alertas o hilos), pero <b>no se guardarán en la base de datos</b> hasta que hagas clic en Guardar Cambios.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <Button type="button" variant="ghost" size="sm" onClick={handleDiscard} className="h-7 text-xs text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50">
+                Descartar
+              </Button>
+              <Button type="button" size="sm" onClick={handleSave} disabled={saving} className="h-7 text-xs gap-1.5 font-semibold bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-500">
+                {saving ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        )}
         {/* GUÍA EXPLICATIVA PLEGABLE: CÓMO OBTENER TOKEN Y CHAT ID */}
         <div className="border border-sky-200 dark:border-sky-900/60 rounded-xl overflow-hidden bg-sky-50/40 dark:bg-sky-950/20 shadow-xs">
           <button
@@ -755,6 +817,12 @@ export function TelegramSettingsCard() {
                 </span>
               </div>
             )}
+
+            <div className="w-full pt-1">
+              <p className="text-[11px] text-muted-foreground bg-muted/30 dark:bg-muted/10 px-2.5 py-1.5 rounded-md border">
+                💡 <b>Validación segura sin guardar:</b> Las pruebas envían mensajes a Telegram usando lo que tengas escrito en pantalla en ese momento, <b>sin modificar ni sobreescribir la base de datos</b> hasta que confirmes con "Guardar Cambios".
+              </p>
+            </div>
           </div>
         </div>
 
@@ -1377,20 +1445,84 @@ export function TelegramSettingsCard() {
         </div>
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between border-t bg-muted/20 py-4">
-        <p className="text-xs text-muted-foreground">
-          Recordá presionar guardar para aplicar los cambios en el backend.
-        </p>
-        <Button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="gap-2"
-        >
-          {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Guardar Configuración de Telegram
-        </Button>
+      <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t bg-muted/20 py-4">
+        <div className="flex items-center gap-2">
+          {isDirty ? (
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 text-xs shrink-0">
+              Cambios pendientes
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 text-xs shrink-0">
+              Sincronizado
+            </Badge>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {isDirty
+              ? "Tenés cambios sin confirmar. Presioná guardar para aplicarlos en la base de datos."
+              : "La configuración está sincronizada con la base de datos y activa en el backend."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          {isDirty && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscard}
+              disabled={saving}
+              className="text-xs h-9"
+            >
+              Descartar
+            </Button>
+          )}
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="gap-2 text-xs font-semibold h-9"
+          >
+            {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Guardar Configuración de Telegram
+          </Button>
+        </div>
       </CardFooter>
+
+      {/* BARRA FLOTANTE FIJA AL SCROLLEAR CUANDO HAY CAMBIOS PENDIENTES */}
+      {isDirty && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 p-2.5 sm:p-3 px-4 bg-background/95 dark:bg-card/95 backdrop-blur-md border border-amber-500/50 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+            </span>
+            <span className="font-semibold text-foreground text-xs hidden sm:inline">
+              Tenés cambios sin guardar
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscard}
+              disabled={saving}
+              className="h-8 text-xs"
+            >
+              Descartar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+              className="h-8 text-xs gap-1.5 font-bold shadow-md bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-500"
+            >
+              {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Guardar Cambios
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
