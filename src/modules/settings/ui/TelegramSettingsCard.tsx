@@ -249,7 +249,14 @@ export function TelegramSettingsCard() {
       });
       setTestResult(res);
       if (res.ok) {
-        toast.success(`Conexión exitosa con el bot @${res.bot?.username || res.bot?.first_name}`);
+        if (res.migratedToChatId) {
+          const newId = String(res.migratedToChatId);
+          setSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          toast.success(`¡Conexión exitosa! Tu grupo se convirtió en Supergrupo. Se actualizó el Chat ID a ${newId} automáticamente.`);
+        } else {
+          toast.success(`Conexión exitosa con el bot @${res.bot?.username || res.bot?.first_name}`);
+        }
       } else {
         toast.error(res.error || "Fallo en la prueba de conexión con Telegram");
       }
@@ -290,7 +297,14 @@ export function TelegramSettingsCard() {
         botToken: getCleanBotToken(),
       });
       if (res?.ok) {
-        toast.success("Pulso operativo ejecutivo enviado a Telegram exitosamente");
+        if (res.migratedToChatId) {
+          const newId = String(res.migratedToChatId);
+          setSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          toast.success(`¡Pulso emitido! Tu grupo se convirtió en Supergrupo. Se actualizó el Chat ID a ${newId} automáticamente.`);
+        } else {
+          toast.success("Pulso operativo ejecutivo enviado a Telegram exitosamente");
+        }
       } else {
         toast.warning("El pulso no se emitió (revisá que el Chat ID sea válido y el bot sea administrador)");
       }
@@ -316,7 +330,14 @@ export function TelegramSettingsCard() {
         botToken: getCleanBotToken(),
       });
       if (res?.ok) {
-        toast.success(`Mensaje de prueba enviado exitosamente al hilo "${topic.name}" (ID: ${topic.threadId})`);
+        if (res.migratedToChatId) {
+          const newId = String(res.migratedToChatId);
+          setSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          toast.success(`¡Mensaje enviado al hilo "${topic.name}"! Se actualizó el Chat ID a ${newId} automáticamente.`);
+        } else {
+          toast.success(`Mensaje de prueba enviado exitosamente al hilo "${topic.name}" (ID: ${topic.threadId})`);
+        }
       } else {
         toast.warning(`No se pudo enviar al hilo "${topic.name}". Verificá si el ID del hilo existe en tu supergrupo.`);
       }
@@ -342,7 +363,14 @@ export function TelegramSettingsCard() {
       });
       if (res?.ok) {
         const catLabel = category === "SLA" ? "SLA" : category === "INFRASTRUCTURE" ? "Corte OLT" : "Saturación de Cola";
-        toast.success(`Alerta reactiva simulada (${catLabel}) enviada exitosamente a Telegram`);
+        if (res.migratedToChatId) {
+          const newId = String(res.migratedToChatId);
+          setSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
+          toast.success(`¡Alerta (${catLabel}) enviada! Se actualizó el Chat ID a ${newId} automáticamente.`);
+        } else {
+          toast.success(`Alerta reactiva simulada (${catLabel}) enviada exitosamente a Telegram`);
+        }
       } else {
         toast.warning("No se pudo entregar la alerta de prueba. Verificá los permisos del bot en el grupo.");
       }

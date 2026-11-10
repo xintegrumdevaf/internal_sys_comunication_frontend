@@ -196,6 +196,7 @@ export interface TestTelegramMessageResult {
   messageId?: number;
   chatId?: string;
   date?: number;
+  migratedToChatId?: string;
 }
 
 export interface TestTelegramResult {
@@ -208,6 +209,7 @@ export interface TestTelegramResult {
   };
   messageSent?: boolean;
   error?: string;
+  migratedToChatId?: string;
 }
 
 export interface SetTelegramWebhookResult {

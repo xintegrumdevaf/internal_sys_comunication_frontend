@@ -345,12 +345,12 @@ export const settingsApi = {
   sendTelegramDigest: async (payload?: {
     chatId?: string;
     botToken?: string;
-  }): Promise<{ ok: boolean; messageId?: number }> => {
-    const res = await apiPost<{ ok: boolean; messageId?: number } | { data: { ok: boolean; messageId?: number } }>(
+  }): Promise<{ ok: boolean; messageId?: number; migratedToChatId?: string }> => {
+    const res = await apiPost<{ ok: boolean; messageId?: number; migratedToChatId?: string } | { data: { ok: boolean; messageId?: number; migratedToChatId?: string } }>(
       "/api/admin/settings/telegram/send-digest",
       payload ?? {},
     );
-    return unwrap<{ ok: boolean; messageId?: number }>(res);
+    return unwrap<{ ok: boolean; messageId?: number; migratedToChatId?: string }>(res);
   },
 
   /**
