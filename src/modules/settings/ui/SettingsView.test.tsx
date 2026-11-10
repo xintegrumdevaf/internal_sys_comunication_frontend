@@ -58,5 +58,6 @@ describe("SettingsView - Integración de Tabs", () => {
     expect(screen.getByText("Inteligencia Artificial")).toBeDefined();
     expect(screen.getByText("Routers y OLTs")).toBeDefined();
     expect(screen.getByText("Cobertura KML")).toBeDefined();
+    expect(screen.getByText("Telegram Ops")).toBeDefined();
   });
 });

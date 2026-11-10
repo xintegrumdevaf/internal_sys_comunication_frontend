@@ -14,6 +14,7 @@ import {
   Save,
   ExternalLink,
   MapPin,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ import { WhatsAppChannelsCard } from "./WhatsAppChannelsCard";
 import { AISettingsCard } from "./AISettingsCard";
 import { CoverageSettingsCard } from "./CoverageSettingsCard";
 import { NetworkSettingsCard } from "./NetworkSettingsCard";
+import { TelegramSettingsCard } from "./TelegramSettingsCard";
 import { settingsApi } from "../infrastructure/settings.api";
 import type {
   WhatsAppChannelSettings,
@@ -462,7 +464,7 @@ export function SettingsView() {
 
       {/* Tabs Principales de Configuración */}
       <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList className={`grid max-w-2xl ${isAdmin ? "grid-cols-4" : "grid-cols-2"}`}>
+        <TabsList className={`grid ${isAdmin ? "grid-cols-5 max-w-4xl" : "grid-cols-2 max-w-xl"}`}>
           {isAdmin && (
             <TabsTrigger value="channels" className="gap-2">
               <MessageSquare className="size-4" />
@@ -483,6 +485,12 @@ export function SettingsView() {
             <MapPin className="size-4" />
             Cobertura KML
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="telegram" className="gap-2">
+              <Send className="size-4 text-sky-500" />
+              Telegram Ops
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* --- Pestaña: Canales de Mensajería --- */}
@@ -527,6 +535,13 @@ export function SettingsView() {
         <TabsContent value="coverage" className="space-y-6">
           <CoverageSettingsCard />
         </TabsContent>
+
+        {/* --- Pestaña: Telegram Ops & Centinela --- */}
+        {isAdmin && (
+          <TabsContent value="telegram" className="space-y-6">
+            <TelegramSettingsCard />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

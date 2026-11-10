@@ -10,6 +10,9 @@ import type {
   NetworkRouterConfig,
   NetworkOltConfig,
   TestNetworkConnectionResult,
+  TelegramSettings,
+  TestTelegramResult,
+  SetTelegramWebhookResult,
 } from "../domain/settings.types";
 
 function unwrap<T>(response: unknown): T {
@@ -280,5 +283,80 @@ export const settingsApi = {
       success: boolean;
       data: { exportedAt: string; routers: NetworkRouterConfig[] };
     }>(res);
+  },
+
+  /**
+   * Consulta la configuración de Telegram (token enmascarado).
+   */
+  getTelegramSettings: async (): Promise<TelegramSettings> => {
+    const res = await apiGet<TelegramSettings | { data: TelegramSettings }>(
+      "/api/admin/settings/telegram",
+    );
+    return unwrap<TelegramSettings>(res);
+  },
+
+  /**
+   * Actualiza la configuración de Telegram.
+   */
+  updateTelegramSettings: async (
+    payload: Partial<TelegramSettings>,
+  ): Promise<TelegramSettings> => {
+    const res = await apiPut<TelegramSettings | { data: TelegramSettings }>(
+      "/api/admin/settings/telegram",
+      payload,
+    );
+    return unwrap<TelegramSettings>(res);
+  },
+
+  /**
+   * Prueba la conexión del bot y opcionalmente envía un mensaje de prueba al chat/topic.
+   */
+  testTelegram: async (payload: {
+    botToken?: string;
+    chatId?: string;
+    messageThreadId?: number | null;
+    sendSampleMessage?: boolean;
+  }): Promise<TestTelegramResult> => {
+    const res = await apiPost<TestTelegramResult | { data: TestTelegramResult }>(
+      "/api/admin/settings/telegram/test",
+      payload,
+    );
+    return unwrap<TestTelegramResult>(res);
+  },
+
+  /**
+   * Dispara una evaluación manual inmediata de brechas de SLA y fallas OLT.
+   */
+  checkTelegramAlerts: async (): Promise<{ dispatchedCount: number }> => {
+    const res = await apiPost<{ dispatchedCount: number } | { data: { dispatchedCount: number } }>(
+      "/api/admin/settings/telegram/check-alerts",
+      {},
+    );
+    return unwrap<{ dispatchedCount: number }>(res);
+  },
+
+  /**
+   * Dispara un envío manual inmediato del pulso operativo ejecutivo.
+   */
+  sendTelegramDigest: async (): Promise<{ ok: boolean; messageId?: number }> => {
+    const res = await apiPost<{ ok: boolean; messageId?: number } | { data: { ok: boolean; messageId?: number } }>(
+      "/api/admin/settings/telegram/send-digest",
+      {},
+    );
+    return unwrap<{ ok: boolean; messageId?: number }>(res);
+  },
+
+  /**
+   * Registra o sincroniza la URL del webhook en api.telegram.org.
+   */
+  setTelegramWebhook: async (payload?: {
+    webhookUrl?: string;
+    dropPendingUpdates?: boolean;
+  }): Promise<SetTelegramWebhookResult> => {
+    const res = await apiPost<SetTelegramWebhookResult | { data: SetTelegramWebhookResult }>(
+      "/api/admin/settings/telegram/set-webhook",
+      payload ?? {},
+    );
+    return unwrap<SetTelegramWebhookResult>(res);
   },
 };

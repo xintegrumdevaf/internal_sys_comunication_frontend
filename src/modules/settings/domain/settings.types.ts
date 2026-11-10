@@ -50,6 +50,7 @@ export interface TestConnectionResult {
 export interface SystemSettingsData {
   channels: WhatsAppChannelSettings;
   ai: AiProviderSettings;
+  telegram?: TelegramSettings;
 }
 
 export type AiModelType = "inference" | "embedding";
@@ -124,4 +125,39 @@ export interface TestNetworkConnectionResult {
       error?: string;
     }>;
   };
+}
+
+export interface TelegramSettings {
+  enabled: boolean;
+  botToken: string;
+  defaultChatId: string;
+  slaTopicId?: number | null;
+  infraTopicId?: number | null;
+  digestsTopicId?: number | null;
+  digestsEnabled: boolean;
+  digestHours: string[];
+  timeZone: string;
+  slaThresholdMinutes: number;
+  infraAlertMinCases: number;
+  queueSaturationThreshold: number;
+  webhookSecret?: string;
+  commandsEnabled: boolean;
+  aiCopilotEnabled: boolean;
+}
+
+export interface TestTelegramResult {
+  ok: boolean;
+  bot?: {
+    id: number;
+    is_bot: boolean;
+    first_name: string;
+    username?: string;
+  };
+  messageSent?: boolean;
+  error?: string;
+}
+
+export interface SetTelegramWebhookResult {
+  webhookUrl: string;
+  registered: boolean;
 }
