@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.25] - 2026-11-11
+
+### Added & Improved
+
+- **Panel de Administración Telegram Ops & Centinela (`/configuracion` → `TelegramSettingsCard`)**:
+  - **Estado visual explícito y control maestro (`TelegramCardHeader`)**: Indicadores gráficos claros (`Activo en Vivo` / `Centinela Activo` con pulso animado vs `Inactivo / En Pausa` / `Centinela Inactivo`) y banner de advertencia con activación rápida (`TelegramInactiveBanner`) cuando la integración está apagada.
+  - **Barra flotante unificada de guardado (`TelegramSaveFooter`)**: Reemplaza avisos redundantes de guardado por una única barra flotante persistente al detectar cambios sin confirmar, con acciones de descartar y guardar.
+  - **Credenciales, autodetección y URL pública (`TelegramCredentialsSection`)**: Sanitización automática de `botToken` enmascarado antes de enviar pruebas en vivo, botón de detección automática de grupos (`POST /api/admin/settings/telegram/detect-chat`), autoactualización reactiva de `defaultChatId` ante migración a supergrupo (`migratedToChatId`), campo `frontendUrl` para enlaces de botones de Telegram hacia la SPA, y guía interactiva paso a paso (`TelegramOnboardingGuide`).
+  - **Modos de recepción y Temas dinámicos (`TelegramTopicsSection`)**: Selector segmentado entre **Modo Chat Único / General** y **Modo Temas / Foros**, gestión CRUD de temas por categoría (`SLA`, `INFRASTRUCTURE`, `DIGEST`, `QUEUE`, `QUALITY`, `GENERAL`), restablecimiento a valores por defecto y prueba individual por `threadId`.
+  - **Pulso Operativo y Centinela Reactivo (`TelegramDigestSection`, `TelegramSentinelRulesSection`)**: Configuración de horarios de pulso programado (`digestHours`), zona horaria (`timeZone`), disparo manual inmediato, y gestión dinámica de reglas del Centinela con simulación en vivo por categoría (`SLA`, `INFRASTRUCTURE`, `QUEUE`).
+  - **Copilot IA y Webhook (`TelegramCopilotWebhookSection`)**: Habilitación de comandos interactivos, Copilot IA y sincronización de webhook con Telegram Bot API.
+- **Refactorización SRP & Cumplimiento de Calidad (ESLint + Prettier)**:
+  - Extracción del estado y acciones de `TelegramSettingsCard.tsx` hacia el hook `src/modules/settings/application/use-telegram-settings.ts`, constantes en `src/modules/settings/domain/telegram-settings.defaults.ts` y subcomponentes presentacionales bajo `src/modules/settings/ui/telegram/` (todos por debajo de `max-lines <= 400`).
+  - Normalización de formato con `pnpm format` eliminando errores de `prettier/prettier` en el pipeline CI.
+
 ## [0.2.24] - 2026-11-09
 
 ### Added & Improved
@@ -19,25 +34,25 @@ All notable changes to this project will be documented in this file.
 - **Exportación Ejecutiva de Métricas a Excel (.xlsx multi-pestaña) y Reporte PDF / Imprimible (`AnalyticsPrintReportModal.tsx`, `analytics-export.service.ts`, `analytics-translations.ts`, `DashboardOverview.tsx`, `AnalyticsDashboard.tsx`)**:
   - _Problema_:
     1. El sistema carecía de una herramienta para exportar o imprimir reportes ejecutivos consolidados para reuniones gerenciales y auditorías operativas.
-    2. Al desplegar el modal de vista previa imprimible, el contenedor padre con animación CSS (`animate-fade-up` con `transform`) creaba un nuevo *containing block* para `position: fixed`, desplazando el modal hacia abajo y cortándolo en pantallas estándar o móviles.
+    2. Al desplegar el modal de vista previa imprimible, el contenedor padre con animación CSS (`animate-fade-up` con `transform`) creaba un nuevo _containing block_ para `position: fixed`, desplazando el modal hacia abajo y cortándolo en pantallas estándar o móviles.
     3. Métricas en cero o asesores sin actividad mostraban `N/D` (confundible con error de datos) en tiempos de espera y atención.
-    4. La tabla de motivos de escalamiento mostraba filas duplicadas para un mismo motivo (ej: *"Caso resuelto"* repetido) debido a que la consulta SQL agrupaba por `(reason, workflow_type)` pero la UI omitía la columna de proceso.
+    4. La tabla de motivos de escalamiento mostraba filas duplicadas para un mismo motivo (ej: _"Caso resuelto"_ repetido) debido a que la consulta SQL agrupaba por `(reason, workflow_type)` pero la UI omitía la columna de proceso.
     5. Los tiempos de resolución y atención se expresaban en segundos crudos (ej: `6763s`), dificultando la lectura ágil.
     6. Desde el dashboard principal (`/`) no existía acceso directo al reporte gerencial sin navegar hasta analíticas.
   - _Solución_:
     1. **Exportación Multi-Pestaña a Excel (`analytics-export.service.ts`)**:
-       - Generación de archivo Excel nativo estructurado en 4 hojas temáticas: *Resumen Ejecutivo*, *Capacidad y Saturación*, *Rendimiento Asesores* y *Motivos y Tráfico*.
+       - Generación de archivo Excel nativo estructurado en 4 hojas temáticas: _Resumen Ejecutivo_, _Capacidad y Saturación_, _Rendimiento Asesores_ y _Motivos y Tráfico_.
     2. **Modal Ejecutivo Imprimible / PDF con React Portal (`AnalyticsPrintReportModal.tsx`)**:
-       - Renderizado desacoplado mediante `createPortal(modalContent, document.body)` para escapar de la trampa de *containing block* CSS, asegurando centrado responsivo absoluto (Mobile-first, 320px hasta 4K/Ultrawide `xl:max-w-6xl`).
+       - Renderizado desacoplado mediante `createPortal(modalContent, document.body)` para escapar de la trampa de _containing block_ CSS, asegurando centrado responsivo absoluto (Mobile-first, 320px hasta 4K/Ultrawide `xl:max-w-6xl`).
        - Encabezado sticky con controles de descarga (`Excel`, `Imprimir / PDF`, `Cerrar`) y área de lectura con scroll independiente (`max-h-[84vh]`).
        - Reglas `@media print` optimizadas para hojas tamaño A4 vertical con saltos de página limpios (`break-inside: avoid`) y márgenes balanceados.
     3. **Semáforo de Capacidad Instalada y Saturación por Área**:
-       - Sección *"5. Capacidad Instalada y Semáforo de Saturación por Área"* que desglosa en tiempo real cupos por asesor, asesores en turno, cupo total instalado, casos activos atendidos, ocupación porcentual (%) y estado de saturación operativo.
+       - Sección _"5. Capacidad Instalada y Semáforo de Saturación por Área"_ que desglosa en tiempo real cupos por asesor, asesores en turno, cupo total instalado, casos activos atendidos, ocupación porcentual (%) y estado de saturación operativo.
     4. **Formateo Humano de Tiempos y Consolidación de Motivos (`analytics-translations.ts`)**:
        - Conversión de segundos y minutos a formato legible (ej: `6763s` $\to$ `1h 53m`, `0 seg (inmediato)` para esperas nulas, `-` para asesores sin actividad).
        - Consolidación y reagrupación de motivos duplicados sumando frecuencias y recalculando porcentajes relativos en el cliente.
     5. **Acceso Rápido desde Cockpit Operativo (`DashboardOverview.tsx`)**:
-       - Botón directo *"Reporte Ejecutivo"* en el encabezado del panel principal (`/`).
+       - Botón directo _"Reporte Ejecutivo"_ en el encabezado del panel principal (`/`).
 
 - **Indicadores Visuales de Reintento Secuencial en Campañas Masivas (`CampaignRecipientsTable.tsx`, `campaign.ts`)**:
   - Incorporación de insignias y tooltips que indican el número de reintento (`retryCount`/`maxRetries`), próxima fecha de ejecución y último error cuando un envío sufre un fallo transitorio de WhatsApp.

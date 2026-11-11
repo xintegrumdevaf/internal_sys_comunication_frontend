@@ -89,12 +89,24 @@ src/
 │   │   ├── infrastructure/        quality.gateway.ts
 │   │   └── ui/                    QualityBoard.tsx, QualityReviewDetail.tsx, CordialityBadge.tsx
 │   │
-│   └── internal-chat/             chat interno persistente con SSE y tarjetas de calidad
-│       ├── domain/                internal-chat.ts, mention-parser.ts, deep-link.ts
-│       ├── application/           use-internal-chat.ts, build-mention-targets.ts
-│       ├── infrastructure/        internal-chat.store.ts
-│       └── ui/                    InternalChatShell.tsx, QualityQuoteCard.tsx, MentionsPanel.tsx,
-│                                   MentionPicker.tsx, MessageBodyWithMentions.tsx, InboxInternalNoteComposer.tsx
+│   ├── internal-chat/             chat interno persistente con SSE y tarjetas de calidad
+│   │   ├── domain/                internal-chat.ts, mention-parser.ts, deep-link.ts
+│   │   ├── application/           use-internal-chat.ts, build-mention-targets.ts
+│   │   ├── infrastructure/        internal-chat.store.ts
+│   │   └── ui/                    InternalChatShell.tsx, QualityQuoteCard.tsx, MentionsPanel.tsx,
+│   │                               MentionPicker.tsx, MessageBodyWithMentions.tsx, InboxInternalNoteComposer.tsx
+│   │
+│   └── settings/                  configuración del sistema (canales, IA, red, cobertura y Telegram Ops)
+│       ├── domain/                settings.types.ts, telegram-settings.defaults.ts
+│       ├── application/           use-telegram-settings.ts
+│       ├── infrastructure/        settings.api.ts, coverage.api.ts
+│       ├── pages/                 SettingsPage.tsx
+│       └── ui/                    SettingsView.tsx, AISettingsCard.tsx, CoverageSettingsCard.tsx,
+│                                   NetworkSettingsCard.tsx, WhatsAppChannelsCard.tsx, ZernioSyncCard.tsx,
+│                                   TelegramSettingsCard.tsx,
+│                                   telegram/ (TelegramCardHeader, TelegramOnboardingGuide,
+│                                   TelegramCredentialsSection, TelegramTopicsSection, TelegramDigestSection,
+│                                   TelegramSentinelRulesSection, TelegramCopilotWebhookSection, TelegramSaveFooter)
 │
 ├── routes/                        ← TanStack Start (file-based routing, URLs en español, siempre delgadas)
 │   ├── __root.tsx
@@ -108,6 +120,7 @@ src/
 │   ├── auditoria.tsx              → AuditLogView
 │   ├── flujos.tsx                 → N8nWorkflowCatalog
 │   ├── chat-interno.tsx           → InternalChatShell
+│   ├── configuracion.tsx          → SettingsPage / SettingsView
 │   └── campanas.tsx               → fuera de alcance del backend (maqueta desconectada, marcada)
 │
 ├── hooks/
