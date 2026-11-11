@@ -1,5 +1,14 @@
 import React from "react";
-import { Send, CheckCheck, Eye, CornerDownLeft, Clock, AlertCircle, Info, RotateCw } from "lucide-react";
+import {
+  Send,
+  CheckCheck,
+  Eye,
+  CornerDownLeft,
+  Clock,
+  AlertCircle,
+  Info,
+  RotateCw,
+} from "lucide-react";
 
 export type ActiveFilter = "ALL" | "sent" | "delivered" | "read" | "replied" | "failed" | "queued";
 

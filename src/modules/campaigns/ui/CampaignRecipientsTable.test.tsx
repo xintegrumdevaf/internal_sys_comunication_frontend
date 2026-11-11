@@ -56,7 +56,7 @@ describe("CampaignRecipientsTable UI", () => {
         campaign={mockCampaign}
         activeFilter="ALL"
         onFilterChange={() => {}}
-      />
+      />,
     );
 
     expect(screen.getByText(/Reintento 2\/3/i)).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("CampaignRecipientsTable UI", () => {
         campaign={mockCampaign}
         activeFilter="ALL"
         onFilterChange={() => {}}
-      />
+      />,
     );
 
     expect(screen.getByText(/Falló \(3\/3\)/i)).toBeInTheDocument();

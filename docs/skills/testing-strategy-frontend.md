@@ -48,6 +48,16 @@ Cada etapa del build plan se considera "aprobada" cuando, además de la verifica
 3. `npm run lint` con código de salida 0 (0 errores). En caso de discrepancias de formato reportadas por `prettier/prettier`, ejecutar `npm run format` (`prettier --write .`) para alinearlas automáticamente a `.prettierrc`.
 4. `npm run build` sin errores.
 
+### 4.1 Gate de Calidad y Formato: ESLint y Prettier
+
+- **Justificación del Linter Estricto**: `eslint.config.js` integra `eslint-plugin-prettier/recommended`, elevando cualquier discrepancia de formato tipográfico (sangrías, trailing commas, comillas, longitud máxima de línea) a nivel de **error bloqueante**. Esto garantiza que ningún commit introduzca regresiones de legibilidad ni genere "diff noise" artificial en pull requests y revisiones de código.
+- **Resolución Automática**: Cuando `npm run lint` reporte errores de la regla `prettier/prettier`, no se deben corregir manualmente; se debe ejecutar `npm run format` (`prettier --write .`), lo cual alinea todo el árbol fuente con `.prettierrc` de manera determinista y sin afectar la lógica de negocio o runtime.
+- **Validación Final**:
+  - `npm run format`: Formatea el proyecto bajo las reglas estándar.
+  - `npm run lint`: Confirma 0 errores en todas las reglas sintácticas y estáticas.
+  - `npm run typecheck`: Asegura integridad de tipos TypeScript (`tsc --noEmit`).
+  - `npm test`: Ejecuta la suite de Vitest garantizando que el comportamiento no se alteró.
+
 ## 5. Prioridad de cobertura futura (si se agrega en fases)
 
 Cubierto ya (Etapa 8): los 8 gateways de `modules/*/infrastructure/` tienen test, igual que `use-case-actions.ts`, `use-escalations.ts` y `use-assignment-board.ts` (los 3 hooks de aplicación más complejos, cada uno combinando 2+ gateways).

@@ -6,9 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Added & Fixed
 
+- **Homogeneización y Corrección Global de Reglas ESLint/Prettier (`npm run format`, `eslint`)**:
+  - _Problema_: Al ejecutar la suite de verificación de calidad (`npm run lint`), el proceso fallaba con código de salida `1` debido a **364 errores** de formato detectados por la regla `prettier/prettier` de `eslint-plugin-prettier`. Estas fallas se concentraban en 18 archivos fuente (componentes UI, servicios de exportación, tests unitarios y hooks) por discrepancias en saltos de línea de plantillas de texto, sangría y trailing spaces, bloqueando el pipeline de CI/CD.
+  - _Solución y Justificación_:
+    1. **Estandarización Automatizada**: Se ejecutó el formateo global (`npm run format`), aplicando de manera uniforme las reglas de estilo definidas en `.prettierrc` (comillas dobles, ancho de línea de 100 caracteres, trailing commas y sangría consistente de 2 espacios).
+    2. **Justificación del Cambio**: Al estar `eslint-plugin-prettier` integrado como regla bloqueante en `eslint.config.js`, cualquier discrepancia tipográfica genera un error que detiene el despliegue automático. El cambio armoniza el estilo en todo el proyecto sin modificar la lógica operativa de los componentes ni alterar el comportamiento en tiempo de ejecución.
+    3. **Verificación de Calidad**:
+       - `npm run lint`: 0 errores (código de salida 0).
+       - `npm run typecheck`: 0 errores de tipado en TypeScript.
+       - `npm test`: 450 tests unitarios pasando en 83 suites de Vitest.
+
 - **Descarga Nativa de Destinatarios Fallidos a Microsoft Excel (.xlsx) y Traducción de Errores al Español (`CampaignDetailsDrawer.tsx`, `CampaignRecipientsTable.tsx`, `delivery-errors.ts`)**:
   - _Problema_:
-    1. Al presionar el botón "Descargar fallidas", aparecía una notificación *"No hay contactos fallidos para descargar"* a pesar de que el embudo y la tabla mostraban 3 contactos fallidos. Esto ocurría porque el filtro evaluaba `r.status === 'failed'` de forma sensible a mayúsculas, mientras que la API entrega `'FAILED'`.
+    1. Al presionar el botón "Descargar fallidas", aparecía una notificación _"No hay contactos fallidos para descargar"_ a pesar de que el embudo y la tabla mostraban 3 contactos fallidos. Esto ocurría porque el filtro evaluaba `r.status === 'failed'` de forma sensible a mayúsculas, mientras que la API entrega `'FAILED'`.
     2. Los archivos CSV descargados mostraban todas las columnas amontonadas en la columna A al abrirse en Microsoft Excel en español (debido a la discrepancia entre comas y punto y coma en configuraciones regionales de Windows).
     3. Los motivos de fallo aparecían en inglés técnico crudo devuelto por Meta (ej. `"In order to maintain a healthy ecosystem engagement, the message failed to be delivered. (Meta Error 131049)"`), resultando incomprensibles para los asesores y supervisores comerciales.
   - _Solución y Justificación_:
@@ -20,7 +30,7 @@ All notable changes to this project will be documented in this file.
        - Se preservó una opción secundaria para CSV formateado con `sep=;\n`, delimitador `;` y BOM UTF-8 (`\uFEFF`).
     3. **Traducción Integral de Errores de Meta al Español (`delivery-errors.ts`)**:
        - Se creó el módulo de traducción en frontend que traduce códigos y descripciones de Meta Cloud API (`131049` límite de marketing, `131047` ventana 24h, `131026` sin WhatsApp, `131056` variables, `130429` rate limit, etc.).
-       - En el caso del error `131049`, se explica claramente: *"Límite de protección de Meta: Meta bloqueó la entrega para evitar saturar al destinatario con mensajes de marketing/campaña (Error Meta 131049)"*.
+       - En el caso del error `131049`, se explica claramente: _"Límite de protección de Meta: Meta bloqueó la entrega para evitar saturar al destinatario con mensajes de marketing/campaña (Error Meta 131049)"_.
        - Tanto la tabla de destinatarios (`CampaignRecipientsTable.tsx`), el modal de detalle del mensaje y el archivo Excel exportado muestran la causa en español claro.
 
 ## [0.2.24] - 2026-11-09
@@ -40,25 +50,25 @@ All notable changes to this project will be documented in this file.
 - **Exportación Ejecutiva de Métricas a Excel (.xlsx multi-pestaña) y Reporte PDF / Imprimible (`AnalyticsPrintReportModal.tsx`, `analytics-export.service.ts`, `analytics-translations.ts`, `DashboardOverview.tsx`, `AnalyticsDashboard.tsx`)**:
   - _Problema_:
     1. El sistema carecía de una herramienta para exportar o imprimir reportes ejecutivos consolidados para reuniones gerenciales y auditorías operativas.
-    2. Al desplegar el modal de vista previa imprimible, el contenedor padre con animación CSS (`animate-fade-up` con `transform`) creaba un nuevo *containing block* para `position: fixed`, desplazando el modal hacia abajo y cortándolo en pantallas estándar o móviles.
+    2. Al desplegar el modal de vista previa imprimible, el contenedor padre con animación CSS (`animate-fade-up` con `transform`) creaba un nuevo _containing block_ para `position: fixed`, desplazando el modal hacia abajo y cortándolo en pantallas estándar o móviles.
     3. Métricas en cero o asesores sin actividad mostraban `N/D` (confundible con error de datos) en tiempos de espera y atención.
-    4. La tabla de motivos de escalamiento mostraba filas duplicadas para un mismo motivo (ej: *"Caso resuelto"* repetido) debido a que la consulta SQL agrupaba por `(reason, workflow_type)` pero la UI omitía la columna de proceso.
+    4. La tabla de motivos de escalamiento mostraba filas duplicadas para un mismo motivo (ej: _"Caso resuelto"_ repetido) debido a que la consulta SQL agrupaba por `(reason, workflow_type)` pero la UI omitía la columna de proceso.
     5. Los tiempos de resolución y atención se expresaban en segundos crudos (ej: `6763s`), dificultando la lectura ágil.
     6. Desde el dashboard principal (`/`) no existía acceso directo al reporte gerencial sin navegar hasta analíticas.
   - _Solución_:
     1. **Exportación Multi-Pestaña a Excel (`analytics-export.service.ts`)**:
-       - Generación de archivo Excel nativo estructurado en 4 hojas temáticas: *Resumen Ejecutivo*, *Capacidad y Saturación*, *Rendimiento Asesores* y *Motivos y Tráfico*.
+       - Generación de archivo Excel nativo estructurado en 4 hojas temáticas: _Resumen Ejecutivo_, _Capacidad y Saturación_, _Rendimiento Asesores_ y _Motivos y Tráfico_.
     2. **Modal Ejecutivo Imprimible / PDF con React Portal (`AnalyticsPrintReportModal.tsx`)**:
-       - Renderizado desacoplado mediante `createPortal(modalContent, document.body)` para escapar de la trampa de *containing block* CSS, asegurando centrado responsivo absoluto (Mobile-first, 320px hasta 4K/Ultrawide `xl:max-w-6xl`).
+       - Renderizado desacoplado mediante `createPortal(modalContent, document.body)` para escapar de la trampa de _containing block_ CSS, asegurando centrado responsivo absoluto (Mobile-first, 320px hasta 4K/Ultrawide `xl:max-w-6xl`).
        - Encabezado sticky con controles de descarga (`Excel`, `Imprimir / PDF`, `Cerrar`) y área de lectura con scroll independiente (`max-h-[84vh]`).
        - Reglas `@media print` optimizadas para hojas tamaño A4 vertical con saltos de página limpios (`break-inside: avoid`) y márgenes balanceados.
     3. **Semáforo de Capacidad Instalada y Saturación por Área**:
-       - Sección *"5. Capacidad Instalada y Semáforo de Saturación por Área"* que desglosa en tiempo real cupos por asesor, asesores en turno, cupo total instalado, casos activos atendidos, ocupación porcentual (%) y estado de saturación operativo.
+       - Sección _"5. Capacidad Instalada y Semáforo de Saturación por Área"_ que desglosa en tiempo real cupos por asesor, asesores en turno, cupo total instalado, casos activos atendidos, ocupación porcentual (%) y estado de saturación operativo.
     4. **Formateo Humano de Tiempos y Consolidación de Motivos (`analytics-translations.ts`)**:
        - Conversión de segundos y minutos a formato legible (ej: `6763s` $\to$ `1h 53m`, `0 seg (inmediato)` para esperas nulas, `-` para asesores sin actividad).
        - Consolidación y reagrupación de motivos duplicados sumando frecuencias y recalculando porcentajes relativos en el cliente.
     5. **Acceso Rápido desde Cockpit Operativo (`DashboardOverview.tsx`)**:
-       - Botón directo *"Reporte Ejecutivo"* en el encabezado del panel principal (`/`).
+       - Botón directo _"Reporte Ejecutivo"_ en el encabezado del panel principal (`/`).
 
 - **Indicadores Visuales de Reintento Secuencial en Campañas Masivas (`CampaignRecipientsTable.tsx`, `campaign.ts`)**:
   - Incorporación de insignias y tooltips que indican el número de reintento (`retryCount`/`maxRetries`), próxima fecha de ejecución y último error cuando un envío sufre un fallo transitorio de WhatsApp.

@@ -86,7 +86,10 @@ export function AnalyticsPrintReportModal({
       totalCount += r.count;
     }
     return Array.from(map.values())
-      .map((item) => ({ ...item, percentage: totalCount > 0 ? (item.count / totalCount) * 100 : 0 }))
+      .map((item) => ({
+        ...item,
+        percentage: totalCount > 0 ? (item.count / totalCount) * 100 : 0,
+      }))
       .sort((a, b) => b.count - a.count);
   }, [distribution?.topEscalationReasons]);
 
@@ -108,7 +111,12 @@ export function AnalyticsPrintReportModal({
         const maxPerAgent = d.maxConcurrentCases || 6;
         const totalCapacity = onShift * maxPerAgent;
         const activeHandled = deptAgents.reduce((acc, a) => acc + (a.activeCasesNow || 0), 0);
-        const occupancy = totalCapacity > 0 ? Math.min(Math.round((activeHandled / totalCapacity) * 100), 100) : activeHandled > 0 ? 100 : 0;
+        const occupancy =
+          totalCapacity > 0
+            ? Math.min(Math.round((activeHandled / totalCapacity) * 100), 100)
+            : activeHandled > 0
+              ? 100
+              : 0;
         let badge = "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
         let label = "Disponible";
         if (totalCapacity === 0 && deptAgents.length === 0) {
@@ -121,7 +129,17 @@ export function AnalyticsPrintReportModal({
           badge = "bg-amber-500/15 text-amber-700 border-amber-500/30";
           label = "Moderado";
         }
-        return { d, deptAgents, onShift, maxPerAgent, totalCapacity, activeHandled, occupancy, badge, label };
+        return {
+          d,
+          deptAgents,
+          onShift,
+          maxPerAgent,
+          totalCapacity,
+          activeHandled,
+          occupancy,
+          badge,
+          label,
+        };
       });
   }, [departments, agentsPerformance]);
 
@@ -130,30 +148,52 @@ export function AnalyticsPrintReportModal({
   const areaLabel = departmentName || "Toda la empresa (Global)";
   const periodLabel = `Desde: ${formatDateLabel(filters.from)} | Hasta: ${formatDateLabel(filters.to)}`;
   const generatedAt = new Date().toLocaleString("es-EC", {
-    year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   const kpis = [
     { label: "Total Casos", val: overview?.totalCases ?? 0, color: "text-slate-900" },
-    { label: "Completados / Resueltos", val: overview?.completedCases ?? 0, color: "text-emerald-700" },
-    { label: "Contención IA", val: `${overview?.botContainmentRate?.toFixed(1) ?? "0.0"}%`, color: "text-sky-700" },
-    { label: "Tasa Escalamiento", val: `${overview?.escalationRate?.toFixed(1) ?? "0.0"}%`, color: "text-amber-700" },
+    {
+      label: "Completados / Resueltos",
+      val: overview?.completedCases ?? 0,
+      color: "text-emerald-700",
+    },
+    {
+      label: "Contención IA",
+      val: `${overview?.botContainmentRate?.toFixed(1) ?? "0.0"}%`,
+      color: "text-sky-700",
+    },
+    {
+      label: "Tasa Escalamiento",
+      val: `${overview?.escalationRate?.toFixed(1) ?? "0.0"}%`,
+      color: "text-amber-700",
+    },
     {
       label: "Tiempo Resolución",
-      val: overview?.avgResolutionTimeMinutes != null && overview.avgResolutionTimeMinutes > 0
-        ? `${formatDurationMinutes(overview.avgResolutionTimeMinutes)} (${overview.avgResolutionTimeMinutes.toFixed(1)}m)`
-        : "0m",
+      val:
+        overview?.avgResolutionTimeMinutes != null && overview.avgResolutionTimeMinutes > 0
+          ? `${formatDurationMinutes(overview.avgResolutionTimeMinutes)} (${overview.avgResolutionTimeMinutes.toFixed(1)}m)`
+          : "0m",
       color: "text-slate-900",
     },
     {
       label: "Espera en Cola",
-      val: overview?.avgQueueWaitTimeSeconds != null && overview.avgQueueWaitTimeSeconds > 0
-        ? formatDurationSeconds(overview.avgQueueWaitTimeSeconds)
-        : "0 seg (inmediato)",
+      val:
+        overview?.avgQueueWaitTimeSeconds != null && overview.avgQueueWaitTimeSeconds > 0
+          ? formatDurationSeconds(overview.avgQueueWaitTimeSeconds)
+          : "0 seg (inmediato)",
       color: "text-slate-900",
     },
     { label: "Casos Activos", val: overview?.activeCases ?? 0, color: "text-slate-900" },
-    { label: "Resueltos 100% IA", val: aiEfficiency?.botCompletedCases ?? 0, color: "text-slate-900" },
+    {
+      label: "Resueltos 100% IA",
+      val: aiEfficiency?.botCompletedCases ?? 0,
+      color: "text-slate-900",
+    },
   ];
 
   const handleExcelExport = () => {
@@ -190,8 +230,12 @@ export function AnalyticsPrintReportModal({
         {/* Barra de Controles Fija */}
         <div className="no-print shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4.5 border-b border-border/70 bg-card">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-foreground">Vista Previa del Reporte Operativo</h2>
-            <p className="text-xs text-muted-foreground">Reporte ejecutivo con KPIs, rendimiento, procesos y capacidad instalada.</p>
+            <h2 className="text-sm sm:text-base font-bold text-foreground">
+              Vista Previa del Reporte Operativo
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Reporte ejecutivo con KPIs, rendimiento, procesos y capacidad instalada.
+            </p>
           </div>
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
@@ -238,8 +282,12 @@ export function AnalyticsPrintReportModal({
                 </p>
               </div>
               <div className="text-left sm:text-right text-[11px] text-slate-600 space-y-0.5 shrink-0">
-                <p><strong>Período:</strong> {periodLabel}</p>
-                <p><strong>Emisión:</strong> {generatedAt}</p>
+                <p>
+                  <strong>Período:</strong> {periodLabel}
+                </p>
+                <p>
+                  <strong>Emisión:</strong> {generatedAt}
+                </p>
               </div>
             </div>
 
@@ -251,7 +299,9 @@ export function AnalyticsPrintReportModal({
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
                 {kpis.map((k, i) => (
                   <div key={i} className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase">{k.label}</span>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase">
+                      {k.label}
+                    </span>
                     <p className={`text-lg font-bold ${k.color}`}>{k.val}</p>
                   </div>
                 ))}
@@ -267,19 +317,33 @@ export function AnalyticsPrintReportModal({
                 <div className="border border-slate-200 rounded-lg overflow-x-auto">
                   <table className="w-full text-left text-xs min-w-[280px]">
                     <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                      <tr><th className="py-1.5 px-3">Proceso</th><th className="py-1.5 px-3 text-right">Casos</th><th className="py-1.5 px-3 text-right">%</th></tr>
+                      <tr>
+                        <th className="py-1.5 px-3">Proceso</th>
+                        <th className="py-1.5 px-3 text-right">Casos</th>
+                        <th className="py-1.5 px-3 text-right">%</th>
+                      </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {distribution?.byWorkflow && distribution.byWorkflow.length > 0 ? (
                         distribution.byWorkflow.map((item) => (
                           <tr key={item.workflowType}>
-                            <td className="py-1 px-3 text-slate-800">{formatWorkflow(item.workflowType)}</td>
-                            <td className="py-1 px-3 text-right font-medium text-slate-700">{item.count}</td>
-                            <td className="py-1 px-3 text-right text-slate-500">{item.percentage.toFixed(1)}%</td>
+                            <td className="py-1 px-3 text-slate-800">
+                              {formatWorkflow(item.workflowType)}
+                            </td>
+                            <td className="py-1 px-3 text-right font-medium text-slate-700">
+                              {item.count}
+                            </td>
+                            <td className="py-1 px-3 text-right text-slate-500">
+                              {item.percentage.toFixed(1)}%
+                            </td>
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan={3} className="py-2 px-3 text-center text-slate-400">Sin datos de procesos</td></tr>
+                        <tr>
+                          <td colSpan={3} className="py-2 px-3 text-center text-slate-400">
+                            Sin datos de procesos
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
@@ -293,19 +357,33 @@ export function AnalyticsPrintReportModal({
                 <div className="border border-slate-200 rounded-lg overflow-x-auto">
                   <table className="w-full text-left text-xs min-w-[300px]">
                     <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                      <tr><th className="py-1.5 px-3">Motivo</th><th className="py-1.5 px-3 text-right">Casos</th><th className="py-1.5 px-3 text-right">%</th></tr>
+                      <tr>
+                        <th className="py-1.5 px-3">Motivo</th>
+                        <th className="py-1.5 px-3 text-right">Casos</th>
+                        <th className="py-1.5 px-3 text-right">%</th>
+                      </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {consolidatedReasons.length > 0 ? (
                         consolidatedReasons.slice(0, 5).map((r, idx) => (
                           <tr key={`${r.reason}-${idx}`}>
-                            <td className="py-1 px-3 text-slate-800 truncate max-w-[170px]">{formatEscalationReason(r.reason)}</td>
-                            <td className="py-1 px-3 text-right font-medium text-slate-700">{r.count}</td>
-                            <td className="py-1 px-3 text-right text-slate-500">{r.percentage.toFixed(1)}%</td>
+                            <td className="py-1 px-3 text-slate-800 truncate max-w-[170px]">
+                              {formatEscalationReason(r.reason)}
+                            </td>
+                            <td className="py-1 px-3 text-right font-medium text-slate-700">
+                              {r.count}
+                            </td>
+                            <td className="py-1 px-3 text-right text-slate-500">
+                              {r.percentage.toFixed(1)}%
+                            </td>
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan={3} className="py-2 px-3 text-center text-slate-400">Sin escalamientos registrados</td></tr>
+                        <tr>
+                          <td colSpan={3} className="py-2 px-3 text-center text-slate-400">
+                            Sin escalamientos registrados
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
@@ -336,28 +414,46 @@ export function AnalyticsPrintReportModal({
                     {sortedAgents.length > 0 ? (
                       sortedAgents.map((a) => (
                         <tr key={a.agentId}>
-                          <td className="py-1 px-3 font-medium text-slate-800 truncate max-w-[140px]">{a.agentName}</td>
-                          <td className="py-1 px-2 text-slate-600 truncate max-w-[110px]">{a.primaryDepartmentName || "Sin asignar"}</td>
+                          <td className="py-1 px-3 font-medium text-slate-800 truncate max-w-[140px]">
+                            {a.agentName}
+                          </td>
+                          <td className="py-1 px-2 text-slate-600 truncate max-w-[110px]">
+                            {a.primaryDepartmentName || "Sin asignar"}
+                          </td>
                           <td className="py-1 px-2 text-right text-slate-700">{a.casesAssigned}</td>
-                          <td className="py-1 px-2 text-right font-semibold text-emerald-700">{a.casesCompleted}</td>
-                          <td className="py-1 px-2 text-right text-slate-600">
-                            {a.avgFirstResponseTimeMs ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000)) : "-"}
+                          <td className="py-1 px-2 text-right font-semibold text-emerald-700">
+                            {a.casesCompleted}
                           </td>
                           <td className="py-1 px-2 text-right text-slate-600">
-                            {a.avgHandlingTimeMinutes ? formatDurationMinutes(a.avgHandlingTimeMinutes) : "-"}
+                            {a.avgFirstResponseTimeMs
+                              ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000))
+                              : "-"}
+                          </td>
+                          <td className="py-1 px-2 text-right text-slate-600">
+                            {a.avgHandlingTimeMinutes
+                              ? formatDurationMinutes(a.avgHandlingTimeMinutes)
+                              : "-"}
                           </td>
                           <td className="py-1 px-2 text-right text-slate-700">
-                            {a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined && a.casesAssigned > 0
+                            {a.fcrRatePercentage !== null &&
+                            a.fcrRatePercentage !== undefined &&
+                            a.casesAssigned > 0
                               ? `${a.fcrRatePercentage.toFixed(1)}%`
                               : "-"}
                           </td>
                           <td className="py-1 px-2 text-right font-medium text-slate-800">
-                            {a.avgCordialityScore !== null && a.avgCordialityScore !== undefined ? `${a.avgCordialityScore.toFixed(0)}/100` : "-"}
+                            {a.avgCordialityScore !== null && a.avgCordialityScore !== undefined
+                              ? `${a.avgCordialityScore.toFixed(0)}/100`
+                              : "-"}
                           </td>
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={8} className="py-2.5 px-3 text-center text-slate-400">No hay datos de asesores</td></tr>
+                      <tr>
+                        <td colSpan={8} className="py-2.5 px-3 text-center text-slate-400">
+                          No hay datos de asesores
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -387,13 +483,23 @@ export function AnalyticsPrintReportModal({
                       {capacityMetrics.map((c) => (
                         <tr key={c.d.id}>
                           <td className="py-1 px-3 font-medium text-slate-800">{c.d.name}</td>
-                          <td className="py-1 px-2 text-right text-slate-700">{c.onShift} / {c.deptAgents.length}</td>
+                          <td className="py-1 px-2 text-right text-slate-700">
+                            {c.onShift} / {c.deptAgents.length}
+                          </td>
                           <td className="py-1 px-2 text-right text-slate-600">{c.maxPerAgent}</td>
-                          <td className="py-1 px-2 text-right font-medium text-slate-800">{c.totalCapacity} cupos</td>
-                          <td className="py-1 px-2 text-right font-semibold text-slate-900">{c.activeHandled}</td>
-                          <td className="py-1 px-2 text-right font-bold text-slate-800">{c.occupancy}%</td>
+                          <td className="py-1 px-2 text-right font-medium text-slate-800">
+                            {c.totalCapacity} cupos
+                          </td>
+                          <td className="py-1 px-2 text-right font-semibold text-slate-900">
+                            {c.activeHandled}
+                          </td>
+                          <td className="py-1 px-2 text-right font-bold text-slate-800">
+                            {c.occupancy}%
+                          </td>
                           <td className="py-1 px-3 text-center">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.badge}`}>
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.badge}`}
+                            >
                               {c.label}
                             </span>
                           </td>

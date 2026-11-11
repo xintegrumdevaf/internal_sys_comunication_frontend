@@ -62,9 +62,27 @@ import type {
 import { toast } from "sonner";
 
 export const DEFAULT_TELEGRAM_TOPICS: TelegramTopicConfig[] = [
-  { id: "topic-sla", name: "Alertas de SLA & Demoras", category: "SLA", threadId: 10, enabled: true },
-  { id: "topic-infra", name: "Infraestructura & Fibra / OLT", category: "INFRASTRUCTURE", threadId: 20, enabled: true },
-  { id: "topic-digests", name: "Pulso Operativo Ejecutivo", category: "DIGEST", threadId: 30, enabled: true },
+  {
+    id: "topic-sla",
+    name: "Alertas de SLA & Demoras",
+    category: "SLA",
+    threadId: 10,
+    enabled: true,
+  },
+  {
+    id: "topic-infra",
+    name: "Infraestructura & Fibra / OLT",
+    category: "INFRASTRUCTURE",
+    threadId: 20,
+    enabled: true,
+  },
+  {
+    id: "topic-digests",
+    name: "Pulso Operativo Ejecutivo",
+    category: "DIGEST",
+    threadId: 30,
+    enabled: true,
+  },
 ];
 
 export const DEFAULT_TELEGRAM_ALERT_RULES: TelegramAlertRuleConfig[] = [
@@ -86,7 +104,8 @@ export const DEFAULT_TELEGRAM_ALERT_RULES: TelegramAlertRuleConfig[] = [
     unit: "reclamos",
     severity: "CRITICAL",
     enabled: true,
-    description: "Dispara aviso urgente si varios clientes del mismo sector reportan fallas en los últimos 30m.",
+    description:
+      "Dispara aviso urgente si varios clientes del mismo sector reportan fallas en los últimos 30m.",
   },
   {
     id: "rule-queue-overflow",
@@ -96,7 +115,8 @@ export const DEFAULT_TELEGRAM_ALERT_RULES: TelegramAlertRuleConfig[] = [
     unit: "casos en cola",
     severity: "WARNING",
     enabled: true,
-    description: "Avisa si la cola de espera de cualquier departamento supera este volumen sin agentes libres.",
+    description:
+      "Avisa si la cola de espera de cualquier departamento supera este volumen sin agentes libres.",
   },
 ];
 
@@ -153,7 +173,10 @@ export function TelegramSettingsCard() {
           ...data,
           topicsEnabled: Boolean(data.topicsEnabled),
           topics: data.topics && data.topics.length > 0 ? data.topics : DEFAULT_TELEGRAM_TOPICS,
-          alertRules: data.alertRules && data.alertRules.length > 0 ? data.alertRules : DEFAULT_TELEGRAM_ALERT_RULES,
+          alertRules:
+            data.alertRules && data.alertRules.length > 0
+              ? data.alertRules
+              : DEFAULT_TELEGRAM_ALERT_RULES,
         };
         setSettings(normalized);
         setSavedSettings(normalized);
@@ -167,7 +190,8 @@ export function TelegramSettingsCard() {
         setShowGuide(true);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al cargar configuración de Telegram";
+      const message =
+        err instanceof Error ? err.message : "Error al cargar configuración de Telegram";
       toast.error(message);
     } finally {
       setLoading(false);
@@ -206,7 +230,7 @@ export function TelegramSettingsCard() {
       } else {
         toast.info(
           "No se detectaron mensajes recientes. Asegurate de haber sumado tu bot al grupo con 'Añadir miembros' y escribir cualquier mensaje (ej. 'hola') en el grupo.",
-          { duration: 8000 }
+          { duration: 8000 },
         );
       }
     } catch (err: unknown) {
@@ -224,8 +248,12 @@ export function TelegramSettingsCard() {
       const normalized: TelegramSettings = {
         ...updated,
         topicsEnabled: Boolean(updated.topicsEnabled),
-        topics: updated.topics && updated.topics.length > 0 ? updated.topics : DEFAULT_TELEGRAM_TOPICS,
-        alertRules: updated.alertRules && updated.alertRules.length > 0 ? updated.alertRules : DEFAULT_TELEGRAM_ALERT_RULES,
+        topics:
+          updated.topics && updated.topics.length > 0 ? updated.topics : DEFAULT_TELEGRAM_TOPICS,
+        alertRules:
+          updated.alertRules && updated.alertRules.length > 0
+            ? updated.alertRules
+            : DEFAULT_TELEGRAM_ALERT_RULES,
       };
       setSettings(normalized);
       setSavedSettings(normalized);
@@ -257,7 +285,9 @@ export function TelegramSettingsCard() {
           const newId = String(res.migratedToChatId);
           setSettings((prev) => ({ ...prev, defaultChatId: newId }));
           setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
-          toast.success(`¡Conexión exitosa! Tu grupo se convirtió en Supergrupo. Se actualizó el Chat ID a ${newId} automáticamente.`);
+          toast.success(
+            `¡Conexión exitosa! Tu grupo se convirtió en Supergrupo. Se actualizó el Chat ID a ${newId} automáticamente.`,
+          );
         } else {
           toast.success(`Conexión exitosa con el bot @${res.bot?.username || res.bot?.first_name}`);
         }
@@ -277,7 +307,9 @@ export function TelegramSettingsCard() {
     try {
       const res = await settingsApi.checkTelegramAlerts();
       if (res.dispatchedCount > 0) {
-        toast.success(`Evaluación completada: se despacharon ${res.dispatchedCount} alertas a Telegram`);
+        toast.success(
+          `Evaluación completada: se despacharon ${res.dispatchedCount} alertas a Telegram`,
+        );
       } else {
         toast.info("Evaluación completada: sin alertas críticas pendientes en este momento");
       }
@@ -305,12 +337,16 @@ export function TelegramSettingsCard() {
           const newId = String(res.migratedToChatId);
           setSettings((prev) => ({ ...prev, defaultChatId: newId }));
           setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
-          toast.success(`¡Pulso emitido! Tu grupo se convirtió en Supergrupo. Se actualizó el Chat ID a ${newId} automáticamente.`);
+          toast.success(
+            `¡Pulso emitido! Tu grupo se convirtió en Supergrupo. Se actualizó el Chat ID a ${newId} automáticamente.`,
+          );
         } else {
           toast.success("Pulso operativo ejecutivo enviado a Telegram exitosamente");
         }
       } else {
-        toast.warning("El pulso no se emitió (revisá que el Chat ID sea válido y el bot sea administrador)");
+        toast.warning(
+          "El pulso no se emitió (revisá que el Chat ID sea válido y el bot sea administrador)",
+        );
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al emitir el digest";
@@ -338,12 +374,18 @@ export function TelegramSettingsCard() {
           const newId = String(res.migratedToChatId);
           setSettings((prev) => ({ ...prev, defaultChatId: newId }));
           setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
-          toast.success(`¡Mensaje enviado al hilo "${topic.name}"! Se actualizó el Chat ID a ${newId} automáticamente.`);
+          toast.success(
+            `¡Mensaje enviado al hilo "${topic.name}"! Se actualizó el Chat ID a ${newId} automáticamente.`,
+          );
         } else {
-          toast.success(`Mensaje de prueba enviado exitosamente al hilo "${topic.name}" (ID: ${topic.threadId})`);
+          toast.success(
+            `Mensaje de prueba enviado exitosamente al hilo "${topic.name}" (ID: ${topic.threadId})`,
+          );
         }
       } else {
-        toast.warning(`No se pudo enviar al hilo "${topic.name}". Verificá si el ID del hilo existe en tu supergrupo.`);
+        toast.warning(
+          `No se pudo enviar al hilo "${topic.name}". Verificá si el ID del hilo existe en tu supergrupo.`,
+        );
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al enviar mensaje al hilo";
@@ -366,17 +408,26 @@ export function TelegramSettingsCard() {
         botToken: getCleanBotToken(),
       });
       if (res?.ok) {
-        const catLabel = category === "SLA" ? "SLA" : category === "INFRASTRUCTURE" ? "Corte OLT" : "Saturación de Cola";
+        const catLabel =
+          category === "SLA"
+            ? "SLA"
+            : category === "INFRASTRUCTURE"
+              ? "Corte OLT"
+              : "Saturación de Cola";
         if (res.migratedToChatId) {
           const newId = String(res.migratedToChatId);
           setSettings((prev) => ({ ...prev, defaultChatId: newId }));
           setSavedSettings((prev) => ({ ...prev, defaultChatId: newId }));
-          toast.success(`¡Alerta (${catLabel}) enviada! Se actualizó el Chat ID a ${newId} automáticamente.`);
+          toast.success(
+            `¡Alerta (${catLabel}) enviada! Se actualizó el Chat ID a ${newId} automáticamente.`,
+          );
         } else {
           toast.success(`Alerta reactiva simulada (${catLabel}) enviada exitosamente a Telegram`);
         }
       } else {
-        toast.warning("No se pudo entregar la alerta de prueba. Verificá los permisos del bot en el grupo.");
+        toast.warning(
+          "No se pudo entregar la alerta de prueba. Verificá los permisos del bot en el grupo.",
+        );
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al simular alerta";
@@ -512,7 +563,9 @@ export function TelegramSettingsCard() {
       <Card className="border shadow-sm">
         <CardContent className="flex items-center justify-center py-12">
           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground mr-3" />
-          <span className="text-sm text-muted-foreground">Cargando configuración de Telegram...</span>
+          <span className="text-sm text-muted-foreground">
+            Cargando configuración de Telegram...
+          </span>
         </CardContent>
       </Card>
     );
@@ -550,7 +603,8 @@ export function TelegramSettingsCard() {
               )}
             </div>
             <CardDescription>
-              Canal ejecutivo de supervisión para gerentes y directores: alertas reactivas de SLA y OLT, pulso periódico automático y copilot interactivo con IA.
+              Canal ejecutivo de supervisión para gerentes y directores: alertas reactivas de SLA y
+              OLT, pulso periódico automático y copilot interactivo con IA.
             </CardDescription>
           </div>
 
@@ -565,7 +619,9 @@ export function TelegramSettingsCard() {
               <div className="flex items-center gap-2">
                 <div
                   className={`h-2.5 w-2.5 rounded-full ${
-                    settings.enabled ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]" : "bg-slate-400"
+                    settings.enabled
+                      ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]"
+                      : "bg-slate-400"
                   }`}
                 />
                 <div className="flex flex-col">
@@ -573,14 +629,18 @@ export function TelegramSettingsCard() {
                     {settings.enabled ? "Centinela Activo" : "Centinela Inactivo"}
                   </Label>
                   <span className="text-[10px] text-muted-foreground">
-                    {settings.enabled ? "Monitoreo y alertas en vivo" : "Alertas y comandos en pausa"}
+                    {settings.enabled
+                      ? "Monitoreo y alertas en vivo"
+                      : "Alertas y comandos en pausa"}
                   </span>
                 </div>
               </div>
               <Switch
                 id="telegram-enabled"
                 checked={settings.enabled}
-                onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, enabled: checked }))}
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({ ...prev, enabled: checked }))
+                }
               />
             </div>
 
@@ -591,7 +651,11 @@ export function TelegramSettingsCard() {
               variant={isDirty ? "default" : "outline"}
               className="gap-2 h-10 text-xs font-semibold px-4"
             >
-              {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
               {isDirty ? "Guardar Cambios" : "Guardado"}
             </Button>
           </div>
@@ -609,8 +673,9 @@ export function TelegramSettingsCard() {
               <div>
                 <span className="font-semibold text-slate-900 dark:text-slate-100">
                   El Centinela está actualmente inactivo:
-                </span>
-                {" "}No se emitirán alertas automáticas a Telegram (SLA, saturación o caídas de red) ni responderá a preguntas mientras esté apagado.
+                </span>{" "}
+                No se emitirán alertas automáticas a Telegram (SLA, saturación o caídas de red) ni
+                responderá a preguntas mientras esté apagado.
               </div>
             </div>
             <Button
@@ -640,12 +705,16 @@ export function TelegramSettingsCard() {
               <div>
                 <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   Guía Rápida: ¿Cómo obtener el Token, Chat ID y testear Telegram?
-                  <Badge variant="outline" className="text-[10px] bg-background text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-background text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800"
+                  >
                     Paso a Paso
                   </Badge>
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Hacé clic para ver el tutorial directo: crear el bot en @BotFather, vincular el grupo directivo y probar la conexión.
+                  Hacé clic para ver el tutorial directo: crear el bot en @BotFather, vincular el
+                  grupo directivo y probar la conexión.
                 </p>
               </div>
             </div>
@@ -680,9 +749,18 @@ export function TelegramSettingsCard() {
                       </a>
                       .
                     </li>
-                    <li>Escribile el comando <code>/newbot</code>.</li>
-                    <li>Elegí un nombre visible (ej: <code>Centinela ISP</code>) y luego un username único que termine en <code>bot</code> (ej: <code>CentinelaIsp_bot</code>).</li>
-                    <li>BotFather te responderá con el <b>Token HTTP API</b> (ej: <code>7123456789:AAEj_...</code>). Copialo y pegalo en el campo <b>Bot Token</b> abajo.</li>
+                    <li>
+                      Escribile el comando <code>/newbot</code>.
+                    </li>
+                    <li>
+                      Elegí un nombre visible (ej: <code>Centinela ISP</code>) y luego un username
+                      único que termine en <code>bot</code> (ej: <code>CentinelaIsp_bot</code>).
+                    </li>
+                    <li>
+                      BotFather te responderá con el <b>Token HTTP API</b> (ej:{" "}
+                      <code>7123456789:AAEj_...</code>). Copialo y pegalo en el campo{" "}
+                      <b>Bot Token</b> abajo.
+                    </li>
                   </ol>
                 </div>
 
@@ -695,23 +773,37 @@ export function TelegramSettingsCard() {
                     <h5 className="font-semibold text-foreground">Crear Grupo y obtener Chat ID</h5>
                   </div>
                   <ol className="list-disc list-inside space-y-1.5 text-muted-foreground text-[11px] leading-relaxed">
+                    <li>Creá un grupo en Telegram con tus gerentes/admins.</li>
                     <li>
-                      Creá un grupo en Telegram con tus gerentes/admins.
-                    </li>
-                    <li>
-                      <b>Sumá a tu propio bot al grupo:</b> Tocá el botón <b>"Añadir miembros"</b> arriba en el chat (o tocá el nombre del grupo arriba $\rightarrow$ <i>Añadir participantes</i>). <b>Buscá el username de tu bot</b>, seleccionalo y dale al tilde de confirmación. Luego dalé permisos de administrador.
+                      <b>Sumá a tu propio bot al grupo:</b> Tocá el botón <b>"Añadir miembros"</b>{" "}
+                      arriba en el chat (o tocá el nombre del grupo arriba $\rightarrow${" "}
+                      <i>Añadir participantes</i>). <b>Buscá el username de tu bot</b>, seleccionalo
+                      y dale al tilde de confirmación. Luego dalé permisos de administrador.
                     </li>
                     <li>
                       <b>Cómo obtener el Chat ID (3 formas):</b>
                       <ul className="list-circle list-inside pl-2 pt-0.5 space-y-1">
                         <li>
-                          <b>Detección Automática (Recomendado):</b> Escribí cualquier mensaje en el grupo (ej. <code>hola</code>) y presioná el botón <b>"Detectar Grupo"</b> abajo. ¡El sistema lo rellena solo!
+                          <b>Detección Automática (Recomendado):</b> Escribí cualquier mensaje en el
+                          grupo (ej. <code>hola</code>) y presioná el botón <b>"Detectar Grupo"</b>{" "}
+                          abajo. ¡El sistema lo rellena solo!
                         </li>
                         <li>
-                          <b>Vía Telegram Web:</b> Abrí el grupo en <a href="https://web.telegram.org" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">web.telegram.org</a>; la URL del navegador termina en <code>#-1002345678901</code>.
+                          <b>Vía Telegram Web:</b> Abrí el grupo en{" "}
+                          <a
+                            href="https://web.telegram.org"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sky-600 hover:underline"
+                          >
+                            web.telegram.org
+                          </a>
+                          ; la URL del navegador termina en <code>#-1002345678901</code>.
                         </li>
                         <li>
-                          <b>Vía bot auxiliar:</b> Buscá a <code>@myidbot</code>, sumalo al grupo y enviá <code>/getgroupid</code> (no uses RawDataBot ya que tiene bloqueada la entrada a grupos).
+                          <b>Vía bot auxiliar:</b> Buscá a <code>@myidbot</code>, sumalo al grupo y
+                          enviá <code>/getgroupid</code> (no uses RawDataBot ya que tiene bloqueada
+                          la entrada a grupos).
                         </li>
                       </ul>
                     </li>
@@ -724,16 +816,26 @@ export function TelegramSettingsCard() {
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-600 text-white text-[10px] font-bold">
                       3
                     </span>
-                    <h5 className="font-semibold text-foreground">Testear la Integración en Vivo</h5>
+                    <h5 className="font-semibold text-foreground">
+                      Testear la Integración en Vivo
+                    </h5>
                   </div>
                   <ol className="list-disc list-inside space-y-1.5 text-muted-foreground text-[11px] leading-relaxed">
-                    <li>Activá el switch superior <b>"Integración Habilitada"</b>.</li>
-                    <li>Dejá encendido el switch <b>"Enviar mensaje de muestra al chat"</b>.</li>
                     <li>
-                      Hacé clic en el botón amarillo <b>"Probar Bot (getMe)"</b>:
-                      el backend validará las credenciales y el bot enviará un mensaje de bienvenida real a tu grupo de Telegram.
+                      Activá el switch superior <b>"Integración Habilitada"</b>.
                     </li>
-                    <li>Al confirmar que llegó el mensaje, hacé clic en <b>"Guardar Configuración de Telegram"</b> abajo a la derecha.</li>
+                    <li>
+                      Dejá encendido el switch <b>"Enviar mensaje de muestra al chat"</b>.
+                    </li>
+                    <li>
+                      Hacé clic en el botón amarillo <b>"Probar Bot (getMe)"</b>: el backend
+                      validará las credenciales y el bot enviará un mensaje de bienvenida real a tu
+                      grupo de Telegram.
+                    </li>
+                    <li>
+                      Al confirmar que llegó el mensaje, hacé clic en{" "}
+                      <b>"Guardar Configuración de Telegram"</b> abajo a la derecha.
+                    </li>
                   </ol>
                 </div>
 
@@ -743,14 +845,27 @@ export function TelegramSettingsCard() {
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-600 text-white text-[10px] font-bold">
                       4
                     </span>
-                    <h5 className="font-semibold text-foreground">Temas (Forum Topics) Opcionales</h5>
+                    <h5 className="font-semibold text-foreground">
+                      Temas (Forum Topics) Opcionales
+                    </h5>
                   </div>
                   <ol className="list-disc list-inside space-y-1.5 text-muted-foreground text-[11px] leading-relaxed">
-                    <li>Si en tu grupo activaste la opción <b>Temas</b> (Foros) para separar alertas:</li>
                     <li>
-                      Para saber el <code>thread_id</code> de un tema: hacé clic derecho en cualquier mensaje de ese tema $\rightarrow$ <b>Copiar enlace del mensaje</b>. El enlace es <code>t.me/c/12345/<b>15</b>/20</code>; el número del medio (<code>15</code>) es el <b>ID del Hilo</b>.
+                      Si en tu grupo activaste la opción <b>Temas</b> (Foros) para separar alertas:
                     </li>
-                    <li>Podés crear un tema para SLA, otro para Caídas OLT y otro para Pulso Diario. Si no usás temas, dejalo vacío y todo irá al chat general.</li>
+                    <li>
+                      Para saber el <code>thread_id</code> de un tema: hacé clic derecho en
+                      cualquier mensaje de ese tema $\rightarrow$ <b>Copiar enlace del mensaje</b>.
+                      El enlace es{" "}
+                      <code>
+                        t.me/c/12345/<b>15</b>/20
+                      </code>
+                      ; el número del medio (<code>15</code>) es el <b>ID del Hilo</b>.
+                    </li>
+                    <li>
+                      Podés crear un tema para SLA, otro para Caídas OLT y otro para Pulso Diario.
+                      Si no usás temas, dejalo vacío y todo irá al chat general.
+                    </li>
                   </ol>
                 </div>
               </div>
@@ -800,7 +915,8 @@ export function TelegramSettingsCard() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Token HTTP API entregado por @BotFather. Se almacena seguro en el backend y se presenta enmascarado.
+                Token HTTP API entregado por @BotFather. Se almacena seguro en el backend y se
+                presenta enmascarado.
               </p>
             </div>
 
@@ -830,16 +946,23 @@ export function TelegramSettingsCard() {
                 id="default-chat-id"
                 placeholder="-1001234567890 o @MiCanalDirectivo"
                 value={settings.defaultChatId}
-                onChange={(e) => setSettings((prev) => ({ ...prev, defaultChatId: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, defaultChatId: e.target.value }))
+                }
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                ID numérico del grupo de gerencia (los supergrupos suelen comenzar con <code>-100</code>). ¡Sumá tu bot al grupo y hacé clic en <b>Detectar Grupo</b> para completarlo solo!
+                ID numérico del grupo de gerencia (los supergrupos suelen comenzar con{" "}
+                <code>-100</code>). ¡Sumá tu bot al grupo y hacé clic en <b>Detectar Grupo</b> para
+                completarlo solo!
               </p>
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="frontend-url" className="text-xs font-semibold flex items-center gap-1.5">
+              <Label
+                htmlFor="frontend-url"
+                className="text-xs font-semibold flex items-center gap-1.5"
+              >
                 <Globe className="h-3.5 w-3.5 text-sky-500" />
                 URL Pública de la Plataforma Web (Frontend)
               </Label>
@@ -851,7 +974,9 @@ export function TelegramSettingsCard() {
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                URL base del panel web que se abrirá al presionar botones en Telegram como <i>"Abrir caso en Panel"</i> o <i>"Atender caso"</i>. Si estás testeando desde tu celular, podés configurar acá tu túnel o IP local.
+                URL base del panel web que se abrirá al presionar botones en Telegram como{" "}
+                <i>"Abrir caso en Panel"</i> o <i>"Atender caso"</i>. Si estás testeando desde tu
+                celular, podés configurar acá tu túnel o IP local.
               </p>
             </div>
           </div>
@@ -887,7 +1012,10 @@ export function TelegramSettingsCard() {
                   onCheckedChange={setSendSampleOnTest}
                   disabled={!settings.defaultChatId}
                 />
-                <Label htmlFor="sample-msg-test" className="text-xs text-muted-foreground cursor-pointer">
+                <Label
+                  htmlFor="sample-msg-test"
+                  className="text-xs text-muted-foreground cursor-pointer"
+                >
                   Enviar mensaje de muestra al chat
                 </Label>
               </div>
@@ -897,14 +1025,18 @@ export function TelegramSettingsCard() {
               <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-md border border-emerald-200 dark:border-emerald-900">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>
-                  Bot autenticado: <b>@{testResult.bot.username || testResult.bot.first_name}</b> (ID: {testResult.bot.id})
+                  Bot autenticado: <b>@{testResult.bot.username || testResult.bot.first_name}</b>{" "}
+                  (ID: {testResult.bot.id})
                 </span>
               </div>
             )}
 
             <div className="w-full pt-1">
               <p className="text-[11px] text-muted-foreground bg-muted/30 dark:bg-muted/10 px-2.5 py-1.5 rounded-md border">
-                💡 <b>Validación segura sin guardar:</b> Las pruebas envían mensajes a Telegram usando lo que tengas escrito en pantalla en ese momento, <b>sin modificar ni sobreescribir la base de datos</b> hasta que confirmes con "Guardar Cambios".
+                💡 <b>Validación segura sin guardar:</b> Las pruebas envían mensajes a Telegram
+                usando lo que tengas escrito en pantalla en ese momento,{" "}
+                <b>sin modificar ni sobreescribir la base de datos</b> hasta que confirmes con
+                "Guardar Cambios".
               </p>
             </div>
           </div>
@@ -931,7 +1063,8 @@ export function TelegramSettingsCard() {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Elegí cómo querés recibir los avisos en tu grupo de Telegram: en un solo chat o divididos en foros.
+                Elegí cómo querés recibir los avisos en tu grupo de Telegram: en un solo chat o
+                divididos en foros.
               </p>
             </div>
 
@@ -987,12 +1120,18 @@ export function TelegramSettingsCard() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Todos los avisos de SLA, caídas de fibra y pulsos operativos ejecutivos se enviarán directamente al <b>chat principal de tu grupo</b> (un único flujo continuo).
+                    Todos los avisos de SLA, caídas de fibra y pulsos operativos ejecutivos se
+                    enviarán directamente al <b>chat principal de tu grupo</b> (un único flujo
+                    continuo).
                   </p>
                   <div className="pt-2 text-xs text-muted-foreground space-y-1 border-t border-sky-200/50 dark:border-sky-900/40">
-                    <p className="font-semibold text-foreground/80">¿Cuándo usar el Modo Temas / Foros?</p>
+                    <p className="font-semibold text-foreground/80">
+                      ¿Cuándo usar el Modo Temas / Foros?
+                    </p>
                     <p>
-                      Solo si en Telegram entraste a los ajustes de tu grupo y activaste la opción <b>"Temas" (Foros)</b>. Eso divide el grupo en pestañas separadas. Si tu grupo es normal, <b>mantené este Modo Chat Único</b>.
+                      Solo si en Telegram entraste a los ajustes de tu grupo y activaste la opción{" "}
+                      <b>"Temas" (Foros)</b>. Eso divide el grupo en pestañas separadas. Si tu grupo
+                      es normal, <b>mantené este Modo Chat Único</b>.
                     </p>
                   </div>
                 </div>
@@ -1016,7 +1155,8 @@ export function TelegramSettingsCard() {
                 <div className="flex items-center gap-2">
                   <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                   <span>
-                    <b>Modo Temas Activo:</b> Cada categoría se envía al hilo (<code>message_thread_id</code>) correspondiente.
+                    <b>Modo Temas Activo:</b> Cada categoría se envía al hilo (
+                    <code>message_thread_id</code>) correspondiente.
                   </span>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -1043,129 +1183,135 @@ export function TelegramSettingsCard() {
               </div>
 
               <div className="space-y-2.5">
-              {settings.topics && settings.topics.length > 0 ? (
-                settings.topics.map((topic) => (
-                  <div
-                    key={topic.id}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 shrink-0">
-                      <Switch
-                        id={`topic-switch-${topic.id}`}
-                        checked={topic.enabled}
-                        onCheckedChange={(checked) => handleUpdateTopic(topic.id, { enabled: checked })}
-                      />
-                      <Badge
-                        variant={topic.enabled ? "default" : "secondary"}
-                        className="text-[11px] font-normal"
-                      >
-                        {topic.enabled ? "Activo" : "Silenciado"}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground font-medium">
-                          Nombre del Tema
-                        </Label>
-                        <Input
-                          value={topic.name}
-                          onChange={(e) => handleUpdateTopic(topic.id, { name: e.target.value })}
-                          placeholder="Ej. Alertas de SLA"
-                          className="h-8 text-xs"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground font-medium">
-                          Categoría de Avisos
-                        </Label>
-                        <Select
-                          value={topic.category}
-                          onValueChange={(val) =>
-                            handleUpdateTopic(topic.id, { category: val as TelegramTopicCategory })
+                {settings.topics && settings.topics.length > 0 ? (
+                  settings.topics.map((topic) => (
+                    <div
+                      key={topic.id}
+                      className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Switch
+                          id={`topic-switch-${topic.id}`}
+                          checked={topic.enabled}
+                          onCheckedChange={(checked) =>
+                            handleUpdateTopic(topic.id, { enabled: checked })
                           }
+                        />
+                        <Badge
+                          variant={topic.enabled ? "default" : "secondary"}
+                          className="text-[11px] font-normal"
                         >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="SLA">Alertas de SLA & Esperas</SelectItem>
-                            <SelectItem value="INFRASTRUCTURE">Infraestructura & Fibra / OLT</SelectItem>
-                            <SelectItem value="DIGEST">Pulso Operativo (Digests)</SelectItem>
-                            <SelectItem value="QUEUE">Desborde de Cola</SelectItem>
-                            <SelectItem value="QUALITY">Supervisión de Calidad IA</SelectItem>
-                            <SelectItem value="GENERAL">Avisos Generales</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          {topic.enabled ? "Activo" : "Silenciado"}
+                        </Badge>
                       </div>
 
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground font-medium">
-                          ID del Hilo (thread_id)
-                        </Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={topic.threadId || ""}
-                          onChange={(e) =>
-                            handleUpdateTopic(topic.id, {
-                              threadId: Number(e.target.value) || 1,
-                            })
-                          }
-                          placeholder="Ej. 12"
-                          className="h-8 text-xs font-mono"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground font-medium">
+                            Nombre del Tema
+                          </Label>
+                          <Input
+                            value={topic.name}
+                            onChange={(e) => handleUpdateTopic(topic.id, { name: e.target.value })}
+                            placeholder="Ej. Alertas de SLA"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground font-medium">
+                            Categoría de Avisos
+                          </Label>
+                          <Select
+                            value={topic.category}
+                            onValueChange={(val) =>
+                              handleUpdateTopic(topic.id, {
+                                category: val as TelegramTopicCategory,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SLA">Alertas de SLA & Esperas</SelectItem>
+                              <SelectItem value="INFRASTRUCTURE">
+                                Infraestructura & Fibra / OLT
+                              </SelectItem>
+                              <SelectItem value="DIGEST">Pulso Operativo (Digests)</SelectItem>
+                              <SelectItem value="QUEUE">Desborde de Cola</SelectItem>
+                              <SelectItem value="QUALITY">Supervisión de Calidad IA</SelectItem>
+                              <SelectItem value="GENERAL">Avisos Generales</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground font-medium">
+                            ID del Hilo (thread_id)
+                          </Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={topic.threadId || ""}
+                            onChange={(e) =>
+                              handleUpdateTopic(topic.id, {
+                                threadId: Number(e.target.value) || 1,
+                              })
+                            }
+                            placeholder="Ej. 12"
+                            className="h-8 text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleTestTopic(topic)}
+                          disabled={testingTopicId === topic.id}
+                          className="h-8 text-xs gap-1.5"
+                          title="Enviar mensaje de prueba a este hilo"
+                        >
+                          {testingTopicId === topic.id ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                          )}
+                          <span>Probar Hilo</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTopic(topic.id)}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                          title="Eliminar tema"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleTestTopic(topic)}
-                        disabled={testingTopicId === topic.id}
-                        className="h-8 text-xs gap-1.5"
-                        title="Enviar mensaje de prueba a este hilo"
-                      >
-                        {testingTopicId === topic.id ? (
-                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Send className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
-                        )}
-                        <span>Probar Hilo</span>
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteTopic(topic.id)}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                        title="Eliminar tema"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      No hay temas configurados. Los avisos se dirigirán al chat general.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetTopics}
+                      className="text-xs h-8"
+                    >
+                      Restablecer temas recomendados
+                    </Button>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    No hay temas configurados. Los avisos se dirigirán al chat general.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResetTopics}
-                    className="text-xs h-8"
-                  >
-                    Restablecer temas recomendados
-                  </Button>
-                </div>
-              )}
+                )}
               </div>
             </div>
           )}
@@ -1195,7 +1341,8 @@ export function TelegramSettingsCard() {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Cuando está activo, el sistema genera y despacha automáticamente el reporte ejecutivo del ISP en los horarios configurados a continuación.
+                Cuando está activo, el sistema genera y despacha automáticamente el reporte
+                ejecutivo del ISP en los horarios configurados a continuación.
               </p>
             </div>
             <Switch
@@ -1308,7 +1455,9 @@ export function TelegramSettingsCard() {
               <h3 className="text-sm font-semibold tracking-wide uppercase text-foreground">
                 Umbrales del Centinela Reactivo
               </h3>
-              <Badge variant="outline" className="text-xs font-normal">Configurable</Badge>
+              <Badge variant="outline" className="text-xs font-normal">
+                Configurable
+              </Badge>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -1338,7 +1487,9 @@ export function TelegramSettingsCard() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            El Centinela supervisa continuamente casos desatendidos, colas de espera y caídas de infraestructura. Podés añadir nuevas reglas, ajustar umbrales, pausar o eliminar alertas según los requerimientos operativos.
+            El Centinela supervisa continuamente casos desatendidos, colas de espera y caídas de
+            infraestructura. Podés añadir nuevas reglas, ajustar umbrales, pausar o eliminar alertas
+            según los requerimientos operativos.
           </p>
 
           <div className="space-y-3">
@@ -1355,7 +1506,13 @@ export function TelegramSettingsCard() {
                       onCheckedChange={(checked) => handleUpdateRule(rule.id, { enabled: checked })}
                     />
                     <Badge
-                      variant={rule.enabled ? (rule.severity === "CRITICAL" ? "destructive" : "default") : "secondary"}
+                      variant={
+                        rule.enabled
+                          ? rule.severity === "CRITICAL"
+                            ? "destructive"
+                            : "default"
+                          : "secondary"
+                      }
                       className="text-[11px] font-normal"
                     >
                       {rule.enabled ? rule.severity : "Pausada"}
@@ -1374,7 +1531,9 @@ export function TelegramSettingsCard() {
                         className="h-8 text-xs font-medium"
                       />
                       {rule.description && (
-                        <p className="text-[10px] text-muted-foreground line-clamp-1">{rule.description}</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-1">
+                          {rule.description}
+                        </p>
                       )}
                     </div>
 
@@ -1431,7 +1590,9 @@ export function TelegramSettingsCard() {
                       <Select
                         value={rule.severity}
                         onValueChange={(val) =>
-                          handleUpdateRule(rule.id, { severity: val as "CRITICAL" | "WARNING" | "INFO" })
+                          handleUpdateRule(rule.id, {
+                            severity: val as "CRITICAL" | "WARNING" | "INFO",
+                          })
                         }
                       >
                         <SelectTrigger className="h-8 text-xs">
@@ -1480,7 +1641,8 @@ export function TelegramSettingsCard() {
             ) : (
               <div className="text-center py-6 border border-dashed rounded-lg bg-muted/10 space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  No hay reglas de alerta configuradas. El Centinela no evaluará anomalías reactivas.
+                  No hay reglas de alerta configuradas. El Centinela no evaluará anomalías
+                  reactivas.
                 </p>
                 <Button
                   type="button"
@@ -1513,7 +1675,8 @@ export function TelegramSettingsCard() {
                     Comandos en Grupo
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Permite enviar <code>/resumen</code>, <code>/sla</code>, <code>/agentes</code>, <code>/infra</code> y botones en línea.
+                    Permite enviar <code>/resumen</code>, <code>/sla</code>, <code>/agentes</code>,{" "}
+                    <code>/infra</code> y botones en línea.
                   </p>
                 </div>
                 <Switch
@@ -1533,7 +1696,8 @@ export function TelegramSettingsCard() {
                     Copilot con IA (Lenguaje Natural)
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Responde preguntas libres en el chat con Grounding determinístico sobre métricas reales.
+                    Responde preguntas libres en el chat con Grounding determinístico sobre métricas
+                    reales.
                   </p>
                 </div>
                 <Switch
@@ -1553,7 +1717,8 @@ export function TelegramSettingsCard() {
                 Sincronización de Webhook con Telegram
               </h4>
               <p className="text-xs text-muted-foreground">
-                Registra automáticamente la URL pública del backend y un token secreto en <code>api.telegram.org</code>.
+                Registra automáticamente la URL pública del backend y un token secreto en{" "}
+                <code>api.telegram.org</code>.
               </p>
             </div>
             <Button
@@ -1578,11 +1743,17 @@ export function TelegramSettingsCard() {
       <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t bg-muted/20 py-4">
         <div className="flex items-center gap-2">
           {isDirty ? (
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 text-xs shrink-0">
+            <Badge
+              variant="outline"
+              className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 text-xs shrink-0"
+            >
               Cambios pendientes
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 text-xs shrink-0">
+            <Badge
+              variant="outline"
+              className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 text-xs shrink-0"
+            >
               Sincronizado
             </Badge>
           )}
@@ -1647,7 +1818,11 @@ export function TelegramSettingsCard() {
               disabled={saving}
               className="h-8 text-xs gap-1.5 font-bold shadow-md bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-500"
             >
-              {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
               Guardar Cambios
             </Button>
           </div>

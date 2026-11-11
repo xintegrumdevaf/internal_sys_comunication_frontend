@@ -128,12 +128,7 @@ export interface TestNetworkConnectionResult {
 }
 
 export type TelegramTopicCategory =
-  | "SLA"
-  | "INFRASTRUCTURE"
-  | "DIGEST"
-  | "QUEUE"
-  | "QUALITY"
-  | "GENERAL";
+  "SLA" | "INFRASTRUCTURE" | "DIGEST" | "QUEUE" | "QUALITY" | "GENERAL";
 
 export interface TelegramTopicConfig {
   id: string;

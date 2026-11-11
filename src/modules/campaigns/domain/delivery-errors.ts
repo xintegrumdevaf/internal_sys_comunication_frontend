@@ -45,7 +45,11 @@ export function translateDeliveryError(
   }
 
   // 4. Error 131051: Límite de tipo de mensaje superado
-  if (codeStr === "131051" || lower.includes("131051") || lower.includes("unsupported message type")) {
+  if (
+    codeStr === "131051" ||
+    lower.includes("131051") ||
+    lower.includes("unsupported message type")
+  ) {
     return "Tipo de mensaje no admitido o se superó el límite de frecuencia para este tipo de contenido (Error Meta 131051).";
   }
 
@@ -79,13 +83,9 @@ export function translateDeliveryError(
   }
 
   // 9. Error 130429 o 429: Rate limit
-  if (
-    codeStr === "130429" ||
-    lower.includes("130429")
-  ) {
+  if (codeStr === "130429" || lower.includes("130429")) {
     return "Límite de tasa alcanzado: Se superó la cantidad de mensajes permitidos por segundo en Meta/Zernio (Error Rate Limit).";
   }
 
   return raw || "Error de entrega en WhatsApp / Meta";
 }
-
