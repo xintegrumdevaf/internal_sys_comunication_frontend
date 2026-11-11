@@ -8,6 +8,8 @@ import { calculateCampaignMetrics, campaignStatusMeta } from "../domain/campaign
 import { useCampaignDetails } from "../application/use-campaigns";
 import { CampaignFunnelCard, type ActiveFilter } from "./CampaignFunnelCard";
 import { CampaignRecipientsTable } from "./CampaignRecipientsTable";
+import * as XLSX from "xlsx";
+import { translateDeliveryError } from "../domain/delivery-errors";
 
 type Props = {
   campaignId: string | null;
@@ -47,26 +49,53 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
       })
     : "";
 
-  const handleDownloadFailedCsv = () => {
-    const failedItems = recipientsList.filter((r) => r.status === "failed");
+  const handleDownloadFailedExcel = () => {
+    const failedItems = recipientsList.filter((r) => {
+      const st = (r.status || "").toLowerCase();
+      return st === "failed" || st === "skipped";
+    });
     if (failedItems.length === 0) {
       toast.info("No hay contactos fallidos para descargar.");
       return;
     }
 
-    const headers = "number,name,errorMessage,updatedAt\n";
+    const headers = ["Teléfono", "Nombre", "Motivo del Fallo", "Fecha de Envío"];
+    const rows = failedItems.map((r) => [
+      r.phone || r.number || "",
+      r.name || "",
+      translateDeliveryError(r.errorMessage || r.customBody || r.body || ""),
+      r.sentAt || r.updatedAt ? new Date(r.sentAt || r.updatedAt!).toLocaleString("es-CO") : "",
+    ]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws["!cols"] = [{ wch: 18 }, { wch: 25 }, { wch: 75 }, { wch: 22 }];
+    XLSX.utils.book_append_sheet(wb, ws, "Destinatarios Fallidos");
+    XLSX.writeFile(wb, `fallidas_${campaign?.name || "campana"}.xlsx`);
+    toast.success(`Descargado Excel con ${failedItems.length} destinatarios fallidos.`);
+  };
+
+  const handleDownloadFailedCsv = () => {
+    const failedItems = recipientsList.filter((r) => {
+      const st = (r.status || "").toLowerCase();
+      return st === "failed" || st === "skipped";
+    });
+    if (failedItems.length === 0) {
+      toast.info("No hay contactos fallidos para descargar.");
+      return;
+    }
+
+    const headers = "sep=;\nTelefono;Nombre;Motivo_Fallo;Fecha\n";
     const rows = failedItems
       .map(
         (r) =>
-          `"${r.phone || r.number || ""}","${r.name || ""}","${(
-            r.errorMessage ||
-            r.body ||
-            ""
-          ).replace(/"/g, '""')}","${r.updatedAt || ""}"`,
+          `"${r.phone || r.number || ""}";"${r.name || ""}";"${translateDeliveryError(
+            r.errorMessage || r.customBody || r.body || "",
+          ).replace(/"/g, '""')}";"${r.sentAt || r.updatedAt || ""}"`,
       )
       .join("\n");
 
-    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + headers + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -172,11 +201,21 @@ export const CampaignDetailsDrawer: React.FC<Props> = ({ campaignId, onClose }) 
             <Button
               variant="outline"
               size="sm"
-              onClick={handleDownloadFailedCsv}
+              onClick={handleDownloadFailedExcel}
               className="text-xs font-semibold gap-1.5 rounded-xl cursor-pointer"
+              title="Descargar reporte en formato Microsoft Excel (.xlsx) con columnas separadas"
             >
               <Download className="w-3.5 h-3.5" />
-              Descargar fallidas (CSV)
+              Descargar fallidas (Excel)
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDownloadFailedCsv}
+              className="text-xs font-semibold gap-1 rounded-xl cursor-pointer text-muted-foreground hover:text-foreground"
+              title="Descargar en formato CSV (.csv)"
+            >
+              CSV
             </Button>
             <Button
               variant="default"

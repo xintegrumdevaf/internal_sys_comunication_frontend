@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.25] - 2026-11-11
+
+### Added & Fixed
+
+- **Descarga Nativa de Destinatarios Fallidos a Microsoft Excel (.xlsx) y Traducción de Errores al Español (`CampaignDetailsDrawer.tsx`, `CampaignRecipientsTable.tsx`, `delivery-errors.ts`)**:
+  - _Problema_:
+    1. Al presionar el botón "Descargar fallidas", aparecía una notificación *"No hay contactos fallidos para descargar"* a pesar de que el embudo y la tabla mostraban 3 contactos fallidos. Esto ocurría porque el filtro evaluaba `r.status === 'failed'` de forma sensible a mayúsculas, mientras que la API entrega `'FAILED'`.
+    2. Los archivos CSV descargados mostraban todas las columnas amontonadas en la columna A al abrirse en Microsoft Excel en español (debido a la discrepancia entre comas y punto y coma en configuraciones regionales de Windows).
+    3. Los motivos de fallo aparecían en inglés técnico crudo devuelto por Meta (ej. `"In order to maintain a healthy ecosystem engagement, the message failed to be delivered. (Meta Error 131049)"`), resultando incomprensibles para los asesores y supervisores comerciales.
+  - _Solución y Justificación_:
+    1. **Normalización Case-Insensitive del Estado**:
+       - Se corrigió el filtro en `CampaignDetailsDrawer.tsx` usando `(r.status || "").toLowerCase() === "failed" || (r.status || "").toLowerCase() === "skipped"`, detectando de forma confiable todos los contactos fallidos sin importar mayúsculas/minúsculas.
+    2. **Exportación Nativa a Microsoft Excel (.xlsx)**:
+       - Se implementó la generación directa de archivos `.xlsx` usando la librería `xlsx` (`XLSX.writeFile`).
+       - El reporte contiene 4 columnas estructuradas con anchos visuales auto-ajustados: `Teléfono`, `Nombre`, `Motivo del Fallo` y `Fecha de Envío`, abriendo limpiamente en Excel sin solapamiento de texto ni problemas de delimitadores.
+       - Se preservó una opción secundaria para CSV formateado con `sep=;\n`, delimitador `;` y BOM UTF-8 (`\uFEFF`).
+    3. **Traducción Integral de Errores de Meta al Español (`delivery-errors.ts`)**:
+       - Se creó el módulo de traducción en frontend que traduce códigos y descripciones de Meta Cloud API (`131049` límite de marketing, `131047` ventana 24h, `131026` sin WhatsApp, `131056` variables, `130429` rate limit, etc.).
+       - En el caso del error `131049`, se explica claramente: *"Límite de protección de Meta: Meta bloqueó la entrega para evitar saturar al destinatario con mensajes de marketing/campaña (Error Meta 131049)"*.
+       - Tanto la tabla de destinatarios (`CampaignRecipientsTable.tsx`), el modal de detalle del mensaje y el archivo Excel exportado muestran la causa en español claro.
+
 ## [0.2.24] - 2026-11-09
 
 ### Added & Improved
