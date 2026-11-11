@@ -548,15 +548,6 @@ export function TelegramSettingsCard() {
                   Inactivo / En Pausa
                 </Badge>
               )}
-              {isDirty ? (
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 text-xs">
-                  Cambios sin guardar
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 text-xs">
-                  Guardado
-                </Badge>
-              )}
             </div>
             <CardDescription>
               Canal ejecutivo de supervisión para gerentes y directores: alertas reactivas de SLA y OLT, pulso periódico automático y copilot interactivo con IA.
@@ -634,26 +625,7 @@ export function TelegramSettingsCard() {
             </Button>
           </div>
         )}
-        {/* BANNER INFORMATIVO CUANDO HAY CAMBIOS PENDIENTES */}
-        {isDirty && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs shadow-xs animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>
-                <b>Modificaciones pendientes de confirmar:</b> Podés probar en vivo con lo que ingresaste en los campos (ej. pulsos, alertas o hilos), pero <b>no se guardarán en la base de datos</b> hasta que hagas clic en Guardar Cambios.
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <Button type="button" variant="ghost" size="sm" onClick={handleDiscard} className="h-7 text-xs text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50">
-                Descartar
-              </Button>
-              <Button type="button" size="sm" onClick={handleSave} disabled={saving} className="h-7 text-xs gap-1.5 font-semibold bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-500">
-                {saving ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                Guardar Cambios
-              </Button>
-            </div>
-          </div>
-        )}
+
         {/* GUÍA EXPLICATIVA PLEGABLE: CÓMO OBTENER TOKEN Y CHAT ID */}
         <div className="border border-sky-200 dark:border-sky-900/60 rounded-xl overflow-hidden bg-sky-50/40 dark:bg-sky-950/20 shadow-xs">
           <button
@@ -1654,7 +1626,7 @@ export function TelegramSettingsCard() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
             </span>
             <span className="font-semibold text-foreground text-xs hidden sm:inline">
-              Tenés cambios sin guardar
+              Cambios sin guardar
             </span>
           </div>
           <div className="flex items-center gap-2">
