@@ -302,9 +302,7 @@ export const settingsApi = {
   /**
    * Actualiza la configuración de Telegram.
    */
-  updateTelegramSettings: async (
-    payload: Partial<TelegramSettings>,
-  ): Promise<TelegramSettings> => {
+  updateTelegramSettings: async (payload: Partial<TelegramSettings>): Promise<TelegramSettings> => {
     const res = await apiPut<TelegramSettings | { data: TelegramSettings }>(
       "/api/admin/settings/telegram",
       payload,
@@ -346,10 +344,10 @@ export const settingsApi = {
     chatId?: string;
     botToken?: string;
   }): Promise<{ ok: boolean; messageId?: number; migratedToChatId?: string }> => {
-    const res = await apiPost<{ ok: boolean; messageId?: number; migratedToChatId?: string } | { data: { ok: boolean; messageId?: number; migratedToChatId?: string } }>(
-      "/api/admin/settings/telegram/send-digest",
-      payload ?? {},
-    );
+    const res = await apiPost<
+      | { ok: boolean; messageId?: number; migratedToChatId?: string }
+      | { data: { ok: boolean; messageId?: number; migratedToChatId?: string } }
+    >("/api/admin/settings/telegram/send-digest", payload ?? {});
     return unwrap<{ ok: boolean; messageId?: number; migratedToChatId?: string }>(res);
   },
 

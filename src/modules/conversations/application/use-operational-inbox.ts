@@ -142,8 +142,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
               const isAssignedToMe = c.activeCase?.assignedAgentId === session?.id;
               const isMyDeptUnassigned = Boolean(
                 c.activeCase?.departmentId &&
-                  session?.departmentIds?.includes(c.activeCase.departmentId) &&
-                  !c.activeCase.assignedAgentId,
+                session?.departmentIds?.includes(c.activeCase.departmentId) &&
+                !c.activeCase.assignedAgentId,
               );
               return isAssignedToMe || isMyDeptUnassigned;
             }
@@ -303,7 +303,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     }
 
     // Optimísticamente garantizar que la conversación abierta tenga 0 en el badge local
-    setConversations((prev) => prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c)));
+    setConversations((prev) =>
+      prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c)),
+    );
     markConversationRead(selectedId);
 
     (async () => {

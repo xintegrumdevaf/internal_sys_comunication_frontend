@@ -38,7 +38,8 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedRecipientMessage, setSelectedRecipientMessage] = useState<RecipientMessageData | null>(null);
+  const [selectedRecipientMessage, setSelectedRecipientMessage] =
+    useState<RecipientMessageData | null>(null);
 
   // Filtrado de contactos
   const filteredRecipients = useMemo(() => {
@@ -166,7 +167,8 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
               ) : (
                 paginatedRecipients.map((r, idx) => {
                   const st = (r.status || "sent").toLowerCase();
-                  const isRetrying = (st === "pending" || st === "queued") && (r.retryCount ?? 0) > 0;
+                  const isRetrying =
+                    (st === "pending" || st === "queued") && (r.retryCount ?? 0) > 0;
                   const isFailed = st === "failed";
                   const isReplied = st === "replied";
                   const isRead = st === "read";
@@ -247,8 +249,16 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
                         <div className="flex flex-col">
                           <span>{r.updatedAt || "31/08 11:57"}</span>
                           {isRetrying && r.nextRetryAt && (
-                            <span className="text-[9px] text-amber-600 dark:text-amber-400 font-mono font-bold" title="Hora programada del próximo reintento">
-                              Reintenta: {new Date(r.nextRetryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                            <span
+                              className="text-[9px] text-amber-600 dark:text-amber-400 font-mono font-bold"
+                              title="Hora programada del próximo reintento"
+                            >
+                              Reintenta:{" "}
+                              {new Date(r.nextRetryAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              })}
                             </span>
                           )}
                         </div>
@@ -259,7 +269,11 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
                         {isFailed ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/10 text-red-500 border border-red-500/20"
-                            title={(r.retryCount ?? 0) >= 3 ? "Agotó los 3 reintentos automáticos" : "Fallo definitivo"}
+                            title={
+                              (r.retryCount ?? 0) >= 3
+                                ? "Agotó los 3 reintentos automáticos"
+                                : "Fallo definitivo"
+                            }
                           >
                             <AlertCircle className="w-3 h-3" />
                             {(r.retryCount ?? 0) >= 3 ? "Falló (3/3)" : "Falló"}
@@ -267,7 +281,11 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
                         ) : isRetrying ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
-                            title={r.nextRetryAt ? `Próximo reintento: ${new Date(r.nextRetryAt).toLocaleTimeString()}` : "Reintentando automáticamente"}
+                            title={
+                              r.nextRetryAt
+                                ? `Próximo reintento: ${new Date(r.nextRetryAt).toLocaleTimeString()}`
+                                : "Reintentando automáticamente"
+                            }
                           >
                             <RotateCw className="w-3 h-3 text-amber-600 dark:text-amber-400 animate-spin" />
                             Reintento {r.retryCount}/3

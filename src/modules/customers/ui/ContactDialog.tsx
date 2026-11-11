@@ -517,8 +517,10 @@ export function ContactDialog({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[...customer.contracts]
                   .sort((a, b) => {
-                    const aAct = a.status?.toLowerCase() === "active" || a.status?.toLowerCase() === "activo";
-                    const bAct = b.status?.toLowerCase() === "active" || b.status?.toLowerCase() === "activo";
+                    const aAct =
+                      a.status?.toLowerCase() === "active" || a.status?.toLowerCase() === "activo";
+                    const bAct =
+                      b.status?.toLowerCase() === "active" || b.status?.toLowerCase() === "activo";
                     if (aAct && !bAct) return -1;
                     if (!aAct && bAct) return 1;
                     return 0;
@@ -532,7 +534,9 @@ export function ContactDialog({
                         className="p-3 rounded-xl border border-border/80 bg-background text-xs space-y-1.5 shadow-2xs"
                       >
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-bold text-primary text-sm">#{c.contractNumber}</span>
+                          <span className="font-bold text-primary text-sm">
+                            #{c.contractNumber}
+                          </span>
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                               isStrictActive
@@ -543,38 +547,42 @@ export function ContactDialog({
                             {c.status}
                           </span>
                         </div>
-                    <div className="grid grid-cols-2 gap-1 text-[11px]">
-                      <p className="text-muted-foreground">
-                        Sector:{" "}
-                        <span className="font-semibold text-foreground">{c.sector || "N/A"}</span>
-                      </p>
-                      <p className="text-muted-foreground truncate">
-                        OLT:{" "}
-                        <span className="font-semibold text-foreground">
-                          {c.oltName || "Sin OLT"}
-                        </span>
-                        {c.pon ? (
-                          <span className="text-[10px] text-muted-foreground ml-1">
-                            (PON {c.pon})
-                          </span>
-                        ) : null}
-                      </p>
-                    </div>
-                    {c.serial && (
-                      <p className="text-muted-foreground text-[11px] truncate">
-                        Serial / MAC:{" "}
-                        <span className="font-mono font-medium text-foreground">{c.serial}</span>
-                      </p>
-                    )}
-                    {c.address && (
-                      <p className="text-muted-foreground text-[11px] pt-1 border-t border-border/40 mt-1 leading-snug break-words">
-                        <span className="font-semibold text-foreground">📍 Dirección:</span>{" "}
-                        {c.address}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                        <div className="grid grid-cols-2 gap-1 text-[11px]">
+                          <p className="text-muted-foreground">
+                            Sector:{" "}
+                            <span className="font-semibold text-foreground">
+                              {c.sector || "N/A"}
+                            </span>
+                          </p>
+                          <p className="text-muted-foreground truncate">
+                            OLT:{" "}
+                            <span className="font-semibold text-foreground">
+                              {c.oltName || "Sin OLT"}
+                            </span>
+                            {c.pon ? (
+                              <span className="text-[10px] text-muted-foreground ml-1">
+                                (PON {c.pon})
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
+                        {c.serial && (
+                          <p className="text-muted-foreground text-[11px] truncate">
+                            Serial / MAC:{" "}
+                            <span className="font-mono font-medium text-foreground">
+                              {c.serial}
+                            </span>
+                          </p>
+                        )}
+                        {c.address && (
+                          <p className="text-muted-foreground text-[11px] pt-1 border-t border-border/40 mt-1 leading-snug break-words">
+                            <span className="font-semibold text-foreground">📍 Dirección:</span>{" "}
+                            {c.address}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}

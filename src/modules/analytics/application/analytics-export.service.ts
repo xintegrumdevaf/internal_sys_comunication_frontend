@@ -79,11 +79,31 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
     ["Total de Casos Gestionados", overview?.totalCases ?? 0, "Casos"],
     ["Casos Activos en Curso", overview?.activeCases ?? 0, "Casos"],
     ["Casos Resueltos / Completados", overview?.completedCases ?? 0, "Casos"],
-    ["Tasa de Contención de IA", `${overview?.botContainmentRate?.toFixed(1) ?? 0}%`, "Resueltos sin intervención humana"],
-    ["Tasa de Escalamiento a Humano", `${overview?.escalationRate?.toFixed(1) ?? 0}%`, "Derivados a agentes"],
-    ["Tiempo Promedio de Resolución", overview?.avgResolutionTimeMinutes ? Number(overview.avgResolutionTimeMinutes.toFixed(1)) : 0, "Minutos"],
-    ["Tiempo Promedio de Espera en Cola", overview?.avgQueueWaitTimeSeconds ? Number(overview.avgQueueWaitTimeSeconds.toFixed(0)) : 0, "Segundos"],
-    ["Casos Escalados a Asesor", overview?.escalatedCases ?? (aiEfficiency?.humanEscalatedCases ?? 0), "Casos"],
+    [
+      "Tasa de Contención de IA",
+      `${overview?.botContainmentRate?.toFixed(1) ?? 0}%`,
+      "Resueltos sin intervención humana",
+    ],
+    [
+      "Tasa de Escalamiento a Humano",
+      `${overview?.escalationRate?.toFixed(1) ?? 0}%`,
+      "Derivados a agentes",
+    ],
+    [
+      "Tiempo Promedio de Resolución",
+      overview?.avgResolutionTimeMinutes ? Number(overview.avgResolutionTimeMinutes.toFixed(1)) : 0,
+      "Minutos",
+    ],
+    [
+      "Tiempo Promedio de Espera en Cola",
+      overview?.avgQueueWaitTimeSeconds ? Number(overview.avgQueueWaitTimeSeconds.toFixed(0)) : 0,
+      "Segundos",
+    ],
+    [
+      "Casos Escalados a Asesor",
+      overview?.escalatedCases ?? aiEfficiency?.humanEscalatedCases ?? 0,
+      "Casos",
+    ],
     ["Casos Resueltos 100% por IA", aiEfficiency?.botCompletedCases ?? 0, "Casos"],
     ["Casos Sin Asignar en Cola", overview?.unassignedCases ?? 0, "Casos"],
     ["Casos Desatendidos (Alerta)", overview?.unattendedCases ?? 0, "Casos"],
@@ -104,7 +124,11 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
     summaryRows.push(["Sin datos de procesos en el período", 0, "0.0%"]);
   }
 
-  summaryRows.push([], ["3. DISTRIBUCIÓN POR ESTADO FINAL"], ["Estado", "Casos", "Participación (%)"]);
+  summaryRows.push(
+    [],
+    ["3. DISTRIBUCIÓN POR ESTADO FINAL"],
+    ["Estado", "Casos", "Participación (%)"],
+  );
   if (distribution?.byFinalStatus && distribution.byFinalStatus.length > 0) {
     for (const item of distribution.byFinalStatus) {
       summaryRows.push([item.status, item.count, `${item.percentage.toFixed(1)}%`]);
@@ -147,7 +171,8 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
 
         let statusLabel = "Disponible";
         if (totalCapacity === 0 && deptAgents.length === 0) statusLabel = "Sin personal";
-        else if (occupancyPct >= 85 || (totalCapacity === 0 && activeHandled > 0)) statusLabel = "Saturado";
+        else if (occupancyPct >= 85 || (totalCapacity === 0 && activeHandled > 0))
+          statusLabel = "Saturado";
         else if (occupancyPct >= 60) statusLabel = "Moderado";
 
         return [
@@ -164,8 +189,14 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
 
     const wsCapacity = XLSX.utils.aoa_to_sheet([capacityHeaders, ...capacityRows]);
     wsCapacity["!cols"] = [
-      { wch: 26 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
-      { wch: 24 }, { wch: 20 }, { wch: 22 }, { wch: 18 },
+      { wch: 26 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 24 },
+      { wch: 20 },
+      { wch: 22 },
+      { wch: 18 },
     ];
     XLSX.utils.book_append_sheet(wb, wsCapacity, "Capacidad y Saturación");
   }
@@ -174,21 +205,41 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
   // HOJA 3: RENDIMIENTO INDIVIDUAL DE ASESORES
   // ==========================================
   const agentHeaders = [
-    "Asesor", "Departamento", "Rol", "Casos Asignados", "Casos Resueltos", "Casos Derivados",
-    "T. Primera Respuesta", "T. Medio Atención (min)", "FCR (% 1er Contacto)",
-    "Cordialidad (0-100)", "Casos Activos Ahora", "Alertas Críticas", "Auto-Asignación",
+    "Asesor",
+    "Departamento",
+    "Rol",
+    "Casos Asignados",
+    "Casos Resueltos",
+    "Casos Derivados",
+    "T. Primera Respuesta",
+    "T. Medio Atención (min)",
+    "FCR (% 1er Contacto)",
+    "Cordialidad (0-100)",
+    "Casos Activos Ahora",
+    "Alertas Críticas",
+    "Auto-Asignación",
   ];
 
   const agentRows = agentsPerformance.map((a) => {
-    const roleMap: Record<string, string> = { agent: "Asesor", manager: "Supervisor", admin: "Administrador" };
-    const firstReply = a.avgFirstResponseTimeMs ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000)) : "-";
-    const handlingTime = a.avgHandlingTimeMinutes ? formatDurationMinutes(a.avgHandlingTimeMinutes) : "-";
-    const fcr = a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined && a.casesAssigned > 0
-      ? `${a.fcrRatePercentage.toFixed(1)}%`
+    const roleMap: Record<string, string> = {
+      agent: "Asesor",
+      manager: "Supervisor",
+      admin: "Administrador",
+    };
+    const firstReply = a.avgFirstResponseTimeMs
+      ? formatDurationSeconds(Math.round(a.avgFirstResponseTimeMs / 1000))
       : "-";
-    const cordiality = a.avgCordialityScore !== null && a.avgCordialityScore !== undefined
-      ? Number(a.avgCordialityScore.toFixed(0))
+    const handlingTime = a.avgHandlingTimeMinutes
+      ? formatDurationMinutes(a.avgHandlingTimeMinutes)
       : "-";
+    const fcr =
+      a.fcrRatePercentage !== null && a.fcrRatePercentage !== undefined && a.casesAssigned > 0
+        ? `${a.fcrRatePercentage.toFixed(1)}%`
+        : "-";
+    const cordiality =
+      a.avgCordialityScore !== null && a.avgCordialityScore !== undefined
+        ? Number(a.avgCordialityScore.toFixed(0))
+        : "-";
 
     return [
       a.agentName,
@@ -209,8 +260,19 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
 
   const wsAgents = XLSX.utils.aoa_to_sheet([agentHeaders, ...agentRows]);
   wsAgents["!cols"] = [
-    { wch: 28 }, { wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
-    { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 },
+    { wch: 28 },
+    { wch: 22 },
+    { wch: 14 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 20 },
+    { wch: 22 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 16 },
+    { wch: 16 },
   ];
   XLSX.utils.book_append_sheet(wb, wsAgents, "Rendimiento Asesores");
 
@@ -235,14 +297,22 @@ export function buildAnalyticsWorkbook(params: AnalyticsExportParams): {
     detailsRows.push(["Sin escalamientos registrados", "N/D", 0, "0.0%"]);
   }
 
-  detailsRows.push([], ["2. DEMANDA Y TRÁFICO POR HORA DEL DÍA"], ["Hora", "Etiqueta", "Casos Registrados"]);
+  detailsRows.push(
+    [],
+    ["2. DEMANDA Y TRÁFICO POR HORA DEL DÍA"],
+    ["Hora", "Etiqueta", "Casos Registrados"],
+  );
   if (distribution?.hourlyDemand && distribution.hourlyDemand.length > 0) {
     for (const h of distribution.hourlyDemand) {
       detailsRows.push([h.hour, h.label, h.count]);
     }
   }
 
-  detailsRows.push([], ["3. TENDENCIA DIARIA (RITMO DE ENTRADA VS RESOLUCIÓN)"], ["Fecha", "Casos Ingresados", "Casos Resueltos"]);
+  detailsRows.push(
+    [],
+    ["3. TENDENCIA DIARIA (RITMO DE ENTRADA VS RESOLUCIÓN)"],
+    ["Fecha", "Casos Ingresados", "Casos Resueltos"],
+  );
   if (distribution?.dailyTrend && distribution.dailyTrend.length > 0) {
     for (const d of distribution.dailyTrend) {
       detailsRows.push([d.date, d.incoming, d.resolved]);

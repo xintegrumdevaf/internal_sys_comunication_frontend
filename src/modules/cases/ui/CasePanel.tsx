@@ -277,8 +277,16 @@ function CaseContextBody({
               const label = c.contractNumber ? "#" + c.contractNumber : c.sector || "Contrato";
               const sectorBadge = c.sector ? c.sector.toUpperCase() : null;
               const normalizedStatus = c.status?.toLowerCase().trim() || "";
-              const isInactive = ["anulado", "retirado", "rechazado", "inactivo", "cancelado", "baja"].includes(normalizedStatus);
-              const isStrictlyActive = normalizedStatus === "activo" || normalizedStatus === "active";
+              const isInactive = [
+                "anulado",
+                "retirado",
+                "rechazado",
+                "inactivo",
+                "cancelado",
+                "baja",
+              ].includes(normalizedStatus);
+              const isStrictlyActive =
+                normalizedStatus === "activo" || normalizedStatus === "active";
               return (
                 <button
                   key={c.id || c.contractNumber}

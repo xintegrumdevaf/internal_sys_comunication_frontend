@@ -89,9 +89,7 @@ describe("AnalyticsPrintReportModal", () => {
   });
 
   it("no renderiza nada cuando isOpen es false", () => {
-    const { container } = render(
-      <AnalyticsPrintReportModal {...defaultProps} isOpen={false} />
-    );
+    const { container } = render(<AnalyticsPrintReportModal {...defaultProps} isOpen={false} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -133,7 +131,7 @@ describe("AnalyticsPrintReportModal", () => {
     expect(exportSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         departmentName: "Soporte Técnico",
-      })
+      }),
     );
   });
 

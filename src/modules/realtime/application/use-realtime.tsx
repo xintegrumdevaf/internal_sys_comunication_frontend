@@ -177,7 +177,7 @@ export function sendTestDesktopNotification(): void {
  */
 export function useRealtimeSession(sessionOrUserId: SessionUser | string | null): void {
   const userId =
-    typeof sessionOrUserId === "string" ? sessionOrUserId : sessionOrUserId?.id ?? null;
+    typeof sessionOrUserId === "string" ? sessionOrUserId : (sessionOrUserId?.id ?? null);
   const userRole = typeof sessionOrUserId === "object" ? sessionOrUserId?.role : undefined;
   const userDepartmentIds =
     typeof sessionOrUserId === "object" && sessionOrUserId
@@ -217,8 +217,8 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
                 const isAssignedToMe = c.activeCase?.assignedAgentId === userId;
                 const isMyDeptUnassigned = Boolean(
                   c.activeCase?.departmentId &&
-                    userDepartmentIds.includes(c.activeCase.departmentId) &&
-                    !c.activeCase.assignedAgentId,
+                  userDepartmentIds.includes(c.activeCase.departmentId) &&
+                  !c.activeCase.assignedAgentId,
                 );
                 return isAssignedToMe || isMyDeptUnassigned;
               }
@@ -279,38 +279,38 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
             ? `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`
             : `/bandeja`;
 
-        toast.custom(
-          (t) => (
-            <RealtimeToastCard
-              type="assigned"
-              title="Se te asignó un caso"
-              customerName={event.customerName}
-              customerPhone={event.customerPhone}
-              actionLabel="Atender caso"
-              onAction={() => {
-                toast.dismiss(t);
-                window.location.href = targetUrl;
-              }}
-              onDismiss={() => toast.dismiss(t)}
-            />
-          ),
-          { duration: 10000 },
-        );
-        if (isAppInBackground()) {
-          playNotificationSound();
-          flashDocumentTitle("¡Nuevo caso asignado!");
-          const customerLabel =
-            event.customerName ||
-            (event.customerPhone ? formatWaPhone(event.customerPhone) : "Nuevo cliente");
-          sendDesktopNotification("🎯 Se te asignó un nuevo caso", {
-            body: `${customerLabel} ha sido asignado a tu bandeja listo para atender.`,
-            tag: `assigned-${event.caseId}`,
-            renotify: true,
-            data: { url: targetUrl },
-          });
+          toast.custom(
+            (t) => (
+              <RealtimeToastCard
+                type="assigned"
+                title="Se te asignó un caso"
+                customerName={event.customerName}
+                customerPhone={event.customerPhone}
+                actionLabel="Atender caso"
+                onAction={() => {
+                  toast.dismiss(t);
+                  window.location.href = targetUrl;
+                }}
+                onDismiss={() => toast.dismiss(t)}
+              />
+            ),
+            { duration: 10000 },
+          );
+          if (isAppInBackground()) {
+            playNotificationSound();
+            flashDocumentTitle("¡Nuevo caso asignado!");
+            const customerLabel =
+              event.customerName ||
+              (event.customerPhone ? formatWaPhone(event.customerPhone) : "Nuevo cliente");
+            sendDesktopNotification("🎯 Se te asignó un nuevo caso", {
+              body: `${customerLabel} ha sido asignado a tu bandeja listo para atender.`,
+              tag: `assigned-${event.caseId}`,
+              renotify: true,
+              data: { url: targetUrl },
+            });
+          }
         }
-      }
-    } else if (event.type === "CASE_SCHEDULED_REMINDER") {
+      } else if (event.type === "CASE_SCHEDULED_REMINDER") {
         const isAssignedToMe = Boolean(event.assignedAgentId && event.assignedAgentId === userId);
         const isMyDept = Boolean(
           event.departmentId && userDepartmentIds.includes(event.departmentId),
@@ -355,20 +355,21 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
         const isCurrentActiveChat = getActiveChatId() === event.conversationId;
         const inBackground = isAppInBackground();
 
-        const isAssignedToOther = Boolean(event.assignedAgentId && event.assignedAgentId !== userId);
+        const isAssignedToOther = Boolean(
+          event.assignedAgentId && event.assignedAgentId !== userId,
+        );
         const isAssignedToMe = Boolean(event.assignedAgentId && event.assignedAgentId === userId);
         const isMyDepartmentQueue = Boolean(
           event.departmentId &&
-            userDepartmentIds.includes(event.departmentId) &&
-            !event.assignedAgentId,
+          userDepartmentIds.includes(event.departmentId) &&
+          !event.assignedAgentId,
         );
         const isPrivilegedSupervisor = userRole === "manager" || userRole === "admin";
 
         // Filtro del badge de no leídos:
         // - Para managers y admins: se mantiene general para cualquier conversación
         // - Para agentes: solo cuentan mensajes de sus casos asignados o en cola de su área
-        const shouldCountUnread =
-          isPrivilegedSupervisor || isAssignedToMe || isMyDepartmentQueue;
+        const shouldCountUnread = isPrivilegedSupervisor || isAssignedToMe || isMyDepartmentQueue;
 
         if (!isCurrentActiveChat && shouldCountUnread) {
           markConversationUnread(event.conversationId);

@@ -65,7 +65,9 @@ describe("TelegramSettingsCard", () => {
 
     render(<TelegramSettingsCard />);
 
-    expect(await screen.findByText("Modo Chat Único Activo (Recomendado para grupos estándar)")).toBeDefined();
+    expect(
+      await screen.findByText("Modo Chat Único Activo (Recomendado para grupos estándar)"),
+    ).toBeDefined();
     expect(screen.getByText("Disparar Pulso Ahora (Prueba en Vivo)")).toBeDefined();
     expect(screen.getAllByText("Simular Alerta").length).toBeGreaterThan(0);
 
@@ -75,7 +77,9 @@ describe("TelegramSettingsCard", () => {
 
     // Volver a modo chat único
     fireEvent.click(screen.getByText("Volver a Chat Único"));
-    expect(await screen.findByText("Modo Chat Único Activo (Recomendado para grupos estándar)")).toBeDefined();
+    expect(
+      await screen.findByText("Modo Chat Único Activo (Recomendado para grupos estándar)"),
+    ).toBeDefined();
   });
 
   it("detecta cambios pendientes, muestra barra flotante y permite descartar", async () => {
@@ -115,4 +119,3 @@ describe("TelegramSettingsCard", () => {
     expect((chatIdInput as HTMLInputElement).value).toBe("-1001234567890");
   });
 });
-
