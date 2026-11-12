@@ -129,5 +129,63 @@ describe("calculateConversationSla", () => {
     const result = calculateConversationSla(closedConversation, DEFAULT_SLA_CONFIG);
     expect(result.isWaitingForResponse).toBe(false);
     expect(result.isBreached).toBe(false);
+    expect(result.isPaused).toBe(false);
+  });
+
+  it("pausa el SLA si la conversación está en espera (status: pending)", () => {
+    const pendingConversation: ConversationDto = {
+      ...baseConversation,
+      status: "pending",
+    };
+
+    const result = calculateConversationSla(pendingConversation, DEFAULT_SLA_CONFIG);
+    expect(result.isWaitingForResponse).toBe(false);
+    expect(result.isBreached).toBe(false);
+    expect(result.isPaused).toBe(true);
+    expect(result.status).toBe("paused");
+    expect(result.formattedShort).toBe("En espera");
+  });
+
+  it("pausa el SLA si el caso activo está esperando usuario (WAITING_USER) o pausado (PAUSED)", () => {
+    const waitingUserConversation: ConversationDto = {
+      ...baseConversation,
+      status: "open",
+      activeCase: {
+        id: "case-wait",
+        status: "WAITING_USER",
+        departmentId: "dept-1",
+        assignedAgentId: "agent-1",
+        automationEnabled: false,
+      },
+    };
+
+    const result = calculateConversationSla(waitingUserConversation, DEFAULT_SLA_CONFIG);
+    expect(result.isWaitingForResponse).toBe(false);
+    expect(result.isBreached).toBe(false);
+    expect(result.isPaused).toBe(true);
+    expect(result.status).toBe("paused");
+  });
+
+  it("pausa el SLA si el caso tiene un seguimiento o visita técnica agendada en el futuro", () => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const scheduledConversation: ConversationDto = {
+      ...baseConversation,
+      status: "open",
+      activeCase: {
+        id: "case-sched",
+        status: "HUMAN_ACTIVE",
+        departmentId: "dept-tech",
+        assignedAgentId: "agent-tech",
+        automationEnabled: false,
+        scheduledAt: tomorrow,
+        scheduleTag: "REVISIÓN TÉCNICA",
+      },
+    };
+
+    const result = calculateConversationSla(scheduledConversation, DEFAULT_SLA_CONFIG);
+    expect(result.isWaitingForResponse).toBe(false);
+    expect(result.isBreached).toBe(false);
+    expect(result.isPaused).toBe(true);
+    expect(result.status).toBe("paused");
   });
 });

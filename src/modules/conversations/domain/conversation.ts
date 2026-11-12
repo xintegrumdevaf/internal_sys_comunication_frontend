@@ -40,6 +40,8 @@ export type ConversationDto = {
     assignedAgentName?: string | null;
     automationEnabled: boolean;
     disabledReason?: string | null;
+    scheduledAt?: string | null;
+    scheduleTag?: string | null;
   };
   /**
    * En resueltas y cerradas: última persona asignada al caso.

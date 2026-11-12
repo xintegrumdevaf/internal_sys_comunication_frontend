@@ -830,7 +830,9 @@ export function OperationalInbox({
   const unattendedCount = useMemo(
     () =>
       openConversations.filter(
-        (c) => (c.unreadCount ?? 0) > 0 || calculateConversationSla(c, slaConfig).isBreached,
+        (c) =>
+          !calculateConversationSla(c, slaConfig).isPaused &&
+          ((c.unreadCount ?? 0) > 0 || calculateConversationSla(c, slaConfig).isBreached),
       ).length,
     [openConversations, slaConfig],
   );
@@ -858,9 +860,11 @@ export function OperationalInbox({
       // Estrictamente abiertas y sin agente asignado
       list = openConversations.filter((c) => !c.activeCase?.assignedAgentId);
     } else if (activeTab === "unattended") {
-      // Estrictamente abiertas con cliente en espera o SLA vencido
+      // Estrictamente abiertas con cliente en espera o SLA vencido (excluye casos con SLA pausado)
       list = openConversations.filter(
-        (c) => (c.unreadCount ?? 0) > 0 || calculateConversationSla(c, slaConfig).isBreached,
+        (c) =>
+          !calculateConversationSla(c, slaConfig).isPaused &&
+          ((c.unreadCount ?? 0) > 0 || calculateConversationSla(c, slaConfig).isBreached),
       );
     } else if (activeTab === "pending") {
       // Casos en pausa, agendados o esperando respuesta del cliente

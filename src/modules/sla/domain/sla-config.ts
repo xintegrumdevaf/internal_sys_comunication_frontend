@@ -21,8 +21,9 @@ export const DEFAULT_SLA_CONFIG: SlaConfigDto = {
 export type ConversationSlaStatus = {
   isWaitingForResponse: boolean;
   minutesWaiting: number;
-  status: "ok" | "warning" | "breached";
+  status: "ok" | "warning" | "breached" | "paused";
   isBreached: boolean;
+  isPaused: boolean;
   thresholdMinutes: number;
   formattedShort: string;
   formattedFull: string;
@@ -97,6 +98,7 @@ export function calculateConversationSla(
     minutesWaiting: 0,
     status: "ok",
     isBreached: false,
+    isPaused: false,
     thresholdMinutes: threshold,
     formattedShort: "0m",
     formattedFull: "0 minutos",
@@ -110,6 +112,31 @@ export function calculateConversationSla(
   const isResolvedOrClosed = conversation.status === "resolved" || conversation.status === "closed";
   if (isResolvedOrClosed) {
     return defaultZeroStatus(config.responseThresholdMinutes);
+  }
+
+  // Si la conversación está en espera, o el caso está en espera / pausado / agendado en el futuro,
+  // el SLA se pausa operativamente (estándar ITIL Service Desk: no corre tiempo de respuesta contra el asesor).
+  const isFutureScheduled = Boolean(
+    conversation.activeCase?.scheduledAt &&
+    new Date(conversation.activeCase.scheduledAt).getTime() > Date.now(),
+  );
+  const isPaused =
+    conversation.status === "pending" ||
+    conversation.activeCase?.status === "WAITING_USER" ||
+    conversation.activeCase?.status === "PAUSED" ||
+    isFutureScheduled;
+
+  if (isPaused) {
+    return {
+      isWaitingForResponse: false,
+      minutesWaiting: 0,
+      status: "paused",
+      isBreached: false,
+      isPaused: true,
+      thresholdMinutes: config.responseThresholdMinutes,
+      formattedShort: "En espera",
+      formattedFull: "SLA pausado (en espera)",
+    };
   }
 
   const lastPreview = conversation.lastMessagePreview;
@@ -158,6 +185,7 @@ export function calculateConversationSla(
     minutesWaiting,
     status: isBreached ? "breached" : isWarning ? "warning" : "ok",
     isBreached,
+    isPaused: false,
     thresholdMinutes: threshold,
     formattedShort: formatSlaWaitTime(minutesWaiting, "short"),
     formattedFull: formatSlaWaitTime(minutesWaiting, "full"),
