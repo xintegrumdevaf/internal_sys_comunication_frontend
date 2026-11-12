@@ -40,6 +40,7 @@ import { MessageMediaBody } from "@/modules/conversations/ui/MessageMediaBody";
 import { InboxStatusTabs } from "./InboxStatusTabs";
 import { ConversationListItem, ConversationListItemSkeleton } from "./ConversationListItem";
 import { usePreservedListScroll } from "./use-preserved-list-scroll";
+import { useChatAutoScroll } from "./use-chat-auto-scroll";
 import { ChatHeader } from "./ChatHeader";
 import { ChatSearchBar } from "./ChatSearchBar";
 import { ChatMessageItem } from "./ChatMessageItem";
@@ -653,7 +654,18 @@ export function OperationalInbox({
   });
 
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const {
+    scrollRef: messagesScrollRef,
+    contentRef: messagesContentRef,
+    onScroll: handleMessagesScroll,
+    stickToBottom: stickMessagesToBottom,
+  } = useChatAutoScroll({
+    conversationId: selectedId,
+    messageCount: messages.length,
+    firstMessageId: messages[0]?.id,
+    lastMessageId: messages[messages.length - 1]?.id,
+    extraKey: `${activeCase?.status ?? selected?.status ?? ""}:${automationState?.enabled ?? ""}`,
+  });
 
   const [currentSyncStatus, setCurrentSyncStatus] = useState<ZernioSyncStatus | null>(null);
   const [syncCompletedBanner, setSyncCompletedBanner] = useState<{
@@ -1034,12 +1046,6 @@ export function OperationalInbox({
     adjustTextareaHeight();
   }, [selectedId, setIsEmojiOpen, adjustTextareaHeight, clearPendingAttachment, setComposerDraft]);
 
-  useEffect(() => {
-    const el = messagesScrollRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages.length, selectedId]);
-
   const focusComposer = () => {
     const el = chatInputRef.current;
     if (!el || el.disabled) return;
@@ -1061,6 +1067,7 @@ export function OperationalInbox({
         if (chatInputRef.current) chatInputRef.current.style.height = "auto";
       }
       focusComposer();
+      stickMessagesToBottom();
       await sendMedia(snapshot.file, snapshot.kind, caption);
       focusComposer();
       return;
@@ -1075,6 +1082,7 @@ export function OperationalInbox({
       chatInputRef.current.style.height = "auto";
     }
     focusComposer();
+    stickMessagesToBottom();
     const ok = await sendReply(body);
     if (!ok && !draftRef.current.trim()) {
       if (selectedId) {
@@ -1597,99 +1605,102 @@ export function OperationalInbox({
 
               <div
                 ref={messagesScrollRef}
-                className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2.5 sm:p-3 space-y-1 bg-background/40"
+                onScroll={handleMessagesScroll}
+                className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2.5 sm:p-3 bg-background/40"
               >
-                {hasMoreMessages && (
-                  <div className="flex justify-center my-3">
-                    <button
-                      type="button"
-                      onClick={() => void loadOlderMessages()}
-                      disabled={loadingOlderMessages}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-background border border-border/80 text-xs font-semibold shadow-xs hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer disabled:opacity-50"
-                    >
-                      {loadingOlderMessages ? (
-                        <>
-                          <Loader2 className="size-3.5 animate-spin text-primary" />
-                          <span>Cargando mensajes anteriores...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ArrowUp className="size-3.5 text-primary" />
-                          <span>Cargar mensajes anteriores</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-                {messages.map((m) => {
-                  const day = dayLabel(m.createdAt);
-                  const showDaySeparator = day !== lastRenderedDay;
-                  lastRenderedDay = day;
-
-                  const fromCustomer = m.author === "customer";
-                  const senderKey = showDaySeparator
-                    ? ""
-                    : m.author === "agent"
-                      ? `agent_${m.agentId || m.agentName || "unknown"}`
-                      : m.author;
-                  const showSenderLabel = !fromCustomer && senderKey !== lastRenderedSender;
-                  lastRenderedSender = senderKey;
-
-                  return (
-                    <ChatMessageItem
-                      key={m.id}
-                      message={m}
-                      conversation={selected}
-                      directory={directory}
-                      session={session}
-                      isAssignedToMe={isAssignedToMe}
-                      assignedAgentName={assignedAgentName}
-                      showDaySeparator={showDaySeparator}
-                      day={day}
-                      showSenderLabel={showSenderLabel}
-                      onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
-                    />
-                  );
-                })}
-                {isClosedRecord &&
-                  !messages.some(
-                    (m) =>
-                      m.author === "system" &&
-                      (m.body?.includes("Caso completado") ||
-                        m.body?.includes("🔒") ||
-                        m.body?.toLowerCase().includes("caso cerrado") ||
-                        m.body?.toLowerCase().includes("completado por")),
-                  ) && (
-                    <div className="flex justify-center my-4 px-2 min-w-0 animate-fade-in">
-                      <div className="flex flex-col items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 text-xs font-semibold border border-emerald-500/30 shadow-xs max-w-md text-center leading-normal">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                          <span className="font-bold">
-                            Caso completado {closedByName ? `por ${closedByName}` : ""}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                          <span>Motivo: {closedReasonLabel}</span>
-                          {closedAtFormatted && (
-                            <>
-                              <span>•</span>
-                              <span>{closedAtFormatted}</span>
-                            </>
-                          )}
-                        </div>
-                        {closedResolutionNote && (
-                          <p className="text-[10px] italic text-muted-foreground/90 mt-1 border-t border-emerald-500/20 pt-1 w-full">
-                            "{closedResolutionNote}"
-                          </p>
+                <div ref={messagesContentRef} className="space-y-1">
+                  {hasMoreMessages && (
+                    <div className="flex justify-center my-3">
+                      <button
+                        type="button"
+                        onClick={() => void loadOlderMessages()}
+                        disabled={loadingOlderMessages}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-background border border-border/80 text-xs font-semibold shadow-xs hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer disabled:opacity-50"
+                      >
+                        {loadingOlderMessages ? (
+                          <>
+                            <Loader2 className="size-3.5 animate-spin text-primary" />
+                            <span>Cargando mensajes anteriores...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowUp className="size-3.5 text-primary" />
+                            <span>Cargar mensajes anteriores</span>
+                          </>
                         )}
-                      </div>
+                      </button>
                     </div>
                   )}
-                {messages.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center mt-8">
-                    Todavía no hay mensajes en esta conversación.
-                  </p>
-                )}
+                  {messages.map((m) => {
+                    const day = dayLabel(m.createdAt);
+                    const showDaySeparator = day !== lastRenderedDay;
+                    lastRenderedDay = day;
+
+                    const fromCustomer = m.author === "customer";
+                    const senderKey = showDaySeparator
+                      ? ""
+                      : m.author === "agent"
+                        ? `agent_${m.agentId || m.agentName || "unknown"}`
+                        : m.author;
+                    const showSenderLabel = !fromCustomer && senderKey !== lastRenderedSender;
+                    lastRenderedSender = senderKey;
+
+                    return (
+                      <ChatMessageItem
+                        key={m.id}
+                        message={m}
+                        conversation={selected}
+                        directory={directory}
+                        session={session}
+                        isAssignedToMe={isAssignedToMe}
+                        assignedAgentName={assignedAgentName}
+                        showDaySeparator={showDaySeparator}
+                        day={day}
+                        showSenderLabel={showSenderLabel}
+                        onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
+                      />
+                    );
+                  })}
+                  {isClosedRecord &&
+                    !messages.some(
+                      (m) =>
+                        m.author === "system" &&
+                        (m.body?.includes("Caso completado") ||
+                          m.body?.includes("🔒") ||
+                          m.body?.toLowerCase().includes("caso cerrado") ||
+                          m.body?.toLowerCase().includes("completado por")),
+                    ) && (
+                      <div className="flex justify-center my-4 px-2 min-w-0 animate-fade-in">
+                        <div className="flex flex-col items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 text-xs font-semibold border border-emerald-500/30 shadow-xs max-w-md text-center leading-normal">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                            <span className="font-bold">
+                              Caso completado {closedByName ? `por ${closedByName}` : ""}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                            <span>Motivo: {closedReasonLabel}</span>
+                            {closedAtFormatted && (
+                              <>
+                                <span>•</span>
+                                <span>{closedAtFormatted}</span>
+                              </>
+                            )}
+                          </div>
+                          {closedResolutionNote && (
+                            <p className="text-[10px] italic text-muted-foreground/90 mt-1 border-t border-emerald-500/20 pt-1 w-full">
+                              "{closedResolutionNote}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  {messages.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center mt-8">
+                      Todavía no hay mensajes en esta conversación.
+                    </p>
+                  )}
+                </div>
               </div>
               {readOnly ? (
                 <div className="p-2.5 border-t border-border bg-warning/5 flex items-start gap-2 text-[11px] text-foreground shrink-0 min-w-0">

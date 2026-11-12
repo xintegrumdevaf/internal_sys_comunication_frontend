@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
   - Timeouts por defecto (`20000 ms`, `60000 ms` en sincronización externa/diagnóstico) y soporte de `AbortSignal` para cancelar peticiones obsoletas al cambiar rápido entre conversaciones.
   - Limpieza inmediata de estado al cambiar de conversación, carga con `Promise.allSettled` sin bloquear UI por `markAsRead`, esqueleto `loadingThread` en `CasePanel`, apertura inmediata del panel cuando existe `selected.activeCase`, debounce de `reload({ silent: true })` fuera de `busy`/`sending`, estabilidad de suscripción SSE con `activeCaseIdRef`, y cierre diferido en `handleComplete` para evitar bloqueos de Portal Radix.
   - Límite LRU de 40 entradas en `audioBlobCache`, cierre garantizado en `finally` y reutilización singleton de `AudioContext` en `use-realtime` + limpieza de blobs/timers al desmontar la bandeja.
+  - **Auto-scroll determinístico del hilo (`use-chat-auto-scroll.ts`, `OperationalInbox.tsx`)**: reemplazo de `behavior: "smooth"` por anclaje instantáneo con `ResizeObserver` sobre contenedor y contenido para absorber cargas tardías de imágenes/banners al cambiar de conversación o enviar mensajes, respetando el scroll manual hacia arriba y la carga de mensajes anteriores.
 
 ## [0.2.25] - 2026-11-11
 
