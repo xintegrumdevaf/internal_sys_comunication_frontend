@@ -52,28 +52,43 @@ export function searchConversations(
   });
 }
 
-export function getConversation(conversationId: string): Promise<ConversationDto> {
-  return apiGet<ConversationDto>(`/api/conversations/${conversationId}`);
+export function getConversation(
+  conversationId: string,
+  options?: { signal?: AbortSignal },
+): Promise<ConversationDto> {
+  return apiGet<ConversationDto>(`/api/conversations/${conversationId}`, {
+    signal: options?.signal,
+  });
 }
 
 export async function listMessages(
   conversationId: string,
   page?: { limit?: number; cursor?: string },
+  options?: { signal?: AbortSignal },
 ): Promise<MessageDto[]> {
   const items = await apiGet<MessageDto[]>(`/api/conversations/${conversationId}/messages`, {
     query: { limit: page?.limit, cursor: page?.cursor },
+    signal: options?.signal,
   });
   return withMediaUrls(items);
 }
 
-export function listCasesForConversation(conversationId: string): Promise<CaseDto[]> {
-  return apiGet<CaseDto[]>(`/api/conversations/${conversationId}/cases`);
+export function listCasesForConversation(
+  conversationId: string,
+  options?: { signal?: AbortSignal },
+): Promise<CaseDto[]> {
+  return apiGet<CaseDto[]>(`/api/conversations/${conversationId}/cases`, {
+    signal: options?.signal,
+  });
 }
 
 export function getConversationAutomation(
   conversationId: string,
+  options?: { signal?: AbortSignal },
 ): Promise<{ caseId: string; enabled: boolean; disabledReason: string | null } | null> {
-  return apiGet(`/api/conversations/${conversationId}/automation`);
+  return apiGet(`/api/conversations/${conversationId}/automation`, {
+    signal: options?.signal,
+  });
 }
 
 export async function replyAsHuman(

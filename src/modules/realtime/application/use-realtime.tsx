@@ -33,13 +33,28 @@ function isAppInBackground(): boolean {
   return document.hidden || document.visibilityState === "hidden" || !document.hasFocus();
 }
 
+let notificationAudioCtx: AudioContext | null = null;
+
+function getNotificationAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (notificationAudioCtx && notificationAudioCtx.state !== "closed") {
+    return notificationAudioCtx;
+  }
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return null;
+  notificationAudioCtx = new AudioContextClass();
+  return notificationAudioCtx;
+}
+
 function playNotificationSound(): void {
   try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
+    const ctx = getNotificationAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      void ctx.resume().catch(() => {});
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";

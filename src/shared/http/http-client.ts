@@ -83,7 +83,72 @@ export type RequestOptions = {
   agentId?: string | null;
   /** Si es true, retorna el payload JSON completo sin desenvolver data. */
   raw?: boolean;
+  /** Señal opcional de cancelación externa. */
+  signal?: AbortSignal;
+  /** Tiempo máximo de espera en ms (por defecto 20000 ms; <= 0 desactiva timeout). */
+  timeoutMs?: number;
 };
+
+const DEFAULT_TIMEOUT_MS = 20_000;
+
+function createAbortError(): Error {
+  if (typeof DOMException !== "undefined") {
+    return new DOMException("The operation was aborted.", "AbortError");
+  }
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  options?: RequestOptions,
+): Promise<Response> {
+  if (typeof AbortController === "undefined") {
+    return fetch(url, init);
+  }
+
+  const externalSignal = options?.signal;
+  if (externalSignal?.aborted) {
+    throw createAbortError();
+  }
+
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const onExternalAbort = () => {
+    controller.abort();
+  };
+  externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
+
+  const timer =
+    timeoutMs > 0
+      ? setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, timeoutMs)
+      : null;
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (timedOut && !externalSignal?.aborted) {
+      throw new ApiError(
+        "Tiempo de espera agotado al consultar el servidor.",
+        408,
+        "REQUEST_TIMEOUT",
+      );
+    }
+    throw error;
+  } finally {
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+    externalSignal?.removeEventListener("abort", onExternalAbort);
+  }
+}
 
 function buildHeaders(agentId?: string | null, isFormData = false): HeadersInit {
   const headers: Record<string, string> = {};
@@ -102,10 +167,14 @@ function buildHeaders(agentId?: string | null, isFormData = false): HeadersInit 
 
 export async function apiGet<T>(path: string, options?: RequestOptions): Promise<T> {
   void getApiBaseUrl(); // fail fast if unset
-  const res = await fetch(buildUrl(path, options?.query), {
-    headers: buildHeaders(options?.agentId),
-    credentials: "include",
-  });
+  const res = await fetchWithTimeout(
+    buildUrl(path, options?.query),
+    {
+      headers: buildHeaders(options?.agentId),
+      credentials: "include",
+    },
+    options,
+  );
   return parseEnvelope<T>(res, options?.raw);
 }
 
@@ -116,12 +185,16 @@ export async function apiPost<T>(
 ): Promise<T> {
   void getApiBaseUrl();
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
-  const res = await fetch(resolveApiUrl(path), {
-    method: "POST",
-    headers: buildHeaders(options?.agentId, isFormData),
-    body: isFormData ? (body as FormData) : body === undefined ? undefined : JSON.stringify(body),
-    credentials: "include",
-  });
+  const res = await fetchWithTimeout(
+    resolveApiUrl(path),
+    {
+      method: "POST",
+      headers: buildHeaders(options?.agentId, isFormData),
+      body: isFormData ? (body as FormData) : body === undefined ? undefined : JSON.stringify(body),
+      credentials: "include",
+    },
+    options,
+  );
   return parseEnvelope<T>(res, options?.raw);
 }
 
@@ -131,12 +204,16 @@ export async function apiPut<T>(
   options?: RequestOptions,
 ): Promise<T> {
   void getApiBaseUrl();
-  const res = await fetch(resolveApiUrl(path), {
-    method: "PUT",
-    headers: buildHeaders(options?.agentId),
-    body: body === undefined ? undefined : JSON.stringify(body),
-    credentials: "include",
-  });
+  const res = await fetchWithTimeout(
+    resolveApiUrl(path),
+    {
+      method: "PUT",
+      headers: buildHeaders(options?.agentId),
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: "include",
+    },
+    options,
+  );
   return parseEnvelope<T>(res, options?.raw);
 }
 
@@ -146,21 +223,29 @@ export async function apiPatch<T>(
   options?: RequestOptions,
 ): Promise<T> {
   void getApiBaseUrl();
-  const res = await fetch(resolveApiUrl(path), {
-    method: "PATCH",
-    headers: buildHeaders(options?.agentId),
-    body: body === undefined ? undefined : JSON.stringify(body),
-    credentials: "include",
-  });
+  const res = await fetchWithTimeout(
+    resolveApiUrl(path),
+    {
+      method: "PATCH",
+      headers: buildHeaders(options?.agentId),
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: "include",
+    },
+    options,
+  );
   return parseEnvelope<T>(res, options?.raw);
 }
 
 export async function apiDelete<T>(path: string, options?: RequestOptions): Promise<T> {
   void getApiBaseUrl();
-  const res = await fetch(resolveApiUrl(path), {
-    method: "DELETE",
-    headers: buildHeaders(options?.agentId),
-    credentials: "include",
-  });
+  const res = await fetchWithTimeout(
+    resolveApiUrl(path),
+    {
+      method: "DELETE",
+      headers: buildHeaders(options?.agentId),
+      credentials: "include",
+    },
+    options,
+  );
   return parseEnvelope<T>(res, options?.raw);
 }

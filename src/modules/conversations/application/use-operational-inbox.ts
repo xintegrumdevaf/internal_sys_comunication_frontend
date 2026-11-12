@@ -58,6 +58,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const [caseSummary, setCaseSummary] = useState<CaseSummaryDto | null>(null);
   const [caseTimeline, setCaseTimeline] = useState<CaseTimelineEntryDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
   const [automationState, setAutomationState] = useState<{
     caseId: string;
@@ -66,6 +67,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
+  const activeCaseIdRef = useRef<string | null>(null);
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outboundQueueRef = useRef<Promise<void>>(Promise.resolve());
   const pendingMessagesRef = useRef<Map<string, MessageDto>>(new Map());
   const localBlobUrlsRef = useRef<Map<string, string>>(new Map());
@@ -185,6 +188,19 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     ],
   );
 
+  const scheduleSilentReload = useCallback(
+    (delayMs = 350) => {
+      if (reloadTimerRef.current) {
+        clearTimeout(reloadTimerRef.current);
+      }
+      reloadTimerRef.current = setTimeout(() => {
+        reloadTimerRef.current = null;
+        void reload({ silent: true });
+      }, delayMs);
+    },
+    [reload],
+  );
+
   const selectConversation = useCallback(
     (id: string | null) => {
       if (options.initialConversationId) {
@@ -204,8 +220,17 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
   useEffect(() => {
     void reload();
+    const blobUrls = localBlobUrlsRef.current;
     return () => {
       setActiveChatId(null);
+      if (reloadTimerRef.current) {
+        clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = null;
+      }
+      for (const blobUrl of blobUrls.values()) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      blobUrls.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, options.departmentId, options.agentId, options.status]);
@@ -283,6 +308,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
   useEffect(() => {
     if (!selectedId) {
+      setLoadingThread(false);
       setMessages([]);
       setHasMoreMessages(false);
       hasMoreMessagesRef.current = false;
@@ -294,38 +320,61 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       return;
     }
     let cancelled = false;
+    const controller = new AbortController();
+    setLoadingThread(true);
+    setMessages([]);
+    setHasMoreMessages(false);
+    hasMoreMessagesRef.current = false;
+    setCases([]);
     setCaseSummary(null);
     setCaseTimeline([]);
     setAutomationState(null);
     setActiveChatId(selectedId);
-    if (selectedId) {
-      markConversationRead(selectedId);
-    }
+    markConversationRead(selectedId);
 
     // Optimísticamente garantizar que la conversación abierta tenga 0 en el badge local
     setConversations((prev) =>
       prev.map((c) => (c.id === selectedId ? { ...c, unreadCount: 0 } : c)),
     );
-    markConversationRead(selectedId);
+    void conversationGateway.markAsRead(selectedId).catch(() => {});
+
+    const isAbortError = (err: unknown) => err instanceof Error && err.name === "AbortError";
 
     (async () => {
       try {
         const needsFetchConv = !conversationsRef.current.some((c) => c.id === selectedId);
-        const [singleConv, msgs, convCases, automation] = await Promise.all([
+        const [singleConvRes, msgsRes, casesRes, automationRes] = await Promise.allSettled([
           needsFetchConv
-            ? conversationGateway.getConversation(selectedId).catch(() => null)
+            ? conversationGateway.getConversation(selectedId, { signal: controller.signal })
             : Promise.resolve(null),
-          conversationGateway.listMessages(selectedId, { limit: MESSAGES_PAGE_SIZE }),
-          conversationGateway.listCasesForConversation(selectedId),
-          conversationGateway.getConversationAutomation(selectedId),
+          conversationGateway.listMessages(
+            selectedId,
+            { limit: MESSAGES_PAGE_SIZE },
+            { signal: controller.signal },
+          ),
+          conversationGateway.listCasesForConversation(selectedId, { signal: controller.signal }),
+          conversationGateway.getConversationAutomation(selectedId, { signal: controller.signal }),
         ]);
-        if (singleConv && !cancelled) {
+
+        if (cancelled || controller.signal.aborted) return;
+
+        if (singleConvRes.status === "fulfilled" && singleConvRes.value) {
+          const singleConv = singleConvRes.value;
           setConversations((prev) =>
             prev.some((c) => c.id === singleConv.id) ? prev : [singleConv, ...prev],
           );
         }
-        await conversationGateway.markAsRead(selectedId).catch(() => {});
-        if (!cancelled) {
+
+        if (casesRes.status === "fulfilled") {
+          setCases(casesRes.value);
+        }
+
+        if (automationRes.status === "fulfilled") {
+          setAutomationState(automationRes.value);
+        }
+
+        if (msgsRes.status === "fulfilled") {
+          const msgs = msgsRes.value;
           setMessages(
             (prev) =>
               reconcileThread(prev, msgs, [...pendingMessagesRef.current.values()], selectedId)
@@ -333,17 +382,24 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           );
           setHasMoreMessages(msgs.length === MESSAGES_PAGE_SIZE);
           hasMoreMessagesRef.current = msgs.length === MESSAGES_PAGE_SIZE;
-          setCases(convCases);
-          setAutomationState(automation);
         }
-      } catch (e) {
+
+        const primaryError =
+          (msgsRes.status === "rejected" && !isAbortError(msgsRes.reason) && msgsRes.reason) ||
+          (casesRes.status === "rejected" && !isAbortError(casesRes.reason) && casesRes.reason) ||
+          null;
+        if (primaryError) {
+          toast.error(primaryError instanceof Error ? primaryError.message : "Error cargando chat");
+        }
+      } finally {
         if (!cancelled) {
-          toast.error(e instanceof Error ? e.message : "Error cargando chat");
+          setLoadingThread(false);
         }
       }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [selectedId]);
 
@@ -378,6 +434,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     // 4. Si la conversación está abierta o en espera pero no tiene un caso en curso, no hay caso activo
     return null;
   }, [cases, selected]);
+  activeCaseIdRef.current = activeCase?.id ?? null;
 
   // Tiempo real: refresca hilo/lista según lo que llegue por SSE (03_REALTIME_NOTIFICATIONS.md §2).
   useEffect(() => {
@@ -447,7 +504,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           void loadThread(event.conversationId);
           void conversationGateway.markAsRead(event.conversationId).catch(() => {});
         }
-        void reload({ silent: true });
+        scheduleSilentReload();
         return;
       }
       if (
@@ -458,24 +515,25 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         event.type === "AUTOMATION_DISABLED" ||
         event.type === "CASE_SCHEDULED_REMINDER"
       ) {
+        const currentCaseId = activeCaseIdRef.current;
         const isCurrentConv =
           ("conversationId" in event && event.conversationId === selectedIdRef.current) ||
-          Boolean(activeCase?.id && "caseId" in event && event.caseId === activeCase.id);
+          Boolean(currentCaseId && "caseId" in event && event.caseId === currentCaseId);
 
         if (event.type === "AUTOMATION_DISABLED" && isCurrentConv) {
           setAutomationState({
-            caseId: activeCase?.id ?? event.caseId,
+            caseId: currentCaseId ?? event.caseId,
             enabled: false,
             disabledReason: "manual_override",
           });
         }
-        void reload({ silent: true });
+        scheduleSilentReload();
         if (selectedIdRef.current && isCurrentConv) {
           void loadThread(selectedIdRef.current);
         }
       }
     });
-  }, [reload, loadThread, activeCase?.id]);
+  }, [scheduleSilentReload, loadThread]);
 
   const refreshActiveCase = useCallback(async () => {
     if (!activeCase) return;
@@ -502,8 +560,9 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
   const caseActions = useCaseActions(session, async () => {
     await refreshActiveCase();
-    if (activeCase) void loadCaseSummary(activeCase.id);
-    await reload({ silent: true });
+    const currentCaseId = activeCaseIdRef.current;
+    if (currentCaseId) void loadCaseSummary(currentCaseId);
+    scheduleSilentReload();
   });
 
   const enqueueOutbound = <T>(task: () => Promise<T>): Promise<T> => {
@@ -740,6 +799,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         ),
       );
       toast.success("Conversación cerrada");
+      scheduleSilentReload();
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo cerrar la conversación");
@@ -755,8 +815,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     try {
       const result = await conversationGateway.deriveConversation(selectedId, departmentId, reason);
       toast.success(`Conversación derivada a ${result.departmentName}`);
-      await reload({ silent: true });
       await loadThread(selectedId);
+      scheduleSilentReload();
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo derivar la conversación");
@@ -812,7 +872,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         ),
       );
       toast.success("Control tomado");
-      await reload({ silent: true });
+      scheduleSilentReload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo tomar control");
     } finally {
@@ -834,6 +894,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     caseTimeline,
     loadCaseSummary,
     loading,
+    loadingThread,
     busy: sending || caseActions.busy,
     reload,
     hasMoreMessages,

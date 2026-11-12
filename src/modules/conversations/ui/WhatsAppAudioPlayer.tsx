@@ -51,11 +51,17 @@ function generateDeterministicPeaks(seed: string, count: number = 34): number[] 
  * las DevTools desactivan la caché. Bajamos el archivo nosotros, fuera de
  * esa caché, y el elemento reproduce un blob local.
  */
+const MAX_AUDIO_BLOB_CACHE_ENTRIES = 40;
 const audioBlobCache = new Map<string, Promise<Blob>>();
 
 function loadAudioBlob(url: string): Promise<Blob> {
   const cached = audioBlobCache.get(url);
-  if (cached) return cached;
+  if (cached) {
+    // Refresh insertion order to evict least-recently-used entries first.
+    audioBlobCache.delete(url);
+    audioBlobCache.set(url, cached);
+    return cached;
+  }
 
   const pending = fetch(url, { credentials: "include", cache: "no-store" })
     .then(async (response) => {
@@ -72,6 +78,11 @@ function loadAudioBlob(url: string): Promise<Blob> {
       throw error;
     });
 
+  while (audioBlobCache.size >= MAX_AUDIO_BLOB_CACHE_ENTRIES) {
+    const oldestKey = audioBlobCache.keys().next().value;
+    if (!oldestKey) break;
+    audioBlobCache.delete(oldestKey);
+  }
   audioBlobCache.set(url, pending);
   return pending;
 }
@@ -80,6 +91,7 @@ function loadAudioBlob(url: string): Promise<Blob> {
  * Intenta extraer los picos reales del archivo de audio usando Web Audio API.
  */
 async function extractAudioPeaksFromBlob(blob: Blob, count: number = 34): Promise<number[] | null> {
+  let audioCtx: AudioContext | null = null;
   try {
     const arrayBuffer = await blob.arrayBuffer();
 
@@ -88,7 +100,7 @@ async function extractAudioPeaksFromBlob(blob: Blob, count: number = 34): Promis
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return null;
 
-    const audioCtx = new AudioContextClass();
+    audioCtx = new AudioContextClass();
     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
     const channelData = audioBuffer.getChannelData(0);
     const blockSize = Math.floor(channelData.length / count);
@@ -105,11 +117,11 @@ async function extractAudioPeaksFromBlob(blob: Blob, count: number = 34): Promis
     }
 
     const maxPeak = Math.max(...peaks, 0.01);
-    const normalized = peaks.map((p) => Math.max(0.18, Math.min(1.0, p / maxPeak)));
-    await audioCtx.close();
-    return normalized;
+    return peaks.map((p) => Math.max(0.18, Math.min(1.0, p / maxPeak)));
   } catch {
     return null;
+  } finally {
+    await audioCtx?.close().catch(() => {});
   }
 }
 

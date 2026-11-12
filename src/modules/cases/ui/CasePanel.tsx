@@ -522,6 +522,7 @@ function CaseContextBody({
 
 export function CasePanel({
   caseDto,
+  loadingThread = false,
   customerName,
   customerPhone,
   customerTags,
@@ -549,6 +550,8 @@ export function CasePanel({
   onDeriveConversation,
 }: {
   caseDto: CaseDto | null;
+  /** True mientras se cargan el hilo y los casos de la conversación seleccionada. */
+  loadingThread?: boolean;
   /** Nombre a mostrar del cliente (perfil de WhatsApp o teléfono formateado). */
   customerName?: string;
   customerPhone?: string;
@@ -810,6 +813,21 @@ export function CasePanel({
   );
 
   if (!caseDto) {
+    if (loadingThread) {
+      return (
+        <div className="space-y-4">
+          {customerCard}
+          <div className="bg-card border border-border rounded-xl p-5 text-center">
+            <RefreshCw className="size-6 animate-spin text-primary/70 mx-auto mb-2" />
+            <p className="text-xs font-semibold">Cargando acciones del caso...</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Obteniendo el caso y las opciones disponibles para esta conversación.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         {customerCard}

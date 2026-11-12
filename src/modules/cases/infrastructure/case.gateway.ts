@@ -124,21 +124,29 @@ export function advanceCase(caseId: string, payload: AdvanceCasePayload): Promis
   return apiPost<CaseDto>(`/api/cases/${caseId}/advance`, payload);
 }
 
+const EXTERNAL_SYNC_TIMEOUT_MS = 60_000;
+
 export function syncCaseBalance(
   caseId: string,
 ): Promise<{ caseId: string; hasDebt: boolean; amount: number; nationalId: string }> {
-  return apiPost(`/api/cases/${caseId}/sync-balance`);
+  return apiPost(`/api/cases/${caseId}/sync-balance`, undefined, {
+    timeoutMs: EXTERNAL_SYNC_TIMEOUT_MS,
+  });
 }
 
 export function syncCaseData(
   caseId: string,
 ): Promise<{ caseId: string; nationalId: string; contract?: unknown; balance?: unknown }> {
-  return apiPost(`/api/cases/${caseId}/sync-data`);
+  return apiPost(`/api/cases/${caseId}/sync-data`, undefined, {
+    timeoutMs: EXTERNAL_SYNC_TIMEOUT_MS,
+  });
 }
 
 export function diagnoseCase(
   caseId: string,
   contractId?: string,
 ): Promise<{ caseId: string; status: string; diagnostic?: string; technical?: unknown }> {
-  return apiPost(`/api/cases/${caseId}/diagnose`, contractId ? { contractId } : {});
+  return apiPost(`/api/cases/${caseId}/diagnose`, contractId ? { contractId } : {}, {
+    timeoutMs: EXTERNAL_SYNC_TIMEOUT_MS,
+  });
 }

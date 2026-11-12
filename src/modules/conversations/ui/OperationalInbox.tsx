@@ -383,6 +383,7 @@ export function OperationalInbox({
     caseTimeline,
     loadCaseSummary,
     loading,
+    loadingThread,
     busy,
     reload,
     takeControl,
@@ -465,8 +466,10 @@ export function OperationalInbox({
   const handleComplete = async (closeReason?: CloseReason, resolutionNote?: string) => {
     const ok = await complete(closeReason, resolutionNote);
     if (ok !== false) {
-      setSelectedId(null);
-      await reload({ silent: true });
+      // Defer unmounting CasePanel/CompleteCaseModal until Radix Dialog finishes closing
+      // so body pointer-events lock is never orphaned.
+      setTimeout(() => setSelectedId(null), 0);
+      void reload({ silent: true });
     }
     return ok;
   };
@@ -707,7 +710,7 @@ export function OperationalInbox({
     setDetailsOverride(null);
     setMobileDetailsOpen(false);
   }, [selectedId]);
-  const detailsOpen = detailsOverride ?? Boolean(activeCase);
+  const detailsOpen = detailsOverride ?? Boolean(activeCase || selected?.activeCase);
 
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -1801,6 +1804,7 @@ export function OperationalInbox({
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
               <CasePanel
                 caseDto={activeCase}
+                loadingThread={loadingThread}
                 customerName={
                   selectedCustomer?.fullName ||
                   (selected ? conversationDisplayName(selected) : undefined)
@@ -1836,7 +1840,7 @@ export function OperationalInbox({
                     ? handleDeriveConversation
                     : undefined
                 }
-                onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
+                onComplete={(closeReason, note) => handleComplete(closeReason, note)}
                 onSchedule={(at, reason) => void handleSchedule(at, reason)}
                 onCancel={(reason) => void cancel(reason)}
                 onTransfer={(toDepartmentId, reason, toAgentId) =>
@@ -1878,6 +1882,7 @@ export function OperationalInbox({
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             <CasePanel
               caseDto={activeCase}
+              loadingThread={loadingThread}
               customerName={
                 selectedCustomer?.fullName ||
                 (selected ? conversationDisplayName(selected) : undefined)
@@ -1913,7 +1918,7 @@ export function OperationalInbox({
                   ? handleDeriveConversation
                   : undefined
               }
-              onComplete={(closeReason, note) => void handleComplete(closeReason, note)}
+              onComplete={(closeReason, note) => handleComplete(closeReason, note)}
               onSchedule={(at, reason) => void handleSchedule(at, reason)}
               onCancel={(reason) => void cancel(reason)}
               onTransfer={(toDepartmentId, reason, toAgentId) =>

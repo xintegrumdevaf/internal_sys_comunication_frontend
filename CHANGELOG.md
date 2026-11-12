@@ -17,6 +17,11 @@ All notable changes to this project will be documented in this file.
   - Extracción del estado y acciones de `TelegramSettingsCard.tsx` hacia `src/modules/settings/application/use-telegram-settings.ts`, constantes y helpers en `src/modules/settings/domain/telegram-settings.defaults.ts` y subcomponentes presentacionales bajo `src/modules/settings/ui/telegram/` (todos por debajo de `max-lines <= 400`).
   - Actualización de `docs/FOLDER_STRUCTURE.md` y `docs/spec/06_BACKEND_GAPS.md` (estado de `/campanas` y `/api/quality/*`) y limpieza de warnings de ESLint no destructivos.
 
+- **Corrección de latencia, bloqueo UI y fugas de memoria en bandeja operativa (`use-operational-inbox.ts`, `http-client.ts`, `OperationalInbox.tsx`, `CasePanel.tsx`, `WhatsAppAudioPlayer.tsx`, `use-realtime.tsx`)**:
+  - Timeouts por defecto (`20000 ms`, `60000 ms` en sincronización externa/diagnóstico) y soporte de `AbortSignal` para cancelar peticiones obsoletas al cambiar rápido entre conversaciones.
+  - Limpieza inmediata de estado al cambiar de conversación, carga con `Promise.allSettled` sin bloquear UI por `markAsRead`, esqueleto `loadingThread` en `CasePanel`, apertura inmediata del panel cuando existe `selected.activeCase`, debounce de `reload({ silent: true })` fuera de `busy`/`sending`, estabilidad de suscripción SSE con `activeCaseIdRef`, y cierre diferido en `handleComplete` para evitar bloqueos de Portal Radix.
+  - Límite LRU de 40 entradas en `audioBlobCache`, cierre garantizado en `finally` y reutilización singleton de `AudioContext` en `use-realtime` + limpieza de blobs/timers al desmontar la bandeja.
+
 ## [0.2.25] - 2026-11-11
 
 ### Added & Fixed
