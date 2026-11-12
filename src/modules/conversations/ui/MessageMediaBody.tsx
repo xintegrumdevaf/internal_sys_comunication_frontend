@@ -26,6 +26,7 @@ import {
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
 import { resolveApiUrl } from "@/shared/http/api-base";
 import { WhatsAppAudioPlayer } from "./WhatsAppAudioPlayer";
+import { LinkifiedText } from "./LinkifiedText";
 
 type Props = {
   message: MessageDto;
@@ -97,6 +98,7 @@ export function MessageMediaBody({
   const bodyText = message.body?.trim() || "";
   const rawCaption = caption || (bodyText && bodyText !== message.filename ? bodyText : "");
   const displayCaption = isMediaPlaceholder(rawCaption) ? "" : rawCaption;
+  const isOutgoing = message.author !== "customer";
 
   // Detección estricta de mensaje de ubicación (solo para mensajes de tipo location o con coordenadas reales)
   const rawContent = `${message.body || ""} ${message.mediaId || ""} ${message.filename || ""} ${message.caption || ""}`;
@@ -125,8 +127,13 @@ export function MessageMediaBody({
       }
     }
 
+    const mapsUrlMatch = rawContent.match(
+      /(https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|(?:www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|waze\.com\/(?:ul|live-map))[^\s]+)/i,
+    );
+
     const mapsUrl =
       (message.mediaId?.startsWith("http") ? message.mediaId : null) ||
+      (mapsUrlMatch ? mapsUrlMatch[1] : null) ||
       (lat !== null && lng !== null
         ? `https://www.google.com/maps?q=${lat},${lng}`
         : "https://www.google.com/maps");
@@ -294,7 +301,11 @@ export function MessageMediaBody({
         </div>
 
         {displayCaption && displayCaption !== filename && (
-          <p className={captionClassName}>{displayCaption}</p>
+          <LinkifiedText
+            text={displayCaption}
+            isOutgoing={isOutgoing}
+            className={captionClassName}
+          />
         )}
       </div>
     );
@@ -363,7 +374,13 @@ export function MessageMediaBody({
             )}
           </div>
         )}
-        {displayCaption && <p className={captionClassName}>{displayCaption}</p>}
+        {displayCaption && (
+          <LinkifiedText
+            text={displayCaption}
+            isOutgoing={isOutgoing}
+            className={captionClassName}
+          />
+        )}
       </div>
     );
   }
@@ -393,7 +410,13 @@ export function MessageMediaBody({
             <span>Imagen no disponible</span>
           </div>
         )}
-        {displayCaption && <p className={captionClassName}>{displayCaption}</p>}
+        {displayCaption && (
+          <LinkifiedText
+            text={displayCaption}
+            isOutgoing={isOutgoing}
+            className={captionClassName}
+          />
+        )}
       </div>
     );
   }
@@ -405,7 +428,13 @@ export function MessageMediaBody({
     return (
       <div className="space-y-1.5 my-1 min-w-0 max-w-full">
         <WhatsAppAudioPlayer mediaUrl={mediaUrl} messageId={message.id} author={message.author} />
-        {hasValidCaption ? <p className={captionClassName}>{displayCaption}</p> : null}
+        {hasValidCaption ? (
+          <LinkifiedText
+            text={displayCaption}
+            isOutgoing={isOutgoing}
+            className={captionClassName}
+          />
+        ) : null}
       </div>
     );
   }
@@ -477,7 +506,11 @@ export function MessageMediaBody({
     return (
       <div className="space-y-2.5 max-w-full min-w-0">
         {cleanedText && (
-          <p className="whitespace-pre-wrap break-words leading-relaxed">{cleanedText}</p>
+          <LinkifiedText
+            text={cleanedText}
+            isOutgoing={isOutgoing}
+            className="whitespace-pre-wrap break-words leading-relaxed"
+          />
         )}
         {interactiveData.type === "buttons" && interactiveData.buttons?.length > 0 && (
           <div className="flex flex-col gap-1.5 pt-1.5 w-full">
@@ -520,12 +553,12 @@ export function MessageMediaBody({
   if (bodyText) {
     if (isMediaPlaceholder(bodyText)) return null;
     const formattedBody = bodyText.replace(/\\n/g, "\n");
-    return <p className="whitespace-pre-wrap break-words">{formattedBody}</p>;
+    return <LinkifiedText text={formattedBody} isOutgoing={isOutgoing} />;
   }
 
   if (displayCaption) {
     const formattedCaption = displayCaption.replace(/\\n/g, "\n");
-    return <p className="whitespace-pre-wrap break-words">{formattedCaption}</p>;
+    return <LinkifiedText text={formattedCaption} isOutgoing={isOutgoing} />;
   }
 
   return (
