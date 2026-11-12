@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Sun, Moon, Laptop, Check } from "lucide-react";
-import { useTheme, type Theme } from "./theme-provider";
+import { useTheme } from "./theme-provider";
 
 interface ThemeToggleProps {
   variant?: "dropdown" | "segmented" | "button";

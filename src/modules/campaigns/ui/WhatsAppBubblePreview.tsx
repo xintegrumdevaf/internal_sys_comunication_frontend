@@ -1,6 +1,5 @@
 import { CheckCheck, ExternalLink, Phone, Image as ImageIcon, Video } from "lucide-react";
-import type { TemplateComponents } from "../domain/template";
-import { substituteVariables } from "../domain/template";
+import { type TemplateComponents, substituteVariables } from "../domain/template";
 
 type Props = {
   components: TemplateComponents;

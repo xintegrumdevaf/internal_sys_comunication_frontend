@@ -107,21 +107,32 @@ src/
 │                                   telegram/ (TelegramCardHeader, TelegramOnboardingGuide,
 │                                   TelegramCredentialsSection, TelegramTopicsSection, TelegramDigestSection,
 │                                   TelegramSentinelRulesSection, TelegramCopilotWebhookSection, TelegramSaveFooter)
+│   ── Otros módulos de negocio activos bajo `src/modules/` (misma estructura hexagonal):
+│      analytics, campaigns, customers, knowledge-base, prompts, quick-replies, sla, tags
 │
 ├── routes/                        ← TanStack Start (file-based routing, URLs en español, siempre delgadas)
 │   ├── __root.tsx
 │   ├── index.tsx                  → DashboardOverview
 │   ├── login.tsx                  → selector de perfil real
+│   ├── analytics.tsx              → AnalyticsDashboard
+│   ├── dashboard-gerencial.tsx    → vista gerencial de métricas
 │   ├── bandeja.tsx                → OperationalInbox
 │   ├── escalaciones.tsx           → EscalationsBoard
 │   ├── asignaciones.tsx           → AssignmentBoard
 │   ├── calidad.tsx                → QualityBoard / detalle (manager|admin)
+│   ├── campanas.tsx               → CampaignsManagementView (/api/campaigns)
+│   ├── contactos.tsx              → ContactsManagementView
+│   ├── departamentos.tsx          → DepartmentsDirectoryPanel
+│   ├── etiquetas.tsx              → TagsManagementView
+│   ├── plantillas.tsx             → MessageTemplatesView
+│   ├── prompts.tsx / admin.prompts.tsx → PromptsView / administración de prompts IA
+│   ├── respuestas-rapidas.tsx     → QuickRepliesManagementView
+│   ├── conocimiento.tsx           → KnowledgeBaseView (RAG)
 │   ├── usuarios.tsx               → UsersDirectoryPanel
 │   ├── auditoria.tsx              → AuditLogView
 │   ├── flujos.tsx                 → N8nWorkflowCatalog
 │   ├── chat-interno.tsx           → InternalChatShell
-│   ├── configuracion.tsx          → SettingsPage / SettingsView
-│   └── campanas.tsx               → fuera de alcance del backend (maqueta desconectada, marcada)
+│   └── configuracion.tsx          → SettingsPage / SettingsView
 │
 ├── hooks/
 │   └── use-mobile.tsx              ← utilidad de UI genérica (no es de un módulo)

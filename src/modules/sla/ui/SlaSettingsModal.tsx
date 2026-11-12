@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock, ShieldCheck, Volume2, VolumeX, Save, CheckCircle2 } from "lucide-react";
+import { Clock, Volume2, VolumeX, Save, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,

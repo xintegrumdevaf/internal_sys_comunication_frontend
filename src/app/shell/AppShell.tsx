@@ -11,8 +11,6 @@ import {
   MessagesSquare,
   Users,
   ArrowRightLeft,
-  Wifi,
-  WifiOff,
   LayoutDashboard,
   Building2,
   BrainCircuit,

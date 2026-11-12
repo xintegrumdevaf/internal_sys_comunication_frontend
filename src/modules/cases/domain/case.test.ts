@@ -9,8 +9,8 @@ import {
   humanizeCaseReason,
   paymentStatusLabel,
   workflowLabel,
+  type CaseDto,
 } from "./case";
-import type { CaseDto } from "./case";
 
 function makeCase(overrides: Partial<CaseDto> = {}): CaseDto {
   return {

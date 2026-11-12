@@ -1,5 +1,3 @@
-import "./shared/server/error-capture";
-
 import { consumeLastCapturedError } from "./shared/server/error-capture";
 import { renderErrorPage } from "./shared/server/error-page";
 

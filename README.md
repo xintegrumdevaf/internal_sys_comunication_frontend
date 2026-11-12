@@ -10,7 +10,7 @@ Modern, high-performance web console for customer support agents, technical staf
 - **Routing & State**: TanStack Router with type-safe route trees and TanStack Query (React Query) for server-state synchronization.
 - **Styling & UI**: TailwindCSS, Radix UI accessible primitives, and Lucide Icons.
 - **Real-Time Communication**: WebSocket client connecting to the backend gateway for live case events, messages, and availability updates.
-- **Code Quality**: ESLint flat config with strict rules, zero-tolerance policy on `any` types, and Vitest suite covering components and hooks.
+- **Code Quality**: ESLint flat config with strict rules, zero-tolerance policy on `any` types, Prettier formatting enforcement, and Vitest suite covering components and hooks.
 
 ---
 
@@ -137,6 +137,9 @@ pnpm install
 
 # Start Vite development server (port 5173 by default)
 pnpm run dev
+
+# Format codebase with Prettier
+pnpm run format
 
 # Run ESLint validation
 pnpm run lint

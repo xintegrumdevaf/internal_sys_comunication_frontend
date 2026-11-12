@@ -10,17 +10,17 @@ import {
   Sparkles,
   Upload,
   Link as LinkIcon,
-  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import type {
-  WhatsAppTemplate,
-  TemplateCategory,
-  HeaderType,
-  ButtonType,
-  TemplateButton,
+import {
+  type WhatsAppTemplate,
+  type TemplateCategory,
+  type HeaderType,
+  type ButtonType,
+  type TemplateButton,
+  extractTemplateVariables,
+  validateMetaTemplateName,
 } from "../domain/template";
-import { extractTemplateVariables, validateMetaTemplateName } from "../domain/template";
 import { WhatsAppBubblePreview } from "./WhatsAppBubblePreview";
 import type { CreateTemplatePayload } from "../infrastructure/templates.gateway";
 

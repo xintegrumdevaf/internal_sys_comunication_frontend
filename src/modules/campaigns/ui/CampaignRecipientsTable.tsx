@@ -11,7 +11,6 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
   RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import type { Campaign, CampaignRecipient } from "../domain/campaign";
 import type { ActiveFilter } from "./CampaignFunnelCard";
 import { RecipientMessageModal, type RecipientMessageData } from "./RecipientMessageModal";
+import { translateDeliveryError } from "../domain/delivery-errors";
 
 interface CampaignRecipientsTableProps {
   recipients: CampaignRecipient[];
@@ -176,8 +176,7 @@ export const CampaignRecipientsTable: React.FC<CampaignRecipientsTableProps> = (
                   const isSent = st === "sent";
 
                   const messageText = getRecipientBody(r);
-                  const errorText =
-                    r.errorMessage || "Meta API error: No se pudo entregar el mensaje.";
+                  const errorText = translateDeliveryError(r.errorMessage);
 
                   return (
                     <tr key={r.id || idx} className="hover:bg-muted/20 transition-colors">

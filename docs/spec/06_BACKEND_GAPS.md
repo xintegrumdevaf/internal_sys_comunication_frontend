@@ -124,13 +124,11 @@ Archivos clave: `src/core/modules/escalation/application/services/auto-assign-ag
 
 **Estado**: resuelto.
 
-## 7. Endpoints de supervisión de calidad — contrato documentado (implementar en backend Etapa 10)
+## 7. Endpoints de supervisión de calidad — resuelto
 
-**Problema**: el frontend Etapa 9 necesita `/api/quality/*` (agents ranking, reviews, notes). Hasta que el backend complete su Etapa 10, la UI debe mostrar empty state honesto.
+**Solución implementada**: Backend Etapa 10 expuso `/api/quality/*` (ranking por agente, listado/detalle de revisiones, notas de coaching y re-análisis on-demand). El frontend `/calidad` (`src/modules/quality/**`) ya consume los endpoints reales.
 
-**Contrato**: ver backend `docs/spec/03_API_CONTRACT.md` §C y `07_QUALITY_SUPERVISION.md`.
-
-**Estado**: pendiente de implementación en backend; specs ya alineados en ambos repos.
+**Estado**: resuelto.
 
 ## 8. Registro de cambios
 

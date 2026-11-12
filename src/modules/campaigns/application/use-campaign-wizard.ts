@@ -4,7 +4,6 @@ import {
   type ChatRoutingConfig,
   type CampaignRecipient,
   validateCampaignName,
-  validateCampaignMessage,
   parseImportFile,
   buildCampaignRecipientsFromRows,
 } from "../domain/campaign";

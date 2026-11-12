@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.25] - 2026-11-11
+## [0.2.26] - 2026-11-12
 
 ### Added & Improved
 
@@ -13,9 +13,40 @@ All notable changes to this project will be documented in this file.
   - **Modos de recepción y Temas dinámicos (`TelegramTopicsSection`)**: Selector segmentado entre **Modo Chat Único / General** y **Modo Temas / Foros**, gestión CRUD de temas por categoría (`SLA`, `INFRASTRUCTURE`, `DIGEST`, `QUEUE`, `QUALITY`, `GENERAL`), restablecimiento a valores por defecto y prueba individual por `threadId`.
   - **Pulso Operativo y Centinela Reactivo (`TelegramDigestSection`, `TelegramSentinelRulesSection`)**: Configuración de horarios de pulso programado (`digestHours`), zona horaria (`timeZone`), disparo manual inmediato, y gestión dinámica de reglas del Centinela con simulación en vivo por categoría (`SLA`, `INFRASTRUCTURE`, `QUEUE`).
   - **Copilot IA y Webhook (`TelegramCopilotWebhookSection`)**: Habilitación de comandos interactivos, Copilot IA y sincronización de webhook con Telegram Bot API.
-- **Refactorización SRP & Cumplimiento de Calidad (ESLint + Prettier)**:
-  - Extracción del estado y acciones de `TelegramSettingsCard.tsx` hacia el hook `src/modules/settings/application/use-telegram-settings.ts`, constantes en `src/modules/settings/domain/telegram-settings.defaults.ts` y subcomponentes presentacionales bajo `src/modules/settings/ui/telegram/` (todos por debajo de `max-lines <= 400`).
-  - Normalización de formato con `pnpm format` eliminando errores de `prettier/prettier` en el pipeline CI.
+- **Refactorización SRP, Limpieza ESLint & Sincronización de Documentación**:
+  - Extracción del estado y acciones de `TelegramSettingsCard.tsx` hacia `src/modules/settings/application/use-telegram-settings.ts`, constantes y helpers en `src/modules/settings/domain/telegram-settings.defaults.ts` y subcomponentes presentacionales bajo `src/modules/settings/ui/telegram/` (todos por debajo de `max-lines <= 400`).
+  - Actualización de `docs/FOLDER_STRUCTURE.md` y `docs/spec/06_BACKEND_GAPS.md` (estado de `/campanas` y `/api/quality/*`) y limpieza de warnings de ESLint no destructivos.
+
+## [0.2.25] - 2026-11-11
+
+### Added & Fixed
+
+- **Homogeneización y Corrección Global de Reglas ESLint/Prettier (`npm run format`, `eslint`)**:
+  - _Problema_: Al ejecutar la suite de verificación de calidad (`npm run lint`), el proceso fallaba con código de salida `1` debido a **364 errores** de formato detectados por la regla `prettier/prettier` de `eslint-plugin-prettier`. Estas fallas se concentraban en 18 archivos fuente (componentes UI, servicios de exportación, tests unitarios y hooks) por discrepancias en saltos de línea de plantillas de texto, sangría y trailing spaces, bloqueando el pipeline de CI/CD.
+  - _Solución y Justificación_:
+    1. **Estandarización Automatizada**: Se ejecutó el formateo global (`npm run format`), aplicando de manera uniforme las reglas de estilo definidas en `.prettierrc` (comillas dobles, ancho de línea de 100 caracteres, trailing commas y sangría consistente de 2 espacios).
+    2. **Justificación del Cambio**: Al estar `eslint-plugin-prettier` integrado como regla bloqueante en `eslint.config.js`, cualquier discrepancia tipográfica genera un error que detiene el despliegue automático. El cambio armoniza el estilo en todo el proyecto sin modificar la lógica operativa de los componentes ni alterar el comportamiento en tiempo de ejecución.
+    3. **Verificación de Calidad**:
+       - `npm run lint`: 0 errores (código de salida 0).
+       - `npm run typecheck`: 0 errores de tipado en TypeScript.
+       - `npm test`: 450 tests unitarios pasando en 83 suites de Vitest.
+
+- **Descarga Nativa de Destinatarios Fallidos a Microsoft Excel (.xlsx) y Traducción de Errores al Español (`CampaignDetailsDrawer.tsx`, `CampaignRecipientsTable.tsx`, `delivery-errors.ts`)**:
+  - _Problema_:
+    1. Al presionar el botón "Descargar fallidas", aparecía una notificación _"No hay contactos fallidos para descargar"_ a pesar de que el embudo y la tabla mostraban 3 contactos fallidos. Esto ocurría porque el filtro evaluaba `r.status === 'failed'` de forma sensible a mayúsculas, mientras que la API entrega `'FAILED'`.
+    2. Los archivos CSV descargados mostraban todas las columnas amontonadas en la columna A al abrirse en Microsoft Excel en español (debido a la discrepancia entre comas y punto y coma en configuraciones regionales de Windows).
+    3. Los motivos de fallo aparecían en inglés técnico crudo devuelto por Meta (ej. `"In order to maintain a healthy ecosystem engagement, the message failed to be delivered. (Meta Error 131049)"`), resultando incomprensibles para los asesores y supervisores comerciales.
+  - _Solución y Justificación_:
+    1. **Normalización Case-Insensitive del Estado**:
+       - Se corrigió el filtro en `CampaignDetailsDrawer.tsx` usando `(r.status || "").toLowerCase() === "failed" || (r.status || "").toLowerCase() === "skipped"`, detectando de forma confiable todos los contactos fallidos sin importar mayúsculas/minúsculas.
+    2. **Exportación Nativa a Microsoft Excel (.xlsx)**:
+       - Se implementó la generación directa de archivos `.xlsx` usando la librería `xlsx` (`XLSX.writeFile`).
+       - El reporte contiene 4 columnas estructuradas con anchos visuales auto-ajustados: `Teléfono`, `Nombre`, `Motivo del Fallo` y `Fecha de Envío`, abriendo limpiamente en Excel sin solapamiento de texto ni problemas de delimitadores.
+       - Se preservó una opción secundaria para CSV formateado con `sep=;\n`, delimitador `;` y BOM UTF-8 (`\uFEFF`).
+    3. **Traducción Integral de Errores de Meta al Español (`delivery-errors.ts`)**:
+       - Se creó el módulo de traducción en frontend que traduce códigos y descripciones de Meta Cloud API (`131049` límite de marketing, `131047` ventana 24h, `131026` sin WhatsApp, `131056` variables, `130429` rate limit, etc.).
+       - En el caso del error `131049`, se explica claramente: _"Límite de protección de Meta: Meta bloqueó la entrega para evitar saturar al destinatario con mensajes de marketing/campaña (Error Meta 131049)"_.
+       - Tanto la tabla de destinatarios (`CampaignRecipientsTable.tsx`), el modal de detalle del mensaje y el archivo Excel exportado muestran la causa en español claro.
 
 ## [0.2.24] - 2026-11-09
 

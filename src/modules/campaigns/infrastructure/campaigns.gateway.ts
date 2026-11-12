@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete, ApiError } from "@/shared/http/http-client";
+import { apiGet, apiPost, apiDelete, ApiError } from "@/shared/http/http-client";
 import { type Campaign, type CreateCampaignPayload } from "../domain/campaign";
 
 function shouldThrowError(err: unknown): boolean {
