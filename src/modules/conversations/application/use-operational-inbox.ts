@@ -69,6 +69,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   selectedIdRef.current = selectedId;
   const activeCaseIdRef = useRef<string | null>(null);
   const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reloadSeqRef = useRef(0);
+  const reloadAbortRef = useRef<AbortController | null>(null);
   const outboundQueueRef = useRef<Promise<void>>(Promise.resolve());
   const pendingMessagesRef = useRef<Map<string, MessageDto>>(new Map());
   const localBlobUrlsRef = useRef<Map<string, string>>(new Map());
@@ -82,16 +84,32 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     }
   }, [options.initialConversationId]);
 
+  const invalidatePendingReloads = useCallback(() => {
+    reloadSeqRef.current += 1;
+    reloadAbortRef.current?.abort();
+    reloadAbortRef.current = null;
+  }, []);
+
   const reload = useCallback(
     async (opts?: { silent?: boolean }) => {
       if (!session?.id) return;
+      const seq = ++reloadSeqRef.current;
+      reloadAbortRef.current?.abort();
+      const controller = new AbortController();
+      reloadAbortRef.current = controller;
+
       if (!opts?.silent) setLoading(true);
       try {
-        let data = await conversationGateway.listConversations({
-          departmentId: options.departmentId,
-          userId: options.agentId,
-          status: options.status === "all" ? undefined : (options.status ?? "open"),
-        });
+        let data = await conversationGateway.listConversations(
+          {
+            departmentId: options.departmentId,
+            userId: options.agentId,
+            status: options.status === "all" ? undefined : (options.status ?? "open"),
+          },
+          { signal: controller.signal },
+        );
+
+        if (seq !== reloadSeqRef.current || controller.signal.aborted) return;
 
         const prevId = selectedIdRef.current;
 
@@ -108,7 +126,10 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           consumedInitialIdRef.current = preferred;
           if (!data.some((c) => c.id === preferred)) {
             try {
-              const single = await conversationGateway.getConversation(preferred);
+              const single = await conversationGateway.getConversation(preferred, {
+                signal: controller.signal,
+              });
+              if (seq !== reloadSeqRef.current || controller.signal.aborted) return;
               if (single) {
                 data = [single, ...data];
               }
@@ -172,11 +193,17 @@ export function useOperationalInbox(options: InboxOptions = {}) {
           setCases([]);
         }
       } catch (e) {
-        if (!opts?.silent) {
+        const isAbort = e instanceof Error && e.name === "AbortError";
+        if (!opts?.silent && !isAbort && seq === reloadSeqRef.current) {
           toast.error(e instanceof Error ? e.message : "Error cargando bandeja");
         }
       } finally {
-        if (!opts?.silent) setLoading(false);
+        if (reloadAbortRef.current === controller) {
+          reloadAbortRef.current = null;
+        }
+        if (!opts?.silent && seq === reloadSeqRef.current) {
+          setLoading(false);
+        }
       }
     },
     [
@@ -237,6 +264,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         clearTimeout(reloadTimerRef.current);
         reloadTimerRef.current = null;
       }
+      reloadAbortRef.current?.abort();
+      reloadAbortRef.current = null;
       for (const blobUrl of blobUrls.values()) {
         URL.revokeObjectURL(blobUrl);
       }
@@ -807,9 +836,12 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     setSending(true);
     try {
       await conversationGateway.closeConversation(selectedId);
+      invalidatePendingReloads();
       setConversations((prev) =>
         prev.map((conversation) =>
-          conversation.id === selectedId ? { ...conversation, status: "closed" } : conversation,
+          conversation.id === selectedId
+            ? { ...conversation, status: "closed", activeCaseId: null, activeCase: undefined }
+            : conversation,
         ),
       );
       toast.success("Conversación cerrada");
@@ -926,16 +958,62 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       activeCase ? caseActions.assign(activeCase.id, agentUserId) : Promise.resolve(false),
     reassign: (agentUserId: string) =>
       activeCase ? caseActions.reassign(activeCase.id, agentUserId) : Promise.resolve(false),
-    complete: (closeReason?: caseGateway.CloseReason, note?: string) =>
-      activeCase
-        ? caseActions.complete(activeCase.id, closeReason ?? "RESOLVED", note)
-        : Promise.resolve(false),
+    complete: async (closeReason?: caseGateway.CloseReason, note?: string) => {
+      const targetCase = activeCase;
+      if (!targetCase) return false;
+      const ok = await caseActions.complete(targetCase.id, closeReason ?? "RESOLVED", note);
+      if (ok) {
+        invalidatePendingReloads();
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === targetCase.conversationId
+              ? {
+                  ...conversation,
+                  status: "resolved",
+                  activeCaseId: null,
+                  activeCase: conversation.activeCase
+                    ? { ...conversation.activeCase, status: "COMPLETED" }
+                    : undefined,
+                }
+              : conversation,
+          ),
+        );
+        setCases((prev) =>
+          prev.map((c) => (c.id === targetCase.id ? { ...c, status: "COMPLETED" } : c)),
+        );
+        setAutomationState(null);
+        scheduleSilentReload();
+      }
+      return ok;
+    },
     schedule: (scheduledAt: string, scheduleTag?: string, reminderReason?: string) =>
       activeCase
         ? caseActions.schedule(activeCase.id, scheduledAt, scheduleTag, reminderReason)
         : Promise.resolve(false),
-    cancel: (reason: string) =>
-      activeCase ? caseActions.cancel(activeCase.id, reason) : Promise.resolve(false),
+    cancel: async (reason: string) => {
+      const targetCase = activeCase;
+      if (!targetCase) return false;
+      const ok = await caseActions.cancel(targetCase.id, reason);
+      if (ok) {
+        invalidatePendingReloads();
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === targetCase.conversationId
+              ? {
+                  ...conversation,
+                  activeCaseId: null,
+                  activeCase: undefined,
+                }
+              : conversation,
+          ),
+        );
+        setCases((prev) =>
+          prev.map((c) => (c.id === targetCase.id ? { ...c, status: "CANCELLED" } : c)),
+        );
+        scheduleSilentReload();
+      }
+      return ok;
+    },
     transfer: (toDepartmentId: string | undefined, reason: string, toAgentId?: string) =>
       activeCase
         ? caseActions.transfer(activeCase.id, toDepartmentId, reason, toAgentId)

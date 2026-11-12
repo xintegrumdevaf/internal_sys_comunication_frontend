@@ -26,12 +26,18 @@ function withMediaUrls(messages: MessageDto[]): MessageDto[] {
   });
 }
 
-export function listConversations(filter?: {
-  departmentId?: string;
-  userId?: string;
-  status?: ConversationStatus;
-}): Promise<ConversationDto[]> {
-  return apiGet<ConversationDto[]>("/api/conversations", { query: filter });
+export function listConversations(
+  filter?: {
+    departmentId?: string;
+    userId?: string;
+    status?: ConversationStatus;
+  },
+  options?: { signal?: AbortSignal },
+): Promise<ConversationDto[]> {
+  return apiGet<ConversationDto[]>("/api/conversations", {
+    query: filter,
+    signal: options?.signal,
+  });
 }
 
 export function searchConversations(

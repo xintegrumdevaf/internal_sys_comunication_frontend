@@ -470,7 +470,6 @@ export function OperationalInbox({
       // Defer unmounting CasePanel/CompleteCaseModal until Radix Dialog finishes closing
       // so body pointer-events lock is never orphaned.
       setTimeout(() => setSelectedId(null), 0);
-      void reload({ silent: true });
     }
     return ok;
   };
@@ -490,7 +489,6 @@ export function OperationalInbox({
     if (ok) {
       setCloseConfirmOpen(false);
       setSelectedId(null);
-      await reload({ silent: true });
     }
   };
 
