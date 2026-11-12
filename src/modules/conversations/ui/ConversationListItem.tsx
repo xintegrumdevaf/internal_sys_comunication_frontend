@@ -8,6 +8,7 @@ import {
 } from "@/modules/conversations/domain/conversation";
 import { calculateConversationSla, type SlaConfigDto } from "@/modules/sla/domain/sla-config";
 import { extractSchedulingMetadata, type CaseDto } from "@/modules/cases/domain/case";
+import { describeHumanHandling } from "@/modules/cases/domain/escalation-reason";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 import type { SessionUser } from "@/modules/identity/domain/session";
 import { formatConversationTimestamp } from "@/shared/datetime";
@@ -171,32 +172,37 @@ export function ConversationListItem({
                     : directory.find((a) => a.id === liveCase?.assignedAgentId)?.name || "Agente"
                   : null);
 
-              const displayLabel = isHuman
-                ? agentName
-                  ? `Humano: ${agentName}`
-                  : "Humano (Sin asignar)"
-                : "IA";
+              const liveReason =
+                c.id === selectedCustomerId && activeCase?.automation?.disabledReason
+                  ? activeCase.automation.disabledReason
+                  : liveCase.disabledReason;
+
+              const humanDesc = isHuman
+                ? describeHumanHandling({
+                    status: liveCase.status,
+                    assignedAgentName: agentName,
+                    disabledReason: liveReason,
+                  })
+                : null;
+
+              const badgeToneCls = !humanDesc
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
+                : humanDesc.tone === "danger"
+                  ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-1 ring-red-500/30"
+                  : humanDesc.tone === "warning"
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30"
+                    : "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30";
 
               return (
                 <>
                   <span
-                    className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[170px] ${
-                      isHuman
-                        ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30"
-                        : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
-                    }`}
-                    title={
-                      isHuman
-                        ? agentName
-                          ? `Caso escalado/asignado a: ${agentName}`
-                          : "Caso escalado a humano (Sin asignar a agente específico)"
-                        : "Asistido por IA"
-                    }
+                    className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded flex items-center gap-1 max-w-[200px] ${badgeToneCls}`}
+                    title={humanDesc ? humanDesc.detail : "Asistido por IA"}
                   >
-                    {isHuman ? (
+                    {isHuman && humanDesc ? (
                       <>
                         <User className="size-2.5 shrink-0" />
-                        <span className="truncate">{displayLabel}</span>
+                        <span className="truncate">{humanDesc.badgeLabel}</span>
                       </>
                     ) : (
                       <>

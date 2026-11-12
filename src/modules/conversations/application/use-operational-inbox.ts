@@ -891,6 +891,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
                   ? {
                       ...c.activeCase,
                       automationEnabled: false,
+                      disabledReason: "manual_override",
                       status: "HUMAN_ACTIVE",
                       assignedAgentId: session.id,
                       assignedAgentName: session.name,

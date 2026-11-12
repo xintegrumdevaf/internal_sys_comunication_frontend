@@ -39,6 +39,7 @@ export type ConversationDto = {
     assignedAgentId: string | null;
     assignedAgentName?: string | null;
     automationEnabled: boolean;
+    disabledReason?: string | null;
   };
   /**
    * En resueltas y cerradas: última persona asignada al caso.

@@ -43,6 +43,7 @@ import {
   paymentStatusLabel,
   workflowLabel,
 } from "@/modules/cases/domain/case";
+import { describeHumanHandling } from "@/modules/cases/domain/escalation-reason";
 import { advanceCase, type CloseReason } from "@/modules/cases/infrastructure/case.gateway";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 import { CompleteCaseModal } from "@/modules/cases/ui/CompleteCaseModal";
@@ -535,6 +536,7 @@ export function CasePanel({
   departments,
   agents,
   assignedAgentName,
+  automationDisabledReason,
   onOpenSummary,
   onComplete,
   onSchedule,
@@ -564,6 +566,8 @@ export function CasePanel({
   departments: DepartmentDto[];
   /** Nombre del agente asignado ya resuelto — nunca se muestra el UUID crudo. */
   assignedAgentName?: string | null;
+  /** Motivo específico por el que la automatización está desactivada/escalada. */
+  automationDisabledReason?: string | null;
   onOpenSummary: () => void;
   onComplete: (closeReason?: CloseReason, note?: string) => void | Promise<unknown>;
   onSchedule?: (
@@ -924,9 +928,18 @@ export function CasePanel({
     !hasHumanOwner &&
     caseDto.automation?.enabled !== false &&
     caseDto.status !== "HUMAN_ACTIVE";
+  const effectiveDisabledReason = automationDisabledReason ?? caseDto.automation?.disabledReason;
+  const humanHandling = !isAiAttending
+    ? describeHumanHandling({
+        status: caseDto.status,
+        assignedAgentName,
+        disabledReason: effectiveDisabledReason,
+      })
+    : null;
   const handlerLabel = isAiAttending
     ? "Asistente IA"
-    : (assignedAgentName ?? "Sin asignar todavía");
+    : (assignedAgentName ??
+      (humanHandling?.isWaitingQueue ? "En cola esperando agente libre" : "Sin asignar todavía"));
 
   return (
     <div className="space-y-4">
@@ -1055,6 +1068,35 @@ export function CasePanel({
               <p className="text-[10px] text-emerald-700 dark:text-emerald-300 leading-tight mt-0.5">
                 Las respuestas de este caso están siendo generadas automáticamente por la IA.
               </p>
+            </div>
+          </div>
+        )}
+        {!isAiAttending && !isTerminalCase && humanHandling && (
+          <div
+            className={cn(
+              "p-2.5 rounded-lg border text-xs flex items-start gap-2",
+              humanHandling.tone === "danger"
+                ? "bg-red-500/10 border-red-500/25 text-red-900 dark:text-red-200"
+                : humanHandling.tone === "warning"
+                  ? "bg-amber-500/10 border-amber-500/25 text-amber-900 dark:text-amber-200"
+                  : "bg-blue-500/10 border-blue-500/25 text-blue-900 dark:text-blue-200",
+            )}
+          >
+            {humanHandling.tone === "danger" || humanHandling.tone === "warning" ? (
+              <AlertTriangle
+                className={cn(
+                  "size-4 shrink-0 mt-0.5",
+                  humanHandling.tone === "danger" ? "text-red-500" : "text-amber-500",
+                )}
+              />
+            ) : (
+              <UserRound className="size-4 text-blue-500 shrink-0 mt-0.5" />
+            )}
+            <div className="min-w-0">
+              <p className="font-extrabold text-[10px] uppercase tracking-wider">
+                {humanHandling.reasonLabel}
+              </p>
+              <p className="text-[10px] opacity-90 leading-snug mt-0.5">{humanHandling.detail}</p>
             </div>
           </div>
         )}

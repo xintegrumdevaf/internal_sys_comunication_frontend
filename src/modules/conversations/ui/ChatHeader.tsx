@@ -17,6 +17,7 @@ import {
 } from "@/modules/conversations/domain/conversation";
 import type { CaseDto } from "@/modules/cases/domain/case";
 import { caseStatusLabel, workflowLabel } from "@/modules/cases/domain/case";
+import { describeHumanHandling } from "@/modules/cases/domain/escalation-reason";
 import type { CustomerDto } from "@/modules/customers/domain/customer";
 import { ConversationAvatar } from "./ConversationAvatars";
 
@@ -27,6 +28,7 @@ export interface ChatHeaderProps {
   isAutomationActive: boolean;
   isClosedRecord: boolean;
   assignedAgentName: string | null;
+  automationDisabledReason?: string | null;
   isAssignedToMe: boolean;
   isAssignedToOther: boolean;
   showClaim: boolean;
@@ -49,6 +51,7 @@ export function ChatHeader({
   isAutomationActive,
   isClosedRecord,
   assignedAgentName,
+  automationDisabledReason,
   isAssignedToMe,
   isAssignedToOther,
   showClaim,
@@ -167,30 +170,44 @@ export function ChatHeader({
             )}
           </span>
         ) : (
-          <span
-            className={`inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold ${
-              isAssignedToMe
-                ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                : "bg-foreground/5 text-muted-foreground ring-1 ring-border"
-            }`}
-            title={isAssignedToOther ? "Solo esta persona puede responder" : undefined}
-          >
-            {isAssignedToMe ? (
-              <UserCheck className="size-3 sm:size-3.5 shrink-0" />
-            ) : (
-              <Lock className="size-2.5 sm:size-3 shrink-0" />
-            )}
-            <span className="hidden @min-[36rem]/chat:inline truncate min-w-0">
-              {isAssignedToMe
-                ? "Atención Humana (Tú)"
-                : assignedAgentName
-                  ? `Atendido por ${assignedAgentName}`
-                  : "Atención Humana (Sin asignar)"}
-            </span>
-            <span className="@min-[36rem]/chat:hidden truncate min-w-0">
-              {isAssignedToMe ? "Tú" : (assignedAgentName ?? "Sin Asignar")}
-            </span>
-          </span>
+          (() => {
+            const effectiveStatus = activeCase?.status ?? selected.activeCase?.status;
+            const effectiveReason =
+              automationDisabledReason ??
+              activeCase?.automation?.disabledReason ??
+              selected.activeCase?.disabledReason;
+            const humanDesc = describeHumanHandling({
+              status: effectiveStatus,
+              assignedAgentName: isAssignedToMe ? "Tú" : assignedAgentName,
+              disabledReason: effectiveReason,
+            });
+            const pillToneCls =
+              humanDesc.tone === "danger"
+                ? "bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500/30"
+                : humanDesc.tone === "warning"
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30"
+                  : isAssignedToMe
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/30"
+                    : "bg-foreground/5 text-muted-foreground ring-1 ring-border";
+
+            return (
+              <span
+                className={`inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold ${pillToneCls}`}
+                title={
+                  isAssignedToOther
+                    ? `${humanDesc.detail} (Solo esta persona puede responder)`
+                    : humanDesc.detail
+                }
+              >
+                {isAssignedToMe ? (
+                  <UserCheck className="size-3 sm:size-3.5 shrink-0" />
+                ) : (
+                  <Lock className="size-2.5 sm:size-3 shrink-0" />
+                )}
+                <span className="truncate min-w-0">{humanDesc.badgeLabel}</span>
+              </span>
+            );
+          })()
         )}
         {showClaim && (
           <button

@@ -1557,6 +1557,11 @@ export function OperationalInbox({
                 isAutomationActive={isAutomationActive}
                 isClosedRecord={isClosedRecord}
                 assignedAgentName={assignedAgentName}
+                automationDisabledReason={
+                  automationState?.disabledReason ??
+                  activeCase?.automation?.disabledReason ??
+                  selected.activeCase?.disabledReason
+                }
                 isAssignedToMe={isAssignedToMe}
                 isAssignedToOther={isAssignedToOther}
                 showClaim={showClaim}
@@ -1855,6 +1860,11 @@ export function OperationalInbox({
                 departments={departments}
                 agents={directory}
                 assignedAgentName={assignedAgentName}
+                automationDisabledReason={
+                  automationState?.disabledReason ??
+                  activeCase?.automation?.disabledReason ??
+                  selected?.activeCase?.disabledReason
+                }
                 onOpenSummary={() => {
                   if (activeCase) void loadCaseSummary(activeCase.id);
                   setSummaryOpen(true);
@@ -1934,6 +1944,11 @@ export function OperationalInbox({
               departments={departments}
               agents={directory}
               assignedAgentName={assignedAgentName}
+              automationDisabledReason={
+                automationState?.disabledReason ??
+                activeCase?.automation?.disabledReason ??
+                selected?.activeCase?.disabledReason
+              }
               onOpenSummary={() => {
                 if (activeCase) void loadCaseSummary(activeCase.id);
                 setSummaryOpen(true);
