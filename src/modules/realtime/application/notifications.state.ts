@@ -67,6 +67,20 @@ export function wireNotifications(userId: string | null): void {
         createdAt: new Date().toISOString(),
         read: false,
       });
+    } else if (event.type === "UNASSIGNED_SLA_BREACH") {
+      push({
+        id: `sla-${event.caseId}-${Date.now()}`,
+        kind: "UNASSIGNED_SLA_BREACH",
+        caseId: event.caseId,
+        conversationId: event.conversationId,
+        departmentId: event.departmentId,
+        departmentName: event.departmentName,
+        customerName: event.customerName,
+        customerPhone: event.customerPhone,
+        waitMinutes: event.waitMinutes,
+        createdAt: new Date().toISOString(),
+        read: false,
+      });
     }
   });
 }

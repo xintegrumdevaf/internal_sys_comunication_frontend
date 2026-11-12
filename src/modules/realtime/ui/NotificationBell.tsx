@@ -101,21 +101,26 @@ export function NotificationBell() {
               const isEsc = n.kind === "CASE_ESCALATED";
               const isAsg = n.kind === "HUMAN_ASSIGNED";
               const isRem = n.kind === "CASE_SCHEDULED_REMINDER";
+              const isSlaBreach = n.kind === "UNASSIGNED_SLA_BREACH";
 
-              const Icon = isEsc ? AlertTriangle : isAsg ? UserCheck : Clock;
-              const iconColor = isEsc
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                : isAsg
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-sky-500/10 text-sky-600 dark:text-sky-400";
-
-              const title = isRem
-                ? `Recordatorio [${n.scheduleTag ?? "AGENDADO"}]`
+              const Icon = isSlaBreach ? AlertTriangle : isEsc ? AlertTriangle : isAsg ? UserCheck : Clock;
+              const iconColor = isSlaBreach
+                ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-1 ring-red-500/30"
                 : isEsc
-                  ? "Caso escalado a humano"
-                  : n.isMine
-                    ? "Caso asignado a ti"
-                    : "Caso asignado";
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  : isAsg
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-sky-500/10 text-sky-600 dark:text-sky-400";
+
+              const title = isSlaBreach
+                ? `Caso sin asignar demorado (${n.waitMinutes ?? ""}m)`
+                : isRem
+                  ? `Recordatorio [${n.scheduleTag ?? "AGENDADO"}]`
+                  : isEsc
+                    ? "Caso escalado a humano"
+                    : n.isMine
+                      ? "Caso asignado a ti"
+                      : "Caso asignado";
 
               const customer =
                 n.customerName || (n.customerPhone ? formatWaPhone(n.customerPhone) : null);

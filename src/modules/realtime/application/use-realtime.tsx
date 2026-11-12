@@ -366,6 +366,47 @@ export function useRealtimeSession(sessionOrUserId: SessionUser | string | null)
             });
           }
         }
+      } else if (event.type === "UNASSIGNED_SLA_BREACH") {
+        const isMyDept = Boolean(
+          event.departmentId && userDepartmentIds.includes(event.departmentId),
+        );
+        const isPrivilegedSupervisor = userRole === "manager" || userRole === "admin";
+
+        // Notificar a asesores del departamento correspondiente y a todos los managers/admins
+        if (isMyDept || !event.departmentId || isPrivilegedSupervisor) {
+          const targetUrl = `/bandeja?conversationId=${encodeURIComponent(event.conversationId)}&status=open`;
+          toast.custom(
+            (t) => (
+              <RealtimeToastCard
+                type="escalated"
+                title={`⚠️ Caso sin asignar demorado (${event.waitMinutes}m)`}
+                customerName={event.customerName}
+                customerPhone={event.customerPhone}
+                reason={`Área: ${event.departmentName || "General / Sin área"} · Sin asesor asignado`}
+                actionLabel="Atender / Tomar caso"
+                onAction={() => {
+                  toast.dismiss(t);
+                  window.location.href = targetUrl;
+                }}
+                onDismiss={() => toast.dismiss(t)}
+              />
+            ),
+            { duration: 15000 },
+          );
+          playNotificationSound();
+          if (isAppInBackground()) {
+            flashDocumentTitle("⚠️ Caso sin asignar demorado");
+            const customerLabel =
+              event.customerName ||
+              (event.customerPhone ? formatWaPhone(event.customerPhone) : "Cliente");
+            sendDesktopNotification("⚠️ Caso sin asignar con SLA demorado", {
+              body: `${customerLabel} lleva ${event.waitMinutes}m esperando en ${event.departmentName || "General"}. Ningún asesor ha tomado el caso.`,
+              tag: `unassigned-sla-${event.caseId}`,
+              renotify: true,
+              data: { url: targetUrl },
+            });
+          }
+        }
       } else if (event.type === "MESSAGE_RECEIVED") {
         const isCurrentActiveChat = getActiveChatId() === event.conversationId;
         const inBackground = isAppInBackground();

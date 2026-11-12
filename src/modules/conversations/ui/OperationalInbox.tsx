@@ -822,9 +822,25 @@ export function OperationalInbox({
 
   const openCount = openConversations.length;
 
+  const isConversationHumanUnassigned = useCallback((c: ConversationDto): boolean => {
+    if (c.status !== "open") return false;
+    const isTerminal =
+      c.activeCase?.status === "COMPLETED" ||
+      c.activeCase?.status === "EXPIRED" ||
+      c.activeCase?.status === "CANCELLED";
+    if (!c.activeCase || isTerminal) return false;
+
+    const isHuman =
+      !c.activeCase.automationEnabled ||
+      c.activeCase.status === "HUMAN_ACTIVE" ||
+      c.activeCase.status === "ESCALATED";
+
+    return isHuman && !c.activeCase.assignedAgentId;
+  }, []);
+
   const unassignedCount = useMemo(
-    () => openConversations.filter((c) => !c.activeCase?.assignedAgentId).length,
-    [openConversations],
+    () => openConversations.filter(isConversationHumanUnassigned).length,
+    [openConversations, isConversationHumanUnassigned],
   );
 
   const unattendedCount = useMemo(
@@ -857,8 +873,8 @@ export function OperationalInbox({
     if (activeTab === "open") {
       list = openConversations;
     } else if (activeTab === "unassigned") {
-      // Estrictamente abiertas y sin agente asignado
-      list = openConversations.filter((c) => !c.activeCase?.assignedAgentId);
+      // Estrictamente abiertas y esperando asignación humana
+      list = openConversations.filter(isConversationHumanUnassigned);
     } else if (activeTab === "unattended") {
       // Estrictamente abiertas con cliente en espera o SLA vencido (excluye casos con SLA pausado)
       list = openConversations.filter(
@@ -879,7 +895,7 @@ export function OperationalInbox({
       list = list.filter((c) => calculateConversationSla(c, slaConfig).isBreached);
     }
     if (agentFilter === "unassigned") {
-      list = list.filter((c) => !c.activeCase?.assignedAgentId && !c.lastAttendedBy?.agentId);
+      list = list.filter(isConversationHumanUnassigned);
     }
     if (!search.trim()) return list;
 
@@ -1163,7 +1179,9 @@ export function OperationalInbox({
   const showClaim =
     Boolean(activeCase) &&
     !activeCase?.assignedAgentId &&
-    (activeCase?.status === "ESCALATED" || activeCase?.status === "HUMAN_ACTIVE");
+    (activeCase?.status === "ESCALATED" ||
+      activeCase?.status === "HUMAN_ACTIVE" ||
+      activeCase?.automation?.enabled === false);
 
   const isClosedRecord = Boolean(
     selected &&
@@ -1530,6 +1548,24 @@ export function OperationalInbox({
               ) : null}
             </div>
           </div>
+          {/* Alerta de casos sin asignar en espera si estamos en otra pestaña */}
+          {unassignedCount > 0 && activeTab !== "unassigned" && (
+            <div className="px-3 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between text-xs text-amber-800 dark:text-amber-200 shrink-0 animate-fade-in">
+              <div className="flex items-center gap-1.5 font-medium truncate">
+                <AlertTriangle className="size-3.5 text-amber-500 shrink-0 animate-pulse" />
+                <span className="truncate">
+                  {unassignedCount} caso{unassignedCount === 1 ? "" : "s"} sin asignar en espera
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTabChange("unassigned")}
+                className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer shrink-0 ml-2"
+              >
+                Ver en cola →
+              </button>
+            </div>
+          )}
           <div
             ref={conversationListScroll.ref}
             onScroll={conversationListScroll.onScroll}
@@ -1795,6 +1831,49 @@ export function OperationalInbox({
                           Tomar control manual
                         </button>
                       )}
+                    </div>
+                  )}
+                  {!isClosedRecord && !isAutomationActive && showClaim && (
+                    <div className="px-3 py-2 bg-amber-500/10 border-b border-amber-500/25 flex flex-wrap items-center justify-between gap-2 text-xs min-w-0 animate-fade-in">
+                      <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-semibold text-[11px] min-w-0">
+                        <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" />
+                        <span className="truncate">
+                          <strong className="font-extrabold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                            Caso sin asignar en espera
+                          </strong>{" "}
+                          — Este cliente aguarda atención de un asesor humano
+                          {activeCase?.departmentId
+                            ? ` (${departments.find((d) => d.id === activeCase.departmentId)?.name || "Área asignada"})`
+                            : ""}
+                          .
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void claim()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm transition disabled:opacity-40 cursor-pointer"
+                          title="Tomar este caso para responder al cliente"
+                        >
+                          <ShieldCheck className="size-3" />
+                          Atender yo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                              setMobileDetailsOpen(true);
+                            } else {
+                              setDetailsOverride(true);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-500/30 text-amber-800 dark:text-amber-200 hover:bg-amber-500/15 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer"
+                          title="Abrir panel de detalles para transferir o delegar el caso"
+                        >
+                          Transferir / Delegar
+                        </button>
+                      </div>
                     </div>
                   )}
                   <ChatComposer

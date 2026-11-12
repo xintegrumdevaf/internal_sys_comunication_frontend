@@ -214,11 +214,12 @@ export function ChatHeader({
             type="button"
             disabled={busy}
             onClick={onClaim}
-            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-full bg-warning text-white font-bold shadow-sm hover:brightness-95 transition disabled:opacity-40 shrink-0"
+            title="Tomar este caso para responder al cliente"
+            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2.5 py-1 rounded-full bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-sm transition disabled:opacity-40 shrink-0 cursor-pointer"
           >
             <ShieldCheck className="size-3 sm:size-3.5" />
-            <span className="hidden @min-[36rem]/chat:inline">Reclamar caso</span>
-            <span className="@min-[36rem]/chat:hidden">Reclamar</span>
+            <span className="hidden @min-[36rem]/chat:inline">Atender yo</span>
+            <span className="@min-[36rem]/chat:hidden">Atender</span>
           </button>
         )}
         {showTakeControl && (

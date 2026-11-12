@@ -1,16 +1,18 @@
 /** Notificacion in-app derivada de eventos SSE (docs/spec/03_REALTIME_NOTIFICATIONS.md §3). */
 export type UiNotification = {
   id: string;
-  kind: "CASE_ESCALATED" | "HUMAN_ASSIGNED" | "CASE_SCHEDULED_REMINDER";
+  kind: "CASE_ESCALATED" | "HUMAN_ASSIGNED" | "CASE_SCHEDULED_REMINDER" | "UNASSIGNED_SLA_BREACH";
   caseId: string;
   conversationId?: string;
   departmentId?: string | null;
+  departmentName?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
   reason?: string | null;
   scheduleTag?: string | null;
   reminderReason?: string | null;
   scheduledAt?: string;
+  waitMinutes?: number;
   /** true si HUMAN_ASSIGNED me asigno el caso a mi o si el recordatorio es para mi. */
   isMine?: boolean;
   createdAt: string;

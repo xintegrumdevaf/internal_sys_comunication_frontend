@@ -55,6 +55,16 @@ export type RealtimeEvent =
       reminderReason?: string | null;
     }
   | {
+      type: "UNASSIGNED_SLA_BREACH";
+      caseId: string;
+      conversationId: string;
+      departmentId: string | null;
+      departmentName?: string | null;
+      waitMinutes: number;
+      customerName: string;
+      customerPhone?: string;
+    }
+  | {
       type: "INTERNAL_MESSAGE_SENT";
       threadId: string;
       messageId?: string;
