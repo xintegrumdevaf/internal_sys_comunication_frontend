@@ -5,7 +5,8 @@ import type { CaseStatus } from "@/modules/cases/domain/case";
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type MessageAuthor = "customer" | "ai" | "agent" | "system";
 export type MessageDirection = "inbound" | "outbound";
-export type MessageType = "text" | "audio" | "image" | "video" | "document" | "file" | "location";
+export type MessageType =
+  "text" | "audio" | "image" | "video" | "document" | "file" | "location" | "sticker";
 
 export type MessagePreviewDto = {
   body: string;
@@ -245,6 +246,7 @@ export function formatQuotedMessageSnippet(quoted?: QuotedMessageDto | MessageDt
   if (type === "video") return caption ? `🎥 ${caption}` : "🎥 Video";
   if (type === "document" || type === "file") return caption ? `📄 ${caption}` : "📄 Documento";
   if (type === "location") return "📍 Ubicación";
+  if (type === "sticker" || body === "[sticker]") return "💟 Sticker";
   return body || caption || "Mensaje";
 }
 

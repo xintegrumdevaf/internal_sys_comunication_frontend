@@ -150,6 +150,13 @@ describe("formatQuotedMessageSnippet", () => {
         caption: "Factura.pdf",
       }),
     ).toBe("📄 Factura.pdf");
+    expect(
+      formatQuotedMessageSnippet({
+        author: "customer",
+        body: "[sticker]",
+        type: "sticker",
+      }),
+    ).toBe("💟 Sticker");
   });
 });
 

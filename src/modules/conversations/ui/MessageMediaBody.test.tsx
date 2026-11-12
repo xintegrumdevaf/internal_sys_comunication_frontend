@@ -116,3 +116,47 @@ describe("MessageMediaBody - Video", () => {
     expect(screen.getByText("VIDEO")).toBeInTheDocument();
   });
 });
+
+describe("MessageMediaBody - Sticker", () => {
+  it("renderiza imagen de sticker cuando type === 'sticker' y tiene mediaId", () => {
+    const msg = createMockMessage({
+      type: "sticker",
+      mediaId: "sticker_abc_123",
+      mimeType: "image/webp",
+      body: "[sticker]",
+    });
+
+    const { container } = render(<MessageMediaBody message={msg} />);
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img?.getAttribute("src")).toContain("/api/media/sticker_abc_123");
+    expect(img?.getAttribute("alt")).toBe("Sticker");
+    expect(screen.queryByText("[sticker]")).not.toBeInTheDocument();
+  });
+
+  it("renderiza fallback amigable con texto 'Sticker recibido' cuando no hay mediaId", () => {
+    const msg = createMockMessage({
+      type: "sticker",
+      mediaId: undefined,
+      mediaUrl: undefined,
+      body: "[sticker]",
+    });
+
+    render(<MessageMediaBody message={msg} />);
+    expect(screen.getByText("Sticker recibido")).toBeInTheDocument();
+  });
+
+  it("detecta sticker cuando body === '[sticker]' y mediaId está presente", () => {
+    const msg = createMockMessage({
+      type: "text",
+      mediaId: "stk_999",
+      mimeType: "image/webp",
+      body: "[sticker]",
+    });
+
+    const { container } = render(<MessageMediaBody message={msg} />);
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img?.getAttribute("src")).toContain("/api/media/stk_999");
+  });
+});

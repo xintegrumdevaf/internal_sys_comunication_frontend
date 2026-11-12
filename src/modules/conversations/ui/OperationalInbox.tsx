@@ -103,6 +103,7 @@ import {
 } from "@/modules/conversations/domain/customer-service-window";
 import { useOperationalInbox } from "@/modules/conversations/application/use-operational-inbox";
 import {
+  convertImageToWebpSticker,
   filesFromClipboard,
   formatOutboundFileSize,
   OUTBOUND_MEDIA_RULES,
@@ -558,9 +559,18 @@ export function OperationalInbox({
     return true;
   }, []);
 
-  const handlePickedFile = (list: FileList | null) => {
+  const handlePickedFile = async (list: FileList | null) => {
     const file = list?.[0];
     if (!file) return;
+    if (pickKindRef.current === "sticker") {
+      try {
+        const converted = await convertImageToWebpSticker(file);
+        stageOutboundFile(converted, "sticker");
+        return;
+      } catch {
+        // fallback to original file if conversion fails
+      }
+    }
     stageOutboundFile(file, pickKindRef.current);
   };
 

@@ -33,6 +33,9 @@ describe("validateOutboundMedia", () => {
     expect(
       validateOutboundMedia(fileWithSize("contrato.pdf", "application/pdf", 2 * MB), "document"),
     ).toEqual({ ok: true, kind: "document" });
+    expect(
+      validateOutboundMedia(fileWithSize("sticker.webp", "image/webp", 100_000), "sticker"),
+    ).toEqual({ ok: true, kind: "sticker" });
   });
 
   it("rechaza un tipo que no corresponde al selector", () => {
@@ -66,6 +69,12 @@ describe("validateOutboundMedia", () => {
       "document",
     );
     expect(bigDoc.ok).toBe(false);
+
+    const bigSticker = validateOutboundMedia(
+      fileWithSize("animado.webp", "image/webp", 500 * 1024 + 1),
+      "sticker",
+    );
+    expect(bigSticker.ok).toBe(false);
     if (!bigDoc.ok) expect(bigDoc.message).toMatch(/100 MB/);
   });
 

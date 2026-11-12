@@ -6,6 +6,7 @@ import {
   Paperclip,
   Reply,
   SendHorizontal,
+  Sticker,
   Video,
   X,
   Zap,
@@ -57,6 +58,12 @@ export const MEDIA_ATTACH_OPTIONS: Array<{
     label: "Documento",
     icon: FileIcon,
     bubble: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  },
+  {
+    kind: "sticker",
+    label: "Sticker",
+    icon: Sticker,
+    bubble: "bg-pink-500/15 text-pink-600 dark:text-pink-400",
   },
 ];
 
@@ -208,6 +215,19 @@ export function ChatComposer({
               <FileIcon className="size-5" />
             </div>
           )}
+          {pendingAttachment.kind === "sticker" && (
+            <div className="size-14 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+              {pendingAttachment.previewUrl ? (
+                <img
+                  src={pendingAttachment.previewUrl}
+                  alt="Vista previa sticker"
+                  className="size-12 object-contain"
+                />
+              ) : (
+                <Sticker className="size-6 text-pink-500" />
+              )}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold truncate">{pendingAttachment.file.name}</p>
             <p className="text-[10px] text-muted-foreground">
@@ -215,7 +235,9 @@ export function ChatComposer({
               {formatOutboundFileSize(pendingAttachment.file.size)}
               {pendingAttachment.kind === "audio"
                 ? " · el texto se envía en un mensaje aparte"
-                : " · el texto va como comentario"}
+                : pendingAttachment.kind === "sticker"
+                  ? " · sticker de WhatsApp"
+                  : " · el texto va como comentario"}
             </p>
             {pendingAttachment.kind === "audio" && pendingAttachment.previewUrl && (
               <audio
@@ -382,7 +404,9 @@ export function ChatComposer({
                 : pendingAttachment
                   ? pendingAttachment.kind === "audio"
                     ? "Escribe un mensaje aparte (opcional)..."
-                    : "Añade un comentario (opcional)..."
+                    : pendingAttachment.kind === "sticker"
+                      ? "Envía este sticker al cliente..."
+                      : "Añade un comentario (opcional)..."
                   : "Escribe un mensaje, pega un archivo o '/' para respuestas rápidas"
           }
           title="Escribe un mensaje (Shift+Enter para salto de línea, Ctrl+V para pegar imagen, video o documento, '/' para respuestas rápidas)"

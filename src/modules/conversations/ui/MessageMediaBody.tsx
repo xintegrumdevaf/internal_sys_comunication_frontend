@@ -21,6 +21,7 @@ import {
   MapPin,
   Navigation,
   Reply,
+  Smile,
   Video as VideoIcon,
 } from "lucide-react";
 import type { MessageDto } from "@/modules/conversations/domain/conversation";
@@ -45,6 +46,7 @@ export function MessageMediaBody({
 }: Props) {
   const [iframeError, setIframeError] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [stickerError, setStickerError] = useState(false);
   const buildMediaUrl = (target?: string | null) => {
     if (!target) return undefined;
     if (target.startsWith("blob:") || target.startsWith("data:")) return target;
@@ -77,8 +79,15 @@ export function MessageMediaBody({
       message.filename?.toLowerCase().endsWith(".pdf") ||
       (isFile && !message.mimeType));
 
+  const isSticker =
+    message.type === "sticker" ||
+    (Boolean(message.mimeType?.includes("webp")) && message.body === "[sticker]") ||
+    (message.body === "[sticker]" && Boolean(mediaUrl || message.mediaId));
+
   const isImage =
-    !isVideo && (message.type === "image" || Boolean(message.mimeType?.startsWith("image/")));
+    !isVideo &&
+    !isSticker &&
+    (message.type === "image" || Boolean(message.mimeType?.startsWith("image/")));
 
   const isAudio =
     !isVideo && (message.type === "audio" || Boolean(message.mimeType?.startsWith("audio/")));
@@ -99,6 +108,54 @@ export function MessageMediaBody({
   const rawCaption = caption || (bodyText && bodyText !== message.filename ? bodyText : "");
   const displayCaption = isMediaPlaceholder(rawCaption) ? "" : rawCaption;
   const isOutgoing = message.author !== "customer";
+
+  // Vista de Sticker estilo WhatsApp
+  if (isSticker) {
+    const targetUrl = mediaUrl || (message.mediaId ? buildMediaUrl(message.mediaId) : undefined);
+
+    return (
+      <div className="space-y-1 my-0.5 max-w-full min-w-0 select-none">
+        {targetUrl && !stickerError ? (
+          <div
+            onClick={() => window.open(targetUrl, "_blank")}
+            className="relative group inline-block cursor-pointer transition-transform hover:scale-105 active:scale-95"
+            title="Ver sticker"
+          >
+            <img
+              src={targetUrl}
+              alt="Sticker"
+              onError={() => setStickerError(true)}
+              className="size-32 sm:size-36 max-w-[150px] max-h-[150px] object-contain drop-shadow-md select-none"
+              loading="lazy"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-500/20 bg-pink-500/10 text-pink-700 dark:text-pink-300 text-xs font-semibold">
+            <Smile className="size-4 shrink-0 text-pink-500" />
+            <span>Sticker recibido</span>
+            {targetUrl && (
+              <a
+                href={targetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="underline ml-1 font-normal opacity-80 hover:opacity-100"
+              >
+                Abrir
+              </a>
+            )}
+          </div>
+        )}
+        {displayCaption && (
+          <LinkifiedText
+            text={displayCaption}
+            isOutgoing={isOutgoing}
+            className={captionClassName}
+          />
+        )}
+      </div>
+    );
+  }
 
   // Detección estricta de mensaje de ubicación (solo para mensajes de tipo location o con coordenadas reales)
   const rawContent = `${message.body || ""} ${message.mediaId || ""} ${message.filename || ""} ${message.caption || ""}`;

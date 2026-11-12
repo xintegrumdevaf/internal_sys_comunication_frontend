@@ -117,6 +117,8 @@ export function ChatMessageItem({
     (m.agentId ? assignedAgentName : null) ||
     "Agente";
 
+  const isSticker = m.type === "sticker" || (m.body === "[sticker]" && !m.caption?.trim());
+
   return (
     <div id={`msg-${m.id}`} className="transition-colors rounded-xl">
       {showDaySeparator && (
@@ -131,10 +133,12 @@ export function ChatMessageItem({
       >
         {fromCustomer && <MessageAvatar author={m.author} conversation={selected} />}
         <div
-          className={`min-w-0 max-w-[min(85%,100%)] px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs break-words ${
-            fromCustomer
-              ? "bg-[var(--chat-in-bg)] text-[var(--chat-in-fg)] border border-border/70 rounded-bl-xs"
-              : "bg-[var(--chat-out-bg)] text-[var(--chat-out-fg)] rounded-br-xs"
+          className={`min-w-0 max-w-[min(85%,100%)] text-xs leading-relaxed break-words ${
+            isSticker
+              ? "bg-transparent border-0 shadow-none px-1 py-0.5"
+              : fromCustomer
+                ? "bg-[var(--chat-in-bg)] text-[var(--chat-in-fg)] border border-border/70 rounded-2xl rounded-bl-xs px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs"
+                : "bg-[var(--chat-out-bg)] text-[var(--chat-out-fg)] rounded-2xl rounded-br-xs px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-xs"
           }`}
         >
           {m.isForwarded && (
@@ -205,9 +209,11 @@ export function ChatMessageItem({
           <MessageMediaBody message={m} />
           <div
             className={`flex items-center justify-end gap-1 mt-1 text-[10px] tabular-nums ${
-              fromCustomer
-                ? "text-muted-foreground"
-                : "text-emerald-800/80 dark:text-emerald-200/80"
+              isSticker
+                ? "text-muted-foreground/80"
+                : fromCustomer
+                  ? "text-muted-foreground"
+                  : "text-emerald-800/80 dark:text-emerald-200/80"
             }`}
           >
             {m.editedAt && (

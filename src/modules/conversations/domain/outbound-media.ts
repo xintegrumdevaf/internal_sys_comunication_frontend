@@ -3,7 +3,7 @@
  * `resolveWhatsAppMediaType` del backend (imagen 5 MB, video/audio 16 MB,
  * documento 100 MB).
  */
-export type OutboundMediaKind = "image" | "video" | "audio" | "document";
+export type OutboundMediaKind = "image" | "video" | "audio" | "document" | "sticker";
 
 export type OutboundMediaRule = {
   label: string;
@@ -56,6 +56,15 @@ export const OUTBOUND_MEDIA_RULES: Record<OutboundMediaKind, OutboundMediaRule> 
     maxBytes: 100 * MB,
     extensions: [],
     mimes: [],
+  },
+  sticker: {
+    label: "sticker",
+    menuHint: "WEBP o imagen · máx. 500 KB",
+    rejectHint: "Selecciona una imagen o sticker (WEBP, PNG o JPG).",
+    accept: "image/webp,.webp,image/png,.png,image/jpeg,.jpg,.jpeg",
+    maxBytes: 500 * 1024,
+    extensions: ["webp", "png", "jpg", "jpeg"],
+    mimes: ["image/webp", "image/png", "image/jpeg"],
   },
 };
 
@@ -401,4 +410,61 @@ export function classifyPastedClipboardFile(
   if (isAudioLike(file)) return classifyKnownKind(file, "audio", now);
   if (isDocumentFile(file)) return classifyKnownKind(file, "document", now);
   return { status: "rejected", message: "No se pudo pegar ese archivo." };
+}
+
+/**
+ * Convierte cualquier imagen seleccionada como sticker a formato WebP de 512x512
+ * preservando transparencia y relación de aspecto, de acuerdo al estándar de WhatsApp.
+ */
+export async function convertImageToWebpSticker(file: File): Promise<File> {
+  if (file.type === "image/webp" && file.size <= 500 * 1024) {
+    return file;
+  }
+  if (typeof document === "undefined" || typeof Image === "undefined") {
+    return file;
+  }
+
+  return new Promise<File>((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      const size = 512;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.clearRect(0, 0, size, size);
+      const scale = Math.min(size / (img.width || size), size / (img.height || size));
+      const w = (img.width || size) * scale;
+      const h = (img.height || size) * scale;
+      const x = (size - w) / 2;
+      const y = (size - h) / 2;
+      ctx.drawImage(img, x, y, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const baseName = file.name.replace(/\.[^/.]+$/, "");
+          const stickerFile = new File([blob], `${baseName || "sticker"}.webp`, {
+            type: "image/webp",
+          });
+          resolve(stickerFile);
+        },
+        "image/webp",
+        0.85,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    img.src = objectUrl;
+  });
 }
