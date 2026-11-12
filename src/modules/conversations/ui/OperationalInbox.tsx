@@ -718,55 +718,80 @@ export function OperationalInbox({
   const [detailsOverride, setDetailsOverride] = useState<boolean | null>(null);
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   useEffect(() => {
     setDetailsOverride(null);
     setMobileDetailsOpen(false);
+    setContactDialogOpen(false);
+    setSummaryOpen(false);
+    setIsTemplateModalOpen(false);
+    setCloseConfirmOpen(false);
+    setCompleteModalOpen(false);
+    setScheduleModalOpen(false);
   }, [selectedId]);
   const detailsOpen = detailsOverride ?? Boolean(activeCase || selected?.activeCase);
 
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | null>(null);
-  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [customerEntry, setCustomerEntry] = useState<{
+    conversationId: string;
+    customer: CustomerDto | null;
+  } | null>(null);
+  const selectedCustomer =
+    selectedId && customerEntry?.conversationId === selectedId ? customerEntry.customer : null;
   const [, setLoadingContact] = useState(false);
 
   const selectedPhone = selected?.waPhone;
   useEffect(() => {
-    let active = true;
-    if (!selectedPhone) {
-      setSelectedCustomer(null);
+    if (!selectedId || !selectedPhone) {
       return;
     }
+    const targetConversationId = selectedId;
+    const controller = new AbortController();
+    let active = true;
+
     customerGateway
-      .list({ search: selectedPhone, limit: 1 })
+      .list({ search: selectedPhone, limit: 5 }, { signal: controller.signal })
       .then((res) => {
         if (!active) return;
-        const found = res.data?.find(
-          (c) => c.waPhone?.replace(/\D/g, "") === selectedPhone.replace(/\D/g, ""),
-        );
-        setSelectedCustomer(found ?? null);
+        const normalizedTarget = selectedPhone.replace(/\D/g, "");
+        const found = res.data?.find((c) => c.waPhone?.replace(/\D/g, "") === normalizedTarget);
+        setCustomerEntry({
+          conversationId: targetConversationId,
+          customer: found ?? null,
+        });
       })
       .catch(() => {
-        if (active) setSelectedCustomer(null);
+        if (active) {
+          setCustomerEntry({
+            conversationId: targetConversationId,
+            customer: null,
+          });
+        }
       });
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [selectedPhone]);
+  }, [selectedId, selectedPhone]);
 
   const handleOpenContact = async () => {
     if (!selected) return;
+    const targetConversationId = selected.id;
+    const targetPhone = selected.waPhone;
     if (selectedCustomer) {
       setContactDialogOpen(true);
       return;
     }
     setLoadingContact(true);
     try {
-      const res = await customerGateway.list({ search: selected.waPhone, limit: 1 });
-      const found = res.data?.find(
-        (c) => c.waPhone?.replace(/\D/g, "") === selected.waPhone.replace(/\D/g, ""),
-      );
+      const res = await customerGateway.list({ search: targetPhone, limit: 5 });
+      const normalizedTarget = targetPhone.replace(/\D/g, "");
+      const found = res.data?.find((c) => c.waPhone?.replace(/\D/g, "") === normalizedTarget);
       if (found) {
-        setSelectedCustomer(found);
+        setCustomerEntry({
+          conversationId: targetConversationId,
+          customer: found,
+        });
       }
       setContactDialogOpen(true);
     } catch {
@@ -1527,6 +1552,7 @@ export function OperationalInbox({
           {selected ? (
             <>
               <ChatHeader
+                key={selectedId ?? "none"}
                 selected={selected}
                 selectedCustomer={selectedCustomer}
                 activeCase={activeCase}
@@ -1814,6 +1840,7 @@ export function OperationalInbox({
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
               <CasePanel
+                key={selectedId ?? "none"}
                 caseDto={activeCase}
                 loadingThread={loadingThread}
                 customerName={
@@ -1892,6 +1919,7 @@ export function OperationalInbox({
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             <CasePanel
+              key={`mobile-${selectedId ?? "none"}`}
               caseDto={activeCase}
               loadingThread={loadingThread}
               customerName={
@@ -1944,6 +1972,7 @@ export function OperationalInbox({
       </Sheet>
 
       <CaseSummaryDialog
+        key={`summary-${selectedId ?? "none"}`}
         open={summaryOpen}
         onOpenChange={setSummaryOpen}
         summary={caseSummary}
@@ -1977,13 +2006,20 @@ export function OperationalInbox({
       />
 
       <ContactDialog
+        key={`contact-${selectedId ?? "none"}`}
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
         customer={selectedCustomer}
         initialPhone={selected?.waPhone}
         initialName={selected?.waProfileName ?? undefined}
         onSuccess={(saved: CustomerDto) => {
-          setSelectedCustomer(saved);
+          const targetConversationId = selected?.id;
+          if (targetConversationId) {
+            setCustomerEntry({
+              conversationId: targetConversationId,
+              customer: saved,
+            });
+          }
           void reload({ silent: true });
         }}
       />

@@ -1,7 +1,7 @@
 import type { ContractDto } from "@/modules/customers/domain/customer";
 import { cn } from "@/lib/utils";
 import { resolveTagHex, type TagItem } from "@/modules/tags/domain/tag";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Layers,
@@ -602,6 +602,11 @@ export function CasePanel({
   const [syncingData, setSyncingData] = useState(false);
   const [diagnosing, setDiagnosing] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedContractId(null);
+    setDiagnosticAnswer("");
+  }, [caseDto?.id]);
 
   const contextData = (caseDto?.context?.data ?? {}) as Record<string, unknown>;
   const rawContext = caseDto?.context as unknown as Record<string, unknown> | undefined;

@@ -9,7 +9,10 @@ import type {
 } from "../domain/customer";
 
 export const customerGateway = {
-  list: async (params?: ListCustomersParams): Promise<ListCustomersResponse> => {
+  list: async (
+    params?: ListCustomersParams,
+    options?: { signal?: AbortSignal },
+  ): Promise<ListCustomersResponse> => {
     const query: Record<string, string | number | undefined> = {};
     if (params?.search) query.search = params.search;
     if (params?.tagId) query.tagId = params.tagId;
@@ -22,6 +25,7 @@ export const customerGateway = {
     return apiGet<ListCustomersResponse>("/api/customers", {
       query,
       raw: true,
+      signal: options?.signal,
     });
   },
 

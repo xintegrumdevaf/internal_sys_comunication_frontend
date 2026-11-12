@@ -206,6 +206,16 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       if (options.initialConversationId) {
         consumedInitialIdRef.current = options.initialConversationId;
       }
+      if (id !== selectedIdRef.current) {
+        setLoadingThread(Boolean(id));
+        setMessages([]);
+        setHasMoreMessages(false);
+        hasMoreMessagesRef.current = false;
+        setCases([]);
+        setCaseSummary(null);
+        setCaseTimeline([]);
+        setAutomationState(null);
+      }
       selectedIdRef.current = id;
       setSelectedId(id);
       setActiveChatId(id);
@@ -406,12 +416,13 @@ export function useOperationalInbox(options: InboxOptions = {}) {
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
   const activeCase = useMemo(() => {
     if (!selected) return null;
+    const convCases = cases.filter((c) => c.conversationId === selected.id);
     const isTerminal = (status?: string) =>
       status === "COMPLETED" || status === "EXPIRED" || status === "CANCELLED";
 
     // 1. Caso explícitamente asociado a la conversación si aún sigue activo
     const explicitActive = selected.activeCaseId
-      ? cases.find((c) => c.id === selected.activeCaseId)
+      ? convCases.find((c) => c.id === selected.activeCaseId)
       : null;
     if (explicitActive && !isTerminal(explicitActive.status)) {
       return explicitActive;
@@ -419,16 +430,16 @@ export function useOperationalInbox(options: InboxOptions = {}) {
 
     // 2. Cualquier caso en progreso no terminal
     const inProgressCase =
-      cases.find((c) => c.status === "WAITING_USER" || c.status === "ACTIVE") ??
-      cases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
-      cases.find((c) => c.status === "NEW" || c.status === "PAUSED");
+      convCases.find((c) => c.status === "WAITING_USER" || c.status === "ACTIVE") ??
+      convCases.find((c) => c.status === "ESCALATED" || c.status === "HUMAN_ACTIVE") ??
+      convCases.find((c) => c.status === "NEW" || c.status === "PAUSED");
     if (inProgressCase) {
       return inProgressCase;
     }
 
     // 3. Si la conversación está resuelta o cerrada, mostrar el último caso completado para consulta histórica
     if (selected.status === "resolved" || selected.status === "closed") {
-      return explicitActive ?? cases[0] ?? null;
+      return explicitActive ?? convCases[0] ?? null;
     }
 
     // 4. Si la conversación está abierta o en espera pero no tiene un caso en curso, no hay caso activo
@@ -551,10 +562,13 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         caseGateway.getCaseSummary(caseId),
         caseGateway.getCaseTimeline(caseId),
       ]);
+      if (activeCaseIdRef.current !== caseId) return;
       setCaseSummary(summary);
       setCaseTimeline(timeline);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo cargar el resumen del caso");
+      if (activeCaseIdRef.current === caseId) {
+        toast.error(e instanceof Error ? e.message : "No se pudo cargar el resumen del caso");
+      }
     }
   }, []);
 
