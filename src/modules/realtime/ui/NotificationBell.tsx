@@ -1,4 +1,4 @@
-import { Bell, Volume2, AlertTriangle, UserCheck, Clock, Phone } from "lucide-react";
+import { Bell, Volume2, AlertTriangle, UserCheck, Clock } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { relativeTime } from "@/shared/datetime";
@@ -103,7 +103,7 @@ export function NotificationBell() {
               const isRem = n.kind === "CASE_SCHEDULED_REMINDER";
               const isSlaBreach = n.kind === "UNASSIGNED_SLA_BREACH";
 
-              const Icon = isSlaBreach ? AlertTriangle : isEsc ? AlertTriangle : isAsg ? UserCheck : Clock;
+              const Icon = isSlaBreach || isEsc ? AlertTriangle : isAsg ? UserCheck : Clock;
               const iconColor = isSlaBreach
                 ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-1 ring-red-500/30"
                 : isEsc
