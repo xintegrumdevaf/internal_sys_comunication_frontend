@@ -193,6 +193,14 @@ export type MessageEditHistoryItem = {
   editedAt: string;
 };
 
+export type QuotedMessageDto = {
+  id?: string;
+  author: MessageAuthor;
+  body: string;
+  type: string;
+  caption?: string | null;
+};
+
 export type MessageDto = {
   id: string;
   conversationId: string;
@@ -214,9 +222,29 @@ export type MessageDto = {
   mediaUrl?: string;
   status?: "sent" | "delivered" | "read" | "failed";
   errorMessage?: string | null;
+  replyToExternalId?: string | null;
+  replyToMessageId?: string | null;
+  replyTo?: QuotedMessageDto | null;
+  isForwarded?: boolean;
 };
 
 export type Message = MessageDto;
+
+/**
+ * Formatea un extracto o resumen visual de un mensaje citado al estilo WhatsApp.
+ */
+export function formatQuotedMessageSnippet(quoted?: QuotedMessageDto | MessageDto | null): string {
+  if (!quoted) return "";
+  const type = quoted.type?.toLowerCase();
+  const caption = quoted.caption?.trim();
+  const body = quoted.body?.trim();
+  if (type === "image") return caption ? `📷 ${caption}` : "📷 Foto";
+  if (type === "audio") return "🎤 Audio";
+  if (type === "video") return caption ? `🎥 ${caption}` : "🎥 Video";
+  if (type === "document" || type === "file") return caption ? `📄 ${caption}` : "📄 Documento";
+  if (type === "location") return "📍 Ubicación";
+  return body || caption || "Mensaje";
+}
 
 /**
  * Formatea el texto de vista previa de un mensaje para bandejas y listas al estilo WhatsApp.

@@ -4,6 +4,7 @@ import {
   ImageIcon,
   Mic,
   Paperclip,
+  Reply,
   SendHorizontal,
   Video,
   X,
@@ -12,6 +13,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { QuickReplyDropdown } from "@/components/chat/QuickReplyDropdown";
 import { EmojiPickerPopover } from "@/components/common/EmojiPickerPopover";
+import type { MessageDto } from "@/modules/conversations/domain/conversation";
+import { formatQuotedMessageSnippet } from "@/modules/conversations/domain/conversation";
 import {
   formatOutboundFileSize,
   OUTBOUND_MEDIA_RULES,
@@ -76,6 +79,9 @@ export interface ChatComposerProps {
   quickReplySelectedIndex: number;
   onSelectQuickReply: (reply: QuickReply) => void;
   onQuickReplyKeyDown: (e: React.KeyboardEvent) => boolean;
+  // Replying/Quoting
+  replyingToMessage?: MessageDto | null;
+  onClearReply?: () => void;
   // Refs
   chatInputRef: React.RefObject<HTMLTextAreaElement | null>;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -99,6 +105,8 @@ export function ChatComposer({
   quickReplySelectedIndex,
   onSelectQuickReply,
   onQuickReplyKeyDown,
+  replyingToMessage,
+  onClearReply,
   chatInputRef,
   fileInputRef,
 }: ChatComposerProps) {
@@ -137,6 +145,40 @@ export function ChatComposer({
 
   return (
     <div className="shrink-0 bg-background/95 border-t border-border/60">
+      {/* Vista previa del mensaje al que se está respondiendo (estilo WhatsApp) */}
+      {replyingToMessage && (
+        <div className="px-3 py-2 bg-muted/70 border-t border-border/70 flex items-center gap-2.5 animate-in slide-in-from-bottom-2 duration-150">
+          <div className="w-1 self-stretch rounded-full bg-emerald-500 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <Reply className="size-3" />
+              <span>
+                Respondiendo a{" "}
+                {replyingToMessage.author === "customer"
+                  ? "Cliente"
+                  : replyingToMessage.author === "ai"
+                    ? "Asistente IA"
+                    : replyingToMessage.agentName || "Agente"}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+              {formatQuotedMessageSnippet(replyingToMessage)}
+            </p>
+          </div>
+          {onClearReply && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onClearReply}
+              title="Cancelar respuesta"
+              className="size-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Vista previa del archivo adjunto antes de enviar */}
       {pendingAttachment && (
         <div className="px-3 py-2 bg-muted/60 border-t border-border flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">

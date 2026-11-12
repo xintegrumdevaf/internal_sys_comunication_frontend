@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added & Improved
 
+- **Soporte visual de citas de mensajes (Reply-To) y reenvíos (Forwarded) estilo WhatsApp (`conversation.ts`, `ChatMessageItem.tsx`, `ChatComposer.tsx`, `conversation.gateway.ts`, `use-operational-inbox.ts`, `OperationalInbox.tsx`)**:
+  - **Etiqueta visual de Reenviado**: Muestra el icono de flecha hacia adelante y la leyenda _"Reenviado"_ en la cabecera de las burbujas para mensajes con `isForwarded: true`.
+  - **Tarjeta de cita integrada en burbuja**: Renderiza una tarjeta de mensaje citado con borde lateral acentuado, autor original y extracto del contenido (`formatQuotedMessageSnippet`), con clic interactivo para saltar y resaltar suavemente el mensaje original en el historial del chat.
+  - **Acción rápida para responder/citar desde la interfaz**: Botón flotante de respuesta (`Reply`) en cada mensaje que monta automáticamente la barra de cita previa sobre el compositor de texto.
+  - **Compositor con vista previa de cita y cancelación rápida**: Muestra a quién se está respondiendo y permite enviar el reply asociando `replyToMessageId`, o descartar la cita con un clic.
+
 - **Panel de Administración Telegram Ops & Centinela (`/configuracion` → `TelegramSettingsCard`)**:
   - **Estado visual explícito y control maestro (`TelegramCardHeader`)**: Indicadores gráficos claros (`Activo en Vivo` / `Centinela Activo` con pulso animado vs `Inactivo / En Pausa` / `Centinela Inactivo`) y banner de advertencia con activación rápida (`TelegramInactiveBanner`) cuando la integración está apagada.
   - **Barra flotante unificada de guardado (`TelegramSaveFooter`)**: Reemplaza avisos redundantes de guardado por una única barra flotante persistente al detectar cambios sin confirmar, con acciones de descartar y guardar.

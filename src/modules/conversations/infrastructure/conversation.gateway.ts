@@ -101,11 +101,15 @@ export async function replyAsHuman(
   conversationId: string,
   agentUserId: string,
   body: string,
+  options?: { replyToMessageId?: string; replyToExternalId?: string },
 ): Promise<MessageDto> {
-  const message = await apiPost<MessageDto>(`/api/conversations/${conversationId}/reply`, {
+  const payload: Record<string, unknown> = {
     agentUserId,
     body,
-  });
+  };
+  if (options?.replyToMessageId) payload.replyToMessageId = options.replyToMessageId;
+  if (options?.replyToExternalId) payload.replyToExternalId = options.replyToExternalId;
+  const message = await apiPost<MessageDto>(`/api/conversations/${conversationId}/reply`, payload);
   return withMediaUrls([message])[0]!;
 }
 
@@ -117,7 +121,12 @@ export async function replyAsHuman(
 export async function replyWithMedia(
   conversationId: string,
   file: File,
-  options?: { caption?: string; type?: OutboundMediaKind },
+  options?: {
+    caption?: string;
+    type?: OutboundMediaKind;
+    replyToMessageId?: string;
+    replyToExternalId?: string;
+  },
 ): Promise<MessageDto> {
   const form = new FormData();
   form.append("file", file, file.name);
@@ -126,6 +135,8 @@ export async function replyWithMedia(
   if (options?.type) form.append("type", options.type);
   if (file.type) form.append("mimeType", file.type);
   if (file.name) form.append("filename", file.name);
+  if (options?.replyToMessageId) form.append("replyToMessageId", options.replyToMessageId);
+  if (options?.replyToExternalId) form.append("replyToExternalId", options.replyToExternalId);
   const message = await apiPost<MessageDto>(`/api/conversations/${conversationId}/reply`, form);
   return withMediaUrls([message])[0]!;
 }

@@ -716,17 +716,29 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     ...partial,
   });
 
-  const sendReply = (body: string) => {
+  const sendReply = (
+    body: string,
+    options?: { replyToMessageId?: string; replyToExternalId?: string },
+  ) => {
     if (!session || !selectedId) return Promise.resolve(false);
     const trimmed = body.trim();
     if (!trimmed) return Promise.resolve(false);
     const conversationId = selectedId;
     const agentId = session.id;
-    const local = createLocalMessage(conversationId, agentId, { body: trimmed, type: "text" });
+    const local = createLocalMessage(conversationId, agentId, {
+      body: trimmed,
+      type: "text",
+      replyToMessageId: options?.replyToMessageId ?? null,
+    });
     showLocalMessage(local);
     return enqueueOutbound(async () => {
       try {
-        const message = await conversationGateway.replyAsHuman(conversationId, agentId, trimmed);
+        const message = await conversationGateway.replyAsHuman(
+          conversationId,
+          agentId,
+          trimmed,
+          options,
+        );
         replaceLocalMessage(local.id, message);
         void refreshActiveCase();
         return true;
@@ -743,6 +755,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     file: File,
     kind: OutboundMediaKind,
     caption: string,
+    options?: { replyToMessageId?: string; replyToExternalId?: string },
   ): Promise<"sent" | "failed" | "text-failed"> => {
     if (!session || !selectedId) {
       toast.error("No se pudo enviar el archivo");
@@ -759,12 +772,17 @@ export function useOperationalInbox(options: InboxOptions = {}) {
       filename: file.name,
       mimeType: file.type || undefined,
       mediaUrl: previewUrl,
+      replyToMessageId: options?.replyToMessageId ?? null,
     });
     localBlobUrlsRef.current.set(local.id, previewUrl);
     showLocalMessage(local);
     const textLocal =
       kind === "audio" && trimmedCaption
-        ? createLocalMessage(conversationId, agentId, { body: trimmedCaption, type: "text" })
+        ? createLocalMessage(conversationId, agentId, {
+            body: trimmedCaption,
+            type: "text",
+            replyToMessageId: options?.replyToMessageId ?? null,
+          })
         : null;
     if (textLocal) showLocalMessage(textLocal);
     return enqueueOutbound(async () => {
@@ -772,6 +790,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
         const message = await conversationGateway.replyWithMedia(conversationId, file, {
           type: kind,
           caption: kind === "audio" ? undefined : trimmedCaption,
+          replyToMessageId: options?.replyToMessageId,
+          replyToExternalId: options?.replyToExternalId,
         });
         replaceLocalMessage(local.id, message);
         if (textLocal) {
@@ -780,6 +800,7 @@ export function useOperationalInbox(options: InboxOptions = {}) {
               conversationId,
               agentId,
               trimmedCaption,
+              options,
             );
             replaceLocalMessage(textLocal.id, textMessage);
           } catch (e) {

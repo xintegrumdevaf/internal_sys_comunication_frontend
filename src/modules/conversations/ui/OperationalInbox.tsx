@@ -92,6 +92,7 @@ import {
   type ConversationDto,
   type ConversationStatus,
   type MessageAuthor,
+  type MessageDto,
   type MessagePreviewDto,
 } from "@/modules/conversations/domain/conversation";
 import { messageClock, relativeTime, dayLabel } from "@/shared/datetime";
@@ -511,6 +512,7 @@ export function OperationalInbox({
     kind: OutboundMediaKind;
     previewUrl: string | null;
   } | null>(null);
+  const [replyingToMessage, setReplyingToMessage] = useState<MessageDto | null>(null);
   const pendingPreviewUrlRef = useRef<string | null>(null);
   const attachmentSeqRef = useRef(0);
 
@@ -1066,8 +1068,26 @@ export function OperationalInbox({
     setIsEmojiOpen(false);
     setIsAttachMenuOpen(false);
     clearPendingAttachment();
+    setReplyingToMessage(null);
     adjustTextareaHeight();
   }, [selectedId, setIsEmojiOpen, adjustTextareaHeight, clearPendingAttachment, setComposerDraft]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add(
+        "ring-2",
+        "ring-emerald-500",
+        "dark:ring-emerald-400",
+        "rounded-2xl",
+        "transition-all",
+      );
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-emerald-500", "dark:ring-emerald-400", "rounded-2xl");
+      }, 2000);
+    }
+  }, []);
 
   const focusComposer = () => {
     const el = chatInputRef.current;
@@ -1076,6 +1096,10 @@ export function OperationalInbox({
   };
 
   const handleSend = async () => {
+    const replyOptions = replyingToMessage ? { replyToMessageId: replyingToMessage.id } : undefined;
+    if (replyingToMessage) {
+      setReplyingToMessage(null);
+    }
     if (pendingAttachment) {
       const caption = draftRef.current.trim();
       const snapshot = pendingAttachment;
@@ -1091,7 +1115,7 @@ export function OperationalInbox({
       }
       focusComposer();
       stickMessagesToBottom();
-      await sendMedia(snapshot.file, snapshot.kind, caption);
+      await sendMedia(snapshot.file, snapshot.kind, caption, replyOptions);
       focusComposer();
       return;
     }
@@ -1106,7 +1130,7 @@ export function OperationalInbox({
     }
     focusComposer();
     stickMessagesToBottom();
-    const ok = await sendReply(body);
+    const ok = await sendReply(body, replyOptions);
     if (!ok && !draftRef.current.trim()) {
       if (selectedId) {
         draftsByConvRef.current[selectedId] = body;
@@ -1687,6 +1711,8 @@ export function OperationalInbox({
                         day={day}
                         showSenderLabel={showSenderLabel}
                         onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
+                        onReplyToMessage={setReplyingToMessage}
+                        onScrollToMessage={scrollToMessage}
                       />
                     );
                   })}
@@ -1777,6 +1803,8 @@ export function OperationalInbox({
                     busy={busy}
                     pendingAttachment={pendingAttachment}
                     onClearPendingAttachment={clearPendingAttachment}
+                    replyingToMessage={replyingToMessage}
+                    onClearReply={() => setReplyingToMessage(null)}
                     onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
                     onPickKind={openFilePicker}
                     onFilePicked={handlePickedFile}

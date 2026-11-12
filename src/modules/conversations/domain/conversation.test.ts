@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   conversationDisplayName,
   conversationStatusLabel,
+  formatQuotedMessageSnippet,
   formatWaPhone,
   matchesConversationSearch,
   normalizeSearchQuery,
@@ -79,6 +80,76 @@ describe("conversationDisplayName", () => {
     expect(msg.editedAt).toBe("2026-09-15T12:05:00Z");
     expect(msg.editHistory).toHaveLength(1);
     expect(msg.editHistory?.[0]?.previousBody).toBe("Mensaje original con error");
+  });
+
+  it("permite modelar mensajes con contexto de respuesta y bandera de reenvío", () => {
+    const msg = {
+      id: "msg_2",
+      conversationId: "conv_1",
+      caseId: null,
+      direction: "inbound" as const,
+      author: "customer" as const,
+      agentId: null,
+      body: ".",
+      type: "text" as const,
+      createdAt: "2026-11-12T12:00:00Z",
+      replyToMessageId: "msg_1",
+      replyTo: {
+        id: "msg_1",
+        author: "customer" as const,
+        body: "",
+        type: "image",
+        caption: "Comprobante de depósito",
+      },
+      isForwarded: true,
+    };
+
+    expect(msg.isForwarded).toBe(true);
+    expect(msg.replyTo?.type).toBe("image");
+    expect(msg.replyTo?.caption).toBe("Comprobante de depósito");
+  });
+});
+
+describe("formatQuotedMessageSnippet", () => {
+  it("formatea extractos para mensajes de texto y diversos tipos multimedia", () => {
+    expect(formatQuotedMessageSnippet(null)).toBe("");
+    expect(
+      formatQuotedMessageSnippet({
+        author: "customer",
+        body: "Hola necesito ayuda",
+        type: "text",
+      }),
+    ).toBe("Hola necesito ayuda");
+    expect(
+      formatQuotedMessageSnippet({
+        author: "customer",
+        body: "",
+        type: "image",
+        caption: "Comprobante Banco Pichincha",
+      }),
+    ).toBe("📷 Comprobante Banco Pichincha");
+    expect(
+      formatQuotedMessageSnippet({
+        author: "customer",
+        body: "",
+        type: "image",
+      }),
+    ).toBe("📷 Foto");
+    expect(
+      formatQuotedMessageSnippet({
+        author: "customer",
+        body: "",
+        type: "audio",
+      }),
+    ).toBe("🎤 Audio");
+    expect(
+      formatQuotedMessageSnippet({
+        author: "customer",
+        body: "",
+        type: "document",
+        caption: "Factura.pdf",
+      }),
+    ).toBe("📄 Factura.pdf");
   });
 });
 

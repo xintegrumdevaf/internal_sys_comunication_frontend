@@ -5,11 +5,16 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  Forward,
   Info,
   Megaphone,
+  Reply,
 } from "lucide-react";
 import type { ConversationDto, MessageDto } from "@/modules/conversations/domain/conversation";
-import { conversationDisplayName } from "@/modules/conversations/domain/conversation";
+import {
+  conversationDisplayName,
+  formatQuotedMessageSnippet,
+} from "@/modules/conversations/domain/conversation";
 import type { SessionUser } from "@/modules/identity/domain/session";
 import { MessageMediaBody } from "./MessageMediaBody";
 import { MessageAvatar } from "./ConversationAvatars";
@@ -26,6 +31,8 @@ export interface ChatMessageItemProps {
   day: string;
   showSenderLabel: boolean;
   onOpenTemplateModal: () => void;
+  onReplyToMessage?: (message: MessageDto) => void;
+  onScrollToMessage?: (messageId: string) => void;
 }
 
 function messageClock(iso: string): string {
@@ -47,6 +54,8 @@ export function ChatMessageItem({
   day,
   showSenderLabel,
   onOpenTemplateModal,
+  onReplyToMessage,
+  onScrollToMessage,
 }: ChatMessageItemProps) {
   if (m.author === "system") {
     const isClosure =
@@ -57,7 +66,7 @@ export function ChatMessageItem({
         m.body.toLowerCase().includes("completado por"));
 
     return (
-      <div>
+      <div id={`msg-${m.id}`}>
         {showDaySeparator && (
           <div className="flex justify-center my-2">
             <span className="px-2.5 py-0.5 rounded-full bg-foreground/5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -109,7 +118,7 @@ export function ChatMessageItem({
     "Agente";
 
   return (
-    <div>
+    <div id={`msg-${m.id}`} className="transition-colors rounded-xl">
       {showDaySeparator && (
         <div className="flex justify-center my-2">
           <span className="px-2.5 py-0.5 rounded-full bg-foreground/5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -118,7 +127,7 @@ export function ChatMessageItem({
         </div>
       )}
       <div
-        className={`flex items-end gap-1.5 sm:gap-2 mb-1.5 min-w-0 max-w-full ${fromCustomer ? "justify-start" : "justify-end"}`}
+        className={`group relative flex items-end gap-1.5 sm:gap-2 mb-1.5 min-w-0 max-w-full ${fromCustomer ? "justify-start" : "justify-end"}`}
       >
         {fromCustomer && <MessageAvatar author={m.author} conversation={selected} />}
         <div
@@ -128,6 +137,12 @@ export function ChatMessageItem({
               : "bg-[var(--chat-out-bg)] text-[var(--chat-out-fg)] rounded-br-xs"
           }`}
         >
+          {m.isForwarded && (
+            <div className="flex items-center gap-1 mb-1 text-[10px] italic text-muted-foreground select-none">
+              <Forward className="size-3 shrink-0 opacity-80" />
+              <span>Reenviado</span>
+            </div>
+          )}
           {showSenderLabel && (
             <div className="mb-1">
               {fromCustomer ? (
@@ -148,6 +163,43 @@ export function ChatMessageItem({
                   Asistente IA
                 </p>
               )}
+            </div>
+          )}
+          {m.replyTo && (
+            <div
+              role={m.replyTo.id && onScrollToMessage ? "button" : undefined}
+              tabIndex={m.replyTo.id && onScrollToMessage ? 0 : undefined}
+              onClick={() => {
+                if (m.replyTo?.id && onScrollToMessage) {
+                  onScrollToMessage(m.replyTo.id);
+                }
+              }}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && m.replyTo?.id && onScrollToMessage) {
+                  e.preventDefault();
+                  onScrollToMessage(m.replyTo.id);
+                }
+              }}
+              className={`mb-2 p-2 rounded-lg border-l-4 text-xs transition-all select-none ${
+                m.replyTo.id && onScrollToMessage
+                  ? "cursor-pointer hover:opacity-90 active:scale-[0.99]"
+                  : ""
+              } ${
+                fromCustomer
+                  ? "bg-foreground/5 border-primary/70 text-foreground"
+                  : "bg-black/10 dark:bg-white/10 border-emerald-400 text-[var(--chat-out-fg)]"
+              }`}
+            >
+              <p className="text-[10px] font-bold text-primary dark:text-emerald-300 truncate">
+                {m.replyTo.author === "customer"
+                  ? conversationDisplayName(selected)
+                  : m.replyTo.author === "ai"
+                    ? "Asistente IA"
+                    : "Agente"}
+              </p>
+              <p className="text-[11px] opacity-80 truncate line-clamp-2 mt-0.5">
+                {formatQuotedMessageSnippet(m.replyTo)}
+              </p>
             </div>
           )}
           <MessageMediaBody message={m} />
@@ -209,6 +261,18 @@ export function ChatMessageItem({
             </div>
           )}
         </div>
+        {onReplyToMessage && !m.id.startsWith("local:") && (
+          <button
+            type="button"
+            onClick={() => onReplyToMessage(m)}
+            title="Responder a este mensaje"
+            className={`opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded-full bg-background/80 hover:bg-muted shadow-xs border border-border text-muted-foreground hover:text-foreground shrink-0 cursor-pointer self-center ${
+              fromCustomer ? "order-last" : "order-first"
+            }`}
+          >
+            <Reply className="size-3.5" />
+          </button>
+        )}
         {!fromCustomer && (
           <MessageAvatar
             author={m.author}
