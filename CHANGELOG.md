@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added & Improved
 
+- **Diagnóstico Preciso de Errores de Entrega y Ventana de Atención WhatsApp (`customer-service-window.ts`, `delivery-error.ts`)**:
+  - _Problema_: Cualquier mensaje de error devuelto por Meta que contuviera la palabra genérica "template" o "plantilla" se clasificaba indiscriminadamente como un cierre de la ventana de atención de 24 horas (`isWhatsAppSessionWindowError` retornaba `true`). Esto causaba que envíos fallidos al intentar iniciar conversaciones salientes con números nuevos (donde Meta exige iniciar con una plantilla oficial aprobada: `TEMPLATE_REQUIRED` / `"must start with an approved template"`) o fallos de indexación de chats en el gateway mostrasen de forma engañosa el banner "Ventana 24h cerrada (Requiere plantilla): Han pasado más de 24 horas desde el último mensaje del cliente", confundiendo al operador sobre el estado real de la línea y el suscriptor.
+  - _Solución y Justificación_:
+    1. **Restricción Contextual de Ventana (`customer-service-window.ts`)**: Se limitó la condición para que los términos "template" y "plantilla" solo califiquen como error de sesión de 24 horas si van acompañados de términos explícitos de ciclo de vida de ventana (`"24"`, `"window"` / `"ventana"`, `"expire"` / `"expir"`, `"reopen"` / `"reabrir"`, `"re-engage"`), manteniendo la compatibilidad con el código nativo 131047 y términos de 24h.
+    2. **Manejo Específico de `TEMPLATE_REQUIRED` (`delivery-error.ts`)**: Se incorporó un clasificador dedicado para `TEMPLATE_REQUIRED` y `"must start with an approved template"`. Devuelve `is24h: false`, etiqueta corta `"Plantilla requerida"` y detalle explicativo: `"WhatsApp exige una plantilla oficial (Template) aprobada para iniciar una conversación nueva con este número, o no se indexó la conversación activa en Zernio (TEMPLATE_REQUIRED)."`.
+    3. **Trazabilidad y Pruebas Automatizadas (`customer-service-window.test.ts`, `delivery-error.test.ts`)**: Se incorporó la suite de tests unitarios que comprueba la no colisión de `TEMPLATE_REQUIRED` con la ventana de 24h y valida el mapeo correcto de las descripciones de error para los asesores.
+
 - **Recepción y Envío Nativo de Stickers Estilo WhatsApp (`outbound-media.ts`, `MessageMediaBody.tsx`, `ChatComposer.tsx`, `OperationalInbox.tsx`)**:
   - _Problema_: Los mensajes entrantes y salientes de tipo sticker se mostraban como texto plano `[sticker]`, fallaban visualmente como imágenes no encontradas o requerían abrir enlaces externos, impidiendo una experiencia conversacional fluida e impidiendo que los asesores envíen stickers desde la plataforma web.
   - _Solución y Justificación_:

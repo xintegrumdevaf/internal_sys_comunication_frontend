@@ -37,8 +37,17 @@ export function isWhatsAppSessionWindowError(errorMessage?: string | null): bool
     lower.includes("24h") ||
     lower.includes("re-engagement") ||
     lower.includes("customer service window") ||
-    lower.includes("template") ||
-    lower.includes("plantilla")
+    (lower.includes("template") &&
+      (lower.includes("24") ||
+        lower.includes("window") ||
+        lower.includes("expire") ||
+        lower.includes("reopen") ||
+        lower.includes("re-engage"))) ||
+    (lower.includes("plantilla") &&
+      (lower.includes("24") ||
+        lower.includes("ventana") ||
+        lower.includes("expir") ||
+        lower.includes("reabrir")))
   );
 }
 

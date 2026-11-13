@@ -32,6 +32,20 @@ export function formatDeliveryError(errorMessage?: string | null): FormattedDeli
     // Si no es JSON válido, se conserva el errorMessage original como texto plano
   }
 
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes("template_required") ||
+    lower.includes("must start with an approved template") ||
+    (lower.includes("template") && lower.includes("required"))
+  ) {
+    return {
+      is24h: false,
+      short: "Plantilla requerida",
+      detail:
+        "WhatsApp exige una plantilla oficial (Template) aprobada para iniciar una conversación nueva con este número, o no se indexó la conversación activa en Zernio (TEMPLATE_REQUIRED).",
+    };
+  }
+
   return {
     is24h: false,
     short: "Fallo de entrega",

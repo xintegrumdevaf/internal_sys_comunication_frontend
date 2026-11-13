@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isCustomerServiceWindowClosed } from "./customer-service-window";
+import {
+  isCustomerServiceWindowClosed,
+  isWhatsAppSessionWindowError,
+} from "./customer-service-window";
 
 const NOW = Date.parse("2026-11-02T16:10:00.000Z");
 const MIN = 60 * 1000;
@@ -90,5 +93,42 @@ describe("isCustomerServiceWindowClosed", () => {
         NOW,
       ),
     ).toBe(true);
+  });
+});
+
+describe("isWhatsAppSessionWindowError", () => {
+  it("detecta código 131047 en JSON y texto plano", () => {
+    expect(isWhatsAppSessionWindowError(JSON.stringify({ code: 131047 }))).toBe(true);
+    expect(isWhatsAppSessionWindowError("Error code 131047: Re-engagement message")).toBe(true);
+  });
+
+  it("detecta menciones de ventana de 24h y re-engagement", () => {
+    expect(isWhatsAppSessionWindowError("customer service window has expired")).toBe(true);
+    expect(isWhatsAppSessionWindowError("Ventana de 24 horas cerrada")).toBe(true);
+    expect(isWhatsAppSessionWindowError("Outside the 24-hour window")).toBe(true);
+    expect(isWhatsAppSessionWindowError("Requires re-engagement template")).toBe(true);
+  });
+
+  it("detecta plantilla solo cuando está vinculada a expiración de ventana", () => {
+    expect(isWhatsAppSessionWindowError("Enviar plantilla para reabrir ventana de 24 horas")).toBe(
+      true,
+    );
+    expect(isWhatsAppSessionWindowError("Template required because window expired")).toBe(true);
+  });
+
+  it("no clasifica errores de TEMPLATE_REQUIRED inicial como fallo de ventana 24h", () => {
+    expect(isWhatsAppSessionWindowError("TEMPLATE_REQUIRED")).toBe(false);
+    expect(
+      isWhatsAppSessionWindowError(
+        "WhatsApp messages must start with an approved template (TEMPLATE_REQUIRED)",
+      ),
+    ).toBe(false);
+    expect(isWhatsAppSessionWindowError("Template parameter missing")).toBe(false);
+  });
+
+  it("retorna false para mensajes nulos o vacíos", () => {
+    expect(isWhatsAppSessionWindowError(null)).toBe(false);
+    expect(isWhatsAppSessionWindowError(undefined)).toBe(false);
+    expect(isWhatsAppSessionWindowError("")).toBe(false);
   });
 });

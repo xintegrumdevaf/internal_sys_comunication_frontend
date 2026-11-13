@@ -145,6 +145,15 @@ VITE_SENTRY_DSN=
   - Implemented automatic SLA pausing in `sla-config.ts` and excluded paused cases from the unattended queue count.
   - Integrated `UNASSIGNED_SLA_BREACH` event in `use-realtime.tsx` with browser notifications, audio chime, top alert banner, and direct _"Atender yo"_ claim button in `ChatHeader.tsx`.
 
+### 8. Precise WhatsApp Delivery Diagnostics & Template Required Handling (2026-11-13)
+
+- **El Daño (Damage)**: Outbound messages to new phone numbers or unindexed chats failed with `TEMPLATE_REQUIRED`, but the UI erroneously displayed "Ventana 24h cerrada (Han pasado más de 24 horas...)", misleading support agents into believing a previous conversation had timed out.
+- **El Porqué (Root Cause)**: `isWhatsAppSessionWindowError` matched the loose substrings `"template"` and `"plantilla"`, incorrectly classifying initial HSM template requirements as expired 24h customer service sessions.
+- **La Solución (Fix)**:
+  - Constrained `customer-service-window.ts` so that `"template"` / `"plantilla"` only triggers a 24h window error when combined with window expiration keywords (`24`, `window`/`ventana`, `expire`/`expir`, `reopen`/`reabrir`, `re-engage`).
+  - Added dedicated parser in `delivery-error.ts` for `TEMPLATE_REQUIRED` and `"must start with an approved template"`, displaying `is24h: false`, badge `"Plantilla requerida"`, and an actionable explanation.
+  - Implemented unit tests in `customer-service-window.test.ts` and `delivery-error.test.ts` to prevent regressions.
+
 ---
 
 ## 5. Development & Testing Commands

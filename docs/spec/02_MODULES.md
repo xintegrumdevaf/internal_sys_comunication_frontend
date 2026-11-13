@@ -164,3 +164,21 @@ El módulo de administración de Telegram en `/configuracion` sigue separación 
 **Por qué.** Casos escalados por fallas críticas de red o solicitudes comerciales quedaban desatendidos en la cola si ningún supervisor los asignaba manualmente, incrementando el tiempo de abandono del cliente.
 
 **Qué no revertir.** No suprimir el control `isConversationHumanUnassigned` que evita alertar sobre casos cerrados o en automatización activa del bot de IA. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
+
+## 14. Diagnóstico Preciso de Errores de Entrega y Ventana de Atención (`customer-service-window.ts`, `delivery-error.ts`)
+
+**Qué se cambió (2026-11-13).**
+
+- En `customer-service-window.ts`:
+  - Se refinó la función `isWhatsAppSessionWindowError(errorMessage)`. Anteriormente, evaluaba si la cadena contenía simplemente `"template"` o `"plantilla"`. Se restringió para exigir que `"template"` o `"plantilla"` esté acompañado de términos contextuales de expiración o ciclo de vida de sesión (`"24"`, `"window"`, `"ventana"`, `"expire"`, `"expir"`, `"reopen"`, `"reabrir"`, `"re-engage"`).
+- En `delivery-error.ts`:
+  - En `formatDeliveryError(errorMessage)`, se incorporó detección dedicada para errores de tipo `TEMPLATE_REQUIRED` y `"must start with an approved template"`.
+  - Retorna `is24h: false`, indicador corto `"Plantilla requerida"` y detalle descriptivo que aclara la necesidad de iniciar con una plantilla oficial aprobada o revisar la indexación de la conversación en Zernio.
+- En pruebas unitarias:
+  - Adición de suite de validación `delivery-error.test.ts` y ampliación de `customer-service-window.test.ts` cubriendo ambos escenarios.
+
+**Por qué.**
+Al iniciar conversaciones salientes hacia números nuevos o clientes que no han iniciado chat previamente, la API de WhatsApp Cloud rechaza los mensajes de texto libre con el código de error `TEMPLATE_REQUIRED` ("WhatsApp messages to this user must start with an approved template"). Como la lógica anterior consideraba cualquier mención a "template" como el error 131047 (ventana de 24 horas expirada), el asesor recibía una alerta confusa indicando "Han pasado más de 24 horas desde el último mensaje del cliente", lo cual era falso para contactos que nunca habían escrito antes.
+
+**Qué no revertir.**
+No volver a usar coincidencias abiertas sobre la palabra aislada `"template"` o `"plantilla"` en `isWhatsAppSessionWindowError` sin validar la presencia de términos de ventana temporal. No marcar `is24h: true` en errores de `TEMPLATE_REQUIRED`. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
