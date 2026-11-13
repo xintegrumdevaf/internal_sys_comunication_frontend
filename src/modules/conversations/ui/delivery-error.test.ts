@@ -57,4 +57,3 @@ describe("formatDeliveryError", () => {
     expect(result.detail).toBe("Network connection timeout to Meta API");
   });
 });
-

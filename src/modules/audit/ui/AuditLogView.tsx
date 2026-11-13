@@ -1,27 +1,21 @@
 import {
-  Lock,
-  KeyRound,
   ShieldCheck,
   Search,
   RefreshCcw,
   ChevronDown,
   ChevronUp,
-  Layers,
   Database,
   Globe,
   Terminal,
   Activity,
-  Filter,
   User,
-  Bot,
-  Laptop,
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { StatCard } from "@/app/shell/AppShell";
 import { StateDiffViewer } from "@/modules/audit/ui/StateDiffViewer";
 import { auditApi } from "@/services/auditApi";
 import type { AuditEvent, AuditStats, AuditCategory, AuditFilterParams } from "@/types/audit";
-import { auditActionLabel, auditCategoryLabel } from "@/modules/audit/domain/audit-event";
+import { auditActionLabel } from "@/modules/audit/domain/audit-event";
 import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { relativeTime } from "@/shared/datetime";
 import { toast } from "sonner";

@@ -182,3 +182,18 @@ Al iniciar conversaciones salientes hacia números nuevos o clientes que no han 
 
 **Qué no revertir.**
 No volver a usar coincidencias abiertas sobre la palabra aislada `"template"` o `"plantilla"` en `isWhatsAppSessionWindowError` sin validar la presencia de términos de ventana temporal. No marcar `is24h: true` en errores de `TEMPLATE_REQUIRED`. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
+
+## 15. Estabilización de Pipeline CI/CD y Limpieza de Dependencias de Auditoría (`delivery-error.test.ts`, `AuditLogView.tsx`)
+
+**Qué se cambió (2026-11-13).**
+
+- En `delivery-error.test.ts`:
+  - Se normalizó el fin de línea (EOF) del archivo de pruebas eliminando un salto de línea adicional que provocaba la falla de la regla `prettier/prettier` en el runner Ubuntu de GitHub Actions (`Delete ⏎`).
+- En `AuditLogView.tsx`:
+  - Se removieron 8 importaciones en desuso (`Lock`, `KeyRound`, `Layers`, `Filter`, `Bot`, `Laptop`, `useMemo`, `auditCategoryLabel`), dejando la vista de bitácora de auditoría sin advertencias de variables huérfanas en ESLint.
+
+**Por qué.**
+El pipeline de integración continua (`deploy.yml`) ejecuta `pnpm lint` con tolerancia cero a errores de formato de Prettier. Un salto de línea extra interrumpió el proceso de despliegue automatizado hacia Coolify. La depuración de imports huérfanos elimina el ruido en las inspecciones de código y asegura consistencia con el estándar de calidad del repositorio.
+
+**Qué no revertir.**
+Mantener la estructura formateada con `prettier --write` y evitar introducir saltos de línea dobles al final de los archivos `.ts` y `.tsx`. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.

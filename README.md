@@ -154,6 +154,15 @@ VITE_SENTRY_DSN=
   - Added dedicated parser in `delivery-error.ts` for `TEMPLATE_REQUIRED` and `"must start with an approved template"`, displaying `is24h: false`, badge `"Plantilla requerida"`, and an actionable explanation.
   - Implemented unit tests in `customer-service-window.test.ts` and `delivery-error.test.ts` to prevent regressions.
 
+### 9. CI/CD Prettier Normalization & Audit Tree Cleanup (2026-11-13)
+
+- **El Daño (Damage)**: GitHub Actions CI/CD runner halted deployment during `test-and-lint` job due to a single redundant EOF newline in `delivery-error.test.ts` (`Delete ⏎`), alongside multiple unused import warnings in `AuditLogView.tsx`.
+- **El Porqué (Root Cause)**: `eslint-plugin-prettier` treats EOF newline mismatches as fatal errors under `--max-warnings 0`, failing the PR and preventing Coolify automated webhooks from triggering.
+- **La Solución (Fix)**:
+  - Formatted `delivery-error.test.ts` ensuring clean single trailing newline EOF.
+  - Removed 8 unused icons and utilities in `AuditLogView.tsx` (`Lock`, `KeyRound`, `Layers`, `Filter`, `Bot`, `Laptop`, `useMemo`, `auditCategoryLabel`).
+  - Restored 100% green status across `npm run lint` and `npm run typecheck`.
+
 ---
 
 ## 5. Development & Testing Commands

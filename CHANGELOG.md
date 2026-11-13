@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added & Improved
 
+- **Normalización de Formato Prettier en Tests y Depuración de Módulo de Auditoría (`delivery-error.test.ts`, `AuditLogView.tsx`)**:
+  - _Problema_: El workflow de CI/CD en GitHub Actions (`test-and-lint`) falló con código de salida `1` debido a una violación de la regla bloqueante `prettier/prettier` en `src/modules/conversations/ui/delivery-error.test.ts:60` (`Delete ⏎`), provocada por un salto de línea final redundante al crear el archivo. Asimismo, `AuditLogView.tsx` generaba múltiples warnings de ESLint por importaciones de iconos y utilidades que no estaban siendo utilizadas (`Lock`, `KeyRound`, `Layers`, `Filter`, `Bot`, `Laptop`, `useMemo`, `auditCategoryLabel`), ensuciando las anotaciones del pipeline de despliegue.
+  - _Solución y Justificación_:
+    1. **Normalización EOF en Tests**: Se corrigió el archivo de pruebas `delivery-error.test.ts` eliminando el salto de línea sobrante para cumplir con la regla de formato estándar de Prettier (`endOfLine: auto` / 1 newline al final de archivo).
+    2. **Limpieza de Importaciones en Auditoría**: Se eliminaron 8 identificadores y componentes en desuso de `AuditLogView.tsx`, garantizando que la vista de registros de auditoría mantenga un árbol de dependencias limpio y reduciendo el ruido en las inspecciones de calidad.
+    3. **Estabilidad de CI/CD**: Se ejecutaron localmente `npm run lint` y `npm run typecheck` confirmando 0 errores, asegurando que el despliegue automático hacia Coolify se complete sin interrupciones.
+
 - **Diagnóstico Preciso de Errores de Entrega y Ventana de Atención WhatsApp (`customer-service-window.ts`, `delivery-error.ts`)**:
   - _Problema_: Cualquier mensaje de error devuelto por Meta que contuviera la palabra genérica "template" o "plantilla" se clasificaba indiscriminadamente como un cierre de la ventana de atención de 24 horas (`isWhatsAppSessionWindowError` retornaba `true`). Esto causaba que envíos fallidos al intentar iniciar conversaciones salientes con números nuevos (donde Meta exige iniciar con una plantilla oficial aprobada: `TEMPLATE_REQUIRED` / `"must start with an approved template"`) o fallos de indexación de chats en el gateway mostrasen de forma engañosa el banner "Ventana 24h cerrada (Requiere plantilla): Han pasado más de 24 horas desde el último mensaje del cliente", confundiendo al operador sobre el estado real de la línea y el suscriptor.
   - _Solución y Justificación_:
