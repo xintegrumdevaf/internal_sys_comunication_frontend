@@ -127,6 +127,24 @@ VITE_SENTRY_DSN=
   - Declared strict typed models (`ContractDto`, `ExtendedContractCardItem`, `DiagnosticHistoryEntry`).
   - Achieved 100% clean check: 0 ESLint warnings/errors, 0 TypeScript compilation errors, and 355/355 Vitest tests passing.
 
+### 7. WhatsApp Stickers, Clickable Maps & Real-Time SLA Watchdog (2026-11-13)
+
+- **El Daño (Damage)**:
+  - Stickers received from WhatsApp appeared as raw text `[sticker]` or broken image placeholders, and agents were unable to reply with stickers.
+  - Locations and Google Maps URLs shared by customers appeared as flat unclickable text, forcing agents to manually copy and paste coordinates.
+  - SLA timers continued ticking against operators while waiting for subscriber answers or for cases with technical visits scheduled days in advance.
+  - Escalated cases left in unassigned queues suffered severe delays when agents were working in other views.
+- **El Porqué (Root Cause)**:
+  - Lack of WebP sticker conversion and specialized media presentation components.
+  - Absence of text linkification and geographic URL regex parsers.
+  - SLA computation lacked ITIL paused states (`WAITING_USER`, `pending`, `scheduledAt > now`).
+  - Frontend lacked real-time SSE handlers for unassigned queue delays.
+- **La Solución (Fix)**:
+  - Built `convertImageToWebpSticker` (512x512 transparent WebP converter) and native sticker viewport in `MessageMediaBody.tsx`.
+  - Built `LinkifiedText.tsx` with automated Google Maps/Waze detection and interactive _"Abrir ubicación en Google Maps"_ button.
+  - Implemented automatic SLA pausing in `sla-config.ts` and excluded paused cases from the unattended queue count.
+  - Integrated `UNASSIGNED_SLA_BREACH` event in `use-realtime.tsx` with browser notifications, audio chime, top alert banner, and direct _"Atender yo"_ claim button in `ChatHeader.tsx`.
+
 ---
 
 ## 5. Development & Testing Commands

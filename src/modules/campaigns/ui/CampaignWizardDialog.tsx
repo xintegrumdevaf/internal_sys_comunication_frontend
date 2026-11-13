@@ -69,6 +69,16 @@ export const CampaignWizardDialog: React.FC<CampaignWizardDialogProps> = ({
           quickMode: wizard.quickMode,
           intervalSeconds: wizard.intervalSeconds,
           recipients: wizard.importedRecipients,
+          chatRouting: {
+            initialStatus:
+              (wizard.routingConfig?.chatStatus?.toUpperCase() as "OPEN" | "PENDING" | "CLOSED") ||
+              "CLOSED",
+            departmentId: null,
+            assignedAgentId: null,
+            keepAssignedToUser: wizard.routingConfig?.keepAssigned ?? false,
+            delegateToBot: wizard.routingConfig?.delegateToBot ?? false,
+            forceChatUpdate: wizard.routingConfig?.forceChatUpdate ?? false,
+          },
           routingConfig: wizard.routingConfig,
           variableMapping: wizard.columnMapping,
           contactConfig: {

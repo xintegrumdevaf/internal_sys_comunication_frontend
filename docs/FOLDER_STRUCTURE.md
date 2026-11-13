@@ -40,10 +40,10 @@ src/
 │   │   └── ui/                    UsersDirectoryPanel.tsx, DepartmentsDirectoryPanel.tsx
 │   │
 │   ├── conversations/
-│   │   ├── domain/                conversation.ts
+│   │   ├── domain/                conversation.ts, outbound-media.ts
 │   │   ├── application/           use-operational-inbox.ts
 │   │   ├── infrastructure/        conversation.gateway.ts
-│   │   └── ui/                    OperationalInbox.tsx, MessageMediaBody.tsx, WhatsAppAudioPlayer.tsx, ZernioSyncControl.tsx
+│   │   └── ui/                    OperationalInbox.tsx, MessageMediaBody.tsx, LinkifiedText.tsx, WhatsAppAudioPlayer.tsx, ZernioSyncControl.tsx
 
 │   │
 │   ├── cases/

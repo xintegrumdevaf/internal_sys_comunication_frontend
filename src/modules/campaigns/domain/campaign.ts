@@ -66,6 +66,15 @@ export type Campaign = {
   recipients?: CampaignRecipient[];
 };
 
+export type CampaignChatRouting = {
+  initialStatus: "OPEN" | "PENDING" | "CLOSED";
+  departmentId?: string | null;
+  assignedAgentId?: string | null;
+  keepAssignedToUser?: boolean;
+  delegateToBot?: boolean;
+  forceChatUpdate?: boolean;
+};
+
 export type CreateCampaignPayload = {
   variableMapping?: Record<string, string>;
   columnMapping?: Record<string, string>;
@@ -77,6 +86,7 @@ export type CreateCampaignPayload = {
   quickMode?: boolean;
   intervalSeconds?: number;
   recipients?: CampaignRecipient[];
+  chatRouting?: CampaignChatRouting;
   routingConfig?: ChatRoutingConfig;
   contactConfig?: ContactEnrichmentConfig;
 };

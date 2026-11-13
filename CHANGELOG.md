@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.27] - 2026-11-13
+
+### Added & Improved
+
+- **Recepción y Envío Nativo de Stickers Estilo WhatsApp (`outbound-media.ts`, `MessageMediaBody.tsx`, `ChatComposer.tsx`, `OperationalInbox.tsx`)**:
+  - _Problema_: Los mensajes entrantes y salientes de tipo sticker se mostraban como texto plano `[sticker]`, fallaban visualmente como imágenes no encontradas o requerían abrir enlaces externos, impidiendo una experiencia conversacional fluida e impidiendo que los asesores envíen stickers desde la plataforma web.
+  - _Solución y Justificación_:
+    1. Se incorporó `sticker` como tipo válido en `MessageType` y en las reglas de carga de medios (`OUTBOUND_MEDIA_RULES`, máx. 500 KB, formatos `image/webp`, `png`, `jpg`, `jpeg`).
+    2. Conversión cliente transparente mediante Canvas HTML5 (`convertImageToWebpSticker`), transformando imágenes a WebP cuadrado estándar de 512x512 con preservación de transparencia y ratio de aspecto según la especificación de WhatsApp Cloud API.
+    3. Renderizado visual dedicado en `MessageMediaBody.tsx`: contenedor limpio sin bordes rígidos, centrado, con efecto zoom sutil (`hover:scale-105`), apertura en tamaño completo al hacer clic y fallback seguro si falla la imagen.
+    4. Citas y previsualizaciones enriquecidas (`formatQuotedMessageSnippet`) formateadas con `💟 Sticker`.
+
+- **Detección Automática de Enlaces Clickeables y Botón Directo para Google Maps (`LinkifiedText.tsx`, `MessageMediaBody.tsx`)**:
+  - _Problema_: Las direcciones web y enlaces de ubicación compartidos por los clientes (enlaces cortos de Google Maps `maps.app.goo.gl`, `goo.gl/maps`, coordenadas numéricas o URLs de Waze) se presentaban como texto inerte, forzando a los agentes de soporte y ventas a copiar manualmente las cadenas para buscarlas en otras pestañas.
+  - _Solución y Justificación_:
+    1. Creación del componente `LinkifiedText` con expresión regular universal para enlaces `http://`, `https://` y prefijos `www.`, abriéndolos en pestañas seguras con `target="_blank"` y `rel="noopener noreferrer"`.
+    2. Parser especializado de ubicaciones (`isGoogleMapsUrl`), detectando enlaces directos de Google Maps y Waze.
+    3. Generación de un botón interactivo _"Abrir ubicación en Google Maps"_ con iconos `MapPin` y `ExternalLink`, permitiendo al asesor ubicar geográficamente al suscriptor con un solo clic.
+    4. Integración universal en captions de imágenes, videos, audios, documentos, mensajes de texto y respuestas interactivas.
+
+- **Pausa Automática de Cronómetro de SLA para Casos Pendientes y Agendados (`sla-config.ts`, `OperationalInbox.tsx`)**:
+  - _Problema_: El cronómetro de SLA de atención continuaba corriendo y marcando infracciones contra los asesores en casos donde se estaba esperando respuesta del cliente (`WAITING_USER` o estado de conversación `pending`), o en casos con visitas técnicas y seguimientos agendados para días posteriores (`scheduledAt > Date.now()`), distorsionando los reportes de calidad y saturando la pestaña de desatendidas con falsos positivos.
+  - _Solución y Justificación_:
+    1. Se introdujo el estado `"paused"` e indicador `isPaused: true` en `calculateConversationSla`, alineado al estándar ITIL Service Desk.
+    2. Si la conversación está en espera, el caso está pausado o tiene una fecha programada en el futuro, el contador se congela y muestra la insignia _"En espera"_ / _"SLA pausado"_.
+    3. La pestaña _"Desatendidas"_ (`unattended`) y el contador de casos demorados excluyen automáticamente los casos con SLA pausado.
+
+- **Alertas en Tiempo Real de SLA para Casos Sin Asignar y Botón de Atención Inmediata (`use-realtime.tsx`, `NotificationBell.tsx`, `OperationalInbox.tsx`, `ChatHeader.tsx`)**:
+  - _Problema_: Cuando un caso escalaba a humano y permanecía sin asignar superando el tiempo límite de espera, los asesores ocupados en otros chats o pestañas no eran alertados oportunamente, generando demoras en la primera respuesta.
+  - _Solución y Justificación_:
+    1. Soporte del evento SSE `UNASSIGNED_SLA_BREACH` recibido en tiempo real.
+    2. Emisión de alerta auditiva persistente, notificación nativa del navegador (`Notification`) con tag único y entrada prioritaria en la campana de notificaciones (`NotificationBell.tsx`) destacada en rojo con el tiempo de espera transcurrido.
+    3. Banner de alerta superior animado en la lista de conversaciones cuando existen casos pendientes en la pestaña "Sin Asignar".
+    4. Incorporación del botón directo _"Atender yo"_ en `ChatHeader.tsx` para que el agente se asigne y comience la atención inmediatamente con un clic.
+    5. Normalización del filtro `isConversationHumanUnassigned` para excluir casos en automatización activa de IA o estados terminales.
+
+- **Diferenciación Visual entre Asesores Humanos, Plantillas y Campañas Masivas (`ChatMessageItem.tsx`)**:
+  - _Problema_: Al enviar una plantilla de respuesta rápida desde la interfaz de atención, el mensaje ocultaba la autoría del asesor y se mostraba bajo la etiqueta genérica "Plantilla / Campaña", dificultando la supervisión operativa y la trazabilidad de auditoría.
+  - _Solución y Justificación_:
+    1. Se desacopló la detección de mensajes mediante el flag `hasHumanAgent`.
+    2. Los mensajes enviados por agentes humanos conservan visible su nombre en verde esmeralda y muestran una píldora secundaria discreta `"Plantilla"` solo si proviene de un template.
+    3. Los mensajes de envíos masivos o automatizaciones sin agente asignado se identifican con la insignia ámbar _"Campaña Masiva"_.
+
+- **Enrutamiento Completo de Chats en Campañas Masivas y Tipado Robusto (`CampaignWizardDialog.tsx`, `campaign.ts`)**:
+  - _Problema_: El asistente de creación de campañas omitía la estructura `chatRouting` requerida por el backend para determinar el estado inicial del chat y la delegación de respuestas (a bot o asesor). Asimismo, la ausencia del tipo en `CreateCampaignPayload` originaba errores de compilación TypeScript.
+  - _Solución y Justificación_:
+    1. Declaración de `CampaignChatRouting` en el modelo de dominio `campaign.ts` e incorporación en `CreateCampaignPayload`.
+    2. Envío de `chatRouting` con `initialStatus`, `keepAssignedToUser`, `delegateToBot` y `forceChatUpdate` al crear campañas masivas.
+
+- **Validación UUID y Prevención de Errores 500 en Directorio de Departamentos (`department-mocks.ts`, `DepartmentsDirectoryPanel.tsx`)**:
+  - _Problema_: Al guardar cambios en departamentos que tenían cargados casos plantilla de facturación, se enviaban identificadores simulados como `"mock-case-1"` al backend, provocando errores `500 invalid input syntax for type uuid: "mock-case-1"` en PostgreSQL.
+  - _Solución y Justificación_:
+    1. Eliminación de IDs artificiales en `MOCK_FACTURACION_CASES`.
+    2. Implementación de validación `UUID_REGEX` en `DepartmentsDirectoryPanel.tsx` para filtrar cualquier ID no conforme antes de enviar el payload, delegando la generación de UUIDs al backend.
+    3. Carga asíncrona de casos reales desde la API cuando la caché no posee UUIDs válidos.
+
 ## [0.2.26] - 2026-11-12
 
 ### Added & Improved

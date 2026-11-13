@@ -109,3 +109,58 @@ Una conversación de WhatsApp reabierta por un nuevo mensaje inbound del cliente
 El módulo de administración de Telegram en `/configuracion` sigue separación hexagonal estricta: constantes en `domain/telegram-settings.defaults.ts`, estado y acciones API en `application/use-telegram-settings.ts`, y subcomponentes presentacionales en `ui/telegram/*`, manteniendo cada archivo bajo el límite `max-lines` (`400`) y respetando `react-refresh/only-export-components`.
 
 **Qué no revertir.** No volver a concentrar toda la vista en `TelegramSettingsCard.tsx` ni exportar constantes/hooks desde archivos `.tsx` de UI. Mantener la barra flotante única `TelegramSaveFooter` para cambios sin guardar, la sanitización de tokens enmascarados (`•` / `*`) antes de pruebas en vivo y la actualización reactiva de `defaultChatId` cuando `test` o `send-digest` retornan `migratedToChatId`. Registro del cambio: `CHANGELOG.md` `[0.2.25]`.
+
+## 10. Recepción y Envío Nativo de Stickers Estilo WhatsApp (`MessageMediaBody.tsx`, `ChatComposer.tsx`, `outbound-media.ts`)
+
+**Qué se cambió (2026-11-13).**
+
+- En `outbound-media.ts`: se agregó `sticker` a `OutboundMediaKind` y se definieron sus reglas en `OUTBOUND_MEDIA_RULES` (máx. 500 KB, formatos `webp`, `png`, `jpg`). Se implementó `convertImageToWebpSticker(file)` que rasteriza cualquier imagen adjunta a un Canvas HTML5 cuadrado de 512x512 y la exporta como WebP transparente compatible con WhatsApp Cloud API.
+- En `ChatComposer.tsx` y `OperationalInbox.tsx`: se habilitó el atajo directo en el popover de adjuntos y la conversión automática al subir archivos de tipo sticker.
+- En `MessageMediaBody.tsx`: los mensajes con `type === "sticker"` o `body === "[sticker]"` se renderizan como stickers limpios sin el marco rectangular de foto, con drop-shadow, escalado suave interactivo (`hover:scale-105`), click para abrir en tamaño original y fallback accesible con badge de alerta.
+- En `conversation.ts`: `formatQuotedMessageSnippet` formatea mensajes citados que contengan stickers como `"💟 Sticker"`.
+
+**Por qué.** En el soporte de telecomunicaciones e ISP, los clientes y operadores se comunican ampliamente mediante stickers para confirmar acuerdos o cerrar interacciones de forma empática. Anteriormente, estos mensajes se mostraban como cadenas crudas `[sticker]` o fallaban como imágenes rotas, y la plataforma carecía de soporte para enviarlos.
+
+**Qué no revertir.** No quitar la conversión cliente en `convertImageToWebpSticker`; WhatsApp Cloud API rechaza envíos de stickers que no sean WebP exacto de 512x512. No forzar un fondo rectangular blanco a los stickers en la burbuja. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
+
+## 11. Detección de Enlaces y Botón Directo para Google Maps (`LinkifiedText.tsx`, `MessageMediaBody.tsx`)
+
+**Qué se cambió (2026-11-13).**
+
+- Creación de `LinkifiedText.tsx`: componente que tokeniza texto plano mediante `URL_REGEX`, convirtiendo enlaces `http://`, `https://` y `www.` en etiquetas `<a>` accesibles y seguras (`rel="noopener noreferrer"`, `target="_blank"`).
+- Detección especializada de Google Maps y Waze (`isGoogleMapsUrl`), reconociendo URLs completas, enlaces acortados (`maps.app.goo.gl`, `goo.gl/maps`) y coordenadas GPS.
+- Si el texto contiene enlaces de mapas, renderiza un botón interactivo _"Abrir ubicación en Google Maps"_ con iconos `MapPin` y `ExternalLink`, permitiendo acceso inmediato sin copiar texto.
+- Integrado universalmente en `MessageMediaBody.tsx` en el cuerpo de texto, respuestas interactivas y subtítulos de imágenes, videos y audios.
+
+**Por qué.** Cuando los suscriptores enviaban su ubicación para revisiones técnicas o instalaciones mediante enlaces de Google Maps o WhatsApp, los asesores debían seleccionar y copiar manualmente URLs largas para pegarlas en otra ventana del navegador.
+
+**Qué no revertir.** No reemplazar `LinkifiedText` con `dangerouslySetInnerHTML` para parsear enlaces (riesgo XSS). Mantener siempre `target="_blank"` y `rel="noopener noreferrer"`. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
+
+## 12. Pausa Operativa de Cronómetro de SLA en Casos Pendientes y Agendados (`sla-config.ts`, `OperationalInbox.tsx`)
+
+**Qué se cambió (2026-11-13).**
+
+- En `sla-config.ts`: se añadió el estado `"paused"` e indicador booleano `isPaused: true` a `calculateConversationSla`.
+- Se evalúan las siguientes condiciones de pausa estándar ITIL Service Desk:
+  1. La conversación está en estado `"pending"` (esperando respuesta o acción del cliente).
+  2. El caso activo tiene estado `"WAITING_USER"` o `"PAUSED"`.
+  3. El caso tiene un agendamiento técnico o llamada futura (`scheduledAt > Date.now()`).
+- Al estar pausado, `minutesWaiting` se fija en 0, no se contabiliza como incumplido (`isBreached: false`) y muestra la etiqueta _"En espera"_.
+- En `OperationalInbox.tsx`: el filtro de la pestaña _"Desatendidas"_ (`unattended`) y el contador numérico de cola excluyen explícitamente los casos con SLA pausado.
+
+**Por qué.** El reloj de SLA penalizaba injustamente a los asesores cuando un suscriptor no respondía en días o cuando un caso de soporte se agendaba formalmente para una visita técnica en fecha posterior, generando alertas falsas de SLA vencido y distorsionando las estadísticas gerenciales de tiempo de atención.
+
+**Qué no revertir.** No eliminar la verificación `!calculateConversationSla(c, slaConfig).isPaused` en el filtro de casos desatendidos. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
+
+## 13. Alertas en Tiempo Real de SLA Sin Asignar y Botón 'Atender yo' (`use-realtime.tsx`, `NotificationBell.tsx`, `ChatHeader.tsx`, `OperationalInbox.tsx`)
+
+**Qué se cambió (2026-11-13).**
+
+- En `realtime-event.ts`, `realtime.gateway.ts` y `use-realtime.tsx`: soporte para el evento SSE `UNASSIGNED_SLA_BREACH`, que notifica cuando un caso escalado a cola humana supera el tiempo de espera sin ser atendido.
+- Disparo de sonido de alerta, notificación nativa del navegador (`Notification`) con redirección a `/bandeja?conversationId=` y badge en rojo de alta prioridad en `NotificationBell.tsx` con los minutos de retraso.
+- En `OperationalInbox.tsx`: banner animado persistente en el tope de la bandeja cuando hay casos en espera en la cola humana sin asignar.
+- En `ChatHeader.tsx`: botón _"Atender yo"_ (`onClaim`) con estado visual destacado en ámbar/naranja para que cualquier asesor disponible tome el caso con un clic.
+
+**Por qué.** Casos escalados por fallas críticas de red o solicitudes comerciales quedaban desatendidos en la cola si ningún supervisor los asignaba manualmente, incrementando el tiempo de abandono del cliente.
+
+**Qué no revertir.** No suprimir el control `isConversationHumanUnassigned` que evita alertar sobre casos cerrados o en automatización activa del bot de IA. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.

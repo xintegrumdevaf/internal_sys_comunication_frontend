@@ -24,6 +24,8 @@ const emptyForm: DepartmentFormState = {
   cases: [],
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function toAutoSlug(name: string): string {
   return name
     .toLowerCase()
@@ -35,7 +37,7 @@ function toAutoSlug(name: string): string {
 
 function toCaseItemForms(cases: DepartmentCase[]): CaseItemForm[] {
   return cases.map((c) => ({
-    id: c.id,
+    id: c.id && UUID_REGEX.test(c.id.trim()) ? c.id.trim() : undefined,
     label: c.label,
     description: c.description,
     handlingMode: c.handlingMode,
@@ -105,12 +107,15 @@ export function DepartmentsDirectoryPanel() {
       setDeletedCaseIds([]);
 
       const isBilling = dept.slug === "billing" || dept.name.toLowerCase().includes("factur");
-      const initialCases: CaseItemForm[] = casesCache[deptId]
+      const hasCached = Boolean(casesCache[deptId] && casesCache[deptId].length > 0);
+      const hasDeptCases = Boolean(dept.cases && dept.cases.length > 0);
+
+      const initialCases: CaseItemForm[] = hasCached
         ? toCaseItemForms(casesCache[deptId])
-        : isBilling
-          ? toCaseItemForms(MOCK_FACTURACION_CASES)
-          : dept.cases && dept.cases.length > 0
-            ? toCaseItemForms(dept.cases)
+        : hasDeptCases
+          ? toCaseItemForms(dept.cases!)
+          : isBilling
+            ? toCaseItemForms(MOCK_FACTURACION_CASES)
             : [];
 
       setForm({
@@ -124,8 +129,8 @@ export function DepartmentsDirectoryPanel() {
       setAutoSlugEnabled(false);
       setFormOpen(true);
 
-      // Si no tiene casos cacheados y no es billing, consultar en background
-      if (initialCases.length === 0 && !isBilling) {
+      // Si no tiene casos cacheados con UUIDs reales, consultar en background
+      if (!hasCached) {
         void getDepartmentCases(deptId).then((fetched) => {
           if (fetched && fetched.length > 0) {
             setCasesCache((prev) => ({ ...prev, [deptId]: fetched }));
@@ -224,7 +229,7 @@ export function DepartmentsDirectoryPanel() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     const payloadCases = form.cases.map((c) => ({
-      id: c.id,
+      id: c.id && UUID_REGEX.test(c.id.trim()) ? c.id.trim() : undefined,
       label: c.label.trim() || "Sin nombre",
       description: c.description.trim(),
       handlingMode: c.handlingMode,

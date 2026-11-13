@@ -39,14 +39,16 @@ export function connectRealtime(
 | `HUMAN_ASSIGNED`        | Cualquiera con visibilidad, pero con **prioridad especial si `agentUserId === session.id`** | Si es el agente asignado: toast prominente "Se te asignó el caso {id}" + entrada persistente en la campana con acceso directo a `/bandeja?conversationId=`; si es otro agente: solo refresco silencioso                  |
 | `AUTOMATION_ENABLED`    | Agentes con esa conversación abierta                                                        | Actualiza el indicador de automatización en el panel de caso                                                                                                                                                             |
 | `AUTOMATION_DISABLED`   | Agentes con esa conversación abierta                                                        | Actualiza el indicador de automatización en el panel de caso                                                                                                                                                             |
-| `INTERNAL_MESSAGE_SENT` | Agentes participantes del hilo o autor                                                      | Si el hilo está activo en `/chat-interno`, recargar mensajes y marcar como leído; si no, refrescar lista de hilos y badge de no leídos; toast/sonido si el emisor es otro agente                                         |
-| `INTERNAL_THREAD_READ`  | Participantes del hilo                                                                      | Refresca la lista de hilos de chat interno para sincronizar el estado de lectura                                                                                                                                         |
+| `INTERNAL_MESSAGE_SENT`   | Agentes participantes del hilo o autor                                                      | Si el hilo está activo en `/chat-interno`, recargar mensajes y marcar como leído; si no, refrescar lista de hilos y badge de no leídos; toast/sonido si el emisor es otro agente                                         |
+| `INTERNAL_THREAD_READ`    | Participantes del hilo                                                                      | Refresca la lista de hilos de chat interno para sincronizar el estado de lectura                                                                                                                                         |
+| `UNASSIGNED_SLA_BREACH`   | Agentes con visibilidad del departamento o administradores                                  | Alerta sonora persistente, notificación push de navegador, banner superior en `/bandeja` y entrada destacada en rojo en `NotificationBell` con los minutos de espera (`waitMinutes`)                                     |
+| `UNASSIGNED_SLA_BREACH` | Agentes con visibilidad del departamento o administradores                                  | Alerta sonora persistente, notificación push de navegador, banner superior en `/bandeja` y entrada destacada en rojo en `NotificationBell` con los minutos de espera (`waitMinutes`)                                     |
 
 ## 3. Campana de notificaciones (AppShell)
 
-- Estado en memoria (no persistido) de `UiNotification[]` (`01_DATA_MODEL.md` §8), poblado por `CASE_ESCALATED` y `HUMAN_ASSIGNED`.
+- Estado en memoria (no persistido) de `UiNotification[]` (`01_DATA_MODEL.md` §8), poblado por `CASE_ESCALATED`, `HUMAN_ASSIGNED`, `CASE_SCHEDULED_REMINDER` y `UNASSIGNED_SLA_BREACH`.
 - Ícono de campana con contador de no leídas; al abrir, lista las notificaciones con: tipo, hora relativa, y botón "Ver caso" que navega a `/bandeja?conversationId=` (resuelto desde `caseId` vía `GET /api/cases/:id` para obtener `conversationId`).
-- Sonido/():opcional, solo si el usuario lo activa — nunca autoplay bloqueante.
+- Sonido/(): opcional y reactivo, con tono especial de urgencia para `UNASSIGNED_SLA_BREACH` — nunca autoplay bloqueante.
 
 ## 4. Ventana de resumen de escalación (satisface el requisito de "resumen cuando se hace un análisis")
 

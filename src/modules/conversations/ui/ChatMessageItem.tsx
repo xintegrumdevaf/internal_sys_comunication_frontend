@@ -98,16 +98,22 @@ export function ChatMessageItem({
   }
 
   const fromCustomer = m.author === "customer";
-  const isTemplateOrCampaign =
+  const hasHumanAgent = Boolean(
+    m.agentId ||
+    (m.agentName &&
+      m.agentName !== "Agente" &&
+      !m.agentName.toLowerCase().includes("plantilla") &&
+      !m.agentName.toLowerCase().includes("campa")),
+  );
+
+  const isTemplate =
+    Boolean(m.caption?.startsWith("template:")) || Boolean(m.body?.startsWith("📋 [Plantilla:"));
+  const isAutomatedCampaign =
     !fromCustomer &&
-    (Boolean(m.caption?.startsWith("template:")) ||
-      Boolean(m.body?.startsWith("📋 [Plantilla:")) ||
-      (m.author === "agent" &&
-        !m.agentId &&
-        (!m.agentName ||
-          m.agentName === "Agente" ||
-          m.agentName.toLowerCase().includes("plantilla") ||
-          m.agentName.toLowerCase().includes("campa"))));
+    !hasHumanAgent &&
+    (isTemplate ||
+      Boolean(m.body?.startsWith("[Campaña]")) ||
+      (m.author === "agent" && !m.agentId));
 
   const messageAgentName =
     m.agentName ||
@@ -153,15 +159,22 @@ export function ChatMessageItem({
                 <p className="text-[9px] font-extrabold uppercase tracking-widest text-primary">
                   {conversationDisplayName(selected)}
                 </p>
-              ) : isTemplateOrCampaign ? (
+              ) : isAutomatedCampaign ? (
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25 text-[9px] font-extrabold uppercase tracking-wider">
                   <Megaphone className="size-2.5 shrink-0" />
-                  Plantilla / Campaña
+                  Campaña Masiva
                 </span>
               ) : m.author === "agent" ? (
-                <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 font-bold">
-                  {messageAgentName}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 font-bold">
+                    {messageAgentName}
+                  </p>
+                  {isTemplate && (
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                      Plantilla
+                    </span>
+                  )}
+                </div>
               ) : (
                 <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 font-bold">
                   Asistente IA
