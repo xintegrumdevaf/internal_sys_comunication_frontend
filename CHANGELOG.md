@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added & Changed
+- **Modo Embebido SSO dentro de ERP Corporativo (`useErpEmbedBridge.ts`, `AppShell.tsx`, `.env`)**:
+  - Agregado hook `useErpEmbedBridge` para detectar `?erpEmbed=1` (persistido en `sessionStorage`), anunciar `ISP_READY` hacia el shell padre, recibir actualizaciones `ERP_SYNC` (`token`, `theme`, `path`) mediante `postMessage` y canjear el token SSO vía `POST /api/auth/sso-exchange`.
+  - Actualizado `AppShell.tsx` para mantener estado de carga SSO en lugar de redirigir a `/login` durante el handshake embebido y ocultar la barra lateral duplicada y el modal de cambio de contraseña cuando corre dentro del shell del ERP.
+  - Actualizado `VITE_API_BASE_URL=http://localhost:4200` para apuntar al puerto dedicado del backend ISP sin colisionar con el puerto `3000`.
+
 ## [0.2.26] - 2026-11-12
 
 ### Added & Improved
@@ -637,3 +645,24 @@ All notable changes to this project will be documented in this file.
 - **AI Provider Settings UI**: Dynamic model selection dropdowns for Google Gemini and Ollama with cost and power tiers (Ultra Económico, Recomendado, Máxima Potencia).
 - **Symmetric 2x2 Form Layout**: Harmonized layout across Gemini and Ollama with synchronized vector dimensions, badges, and manual input fallbacks.
 - **API Key Security**: Masked credential input and live catalog fetching without plain-text exposure.
+
+## [Unreleased]
+
+### Added & Changed
+- **Modo Embebido SSO dentro de ERP Corporativo (`useErpEmbedBridge.ts`, `AppShell.tsx`, `.env`)**:
+  - Agregado hook `useErpEmbedBridge` para detectar `?erpEmbed=1` (persistido en `sessionStorage`), anunciar `ISP_READY` hacia el shell padre, recibir actualizaciones `ERP_SYNC` (`token`, `theme`, `path`) mediante `postMessage` y canjear el token SSO vía `POST /api/auth/sso-exchange`.
+  - Actualizado `AppShell.tsx` para mantener estado de carga SSO en lugar de redirigir a `/login` durante el handshake embebido y ocultar la barra lateral duplicada y el modal de cambio de contraseña cuando corre dentro del shell del ERP.
+  - Actualizado `VITE_API_BASE_URL=http://localhost:4200` para apuntar al puerto dedicado del backend ISP sin colisionar con el puerto `3000`.
+
+## [0.2.26] - 2026-11-12
+
+### Added & Improved
+
+- **Sticker Support UI**: Added rendering of WhatsApp stickers in `MessageMediaBody.tsx`, updated `ChatMessageItem` styles, and added sticker option in `ChatComposer` attachment menu. Includes size limit (500 KB) and WebP conversion.
+- **Unassigned Case SLA Alerts**: Integrated real‑time `UNASSIGNED_SLA_BREACH` notifications, with operational inbox visual cues and quick‑action buttons.
+- **Telegram Ops Panel**: Documented new admin panel improvements, status badges, and alert rules.
+- **Clickable Links**: Fixed link rendering so URLs are clickable directly in conversation view.
+- **Emoji/Sticker Message Refactor**: Replaced hard‑coded patterns with semantic detection, improving AI handling of gratitude and media messages.
+- **Docs Sync**: Updated `docs/FOLDER_STRUCTURE.md` and related spec docs to reflect these changes.
+
+All changes pass lint, type‑checking, and full test suite.

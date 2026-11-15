@@ -46,6 +46,7 @@ import {
 import { useUnreadBadge } from "@/modules/realtime/application/unread.state";
 import { NotificationBell } from "@/modules/realtime/ui/NotificationBell";
 import { ThemeToggle } from "@/shared/theme/ThemeToggle";
+import { useErpEmbedBridge } from "@/shared/federation/useErpEmbedBridge";
 
 type NavItem = {
   icon: LucideIcon;
@@ -91,6 +92,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { isErpEmbed, exchanging } = useErpEmbedBridge();
   const session = useSession();
   const sessionLoading = useSessionLoading();
   const { logout } = useAuth();
@@ -177,22 +179,23 @@ export function AppShell({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionLoading) return;
+    if (sessionLoading || (isErpEmbed && exchanging)) return;
     if (!session && pathname !== "/login") {
+      if (isErpEmbed) return;
       void navigate({ to: "/login", replace: true });
       return;
     }
     if (session && !canAccessPath(session, pathname)) {
       void navigate({ to: session.landing, replace: true });
     }
-  }, [session, sessionLoading, pathname, navigate]);
+  }, [session, sessionLoading, isErpEmbed, exchanging, pathname, navigate]);
 
-  if (sessionLoading) {
+  if (sessionLoading || (isErpEmbed && !session)) {
     return (
       <div className="min-h-screen bg-background grid place-items-center text-muted-foreground text-sm font-medium">
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p>Cargando sesión…</p>
+          <p>{isErpEmbed ? "Conectando sesión SSO desde ERP…" : "Cargando sesión…"}</p>
         </div>
       </div>
     );
@@ -378,42 +381,48 @@ export function AppShell({
 
   return (
     <div className="h-screen w-screen bg-background text-foreground font-sans flex overflow-hidden">
-      {/* Modal bloqueante obligatorio si mustChangePassword está activo */}
-      {session.mustChangePassword && <MustChangePasswordModal isOpen={true} />}
+      {/* Modal bloqueante obligatorio si mustChangePassword está activo (omitido en SSO embebido ERP) */}
+      {!isErpEmbed && session.mustChangePassword && <MustChangePasswordModal isOpen={true} />}
 
-      {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex w-64 border-r border-border flex-col bg-card shrink-0 select-none">
-        {renderNavContent()}
-      </aside>
+      {/* Sidebar Desktop (oculto cuando corre incrustado dentro del ERP) */}
+      {!isErpEmbed && (
+        <aside className="hidden lg:flex w-64 border-r border-border flex-col bg-card shrink-0 select-none">
+          {renderNavContent()}
+        </aside>
+      )}
 
       {/* Drawer Móvil con Overlay */}
-      {mobileMenuOpen && (
+      {!isErpEmbed && mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity animate-fade-in"
           onClick={() => setMobileMenuOpen(false)}
           aria-hidden="true"
         />
       )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-card border-r border-border flex flex-col shadow-2xl lg:hidden transform transition-transform duration-200 ease-in-out ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {renderNavContent()}
-      </aside>
+      {!isErpEmbed && (
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-card border-r border-border flex flex-col shadow-2xl lg:hidden transform transition-transform duration-200 ease-in-out ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {renderNavContent()}
+        </aside>
+      )}
 
       {/* Área Principal */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0 h-full">
         <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 shrink-0 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 -ml-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 shrink-0 transition-colors"
-              aria-label="Abrir menú de navegación"
-            >
-              <Menu className="size-5" />
-            </button>
+            {!isErpEmbed && (
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-1.5 -ml-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 shrink-0 transition-colors"
+                aria-label="Abrir menú de navegación"
+              >
+                <Menu className="size-5" />
+              </button>
+            )}
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Icon className="size-4" />
