@@ -50,6 +50,12 @@ export function useErpEmbedBridge(): { isErpEmbed: boolean; exchanging: boolean 
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { setTheme } = useTheme();
+  const navigateRef = useRef(navigate);
+  const pathnameRef = useRef(pathname);
+  const setThemeRef = useRef(setTheme);
+  navigateRef.current = navigate;
+  pathnameRef.current = pathname;
+  setThemeRef.current = setTheme;
 
   const exchangeToken = useCallback(
     async (tokenToExchange: string) => {
@@ -78,7 +84,7 @@ export function useErpEmbedBridge(): { isErpEmbed: boolean; exchanging: boolean 
     const params = new URLSearchParams(window.location.search);
     const initialTheme = params.get("theme");
     if (initialTheme === "dark" || initialTheme === "light") {
-      setTheme(initialTheme);
+      setThemeRef.current(initialTheme);
     }
 
     const handleMessage = (event: MessageEvent<unknown>) => {
@@ -87,20 +93,20 @@ export function useErpEmbedBridge(): { isErpEmbed: boolean; exchanging: boolean 
       if (msg.source !== "GOTICKET_ERP_SHELL" || msg.type !== "ERP_SYNC") return;
 
       if (msg.theme === "dark" || msg.theme === "light") {
-        setTheme(msg.theme);
+        setThemeRef.current(msg.theme);
       }
       if (msg.token && msg.token.trim()) {
         setErpToken(msg.token.trim());
       }
-      if (msg.path && msg.path !== pathname) {
-        void navigate({ to: msg.path });
+      if (msg.path && msg.path !== pathnameRef.current) {
+        void navigateRef.current({ to: msg.path });
       }
     };
 
     window.addEventListener("message", handleMessage);
     window.parent.postMessage({ source: "GOTICKET_ISP_MODULE", type: "ISP_READY" }, "*");
     return () => window.removeEventListener("message", handleMessage);
-  }, [isErpEmbed, navigate, pathname, setTheme]);
+  }, [isErpEmbed]);
 
   useEffect(() => {
     if (!isErpEmbed || !erpToken) return;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export type Theme = "dark" | "light" | "system";
 
@@ -28,8 +28,13 @@ export function ThemeProvider({
   storageKey = "netops_theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
+      const fromUrl = new URLSearchParams(window.location.search).get("theme");
+      if (fromUrl === "dark" || fromUrl === "light") {
+        localStorage.setItem(storageKey, fromUrl);
+        return fromUrl;
+      }
       const stored = localStorage.getItem(storageKey) as Theme | null;
       if (stored && ["dark", "light", "system"].includes(stored)) {
         return stored;
@@ -38,35 +43,31 @@ export function ThemeProvider({
     return defaultTheme;
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("light");
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() => {
+    if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) {
+      return "dark";
+    }
+    return "light";
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
+    const applyResolved = (next: "dark" | "light") => {
+      root.classList.toggle("dark", next === "dark");
+      root.classList.toggle("light", next === "light");
+      setResolvedTheme(next);
+    };
 
-    let currentResolved: "dark" | "light" = "light";
-
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-      currentResolved = systemTheme;
-      root.classList.add(systemTheme);
+      applyResolved(mediaQuery.matches ? "dark" : "light");
     } else {
-      currentResolved = theme;
-      root.classList.add(theme);
+      applyResolved(theme);
     }
 
-    setResolvedTheme(currentResolved);
-
-    // Listener for real-time OS theme changes when theme === "system"
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
       if (theme === "system") {
-        const newSystemTheme = mediaQuery.matches ? "dark" : "light";
-        root.classList.remove("light", "dark");
-        root.classList.add(newSystemTheme);
-        setResolvedTheme(newSystemTheme);
+        applyResolved(mediaQuery.matches ? "dark" : "light");
       }
     };
 
@@ -74,16 +75,24 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme]);
 
-  const value = {
-    theme,
-    resolvedTheme,
-    setTheme: (newTheme: Theme) => {
+  const setTheme = useCallback(
+    (newTheme: Theme) => {
       if (typeof window !== "undefined") {
         localStorage.setItem(storageKey, newTheme);
       }
-      setTheme(newTheme);
+      setThemeState((prev) => (prev === newTheme ? prev : newTheme));
     },
-  };
+    [storageKey],
+  );
+
+  const value = useMemo(
+    () => ({
+      theme,
+      resolvedTheme,
+      setTheme,
+    }),
+    [theme, resolvedTheme, setTheme],
+  );
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

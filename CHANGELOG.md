@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added & Changed
+- **Eliminación de parpadeo claro/oscuro en modo embebido ERP (`theme-provider.tsx`, `__root.tsx`, `useErpEmbedBridge.ts`)**:
+  - Memoizado `setTheme` en `ThemeProvider` y evitado actualizaciones redundantes cuando el tema no cambia; añadido soporte inicial de `?theme=dark|light` en el script pre-hidratación de `RootShell`.
+  - Refactorizado `useErpEmbedBridge` con refs estables para suscribirse una única vez al listener `postMessage` y emitir `ISP_READY` sin bucles de re-render con `ERP_SYNC`.
 - **Modo Embebido SSO dentro de ERP Corporativo (`useErpEmbedBridge.ts`, `AppShell.tsx`, `.env`)**:
   - Agregado hook `useErpEmbedBridge` para detectar `?erpEmbed=1` (persistido en `sessionStorage`), anunciar `ISP_READY` hacia el shell padre, recibir actualizaciones `ERP_SYNC` (`token`, `theme`, `path`) mediante `postMessage` y canjear el token SSO vía `POST /api/auth/sso-exchange`.
   - Actualizado `AppShell.tsx` para mantener estado de carga SSO en lugar de redirigir a `/login` durante el handshake embebido y ocultar la barra lateral duplicada y el modal de cambio de contraseña cuando corre dentro del shell del ERP.
@@ -649,6 +652,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added & Changed
+- **Eliminación de parpadeo claro/oscuro en modo embebido ERP (`theme-provider.tsx`, `__root.tsx`, `useErpEmbedBridge.ts`)**:
+  - Memoizado `setTheme` en `ThemeProvider` y evitado actualizaciones redundantes cuando el tema no cambia; añadido soporte inicial de `?theme=dark|light` en el script pre-hidratación de `RootShell`.
+  - Refactorizado `useErpEmbedBridge` con refs estables para suscribirse una única vez al listener `postMessage` y emitir `ISP_READY` sin bucles de re-render con `ERP_SYNC`.
 - **Modo Embebido SSO dentro de ERP Corporativo (`useErpEmbedBridge.ts`, `AppShell.tsx`, `.env`)**:
   - Agregado hook `useErpEmbedBridge` para detectar `?erpEmbed=1` (persistido en `sessionStorage`), anunciar `ISP_READY` hacia el shell padre, recibir actualizaciones `ERP_SYNC` (`token`, `theme`, `path`) mediante `postMessage` y canjear el token SSO vía `POST /api/auth/sso-exchange`.
   - Actualizado `AppShell.tsx` para mantener estado de carga SSO en lugar de redirigir a `/login` durante el handshake embebido y ocultar la barra lateral duplicada y el modal de cambio de contraseña cuando corre dentro del shell del ERP.
