@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added & Improved
 
+- **Depuración de ESLint y Limpieza de Dependencias en Panel de Casos (`CasePanel.tsx`)**:
+  - _Problema_: En `CasePanel.tsx` persistían importaciones de iconos no utilizados (`Calendar`, `HelpCircle`), una importación duplicada de `@/modules/cases/domain/case` y la asignación de una variable no utilizada `isSupportCase` en la tarjeta de cliente (`CustomerInfoCard`), generando advertencias en las reglas `no-duplicate-imports` y `@typescript-eslint/no-unused-vars`.
+  - _Solución y Justificación_:
+    1. **Unificación de Importaciones**: Se consolidaron las importaciones de tipos y constantes desde `@/modules/cases/domain/case` en una sola cláusula.
+    2. **Eliminación de Huérfanos**: Se retiraron los iconos y variables en desuso para mantener un árbol de dependencias óptimo.
+    3. **Verificación Integral**: Confirmación de 0 errores en ESLint (`eslint .`), 0 errores de tipado en TypeScript (`tsc --noEmit`), y 493/493 pruebas unitarias aprobadas en 88 suites de test.
+
 - **Corrección y Resiliencia Forense en Filtrado de Fechas (`AuditLogView.tsx`, `audit-event.ts`, `AuditLogView.test.tsx`)**:
   - _Problema_: Al seleccionar una fecha en el campo `Desde:` dejando `Hasta:` vacío en `/auditoria`, la interfaz emitía una notificación de error en rojo (`❗ Error interno inesperado`). Este comportamiento se debía a tres fallas concurrentes:
     1. **Formato no normalizado (ISO-8601)**: Los inputs `type="date"` producían cadenas planas `YYYY-MM-DD` que se enviaban sin marcas de tiempo ni zona horaria hacia el backend, rompiendo los parsers de SQL y Prisma al evaluar cláusulas de rango (`gte`/`lte`).

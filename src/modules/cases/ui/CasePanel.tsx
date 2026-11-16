@@ -8,11 +8,9 @@ import {
   RefreshCw,
   AlertTriangle,
   Bot,
-  Calendar,
   CheckCircle2,
   Clock,
   FileText,
-  HelpCircle,
   Lock,
   Phone,
   Power,
@@ -25,12 +23,10 @@ import {
   Wrench,
   XCircle,
 } from "lucide-react";
-import type {
-  CaseDto,
-  PendingContractItem,
-  SupportInternetDiagnosticTechnical,
-} from "@/modules/cases/domain/case";
 import {
+  type CaseDto,
+  type PendingContractItem,
+  type SupportInternetDiagnosticTechnical,
   CANCELLABLE_STATUSES,
   caseStatusLabel,
   clientNameFromCase,
@@ -718,7 +714,6 @@ export function CasePanel({
     contract?.sector ||
     (customerContractsCount !== undefined && customerContractsCount > 0),
   );
-  const isSupportCase = caseDto?.workflowType === "SUPPORT_INTERNET";
   const pendingContracts = (contextData.pendingContracts ?? rawContext?.pendingContracts) as
     PendingContractItem[] | undefined;
 

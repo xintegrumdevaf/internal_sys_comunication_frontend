@@ -221,6 +221,7 @@ No volver a colocar texto sobredimensionado de más de 30 caracteres en la barra
 - En `CasePanel.tsx`:
   - Se añadió la verificación obligatoria `autoAssignEnabled === true` en las opciones de transferencia manual de casos, excluyendo asesores que se encuentren con el turno cerrado (Switch OFF).
   - Soporte integral de multidepartamento: se valida la pertenencia tanto por `primaryDepartmentId` como por `departmentIds`, además de confirmar que el departamento objetivo esté contenido en `activeDepartmentIds` si el agente tiene turnos departamentales asignados.
+  - Limpieza de dependencias y ESLint: se unificaron las importaciones desde `@/modules/cases/domain/case` y se eliminaron identificadores y variables huérfanas (`Calendar`, `HelpCircle`, `isSupportCase` en `CustomerInfoCard`).
 - En `audit-event.ts` y `AuditLogView.tsx`:
   - Se adaptó `auditActionLabel` para leer el estado del switch desde `metadata` (`metadata.switch` / `metadata.currentAutoAssign`), mostrando descripciones claras de `"Turno activado"` y `"Turno cerrado"`.
   - Se incorporaron micro-badges gráficos de estado (`ON` en verde esmeralda y `OFF` en ámbar) en la bitácora de auditoría.
