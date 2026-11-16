@@ -199,29 +199,29 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 shrink-0">
       {/* 1. Indicador en Ejecución */}
       {isRunning && (
         <button
           type="button"
           onClick={openDetailsModal}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-semibold animate-pulse shadow-xs hover:bg-primary/20 transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-[11px] font-semibold animate-pulse shadow-xs hover:bg-primary/20 transition-all cursor-pointer shrink-0"
           title="Ver detalles de la sincronización en curso"
         >
-          <RotateCw className="size-3.5 animate-spin" />
+          <RotateCw className="size-3.5 animate-spin shrink-0" />
           <span>
-            {`Sincronizando: ${syncStatus?.progress ?? 15}% (${syncStatus?.totalMessagesSynced.toLocaleString() ?? 0} msgs)...`}
+            {`Sincronizando ${syncStatus?.progress ?? 15}% (${syncStatus?.totalMessagesSynced.toLocaleString() ?? 0} msgs)...`}
           </span>
         </button>
       )}
 
       {/* 2. Badge de Sincronización Finalizada Exitosamente */}
       {!isRunning && isCompleted && (
-        <div className="inline-flex items-center gap-1.5">
+        <div className="inline-flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={openDetailsModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold transition-all shadow-xs cursor-pointer"
             title="Click para ver resumen completo de la sincronización"
           >
             <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
@@ -233,35 +233,35 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
           <button
             type="button"
             onClick={openStartModal}
-            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-foreground/5 text-foreground text-xs font-medium transition-colors shadow-xs cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full border border-border bg-card hover:bg-foreground/5 text-foreground text-[11px] font-semibold transition-colors shadow-xs cursor-pointer"
             title="Iniciar nueva sincronización de mensajes"
           >
-            <History className="size-3 text-primary" />
-            <span className="text-[11px] font-semibold">Nueva sinc.</span>
+            <History className="size-3 text-primary shrink-0" />
+            <span>Nueva sinc.</span>
           </button>
         </div>
       )}
 
       {/* 3. Badge de Sincronización Fallida */}
       {!isRunning && isFailed && (
-        <div className="inline-flex items-center gap-1.5">
+        <div className="inline-flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={openDetailsModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 text-xs font-bold transition-all shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 text-[11px] font-semibold transition-all shadow-xs cursor-pointer"
             title="Click para ver el error de sincronización"
           >
             <AlertCircle className="size-3.5 shrink-0" />
-            <span>Sincronización Fallida</span>
+            <span>Sincronización fallida</span>
           </button>
 
           <button
             type="button"
             onClick={openStartModal}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-foreground/5 text-foreground text-xs font-medium transition-colors shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-border bg-card hover:bg-foreground/5 text-foreground text-[11px] font-semibold transition-colors shadow-xs cursor-pointer"
           >
-            <RefreshCw className="size-3 text-primary" />
-            <span className="text-[11px] font-semibold">Reintentar</span>
+            <RefreshCw className="size-3 text-primary shrink-0" />
+            <span>Reintentar</span>
           </button>
         </div>
       )}
@@ -271,14 +271,12 @@ export function ZernioSyncControl({ onSyncComplete }: ZernioSyncControlProps = {
         <button
           type="button"
           onClick={openStartModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-foreground/5 text-foreground text-xs font-medium transition-colors shadow-xs cursor-pointer"
-          title="Importar mensajes y conversaciones históricas desde Zernio"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card hover:bg-foreground/5 text-foreground text-[11px] font-semibold transition-colors shadow-xs cursor-pointer shrink-0"
+          title="Importar mensajes y conversaciones históricas desde Zernio (WhatsApp)"
         >
-          <History className="size-3.5 text-primary" />
-          <span className="hidden sm:inline font-bold">
-            Sincronizar Mensajes Anteriores de WhatsApp
-          </span>
-          <span className="sm:hidden font-bold">Sincronizar Historial</span>
+          <History className="size-3.5 text-primary shrink-0" />
+          <span className="hidden sm:inline">Sincronizar WhatsApp</span>
+          <span className="sm:hidden">Sinc. WhatsApp</span>
         </button>
       )}
 

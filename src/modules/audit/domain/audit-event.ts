@@ -34,6 +34,10 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   AGENT_UPDATED: "Datos del agente actualizados",
   AGENT_DEACTIVATED: "Agente desactivado",
   AGENT_PASSWORD_RESET: "Contraseña de agente restablecida",
+  AGENT_SHIFT_STARTED: "Turno activado",
+  AGENT_SHIFT_ENDED: "Turno cerrado",
+  AGENT_AVAILABILITY_CHANGED: "Disponibilidad modificada",
+  AGENT_QUEUES_CHANGED: "Colas de atención modificadas",
   USER_LOGIN: "Inicio de sesión",
   USER_LOGOUT: "Cierre de sesión",
   AUTH_FAILED: "Intento de inicio de sesión fallido",
@@ -65,6 +69,82 @@ function humanizeAction(action: string): string {
 }
 
 /** Texto claro en español para una acción de auditoría — nunca el enum crudo. */
-export function auditActionLabel(action: string): string {
+export function auditActionLabel(
+  action: string,
+  metadata?: Record<string, unknown> | null,
+): string {
+  if (action === "AGENT_AVAILABILITY_CHANGED" && metadata) {
+    if (metadata.switch === "ON" || metadata.currentAutoAssign === true) {
+      return "Turno activado";
+    }
+    if (metadata.switch === "OFF" || metadata.currentAutoAssign === false) {
+      return "Turno cerrado";
+    }
+  }
   return AUDIT_ACTION_LABELS[action] ?? humanizeAction(action);
+}
+
+/**
+ * Convierte una fecha YYYY-MM-DD en string ISO al inicio del día (00:00:00.000 local).
+ */
+export function toIsoStart(dateYmd: string): string | undefined {
+  if (!dateYmd || typeof dateYmd !== "string") return undefined;
+  const [year, month, day] = dateYmd.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  const date = new Date(year, month - 1, day, 0, 0, 0, 0);
+  return isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+/**
+ * Convierte una fecha YYYY-MM-DD en string ISO al final del día (23:59:59.999 local).
+ */
+export function toIsoEnd(dateYmd: string): string | undefined {
+  if (!dateYmd || typeof dateYmd !== "string") return undefined;
+  const [year, month, day] = dateYmd.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  const date = new Date(year, month - 1, day, 23, 59, 59, 999);
+  return isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+/**
+ * Resuelve y normaliza el rango de fechas para el backend de auditoría en formato ISO-8601.
+ * Si solo se define 'from', cubre hasta el final del día de hoy (o del día especificado si es futuro).
+ * Si solo se define 'to', cubre desde el inicio de la época hasta el final de esa fecha.
+ * Si ambos son vacíos, retorna { from: undefined, to: undefined }.
+ */
+export function resolveAuditDateRange(
+  fromYmd?: string,
+  toYmd?: string,
+): { from?: string; to?: string } {
+  const fromClean = fromYmd?.trim() || "";
+  const toClean = toYmd?.trim() || "";
+
+  if (!fromClean && !toClean) {
+    return { from: undefined, to: undefined };
+  }
+
+  if (fromClean && !toClean) {
+    const fromIso = toIsoStart(fromClean);
+    const now = new Date();
+    const todayEnd = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    ).toISOString();
+    const toIso = fromIso && fromIso > todayEnd ? toIsoEnd(fromClean) : todayEnd;
+    return { from: fromIso, to: toIso };
+  }
+
+  if (!fromClean && toClean) {
+    return { from: new Date(0).toISOString(), to: toIsoEnd(toClean) };
+  }
+
+  return {
+    from: toIsoStart(fromClean),
+    to: toIsoEnd(toClean),
+  };
 }

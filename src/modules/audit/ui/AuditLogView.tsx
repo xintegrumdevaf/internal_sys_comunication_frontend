@@ -9,13 +9,14 @@ import {
   Terminal,
   Activity,
   User,
+  X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { StatCard } from "@/app/shell/AppShell";
 import { StateDiffViewer } from "@/modules/audit/ui/StateDiffViewer";
 import { auditApi } from "@/services/auditApi";
 import type { AuditEvent, AuditStats, AuditCategory, AuditFilterParams } from "@/types/audit";
-import { auditActionLabel } from "@/modules/audit/domain/audit-event";
+import { auditActionLabel, resolveAuditDateRange } from "@/modules/audit/domain/audit-event";
 import { useDepartmentsQuery } from "@/modules/identity/application/use-session";
 import { relativeTime } from "@/shared/datetime";
 import { toast } from "sonner";
@@ -60,40 +61,64 @@ export function AuditLogView() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  const fetchEvents = async (cursor?: string, append = false) => {
+  const fetchEvents = async (
+    cursor?: string,
+    append = false,
+    dateOverrides?: { from?: string; to?: string },
+  ) => {
     try {
       if (append) setLoadingMore(true);
       else setLoading(true);
 
+      const activeFrom = dateOverrides?.from !== undefined ? dateOverrides.from : fromDate;
+      const activeTo = dateOverrides?.to !== undefined ? dateOverrides.to : toDate;
+
+      if (activeFrom && activeTo && activeFrom > activeTo) {
+        toast.error("La fecha 'Desde' no puede ser posterior a 'Hasta'");
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const { from: resolvedFrom, to: resolvedTo } = resolveAuditDateRange(activeFrom, activeTo);
+
       const params: AuditFilterParams = {
         category: selectedCategory === "ALL" ? undefined : selectedCategory,
         departmentId: selectedDepartment || undefined,
-        from: fromDate || undefined,
-        to: toDate || undefined,
+        from: resolvedFrom,
+        to: resolvedTo,
         search: search.trim() || undefined,
         limit: 30,
         cursor: cursor || undefined,
       };
 
-      const [eventsRes, statsRes] = await Promise.all([
+      const [eventsSettled, statsSettled] = await Promise.allSettled([
         auditApi.listEvents(params),
         !append
           ? auditApi.getStats({
-              from: fromDate || undefined,
-              to: toDate || undefined,
+              from: resolvedFrom,
+              to: resolvedTo,
               departmentId: selectedDepartment || undefined,
             })
           : Promise.resolve(null),
       ]);
 
-      if (append) {
-        setEvents((prev) => [...prev, ...eventsRes.data]);
+      if (eventsSettled.status === "fulfilled") {
+        const eventsRes = eventsSettled.value;
+        if (append) {
+          setEvents((prev) => [...prev, ...eventsRes.data]);
+        } else {
+          setEvents(eventsRes.data);
+        }
+        setNextCursor(eventsRes.nextCursor);
       } else {
-        setEvents(eventsRes.data);
+        const err = eventsSettled.reason;
+        toast.error(err instanceof Error ? err.message : "Error al cargar eventos de auditoría");
       }
 
-      setNextCursor(eventsRes.nextCursor);
-      if (statsRes) setStats(statsRes);
+      if (statsSettled.status === "fulfilled" && statsSettled.value) {
+        setStats(statsSettled.value);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al cargar auditoría");
     } finally {
@@ -105,11 +130,17 @@ export function AuditLogView() {
   useEffect(() => {
     void fetchEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, selectedDepartment, fromDate, toDate]);
+  }, [selectedCategory, selectedDepartment]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void fetchEvents();
+  };
+
+  const handleClearDates = () => {
+    setFromDate("");
+    setToDate("");
+    void fetchEvents(undefined, false, { from: "", to: "" });
   };
 
   const handleLoadMore = () => {
@@ -223,6 +254,18 @@ export function AuditLogView() {
             />
           </div>
 
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={handleClearDates}
+              className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Limpiar fechas"
+            >
+              <X className="size-3.5" />
+              <span>Limpiar</span>
+            </button>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -251,16 +294,18 @@ export function AuditLogView() {
         </div>
 
         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-xs text-left">
+          <table className="w-full text-xs text-left min-w-[960px] border-collapse">
             <thead className="bg-background/80 border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
               <tr>
-                <th className="px-4 sm:px-6 py-3">Fecha y Hora</th>
-                <th className="px-4 sm:px-6 py-3">Categoría</th>
-                <th className="px-4 sm:px-6 py-3">Acción</th>
-                <th className="px-4 sm:px-6 py-3">Actor</th>
-                <th className="px-4 sm:px-6 py-3">Departamento</th>
-                <th className="px-4 sm:px-6 py-3">Origen / IP</th>
-                <th className="px-4 sm:px-6 py-3 text-right">Detalle</th>
+                <th className="px-4 sm:px-6 py-3 whitespace-nowrap w-[150px] min-w-[150px]">
+                  Fecha y Hora
+                </th>
+                <th className="px-4 sm:px-6 py-3 whitespace-nowrap w-[130px]">Categoría</th>
+                <th className="px-4 sm:px-6 py-3 min-w-[220px]">Acción</th>
+                <th className="px-4 sm:px-6 py-3 min-w-[180px]">Actor</th>
+                <th className="px-4 sm:px-6 py-3 whitespace-nowrap w-[150px]">Departamento</th>
+                <th className="px-4 sm:px-6 py-3 whitespace-nowrap w-[140px]">Origen / IP</th>
+                <th className="px-4 sm:px-6 py-3 text-right w-[80px]">Detalle</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -272,180 +317,215 @@ export function AuditLogView() {
                 const hasMeta = e.metadata && Object.keys(e.metadata).length > 0;
 
                 return (
-                  <tr
-                    key={e.id}
-                    className={`transition-colors ${
-                      isExpanded ? "bg-primary/5" : "hover:bg-foreground/5"
-                    }`}
-                  >
-                    <td colSpan={7} className="p-0">
-                      <div
-                        onClick={() => toggleExpand(e.id)}
-                        className="flex flex-wrap items-center justify-between px-4 sm:px-6 py-3.5 cursor-pointer select-none"
+                  <Fragment key={e.id}>
+                    <tr
+                      onClick={() => toggleExpand(e.id)}
+                      className={`cursor-pointer select-none transition-colors ${
+                        isExpanded ? "bg-primary/5" : "hover:bg-foreground/5"
+                      }`}
+                    >
+                      {/* Fecha y Hora */}
+                      <td
+                        className="px-4 sm:px-6 py-3.5 whitespace-nowrap align-middle"
+                        title={timestamp ? new Date(timestamp).toLocaleString("es-CO") : undefined}
                       >
-                        {/* Fecha */}
-                        <div className="w-36 shrink-0">
-                          <p className="font-mono text-xs font-bold text-foreground">
+                        <p className="font-mono text-xs font-bold text-foreground">
+                          {timestamp
+                            ? new Date(timestamp).toLocaleDateString("es-CO", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </p>
+                        <p className="font-mono text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <span>
                             {timestamp
                               ? new Date(timestamp).toLocaleTimeString("es-CO", { hour12: false })
-                              : "—"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {timestamp ? relativeTime(timestamp) : "—"}
-                          </p>
-                        </div>
-
-                        {/* Categoría */}
-                        <div className="w-32 shrink-0">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ${catStyle.badge}`}
-                          >
-                            <span className={`size-1.5 rounded-full ${catStyle.dot}`} />
-                            {catStyle.label}
+                              : ""}
                           </span>
-                        </div>
+                          {timestamp && (
+                            <span className="text-[10px] text-muted-foreground/80 font-sans">
+                              · {relativeTime(timestamp)}
+                            </span>
+                          )}
+                        </p>
+                      </td>
 
-                        {/* Acción */}
-                        <div className="w-56 shrink-0 min-w-0 pr-2">
-                          <p className="font-bold text-xs text-foreground truncate">
-                            {auditActionLabel(e.action)}
+                      {/* Categoría */}
+                      <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap align-middle">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ${catStyle.badge}`}
+                        >
+                          <span className={`size-1.5 rounded-full ${catStyle.dot}`} />
+                          {catStyle.label}
+                        </span>
+                      </td>
+
+                      {/* Acción */}
+                      <td className="px-4 sm:px-6 py-3.5 align-middle">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-bold text-xs text-foreground">
+                            {auditActionLabel(e.action, e.metadata)}
                           </p>
-                          <p className="font-mono text-[10px] text-muted-foreground truncate">
-                            {e.action}
-                          </p>
+                          {(e.metadata?.switch === "ON" || e.action === "AGENT_SHIFT_STARTED") && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                              ON
+                            </span>
+                          )}
+                          {(e.metadata?.switch === "OFF" || e.action === "AGENT_SHIFT_ENDED") && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30">
+                              OFF
+                            </span>
+                          )}
                         </div>
+                        <p className="font-mono text-[10px] text-muted-foreground truncate">
+                          {e.action}
+                        </p>
+                      </td>
 
-                        {/* Actor */}
-                        <div className="w-48 shrink-0 min-w-0 pr-2">
-                          <div className="flex items-center gap-2">
-                            <div className="size-6 rounded-full bg-primary/10 text-primary grid place-items-center text-[10px] font-bold shrink-0">
-                              {e.actor?.name ? (
-                                e.actor.name.charAt(0).toUpperCase()
-                              ) : (
-                                <User className="size-3" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-semibold text-xs truncate">
-                                {e.actor?.name || "Sistema"}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground truncate">
-                                {e.actor?.email || e.actor?.type || "system"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Departamento */}
-                        <div className="w-32 shrink-0">
-                          <span className="text-[11px] text-muted-foreground truncate block">
-                            {e.department?.name || "Global / N/A"}
-                          </span>
-                        </div>
-
-                        {/* Red / IP */}
-                        <div className="w-36 shrink-0">
-                          <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
-                            <Globe className="size-3 text-muted-foreground shrink-0" />
-                            <span className="truncate">{e.ipAddress || "Interna / Local"}</span>
-                          </div>
-                        </div>
-
-                        {/* Botón Expansión */}
-                        <div className="shrink-0 flex items-center justify-end">
-                          <button
-                            type="button"
-                            className="p-1.5 rounded-lg border border-border bg-background hover:bg-foreground/5 transition-colors"
-                            aria-label="Ver detalles forenses"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="size-4 text-primary" />
+                      {/* Actor */}
+                      <td className="px-4 sm:px-6 py-3.5 align-middle">
+                        <div className="flex items-center gap-2">
+                          <div className="size-6 rounded-full bg-primary/10 text-primary grid place-items-center text-[10px] font-bold shrink-0">
+                            {e.actor?.name ? (
+                              e.actor.name.charAt(0).toUpperCase()
                             ) : (
-                              <ChevronDown className="size-4 text-muted-foreground" />
+                              <User className="size-3" />
                             )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Panel Expandido de Detalles Forenses */}
-                      {isExpanded && (
-                        <div className="px-4 sm:px-6 py-4 bg-background/90 border-t border-border space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
-                            <div className="p-3 rounded-lg border border-border bg-card">
-                              <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
-                                Identificadores
-                              </span>
-                              <p className="text-foreground text-[11px]">
-                                Recurso: <span className="font-bold">{e.resourceType}</span> /{" "}
-                                {e.resourceId}
-                              </p>
-                              {e.correlationId && (
-                                <p className="text-muted-foreground text-[10px] mt-1 truncate">
-                                  Correlation: {e.correlationId}
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="p-3 rounded-lg border border-border bg-card">
-                              <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
-                                Trazabilidad de Actor
-                              </span>
-                              <p className="text-foreground text-[11px]">
-                                Rol: <span className="font-bold">{e.actor?.role || "N/A"}</span> (
-                                {e.actor?.type})
-                              </p>
-                              <p className="text-muted-foreground text-[10px] mt-1 truncate">
-                                ID: {e.actor?.id || "N/A"}
-                              </p>
-                            </div>
-
-                            <div className="p-3 rounded-lg border border-border bg-card">
-                              <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
-                                Entorno de Red
-                              </span>
-                              <p className="text-foreground text-[11px] truncate">
-                                IP: {e.ipAddress || "Local / System"}
-                              </p>
-                              <p
-                                className="text-muted-foreground text-[10px] mt-1 truncate"
-                                title={e.userAgent || ""}
-                              >
-                                UA: {e.userAgent || "N/A"}
-                              </p>
-                            </div>
                           </div>
-
-                          {/* Comparación de Estados (Diffs) */}
-                          {hasDiff && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Database className="size-3.5 text-primary" />
-                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                  Cambios de Estado (State Diff)
-                                </span>
-                              </div>
-                              <StateDiffViewer before={e.beforeState} after={e.afterState} />
-                            </div>
-                          )}
-
-                          {/* Metadata adicional */}
-                          {hasMeta && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Terminal className="size-3.5 text-primary" />
-                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                  Metadatos del Evento
-                                </span>
-                              </div>
-                              <pre className="p-3 rounded-xl border border-border bg-slate-950 text-slate-200 text-[11px] font-mono overflow-x-auto max-h-48">
-                                {JSON.stringify(e.metadata, null, 2)}
-                              </pre>
-                            </div>
-                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs truncate">
+                              {e.actor?.name || "Sistema"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {e.actor?.email || e.actor?.type || "system"}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+
+                      {/* Departamento */}
+                      <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap align-middle">
+                        <span className="text-[11px] text-muted-foreground truncate block">
+                          {e.department?.name || "Global / N/A"}
+                        </span>
+                      </td>
+
+                      {/* Red / IP */}
+                      <td className="px-4 sm:px-6 py-3.5 whitespace-nowrap align-middle">
+                        <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
+                          <Globe className="size-3 text-muted-foreground shrink-0" />
+                          <span className="truncate">{e.ipAddress || "Interna / Local"}</span>
+                        </div>
+                      </td>
+
+                      {/* Botón Expansión */}
+                      <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap align-middle">
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-lg border border-border bg-background hover:bg-foreground/5 transition-colors inline-flex items-center justify-center cursor-pointer"
+                          aria-label="Ver detalles forenses"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="size-4 text-primary" />
+                          ) : (
+                            <ChevronDown className="size-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+
+                    {/* Panel Expandido de Detalles Forenses */}
+                    {isExpanded && (
+                      <tr className="bg-background/90 border-t border-border">
+                        <td colSpan={7} className="px-4 sm:px-6 py-4">
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
+                              <div className="p-3 rounded-lg border border-border bg-card">
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
+                                  Identificadores & Fecha
+                                </span>
+                                <p className="text-foreground text-[11px]">
+                                  Recurso: <span className="font-bold">{e.resourceType}</span> /{" "}
+                                  {e.resourceId}
+                                </p>
+                                <p className="text-muted-foreground text-[10px] mt-1">
+                                  Fecha:{" "}
+                                  <span className="text-foreground font-semibold">
+                                    {timestamp
+                                      ? new Date(timestamp).toLocaleString("es-CO")
+                                      : "N/A"}
+                                  </span>
+                                </p>
+                                {e.correlationId && (
+                                  <p className="text-muted-foreground text-[10px] mt-0.5 truncate">
+                                    Correlation: {e.correlationId}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="p-3 rounded-lg border border-border bg-card">
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
+                                  Trazabilidad de Actor
+                                </span>
+                                <p className="text-foreground text-[11px]">
+                                  Rol: <span className="font-bold">{e.actor?.role || "N/A"}</span> (
+                                  {e.actor?.type})
+                                </p>
+                                <p className="text-muted-foreground text-[10px] mt-1 truncate">
+                                  ID: {e.actor?.id || "N/A"}
+                                </p>
+                              </div>
+
+                              <div className="p-3 rounded-lg border border-border bg-card">
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
+                                  Entorno de Red
+                                </span>
+                                <p className="text-foreground text-[11px] truncate">
+                                  IP: {e.ipAddress || "Local / System"}
+                                </p>
+                                <p
+                                  className="text-muted-foreground text-[10px] mt-1 truncate"
+                                  title={e.userAgent || ""}
+                                >
+                                  UA: {e.userAgent || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Comparación de Estados (Diffs) */}
+                            {hasDiff && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Database className="size-3.5 text-primary" />
+                                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    Cambios de Estado (State Diff)
+                                  </span>
+                                </div>
+                                <StateDiffViewer before={e.beforeState} after={e.afterState} />
+                              </div>
+                            )}
+
+                            {/* Metadata adicional */}
+                            {hasMeta && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Terminal className="size-3.5 text-primary" />
+                                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    Metadatos del Evento
+                                  </span>
+                                </div>
+                                <pre className="p-3 rounded-xl border border-border bg-slate-950 text-slate-200 text-[11px] font-mono overflow-x-auto max-h-48">
+                                  {JSON.stringify(e.metadata, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
 

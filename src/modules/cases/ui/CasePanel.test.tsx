@@ -561,4 +561,84 @@ describe("CasePanel - quién atiende", () => {
     ).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Estado del [cC]aso/i).length).toBeGreaterThanOrEqual(2);
   });
+
+  it("filtra el selector de agentes para mostrar solo agentes con turno abierto (autoAssignEnabled=true) y que atienden el departamento", () => {
+    const mockAgents = [
+      {
+        id: "agent_offline_soporte",
+        name: "Ariel Paucar",
+        primaryDepartmentId: "dept_support",
+        departmentIds: ["dept_support"],
+        active: true,
+        autoAssignEnabled: false, // Turno cerrado
+      },
+      {
+        id: "agent_online_soporte",
+        name: "Daysi Pilataxi",
+        primaryDepartmentId: "dept_traslados",
+        departmentIds: ["dept_traslados", "dept_support"], // Multidepartamento
+        activeDepartmentIds: ["dept_traslados", "dept_support"],
+        active: true,
+        autoAssignEnabled: true, // Turno abierto
+      },
+      {
+        id: "agent_online_facturacion",
+        name: "Emilie Matiz",
+        primaryDepartmentId: "dept_billing",
+        departmentIds: ["dept_billing"],
+        active: true,
+        autoAssignEnabled: true, // Turno abierto pero en otro depto
+      },
+    ];
+
+    render(
+      <CasePanel
+        caseDto={mockCase}
+        busy={false}
+        canWrite={true}
+        departments={[
+          {
+            id: "dept_support",
+            name: "Soporte Técnico",
+            slug: "support",
+            visibility: "shared",
+            active: true,
+          },
+          {
+            id: "dept_billing",
+            name: "Facturación",
+            slug: "billing",
+            visibility: "shared",
+            active: true,
+          },
+          {
+            id: "dept_traslados",
+            name: "Traslados",
+            slug: "traslados",
+            visibility: "shared",
+            active: true,
+          },
+        ]}
+        agents={mockAgents}
+        onOpenSummary={vi.fn()}
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        onTransfer={vi.fn()}
+        onDisableAutomation={vi.fn()}
+        onReactivateAutomation={vi.fn()}
+      />,
+    );
+
+    // Abrir transferencia
+    fireEvent.click(screen.getByRole("button", { name: /Transferir caso \/ Área/i }));
+
+    // Daysi debe aparecer porque tiene turno abierto y atiende Soporte Técnico (aunque su primary sea Traslados)
+    expect(screen.getByRole("option", { name: "Daysi Pilataxi" })).toBeInTheDocument();
+
+    // Ariel Paucar NO debe aparecer porque tiene autoAssignEnabled=false (turno cerrado)
+    expect(screen.queryByRole("option", { name: "Ariel Paucar" })).not.toBeInTheDocument();
+
+    // Emilie Matiz NO debe aparecer en el departamento de Soporte Técnico
+    expect(screen.queryByRole("option", { name: "Emilie Matiz" })).not.toBeInTheDocument();
+  });
 });

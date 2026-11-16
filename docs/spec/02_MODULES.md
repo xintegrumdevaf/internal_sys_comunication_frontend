@@ -197,3 +197,62 @@ El pipeline de integración continua (`deploy.yml`) ejecuta `pnpm lint` con tole
 
 **Qué no revertir.**
 Mantener la estructura formateada con `prettier --write` y evitar introducir saltos de línea dobles al final de los archivos `.ts` y `.tsx`. Registro del cambio: `CHANGELOG.md` `[0.2.27]`.
+
+## 16. Optimización y Rediseño Compacto del Botón de Sincronización WhatsApp (`ZernioSyncControl.tsx`)
+
+**Qué se cambió (2026-11-16).**
+
+- En `ZernioSyncControl.tsx`:
+  - Se redujo la etiqueta por defecto de `"Sincronizar Mensajes Anteriores de WhatsApp"` (43 caracteres) a `"Sincronizar WhatsApp"` en pantallas medianas/grandes y `"Sinc. WhatsApp"` en pantallas pequeñas (`sm:hidden`).
+  - Se disminuyó la escala del botón a píldora compacta: `px-2.5 py-1 text-[11px] font-semibold rounded-full shrink-0`, alineándose simétricamente con el botón contiguo de _Alertas SLA_ (`px-2.5 py-1 rounded-full text-[11px] font-bold`).
+  - Se compactaron los estados dinámicos de ejecución (`isRunning`), finalización con badge de mensajes importados (`isCompleted`) y fallo con botón de reintento (`isFailed`) a la misma escala de píldora para preservar el balance visual de la barra de filtros en `OperationalInbox.tsx`.
+  - Se actualizaron las pruebas unitarias en `ZernioSyncControl.test.tsx` garantizando 100% de cobertura y validación sin regresiones.
+
+**Por qué.**
+El botón previo consumía más de 330 px en horizontal y duplicaba el ancho de los selectores de Área y Agente, desbordando los controles de filtro de la bandeja operativa en resoluciones comunes de pantallas de laptop y monitores de asesores.
+
+**Qué no revertir.**
+No volver a colocar texto sobredimensionado de más de 30 caracteres en la barra de herramientas superior de la bandeja. Mantener la clase `shrink-0` y el formato píldora (`rounded-full`) para coherencia con los badges del sistema. Registro del cambio: `CHANGELOG.md` `[0.2.28]`.
+
+## 17. Filtro Estricto de Turno Activo y Multidepartamento en Transferencia de Casos (`CasePanel.tsx`, `audit-event.ts`, `AuditLogView.tsx`)
+
+**Qué se cambió (2026-11-16).**
+
+- En `CasePanel.tsx`:
+  - Se añadió la verificación obligatoria `autoAssignEnabled === true` en las opciones de transferencia manual de casos, excluyendo asesores que se encuentren con el turno cerrado (Switch OFF).
+  - Soporte integral de multidepartamento: se valida la pertenencia tanto por `primaryDepartmentId` como por `departmentIds`, además de confirmar que el departamento objetivo esté contenido en `activeDepartmentIds` si el agente tiene turnos departamentales asignados.
+- En `audit-event.ts` y `AuditLogView.tsx`:
+  - Se adaptó `auditActionLabel` para leer el estado del switch desde `metadata` (`metadata.switch` / `metadata.currentAutoAssign`), mostrando descripciones claras de `"Turno activado"` y `"Turno cerrado"`.
+  - Se incorporaron micro-badges gráficos de estado (`ON` en verde esmeralda y `OFF` en ámbar) en la bitácora de auditoría.
+  - Se corrigió el descuadre visual entre los encabezados `<th>` y los registros `<td>` reestructurando la tabla con maquetación semántica nativa (celda individual por columna en lugar de un contenedor flexbox dentro de un único `colSpan={7}`), fijando anchos proporcionales (`min-w-[950px]`, `min-w-[220px]` para Acción) para que los títulos y las acciones calcen perfectamente sin desplazamientos.
+- En pruebas unitarias:
+  - Adición de suite de validación en `CasePanel.test.tsx` verificando el filtrado por turno abierto y departamento.
+
+**Por qué.**
+Evita que un caso sea transferido por error a un asesor que no se encuentra laborando o que pertenece a otra área técnica, previniendo el abandono involuntario de clientes escalados. Asimismo, elimina el descuadre visual en la bitácora de auditoría asegurando que cada columna de datos se alinee verticalmente con su título de cabecera.
+
+**Qué no revertir.**
+No remover el filtro `if (!a.autoAssignEnabled) return false;` en el `<select>` de agentes de `CasePanel.tsx`. No volver a usar un único `<td colSpan={7}><div className="flex justify-between">` en `AuditLogView.tsx`. Registro del cambio: `CHANGELOG.md` `[0.2.28]`.
+
+## 18. Normalización Forense de Rangos de Fecha y Resiliencia en Auditoría (`AuditLogView.tsx`, `audit-event.ts`, `AuditLogView.test.tsx`)
+
+**Qué se cambió (2026-11-16).**
+
+- En `src/modules/audit/domain/audit-event.ts`:
+  - Se implementaron las funciones utilitarias `toIsoStart(dateYmd)` (medianoche local `00:00:00.000` en ISO-8601 UTC) y `toIsoEnd(dateYmd)` (final del día local `23:59:59.999` en ISO-8601 UTC).
+  - Se incorporó el normalizador de dominio `resolveAuditDateRange(fromYmd, toYmd)`. Si el usuario ingresa solo `from`, se resuelve `to` al final del día actual (o del día seleccionado si es fecha futura); si ingresa solo `to`, se fija `from` en el inicio de época (`1970-01-01T00:00:00.000Z`). De esta manera, el backend nunca recibe valores `undefined` o formatos incompatibles que desaten excepciones `RangeError: Invalid time value` o `HTTP 500: Error interno inesperado`.
+- En `src/modules/audit/ui/AuditLogView.tsx`:
+  - **Desacoplamiento de `useEffect`**: Se removieron `fromDate` y `toDate` de las dependencias de `useEffect`. Los cambios en los inputs de fecha no disparan llamadas inmediatas a la API antes de que el usuario haya terminado de definir el rango. El filtrado por fecha se activa explícitamente mediante el botón `[ FILTRAR ]` o presionando la tecla Enter en el formulario.
+  - **Validación Lógica de Rango**: Se añadió verificación previa que valida que `fromDate <= toDate`. Si el rango es inconsistente, se notifica al usuario con un toast de error descriptivo (`"La fecha 'Desde' no puede ser posterior a 'Hasta'"`) y se aborta la consulta a la red.
+  - **Aislamiento con `Promise.allSettled`**: Se sustituyó `Promise.all` por `Promise.allSettled` para cargar concurrentemente los eventos y las métricas KPI (`auditApi.getStats`). Un eventual fallo en el endpoint de estadísticas no interrumpe ni bloquea la renderización de la tabla de eventos de auditoría.
+  - **Visualización Explícita de Fecha Calendario (`DD/MM/AAAA`)**: La celda de la columna _Fecha y Hora_ se rediseñó para mostrar la fecha de calendario exacta en formato numérico (`DD/MM/AAAA`, ej. `02/11/2026`) en la primera línea en negrita, seguida de la hora exacta y delta relativo (`10:39:40 · 14d`) en la segunda línea, eliminando la ambigüedad de mostrar únicamente "14d" o "1m". Adicionalmente, se incluyó el atributo `title` nativo con la marca de tiempo completa al pasar el cursor y se agregó la fecha exacta en el panel de detalle expandido.
+  - **Botón de Limpieza Rápida**: Se agregó un botón interactivo `[ Limpiar ]` con icono `X` que se muestra únicamente cuando hay al menos una fecha seleccionada. Al hacer clic, restablece los campos y ejecuta una consulta limpia sin fechas de forma inmediata.
+- En pruebas unitarias:
+  - Adición de 6 tests de dominio en `audit-event.test.ts` que validan `toIsoStart`, `toIsoEnd` y `resolveAuditDateRange`.
+  - Creación de la suite `AuditLogView.test.tsx` con 5 pruebas unitarias verificando el renderizado de filtros, la ausencia de peticiones tempranas en cambios de fecha, la conversión a ISO al enviar, la validación `Desde <= Hasta`, y la limpieza reactiva de filtros.
+
+**Por qué.**
+Previene que seleccionar una fecha en `Desde:` sin haber seleccionado aún `Hasta:` provoque un error fatal HTTP 500 (`Error interno inesperado`) en pantalla. Asegura que los rangos enviados hacia el backend cumplan estrictamente la especificación ISO-8601 con límites de hora bien formados, proporcionando una experiencia de consulta forense estable y controlada.
+
+**Qué no revertir.**
+No volver a colocar `fromDate` ni `toDate` como dependencias del `useEffect` de carga inicial en `AuditLogView.tsx`. Mantener la llamada a `resolveAuditDateRange` antes de enviar parámetros a `auditApi.listEvents` y `auditApi.getStats`. Registro del cambio: `CHANGELOG.md` `[0.2.28]`.

@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.28] - 2026-11-16
+
+### Added & Improved
+
+- **Corrección y Resiliencia Forense en Filtrado de Fechas (`AuditLogView.tsx`, `audit-event.ts`, `AuditLogView.test.tsx`)**:
+  - _Problema_: Al seleccionar una fecha en el campo `Desde:` dejando `Hasta:` vacío en `/auditoria`, la interfaz emitía una notificación de error en rojo (`❗ Error interno inesperado`). Este comportamiento se debía a tres fallas concurrentes:
+    1. **Formato no normalizado (ISO-8601)**: Los inputs `type="date"` producían cadenas planas `YYYY-MM-DD` que se enviaban sin marcas de tiempo ni zona horaria hacia el backend, rompiendo los parsers de SQL y Prisma al evaluar cláusulas de rango (`gte`/`lte`).
+    2. **Parámetro `to` indefinido y rangos abiertos**: Al enviar `from` sin `to`, el backend ejecutaba `new Date(undefined)` produciendo `Invalid Date` y disparando una excepción interna HTTP 500 no capturada.
+    3. **Disparo prematuro en `useEffect`**: El hook `useEffect` incluía `[fromDate, toDate]` en sus dependencias, desencadenando peticiones inmediatas e incompletas en cuanto el usuario interactuaba con el selector de fecha, antes de que pudiera completar el rango o presionar el botón `[ FILTRAR ]`.
+    4. **Fallo en cascada por `Promise.all`**: Si las estadísticas de auditoría (`/api/audit/stats`) fallaban al procesar fechas parciales, el `Promise.all` rechazaba toda la operación, bloqueando también la carga de la tabla de eventos forenses.
+  - _Solución y Justificación_:
+    1. **Normalización Segura con `resolveAuditDateRange` (`audit-event.ts`)**: Se crearon utilidades de dominio `toIsoStart` (inicio de día `00:00:00.000` en hora local convertido a ISO) y `toIsoEnd` (final de día `23:59:59.999` local en ISO). `resolveAuditDateRange` resuelve automáticamente rangos abiertos: si solo se define `from`, completa `to` con el final del día en curso (o el final de la fecha seleccionada si es futura); si solo se define `to`, completa `from` desde el inicio de época (`1970-01-01T00:00:00.000Z`).
+    2. **Validación de Rango Lógico**: Se implementó validación defensiva en el cliente (`from <= to`), notificando amigablemente si `Desde` es posterior a `Hasta` y evitando peticiones erróneas a la red.
+    3. **Desacoplamiento de `useEffect` y Botón Limpiar**: Se eliminaron `fromDate` y `toDate` del `useEffect` para que las fechas se apliquen de forma controlada mediante el botón `[ FILTRAR ]` o tecla Enter. Además, se añadió un botón dinámico `[ Limpiar ]` con icono `X` para restablecer el rango y recargar inmediatamente los eventos.
+    4. **Aislamiento con `Promise.allSettled`**: Se migró de `Promise.all` a `Promise.allSettled`, asegurando que cualquier anomalía transitoria en los KPIs no inhabilite la visualización de la tabla forense.
+    5. **Visualización Explícita de Fecha Calendario (`DD/MM/AAAA`)**: La columna _Fecha y Hora_ mostraba únicamente la hora del día y la distancia relativa (`10:39:40` y `14d`), impidiendo identificar la fecha exacta del evento. Se reestructuró la celda para mostrar la fecha de calendario en negrita (`DD/MM/AAAA`, ej. `02/11/2026`), la hora con delta relativo (`10:39:40 · 14d`) y el tooltip `title` con la marca de tiempo completa (`toLocaleDateString` / `toLocaleString`), además de registrar la fecha exacta en el panel de detalle forense expandible.
+    6. **Cobertura Automatizada**: Se incorporaron 5 pruebas unitarias en `AuditLogView.test.tsx` y 6 en `audit-event.test.ts` (19 pruebas en verde en todo el módulo).
+
+- **Alineación y Maquetación Semántica de Tabla de Auditoría Forense (`AuditLogView.tsx`, `audit-event.ts`)**:
+  - _Problema_: Los encabezados de la tabla (`<thead><tr><th>`) aparecían visualmente descuadrados respecto a los datos de las filas (`<tbody>`). Esto se debía a que las filas estaban construidas con una única celda artificial `<td colSpan={7}>` que contenía un contenedor flexbox `justify-between` con anchos fijos, impidiendo que el motor de renderizado de tablas de HTML calculara el ancho simétrico entre títulos y contenidos. Adicionalmente, la columna **Acción** se desbordaba al concatenar texto descriptivo con badges (`Turno cerrado (Switch OFF) [OFF]`).
+  - _Solución y Justificación_:
+    1. **Estructura Semántica 1:1 (`<th>` y `<td>`)**: Se reestructuró `AuditLogView.tsx` utilizando celdas `<td>` individuales para cada una de las 7 columnas (Fecha y Hora, Categoría, Acción, Actor, Departamento, Origen/IP y Detalle), enlazando de forma matemática y visual cada encabezado con su celda correspondiente.
+    2. **Fila de Detalle Expandible Independiente**: Se implementó `<Fragment>` de React de modo que al expandir una fila para ver el visor `StateDiffViewer` y metadatos forenses, el panel se renderiza en una fila secundaria `<tr colSpan={7}>`, sin alterar el alineamiento ni el ancho de las columnas de la tabla.
+    3. **Anchos Asignados y Scroll Responsivo**: Se definieron anchos mínimos en cabeceras (`min-w-[950px]` para la tabla, `min-w-[220px]` para Acción) permitiendo que la columna de acción se adapte y distribuya el contenido con holgura.
+    4. **Limpieza de Etiquetas de Acción**: Se depuró `auditActionLabel` para mostrar títulos limpios como `"Turno cerrado"` o `"Turno activado"`, acompañados de sus badges compactos `ON` (esmeralda) y `OFF` (ámbar), evitando duplicidad de leyendas.
+
+- **Optimización y Diseño Compacto del Botón de Sincronización de WhatsApp (`ZernioSyncControl.tsx`)**:
+  - _Problema_: El botón de sincronización histórica de mensajes en la barra de filtros de la bandeja operativa (`OperationalInbox.tsx`) utilizaba el texto extenso `"Sincronizar Mensajes Anteriores de WhatsApp"` (43 caracteres) con padding `px-3 py-1.5` y fuente `text-xs font-bold`. Esto causaba que el botón dominara visualmente la cabecera, ocupara un ancho desproporcionado (~330 px) frente a los selectores de Área y Agente, y desplazara los controles en resoluciones estándar.
+  - _Solución y Justificación_:
+    1. **Etiqueta Concisa y Responsiva**: Se cambió el texto a `"Sincronizar WhatsApp"` (reducción de más del 50% en ancho de caracteres), con variante compacta `"Sinc. WhatsApp"` en pantallas móviles (`sm:hidden`).
+    2. **Dimensiones Estandarizadas**: Se ajustó a píldora compacta `px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0`, armonizando perfectamente con el botón adyacente de _Alertas SLA_ (`px-2.5 py-1 rounded-full text-[11px] font-bold`).
+    3. **Consistencia Visual entre Estados**: Se compactaron los estados de ejecución (`isRunning`: `Sincronizando X%...`), finalización (`isCompleted`: badge de píldora y botón `Nueva sinc.`) y error (`isFailed`: badge y `Reintentar`) para mantener una altura y escala consistentes en la barra de herramientas.
+    4. **Trazabilidad y Pruebas**: Se actualizaron las pruebas unitarias en `ZernioSyncControl.test.tsx` garantizando la cobertura de los 5 casos de prueba con 100% de éxito.
+
+- **Filtro Estricto de Agentes por Turno Activo y Multidepartamento en Transferencia de Casos (`CasePanel.tsx`, `CasePanel.test.tsx`)**:
+  - _Problema_: El selector de transferencia manual de casos en `CasePanel.tsx` permitía seleccionar asesores que tenían su turno cerrado (`autoAssignEnabled = false`) o que no estaban atendiendo la cola del departamento de destino, provocando que casos reasignados quedaran congelados sin atención humana activa.
+  - _Solución y Justificación_:
+    1. **Verificación de Turno Abierto**: Se restringe el listado en `<select>` para filtrar exclusivamente agentes activos con `autoAssignEnabled === true`.
+    2. **Soporte Multidepartamento Real**: Se valida la pertenencia tanto por `primaryDepartmentId` como por el arreglo `departmentIds`, verificando adicionalmente la lista de colas asignadas para el turno (`activeDepartmentIds`).
+    3. **Pruebas Automatizadas**: Se implementaron pruebas en `CasePanel.test.tsx` comprobando que los agentes con turno cerrado o pertenecientes a departamentos diferentes no figuren como opciones elegibles para transferencia (16 pruebas en verde).
+
 ## [0.2.27] - 2026-11-13
 
 ### Added & Improved

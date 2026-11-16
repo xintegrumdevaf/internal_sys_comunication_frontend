@@ -53,7 +53,10 @@ export type CasePanelAgentOption = {
   id: string;
   name: string;
   primaryDepartmentId?: string | null;
+  departmentIds?: string[];
+  activeDepartmentIds?: string[];
   active?: boolean;
+  autoAssignEnabled?: boolean;
 };
 
 function DataRow({ label, value }: { label: string; value: string | number | undefined | null }) {
@@ -1373,14 +1376,36 @@ export function CasePanel({
                     <option value="">Auto-asignar automáticamente (menor carga)</option>
                     {agents
                       .filter((a) => {
+                        // 1. Debe estar activo en la empresa (no eliminado)
                         if (a.active === false) return false;
+
+                        // 2. Solo agentes con el turno abierto (asignación automática encendida)
+                        if (!a.autoAssignEnabled) return false;
+
+                        // 3. Pertenencia y atención del departamento seleccionado (soporta multidepartamento)
                         const deptToCheck = transferDept || caseDto.departmentId;
-                        if (
-                          deptToCheck &&
-                          a.primaryDepartmentId &&
-                          a.primaryDepartmentId !== deptToCheck
-                        )
-                          return false;
+                        if (deptToCheck) {
+                          const allDeptIds = new Set<string>();
+                          if (a.primaryDepartmentId) allDeptIds.add(a.primaryDepartmentId);
+                          if (Array.isArray(a.departmentIds)) {
+                            a.departmentIds.forEach((d) => allDeptIds.add(d));
+                          }
+
+                          // Si no pertenece al departamento, se descarta
+                          if (!allDeptIds.has(deptToCheck)) return false;
+
+                          // Si el agente tiene definidas sus colas activas para su turno,
+                          // debe estar atendiendo este departamento en particular
+                          if (
+                            Array.isArray(a.activeDepartmentIds) &&
+                            a.activeDepartmentIds.length > 0 &&
+                            !a.activeDepartmentIds.includes(deptToCheck)
+                          ) {
+                            return false;
+                          }
+                        }
+
+                        // 4. No transferirse al mismo agente que ya tiene el caso
                         return a.id !== caseDto.assignedAgentId;
                       })
                       .map((a) => (
