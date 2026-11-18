@@ -22,7 +22,6 @@ import {
   setUnreadConversations,
   markConversationRead,
 } from "@/modules/realtime/application/unread.state";
-import type { AutomationStateDto } from "@/modules/cases/domain/case";
 
 type InboxOptions = {
   /** Filtra por departamento (id real). undefined = todos los departamentos visibles. */
@@ -208,6 +207,8 @@ export function useOperationalInbox(options: InboxOptions = {}) {
     },
     [
       session?.id,
+      session?.role,
+      session?.departmentIds,
       options.departmentId,
       options.agentId,
       options.status,

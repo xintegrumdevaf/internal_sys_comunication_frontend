@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.31] - 2026-11-18
+
+### Added & Improved
+
+- **Diagnóstico y Corrección Integral de Políticas CORS y Credenciales Cross-Origin (`cors.middleware.ts`, `container.ts`)**:
+  - _Problema_: Durante las peticiones desde el frontend (`http://localhost:8080`) al backend (`http://localhost:3000`), el navegador bloqueaba las llamadas a `/api/departments`, `/api/auth/me` y `POST /api/auth/login` con el error: `Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'`.
+  - _Causa_: El middleware CORS anterior evaluaba de forma estricta los orígenes y en peticiones preflight `OPTIONS` terminaba con `res.status(204).end()` sin haber inyectado los encabezados `Access-Control-Allow-Credentials: true` ni `Access-Control-Allow-Origin: http://localhost:8080`.
+  - _Solución y Verificación_:
+    1. Se actualizó [cors.middleware.ts](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_backend/src/shared/http/middlewares/cors.middleware.ts) y su compilado en `dist` para reflejar el origen de la petición (`req.header("origin")`), emitir `Access-Control-Allow-Credentials: true`, habilitar los métodos `GET,POST,PUT,PATCH,DELETE,OPTIONS` y autorizar los encabezados necesarios (`Content-Type, Authorization, x-agent-id, x-correlation-id, Cookie, Set-Cookie`) con `Access-Control-Max-Age: 86400`.
+    2. Se probó la respuesta del preflight `OPTIONS` vía simulación directa en Node.js, confirmando la emisión correcta de todos los encabezados requeridos.
+
+- **Depuración Completa de ESLint y Limpieza de Advertencias en el Frontend**:
+  - _Problema_: Persistían avisos de variables sin usar (`no-unused-vars`), importaciones duplicadas (`no-duplicate-imports`) y dependencias faltantes en hooks (`react-hooks/exhaustive-deps`) en varios componentes y utilitarios.
+  - _Solución y Archivos Depurados_:
+    1. [use-operational-inbox.ts](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/conversations/application/use-operational-inbox.ts): Se retiró la importación huerfana `AutomationStateDto` de `@/modules/cases/domain/case` y se agregaron `session?.role` y `session?.departmentIds` a las dependencias del hook `useCallback` de recarga.
+    2. [CompleteCaseModal.tsx](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/cases/ui/CompleteCaseModal.tsx): Se eliminaron los iconos importados en desuso `UserX` y `AlertCircle`.
+    3. [CaseSummaryDialog.tsx](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/cases/ui/CaseSummaryDialog.tsx): Se unificó la importación de `CaseDto` en la cláusula principal de `@/modules/cases/domain/case`.
+    4. [conversation.test.ts](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/conversations/domain/conversation.test.ts): Se retiró `normalizeSearchQuery` de los imports de prueba.
+    5. [CampaignLaunchModal.tsx](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/campaigns/ui/CampaignLaunchModal.tsx): Se unificaron las importaciones de `../domain/template` y se renombró el estado no leído a `_csvContent`.
+    6. **Verificación**: 0 errores en `eslint .`, 0 errores en `tsc --noEmit` y 493/493 pruebas unitarias aprobadas en 88 suites de Vitest.
+
+## [0.2.30] - 2026-11-18
+
+### Added & Improved
+
+- **Filtrado Condicional y Visibilidad Selectiva de Asesores en Transferencia de Casos (`CasePanel.tsx`, `OperationalInbox.tsx`)**:
+  - _Problema y Requerimiento_:
+    Al transferir un caso desde la ficha operativa (`CasePanel.tsx`):
+    1. Si el operador transfiere dentro de su propio departamento (por ejemplo, Facturación si es asesor de Facturación), requiere visualizar a la totalidad de los miembros de su equipo, estén activos o inactivos (señalando claramente `(Inactivo)` si su cuenta está deshabilitada), permitiendo derivaciones y reasignaciones internas de casos pendientes o de seguimiento.
+    2. Cuando el operador transfiere hacia un departamento externo (al que no pertenece, por ejemplo transferir de Facturación a Soporte Técnico), únicamente deben mostrarse los asesores que se encuentren con cuenta activa (`active !== false`) y con el switch de **Asignación Automática** encendido (`autoAssignEnabled === true`). Anteriormente se listaban asesores que tenían la asignación automática apagada (por ejemplo `Andres soporte 2`), permitiendo derivaciones directas a personal fuera de turno en otras áreas.
+  - _Solución y Justificación_:
+    1. **Resolución de Pertenencia Departamental de la Sesión**:
+       En `OperationalInbox.tsx`, se propagaron las propiedades de sesión autenticada `currentUserDepartmentId={session?.primaryDepartmentId ?? undefined}` y `currentDepartmentIds={session?.departmentIds}` tanto para la vista de escritorio como para la bandeja móvil. En `CasePanel.tsx`, se consolida el conjunto reactivo `myDepartmentIds` (utilizando los props o la sesión activa como fallback).
+    2. **Lógica de Filtrado Diferenciado**:
+       - En el departamento propio (`isMyDepartment = true`): Se presentan todos los agentes pertenecientes al departamento, excluyendo únicamente al asesor actualmente asignado para evitar reasignaciones circulares. Los usuarios con `active === false` se etiquetan explícitamente con el sufijo `" (Inactivo)"`.
+       - En departamentos ajenos (`isMyDepartment = false`): Se aplican los filtros estrictos `a.active !== false` y `a.autoAssignEnabled === true`, garantizando que únicamente los agentes habilitados para recibir carga de trabajo figuren en la lista de selección manual.
+    3. **Integración con Auto-Asignación por Menor Carga**:
+       La opción por defecto `"Auto-asignar automáticamente (menor carga)"` continúa delegando al backend la búsqueda del agente con menor volumen de casos activos concurrentes entre los asesores en turno.
+
+## [0.2.29] - 2026-11-18
+
+### Added & Improved
+
+- **Migración a Resolución Nativa de Rutas TypeScript en Vite (`vite.config.ts`, `vitest.config.ts`, `package.json`)**:
+  - _Problema_: Al ejecutar pruebas o compilar el proyecto, Vite emitía la advertencia: `The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.`
+  - _Solución y Justificación_:
+    1. **Configuración Nativa**: Se configuró `resolve.tsconfigPaths: true` directamente en [vite.config.ts](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/vite.config.ts) y [vitest.config.ts](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/vitest.config.ts), aprovechando el soporte nativo de Vite 6+ / 8+ para resolver alias definidos en `tsconfig.json`.
+    2. **Eliminación de Dependencia Obsoleta**: Se desinstaló el plugin redundante `vite-tsconfig-paths` mediante `pnpm remove vite-tsconfig-paths`, reduciendo el tiempo de inicialización de Vite y eliminando el warning de la consola.
+    3. **Integración con Filtro Departamental en Casos (`CasePanel.tsx`, `OperationalInbox.tsx`)**: Se enlazaron las propiedades de sesión departamental (`currentUserDepartmentId`, `currentDepartmentIds`) en el panel de casos y se adaptó la suite de pruebas unitarias (`CasePanel.test.tsx`), garantizando 16/16 pruebas aprobadas y 0 errores en TypeScript (`tsc --noEmit`).
+
 ## [0.2.28] - 2026-11-16
 
 ### Added & Improved

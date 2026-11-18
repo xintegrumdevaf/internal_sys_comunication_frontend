@@ -5,7 +5,6 @@ import {
   formatQuotedMessageSnippet,
   formatWaPhone,
   matchesConversationSearch,
-  normalizeSearchQuery,
   type ConversationDto,
 } from "./conversation";
 

@@ -1980,6 +1980,8 @@ export function OperationalInbox({
                 canWrite={canWriteCase}
                 departments={departments}
                 agents={directory}
+                currentUserDepartmentId={session?.primaryDepartmentId ?? undefined}
+                currentDepartmentIds={session?.departmentIds}
                 assignedAgentName={assignedAgentName}
                 automationDisabledReason={
                   automationState?.disabledReason ??
@@ -2064,6 +2066,8 @@ export function OperationalInbox({
               canWrite={canWriteCase}
               departments={departments}
               agents={directory}
+              currentUserDepartmentId={session?.primaryDepartmentId ?? undefined}
+              currentDepartmentIds={session?.departmentIds}
               assignedAgentName={assignedAgentName}
               automationDisabledReason={
                 automationState?.disabledReason ??

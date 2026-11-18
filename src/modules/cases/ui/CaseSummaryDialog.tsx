@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type {
+  CaseDto,
   CaseStatus,
   CaseSummaryDto,
   CaseTimelineEntryDto,
@@ -38,7 +39,6 @@ import {
   onuRunStateLabel,
   onuSignalQuality,
 } from "@/modules/cases/domain/case";
-import type { CaseDto } from "@/modules/cases/domain/case";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
 
 function isOnuTechnicalData(value: unknown): value is SupportInternetDiagnosticTechnical {

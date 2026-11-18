@@ -257,3 +257,41 @@ Previene que seleccionar una fecha en `Desde:` sin haber seleccionado aún `Hast
 
 **Qué no revertir.**
 No volver a colocar `fromDate` ni `toDate` como dependencias del `useEffect` de carga inicial en `AuditLogView.tsx`. Mantener la llamada a `resolveAuditDateRange` antes de enviar parámetros a `auditApi.listEvents` y `auditApi.getStats`. Registro del cambio: `CHANGELOG.md` `[0.2.28]`.
+
+## 19. Migración a Resolución Nativa de Rutas TypeScript en Vite (`vite.config.ts`, `vitest.config.ts`, `package.json`)
+
+**Qué se cambió (2026-11-18).**
+
+- En `vite.config.ts` y `vitest.config.ts`:
+  - Se eliminó la importación y uso del plugin externo `vite-tsconfig-paths`.
+  - Se activó la opción nativa `resolve: { tsconfigPaths: true }`.
+  - Se desinstaló la dependencia `vite-tsconfig-paths` de `devDependencies` en `package.json`.
+- En `CasePanel.tsx` y `OperationalInbox.tsx`:
+  - Se desestructuraron y propagaron las propiedades `currentUserDepartmentId` y `currentDepartmentIds` para evaluar correctamente la pertenencia departamental del usuario en la transferencia de casos.
+  - Se actualizó `CasePanel.test.tsx` con el mock de `useSession` y la validación de visibilidad de agentes según pertenencia de área.
+
+**Por qué.**
+Vite 6+ / 8+ soporta la resolución de alias y rutas de `tsconfig.json` de forma nativa e integrada en su núcleo. Retirar el plugin externo previene avisos de deprecación en la consola (`The plugin "vite-tsconfig-paths" is detected...`) y aligera la cadena de compilación.
+
+**Qué no revertir.**
+Mantener `resolve.tsconfigPaths: true` en `vite.config.ts` y `vitest.config.ts`. No reinstalar `vite-tsconfig-paths`. Registro del cambio: `CHANGELOG.md` `[0.2.29]`.
+
+## 20. Diagnóstico y Corrección de Políticas CORS y Depuración de ESLint (`cors.middleware.ts`, `use-operational-inbox.ts`, `CaseSummaryDialog.tsx`, `CompleteCaseModal.tsx`, `CampaignLaunchModal.tsx`)
+
+**Qué se cambió (2026-11-18).**
+
+- En `internal_sys_comunication_backend/src/shared/http/middlewares/cors.middleware.ts`:
+  - Se corrigió el middleware de CORS para asegurar que en solicitudes con `credentials: 'include'` y preflights `OPTIONS`, se refleje de manera reactiva el `Origin` entrante (`req.header("origin")` o `req.headers.origin`) fijando el encabezado mandatorio `Access-Control-Allow-Credentials: true`.
+  - Se autorizaron los encabezados requeridos para el transporte de cookies y autorización (`Content-Type, Authorization, x-agent-id, x-correlation-id, Cookie, Set-Cookie`) y se fijó `Access-Control-Max-Age: 86400` para reducir preflights redundantes.
+- En `internal_sys_comunication_frontend`:
+  - `use-operational-inbox.ts`: Se removió el tipo huerfano `AutomationStateDto` y se agregaron las dependencias `session?.role` y `session?.departmentIds` a las dependencias de `useCallback` en `reload`.
+  - `CompleteCaseModal.tsx`: Se depuraron importaciones de iconos `UserX` y `AlertCircle` no utilizados.
+  - `CaseSummaryDialog.tsx`: Se unificó la importación duplicada de `@/modules/cases/domain/case`.
+  - `conversation.test.ts`: Se retiró `normalizeSearchQuery` de las importaciones de Vitest.
+  - `CampaignLaunchModal.tsx`: Se combinaron las importaciones duplicadas de `../domain/template` y se renombró el estado sin lectura a `_csvContent`.
+
+**Por qué.**
+Evita el bloqueo de CORS al autenticarse o consultar departamentos desde el frontend hacia el backend cuando se usan cookies de sesión httpOnly (`credentials: 'include'`). Asimismo, garantiza cumplimiento estricto de reglas de calidad de código de ESLint con 0 errores y 0 fallos de tipado en TypeScript.
+
+**Qué no revertir.**
+No condicionar `Access-Control-Allow-Credentials` a un set incompleto en peticiones preflight válidas en entornos de desarrollo local. Registro del cambio: `CHANGELOG.md` `[0.2.31]`.

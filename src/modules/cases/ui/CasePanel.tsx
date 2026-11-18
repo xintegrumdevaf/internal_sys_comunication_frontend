@@ -42,6 +42,7 @@ import {
 import { describeHumanHandling } from "@/modules/cases/domain/escalation-reason";
 import { advanceCase, type CloseReason } from "@/modules/cases/infrastructure/case.gateway";
 import type { DepartmentDto } from "@/modules/identity/domain/department";
+import { useSession } from "@/modules/identity/application/use-session";
 import { CompleteCaseModal } from "@/modules/cases/ui/CompleteCaseModal";
 import { ScheduleCaseModal } from "@/modules/cases/ui/ScheduleCaseModal";
 
@@ -549,6 +550,8 @@ export function CasePanel({
   onDiagnose,
   onCloseConversation,
   onDeriveConversation,
+  currentUserDepartmentId,
+  currentDepartmentIds,
 }: {
   caseDto: CaseDto | null;
   /** True mientras se cargan el hilo y los casos de la conversación seleccionada. */
@@ -587,6 +590,8 @@ export function CasePanel({
   /** Abre un caso en un área cuando el asistente no identificó la conversación. */
   onDeriveConversation?: (departmentId: string, reason: string) => void | Promise<unknown>;
   customerContracts?: ContractDto[];
+  currentUserDepartmentId?: string;
+  currentDepartmentIds?: string[];
 }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [deriveOpen, setDeriveOpen] = useState(false);
@@ -605,6 +610,25 @@ export function CasePanel({
   const [syncingData, setSyncingData] = useState(false);
   const [diagnosing, setDiagnosing] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+
+  const session = useSession();
+  const myDepartmentIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (currentUserDepartmentId) ids.add(currentUserDepartmentId);
+    if (Array.isArray(currentDepartmentIds)) {
+      currentDepartmentIds.forEach((id) => ids.add(id));
+    }
+    if (session?.primaryDepartmentId) ids.add(session.primaryDepartmentId);
+    if (Array.isArray(session?.departmentIds)) {
+      session.departmentIds.forEach((id) => ids.add(id));
+    }
+    return ids;
+  }, [
+    currentUserDepartmentId,
+    currentDepartmentIds,
+    session?.primaryDepartmentId,
+    session?.departmentIds,
+  ]);
 
   useEffect(() => {
     setSelectedContractId(null);
@@ -1371,13 +1395,7 @@ export function CasePanel({
                     <option value="">Auto-asignar automáticamente (menor carga)</option>
                     {agents
                       .filter((a) => {
-                        // 1. Debe estar activo en la empresa (no eliminado)
-                        if (a.active === false) return false;
-
-                        // 2. Solo agentes con el turno abierto (asignación automática encendida)
-                        if (!a.autoAssignEnabled) return false;
-
-                        // 3. Pertenencia y atención del departamento seleccionado (soporta multidepartamento)
+                        // 1. Pertenencia al departamento seleccionado (soporta multidepartamento)
                         const deptToCheck = transferDept || caseDto.departmentId;
                         if (deptToCheck) {
                           const allDeptIds = new Set<string>();
@@ -1388,10 +1406,25 @@ export function CasePanel({
 
                           // Si no pertenece al departamento, se descarta
                           if (!allDeptIds.has(deptToCheck)) return false;
+                        }
 
-                          // Si el agente tiene definidas sus colas activas para su turno,
-                          // debe estar atendiendo este departamento en particular
+                        // 2. No transferirse al mismo agente que ya tiene el caso
+                        if (a.id === caseDto.assignedAgentId) return false;
+
+                        // 3. Regla de visualización según pertenencia al departamento:
+                        // - En el departamento al que pertenezco (ej. Facturación si soy de Facturación):
+                        //   Se ven todos los usuarios del departamento, estén activos o no.
+                        // - En otro departamento que no es al que pertenezco:
+                        //   Solo se ven los usuarios que están activos y disponibles (con asignación automática habilitada).
+                        const isMyDepartment = Boolean(
+                          deptToCheck && myDepartmentIds.has(deptToCheck),
+                        );
+
+                        if (!isMyDepartment) {
+                          if (a.active === false) return false;
+                          if (!a.autoAssignEnabled) return false;
                           if (
+                            deptToCheck &&
                             Array.isArray(a.activeDepartmentIds) &&
                             a.activeDepartmentIds.length > 0 &&
                             !a.activeDepartmentIds.includes(deptToCheck)
@@ -1400,14 +1433,17 @@ export function CasePanel({
                           }
                         }
 
-                        // 4. No transferirse al mismo agente que ya tiene el caso
-                        return a.id !== caseDto.assignedAgentId;
+                        return true;
                       })
-                      .map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
+                      .map((a) => {
+                        const isInactive = a.active === false;
+                        return (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                            {isInactive ? " (Inactivo)" : ""}
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
               )}

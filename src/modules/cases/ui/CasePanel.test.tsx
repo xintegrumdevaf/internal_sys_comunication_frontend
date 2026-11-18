@@ -8,6 +8,14 @@ vi.mock("@/modules/cases/infrastructure/case.gateway", () => ({
   advanceCase: vi.fn(),
 }));
 
+vi.mock("@/modules/identity/application/use-session", () => ({
+  useSession: () => ({
+    primaryDepartmentId: "dept_support",
+    departmentIds: ["dept_support"],
+    role: "agent",
+  }),
+}));
+
 const mockCase: CaseDto = {
   id: "case_123",
   conversationId: "conv_123",
@@ -562,15 +570,14 @@ describe("CasePanel - quién atiende", () => {
     expect(screen.getAllByText(/Estado del [cC]aso/i).length).toBeGreaterThanOrEqual(2);
   });
 
-  it("filtra el selector de agentes para mostrar solo agentes con turno abierto (autoAssignEnabled=true) y que atienden el departamento", () => {
+  it("filtra el selector de agentes según departamento y disponibilidad", () => {
     const mockAgents = [
       {
         id: "agent_offline_soporte",
         name: "Ariel Paucar",
         primaryDepartmentId: "dept_support",
         departmentIds: ["dept_support"],
-        active: true,
-        autoAssignEnabled: false, // Turno cerrado
+        active: false,
       },
       {
         id: "agent_online_soporte",
@@ -579,7 +586,6 @@ describe("CasePanel - quién atiende", () => {
         departmentIds: ["dept_traslados", "dept_support"], // Multidepartamento
         activeDepartmentIds: ["dept_traslados", "dept_support"],
         active: true,
-        autoAssignEnabled: true, // Turno abierto
       },
       {
         id: "agent_online_facturacion",
@@ -587,7 +593,13 @@ describe("CasePanel - quién atiende", () => {
         primaryDepartmentId: "dept_billing",
         departmentIds: ["dept_billing"],
         active: true,
-        autoAssignEnabled: true, // Turno abierto pero en otro depto
+      },
+      {
+        id: "agent_inactive_facturacion",
+        name: "Carlos Inactivo",
+        primaryDepartmentId: "dept_billing",
+        departmentIds: ["dept_billing"],
+        active: false,
       },
     ];
 
@@ -632,13 +644,19 @@ describe("CasePanel - quién atiende", () => {
     // Abrir transferencia
     fireEvent.click(screen.getByRole("button", { name: /Transferir caso \/ Área/i }));
 
-    // Daysi debe aparecer porque tiene turno abierto y atiende Soporte Técnico (aunque su primary sea Traslados)
+    // En mi departamento (dept_support) se ven los agentes del área (incluso inactivos)
+    expect(screen.getByRole("option", { name: /Ariel Paucar/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Daysi Pilataxi" })).toBeInTheDocument();
-
-    // Ariel Paucar NO debe aparecer porque tiene autoAssignEnabled=false (turno cerrado)
-    expect(screen.queryByRole("option", { name: "Ariel Paucar" })).not.toBeInTheDocument();
 
     // Emilie Matiz NO debe aparecer en el departamento de Soporte Técnico
     expect(screen.queryByRole("option", { name: "Emilie Matiz" })).not.toBeInTheDocument();
+
+    // Cambiar a otro departamento (Facturación)
+    const deptSelect = screen.getByDisplayValue(/Mismo departamento/i);
+    fireEvent.change(deptSelect, { target: { value: "dept_billing" } });
+
+    // En otro departamento solo se ven los agentes activos
+    expect(screen.getByRole("option", { name: "Emilie Matiz" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Carlos Inactivo/ })).not.toBeInTheDocument();
   });
 });

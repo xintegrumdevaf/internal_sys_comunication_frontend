@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { X, Upload, Send, DollarSign, Users, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import type { WhatsAppTemplate } from "../domain/template";
-import { extractTemplateVariables } from "../domain/template";
+import { extractTemplateVariables, type WhatsAppTemplate } from "../domain/template";
 import {
   buildCampaignRecipients,
   estimateCampaignCost,
@@ -28,7 +27,7 @@ export function CampaignLaunchModal({ isOpen, onClose, approvedTemplates, onSubm
   const [inputMode, setInputMode] = useState<"csv" | "manual">("csv");
 
   // CSV State
-  const [csvContent, setCsvContent] = useState("");
+  const [_csvContent, setCsvContent] = useState("");
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
   const [phoneColumn, setPhoneColumn] = useState("");
