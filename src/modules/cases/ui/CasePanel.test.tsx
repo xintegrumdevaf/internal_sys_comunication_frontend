@@ -578,6 +578,7 @@ describe("CasePanel - quién atiende", () => {
         primaryDepartmentId: "dept_support",
         departmentIds: ["dept_support"],
         active: false,
+        autoAssignEnabled: false,
       },
       {
         id: "agent_online_soporte",
@@ -586,6 +587,7 @@ describe("CasePanel - quién atiende", () => {
         departmentIds: ["dept_traslados", "dept_support"], // Multidepartamento
         activeDepartmentIds: ["dept_traslados", "dept_support"],
         active: true,
+        autoAssignEnabled: true,
       },
       {
         id: "agent_online_facturacion",
@@ -593,6 +595,7 @@ describe("CasePanel - quién atiende", () => {
         primaryDepartmentId: "dept_billing",
         departmentIds: ["dept_billing"],
         active: true,
+        autoAssignEnabled: true,
       },
       {
         id: "agent_inactive_facturacion",
@@ -600,6 +603,7 @@ describe("CasePanel - quién atiende", () => {
         primaryDepartmentId: "dept_billing",
         departmentIds: ["dept_billing"],
         active: false,
+        autoAssignEnabled: false,
       },
     ];
 

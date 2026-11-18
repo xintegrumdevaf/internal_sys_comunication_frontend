@@ -21,7 +21,8 @@ All notable changes to this project will be documented in this file.
     3. [CaseSummaryDialog.tsx](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/cases/ui/CaseSummaryDialog.tsx): Se unificó la importación de `CaseDto` en la cláusula principal de `@/modules/cases/domain/case`.
     4. [conversation.test.ts](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/conversations/domain/conversation.test.ts): Se retiró `normalizeSearchQuery` de los imports de prueba.
     5. [CampaignLaunchModal.tsx](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/campaigns/ui/CampaignLaunchModal.tsx): Se unificaron las importaciones de `../domain/template` y se renombró el estado no leído a `_csvContent`.
-    6. **Verificación**: 0 errores en `eslint .`, 0 errores en `tsc --noEmit` y 493/493 pruebas unitarias aprobadas en 88 suites de Vitest.
+    6. [CasePanel.test.tsx](file:///c:/Users/Usuario/Documents/xGO/Sistem_comunication/internal_sys_comunication_frontend/src/modules/cases/ui/CasePanel.test.tsx): Se incluyeron las propiedades `autoAssignEnabled` en el mock de agentes para reflejar con precisión la regla de disponibilidad en transferencias hacia otros departamentos, resolviendo la aserción de `Emilie Matiz`.
+    7. **Verificación**: 0 errores en `eslint .`, 0 errores en `tsc --noEmit` y 493/493 pruebas unitarias aprobadas en 88 suites de Vitest.
 
 ## [0.2.30] - 2026-11-18
 
